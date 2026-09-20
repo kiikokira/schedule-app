@@ -29,7 +29,7 @@ it('returns mapped result items with nullable fields', async () => {
   })
   const result = await searchBooks('英単語', 10, fetchMock as unknown as typeof fetch)
   expect(result).toEqual([
-    { id: 'vol1', title: '英単語1000', authors: ['太郎'], pageCount: 320, thumbnail: 'http://t.co/x' },
+    { id: 'vol1', title: '英単語1000', authors: ['太郎'], pageCount: 320, thumbnail: 'https://t.co/x' },
     { id: 'vol2', title: '英熟語500', authors: [], pageCount: null, thumbnail: null },
   ] as SearchResultItem[])
 })

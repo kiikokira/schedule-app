@@ -34,7 +34,7 @@ export default function App() {
           }}
         >
           アプリが更新されました。
-          <button onClick={reload}>更新する</button>
+          <button onClick={() => void reload()}>更新する</button>
         </div>
       )}
       <header className="app-header">

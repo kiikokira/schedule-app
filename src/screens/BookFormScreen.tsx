@@ -70,7 +70,12 @@ export default function BookFormScreen({ book, onDone }: Props) {
       createdAt: book?.createdAt ?? now,
       updatedAt: now,
     }
-    await saveBook(next, isNew)
+    try {
+      await saveBook(next, isNew)
+    } catch {
+      setError('保存に失敗しました。もう一度お試しください')
+      return
+    }
     onDone()
   }
 

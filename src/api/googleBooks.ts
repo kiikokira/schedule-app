@@ -41,7 +41,9 @@ export async function searchBooks(
         title: info.title ?? '(タイトルなし)',
         authors: info.authors ?? [],
         pageCount: typeof info.pageCount === 'number' ? info.pageCount : null,
-        thumbnail: info.imageLinks?.thumbnail ?? null,
+        thumbnail: info.imageLinks?.thumbnail
+          ? info.imageLinks.thumbnail.replace(/^http:/, 'https:')
+          : null,
       }
     })
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ProgressChart from '../components/ProgressChart'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
@@ -20,7 +20,15 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const { books, removeBook } = useBooks()
   const { records, addProgress } = useRecords()
   const [pagesInput, setPagesInput] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
   const book: BookData | undefined = books.find((b) => b.id === bookId)
+  const today = todayStr()
+
+  useEffect(() => {
+    const tr = book ? records.find((r) => r.bookId === book.id && r.date === today) : undefined
+    setPagesInput(tr ? String(tr.pages) : '')
+  }, [book?.id, records, today])
 
   if (!book) {
     return (
@@ -31,11 +39,11 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     )
   }
 
-  const today = todayStr()
+  const todayRecord = records.find((r) => r.bookId === book.id && r.date === today)
+
   const done = calcDonePages(records, book.id)
   const remainingDays = daysBetween(today, book.deadline)
   const target = calcDailyTarget(book, done, remainingDays)
-  const todayRecord = records.find((r) => r.bookId === book.id && r.date === today)
 
   const bookRecords = records
     .filter((r) => r.bookId === book.id)
@@ -44,15 +52,29 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
 
   const handleRecord = async () => {
     const pages = Number(pagesInput)
-    if (!Number.isInteger(pages) || pages < 1) return
-    await addProgress(book.id, today, pages)
+    if (!Number.isInteger(pages) || pages < 1) {
+      setError('ページ数は1以上の整数で入力してください')
+      return
+    }
+    setError(null)
+    try {
+      await addProgress(book.id, today, pages)
+    } catch {
+      setError('記録に失敗しました。もう一度お試しください')
+      return
+    }
     setPagesInput('')
   }
 
   const handleDelete = async () => {
     if (!window.confirm(`「${book.title}」を削除しますか？`)) return
-    await removeBook(book.id)
-    onBack()
+    setError(null)
+    try {
+      await removeBook(book.id)
+      onBack()
+    } catch {
+      setError('削除に失敗しました。もう一度お試しください')
+    }
   }
 
   return (
@@ -78,13 +100,18 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           data-testid="progress-input"
           type="number"
           inputMode="numeric"
-          value={todayRecord?.pages ? String(todayRecord.pages) : pagesInput}
+          value={pagesInput}
           onChange={(e) => setPagesInput(e.target.value)}
           placeholder="ページ数"
         />
         <button data-testid="record-progress" type="button" onClick={() => void handleRecord()}>
           今日やったページ数を記録
         </button>
+        {error && (
+          <p data-testid="record-error" style={{ color: '#b91c1c' }}>
+            {error}
+          </p>
+        )}
       </div>
       {todayValues.length > 0 && (
         <>

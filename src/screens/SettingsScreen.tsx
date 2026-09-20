@@ -16,8 +16,10 @@ export default function SettingsScreen({ onDone }: Props) {
     const a = document.createElement('a')
     a.href = url
     a.download = `schedule-backup-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(a)
     a.click()
-    URL.revokeObjectURL(url)
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
     setResult('書き出しました')
   }
 
