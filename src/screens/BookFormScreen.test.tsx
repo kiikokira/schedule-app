@@ -1,9 +1,12 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import BookFormScreen from './BookFormScreen'
+import { db } from '../db/database'
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.restoreAllMocks()
+  await db.books.clear()
+  await db.records.clear()
 })
 
 describe('BookFormScreen', () => {
@@ -74,5 +77,18 @@ describe('BookFormScreen', () => {
     fireEvent.change(screen.getByTestId('book-pages'), { target: { value: 'abc' } })
     fireEvent.click(screen.getByTestId('book-save'))
     expect(screen.getByTestId('book-error')).toHaveTextContent(/ページ数/)
+  })
+
+  it('stores catalogId when saving a catalog book', async () => {
+    render(<BookFormScreen book={null} onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('catalog-search-input'), { target: { value: 'システム英単語＜5訂版＞' } })
+    fireEvent.click(screen.getAllByRole('button', { name: /選ぶ/ })[0])
+    fireEvent.change(screen.getByTestId('book-start'), { target: { value: '2026-09-01' } })
+    fireEvent.change(screen.getByTestId('book-deadline'), { target: { value: '2026-09-20' } })
+    fireEvent.click(screen.getByTestId('book-save'))
+    await waitFor(async () => {
+      const books = await db.books.toArray()
+      expect(books.some((b) => b.catalogId === 'system-tango')).toBe(true)
+    })
   })
 })

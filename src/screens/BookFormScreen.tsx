@@ -16,6 +16,7 @@ export default function BookFormScreen({ book, onDone }: Props) {
   const [subject, setSubject] = useState(book?.subject ?? '英語')
   const [totalPages, setTotalPages] = useState(book?.totalPages ? String(book.totalPages) : '')
   const [coverUrl, setCoverUrl] = useState<string | null>(book?.coverUrl ?? null)
+  const [catalogId, setCatalogId] = useState(book?.catalogId ?? null)
   const [startDate, setStartDate] = useState(book?.startDate ?? todayStr())
   const [deadline, setDeadline] = useState(book?.deadline ?? '')
   const [tab, setTab] = useState<'catalog' | 'search'>('catalog')
@@ -42,6 +43,7 @@ export default function BookFormScreen({ book, onDone }: Props) {
     setTitle(item.title)
     if (item.pageCount) setTotalPages(String(item.pageCount))
     setCoverUrl(item.thumbnail)
+    setCatalogId(null)
   }
 
   const pickCatalog = (item: CatalogBook) => {
@@ -49,6 +51,7 @@ export default function BookFormScreen({ book, onDone }: Props) {
     setSubject(item.subject)
     setTotalPages(String(item.totalPages))
     setCoverUrl(item.coverSrc ?? null)
+    setCatalogId(item.id)
   }
 
   const handleSave = async () => {
@@ -78,6 +81,7 @@ export default function BookFormScreen({ book, onDone }: Props) {
       subject: subject.trim() || undefined,
       totalPages: pages,
       coverUrl: coverUrl ?? undefined,
+      catalogId: catalogId ?? undefined,
       startDate,
       deadline,
       createdAt: book?.createdAt ?? now,

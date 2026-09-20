@@ -3,6 +3,7 @@ import HomeScreen from './screens/HomeScreen'
 import BookDetailScreen from './screens/BookDetailScreen'
 import BookFormScreen from './screens/BookFormScreen'
 import SettingsScreen from './screens/SettingsScreen'
+import PlanScreen from './screens/PlanScreen'
 import { useBooks } from './hooks/useBooks'
 import { usePwaReload } from './hooks/usePwaReload'
 import './styles.css'
@@ -13,6 +14,7 @@ type Route =
   | { name: 'add' }
   | { name: 'edit'; bookId: string }
   | { name: 'settings' }
+  | { name: 'plan' }
 
 export default function App() {
   const { books } = useBooks()
@@ -59,12 +61,18 @@ export default function App() {
           <BookFormScreen book={null} onDone={() => setRoute({ name: 'home' })} />
         )}
         {route.name === 'settings' && <SettingsScreen onDone={() => setRoute({ name: 'home' })} />}
+        {route.name === 'plan' && <PlanScreen onDone={() => setRoute({ name: 'home' })} />}
       </main>
       <footer className="app-footer">
         {route.name === 'home' && (
-          <button data-testid="nav-add" onClick={() => setRoute({ name: 'add' })}>
-            ＋ 参考書を追加
-          </button>
+          <>
+            <button data-testid="nav-plan" onClick={() => setRoute({ name: 'plan' })}>
+              スケジュールで参考書を追加
+            </button>
+            <button data-testid="nav-add" onClick={() => setRoute({ name: 'add' })}>
+              ＋ 参考書を追加
+            </button>
+          </>
         )}
         {route.name !== 'home' && (
           <button data-testid="nav-home" onClick={() => setRoute({ name: 'home' })}>

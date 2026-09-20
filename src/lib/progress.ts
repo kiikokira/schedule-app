@@ -4,6 +4,7 @@ export type BookData = {
   subject?: string
   totalPages: number
   coverUrl?: string
+  catalogId?: string
   startDate: string
   deadline: string
   createdAt: string
