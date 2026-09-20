@@ -27,9 +27,9 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const today = todayStr()
 
   useEffect(() => {
-    const tr = book ? records.find((r) => r.bookId === book.id && r.date === today) : undefined
+    const tr = records.find((r) => r.bookId === book?.id && r.date === today)
     setPagesInput(tr ? String(tr.pages) : '')
-  }, [book?.id, records, today])
+  }, [book?.id, today])
 
   if (!book) {
     return (

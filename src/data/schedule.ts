@@ -1,5 +1,5 @@
 import type { BookData } from '../lib/progress'
-import { formatDate, parseDate } from '../lib/progress'
+import { formatDate, parseDate, daysBetween } from '../lib/progress'
 import { CATALOG } from './catalog'
 
 export type ScheduleEntry = {
@@ -74,6 +74,23 @@ export function addDaysToDate(date: string, days: number): string {
 
 export function suggestDeadline(startDate: string, days = 90): string {
   return addDaysToDate(startDate, days)
+}
+
+export function advanceSchedule(
+  entries: ScheduleEntry[],
+  finishedOn: string,
+  finishedCatalogId: string,
+): ScheduleEntry[] {
+  const index = entries.findIndex((e) => e.catalogId === finishedCatalogId)
+  if (index === -1 || index + 1 >= entries.length) return entries
+  const next = entries[index + 1]
+  const duration = Math.max(daysBetween(next.startDate, next.deadline), 1)
+  const pulled: ScheduleEntry = {
+    ...next,
+    startDate: finishedOn,
+    deadline: addDaysToDate(finishedOn, duration),
+  }
+  return entries.map((e, i) => (i === index + 1 ? pulled : e))
 }
 
 export type ApplyResult = {

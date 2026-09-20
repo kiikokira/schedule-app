@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { SCHEDULE, scheduleEntryOf, buildApplyResult } from './schedule'
+import {
+  SCHEDULE,
+  scheduleEntryOf,
+  buildApplyResult,
+  addDaysToDate,
+  advanceSchedule,
+  type ScheduleEntry,
+} from './schedule'
 import { CATALOG } from './catalog'
 
 describe('schedule', () => {
@@ -111,5 +118,43 @@ describe('schedule', () => {
     expect(updatedBooks).toHaveLength(1)
     expect(updatedBooks[0].catalogId).toBe('porepore')
     expect(updatedBooks[0].deadline).toBe('2027-11-30')
+  })
+})
+
+describe('advanceSchedule', () => {
+  const entries: ScheduleEntry[] = [
+    { catalogId: 'eibunpo-polaris-2', startDate: '2026-09-01', deadline: '2026-11-30' },
+    { catalogId: 'nyumon-kaishaku-70', startDate: '2026-09-01', deadline: '2026-12-31' },
+    { catalogId: 'the-rules-1', startDate: '2027-01-01', deadline: '2027-03-31' },
+  ]
+
+  it('pulls the start and deadline of the next book forward by the day it finished', () => {
+    const today = '2026-11-10'
+    const result = advanceSchedule(entries, today, 'eibunpo-polaris-2')
+    expect(result).toHaveLength(3)
+    expect(result[0]).toEqual(entries[0])
+    const next = result[1]
+    expect(next.startDate).toBe(today)
+    expect(next.deadline).toBe(addDaysToDate(today, 121))
+    expect(result[2]).toEqual(entries[2])
+  })
+
+  it('computes the new deadline from the next book’s original duration', () => {
+    const today = '2026-11-10'
+    const result = advanceSchedule(entries, today, 'eibunpo-polaris-2')
+    const originalDuration = 121
+    expect(result[1].deadline).toBe(addDaysToDate(today, originalDuration))
+  })
+
+  it('does not change anything when the finished book is the last in the schedule', () => {
+    const today = '2026-11-10'
+    const result = advanceSchedule(entries, today, 'the-rules-1')
+    expect(result).toEqual(entries)
+  })
+
+  it('does not change anything when the catalog id is unknown', () => {
+    const today = '2026-11-10'
+    const result = advanceSchedule(entries, today, 'no-such-book')
+    expect(result).toEqual(entries)
   })
 })

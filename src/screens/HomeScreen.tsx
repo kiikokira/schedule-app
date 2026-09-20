@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import BookCard from '../components/BookCard'
 import CoverImage from '../components/CoverImage'
 import { useBooks } from '../hooks/useBooks'
@@ -5,12 +6,17 @@ import { useRecords } from '../hooks/useRecords'
 import {
   calcDonePages,
   calcScheduleStatus,
+  daysBetween,
   todayStr,
   type BookData,
 } from '../lib/progress'
 import { CATALOG } from '../data/catalog'
-import { loadSchedule } from '../data/scheduleStore'
-import { sortScheduleEntries } from '../data/schedule'
+import { loadSchedule, saveSchedule } from '../data/scheduleStore'
+import {
+  advanceSchedule,
+  sortScheduleEntries,
+  type ScheduleEntry,
+} from '../data/schedule'
 
 const STATUS_LABEL: Record<string, string> = {
   done: '完了',
@@ -35,10 +41,41 @@ function findRegistered(
 }
 
 export default function HomeScreen({ onOpenBook }: Props) {
-  const { books } = useBooks()
+  const { books, saveBook } = useBooks()
   const { records } = useRecords()
   const today = todayStr()
-  const scheduled = sortScheduleEntries(loadSchedule(), today)
+  const [schedule, setSchedule] = useState<ScheduleEntry[]>(loadSchedule)
+  const scheduled = sortScheduleEntries(schedule, today)
+
+  const handleAdvance = async (finishedCatalogId: string) => {
+    const updatedSchedule = advanceSchedule(schedule, today, finishedCatalogId)
+    if (updatedSchedule === schedule) return
+    saveSchedule(updatedSchedule)
+    setSchedule(updatedSchedule)
+    const finishedIndex = schedule.findIndex(
+      (e) => e.catalogId === finishedCatalogId,
+    )
+    const nextEntry =
+      finishedIndex !== -1 ? updatedSchedule[finishedIndex + 1] : undefined
+    if (!nextEntry) return
+    const nextCatalogBook = CATALOG.find((c) => c.id === nextEntry.catalogId)
+    const nextRegistered = findRegistered(
+      books,
+      nextEntry.catalogId,
+      nextCatalogBook?.title,
+    )
+    if (nextRegistered) {
+      await saveBook(
+        {
+          ...nextRegistered,
+          startDate: nextEntry.startDate,
+          deadline: nextEntry.deadline,
+          updatedAt: new Date().toISOString(),
+        },
+        false,
+      )
+    }
+  }
 
   const sortedBooks = [...books].sort((a, b) => {
     const sa = calcScheduleStatus(a, calcDonePages(records, a.id), today)
@@ -79,6 +116,15 @@ export default function HomeScreen({ onOpenBook }: Props) {
                 today,
               )
             : 'unregistered'
+          const remainingDays = daysBetween(today, entry.deadline)
+          const daysLabel =
+            remainingDays >= 0
+              ? `あと ${remainingDays} 日`
+              : `${-remainingDays} 日超過`
+          const originalIndex = schedule.findIndex(
+            (e) => e.catalogId === entry.catalogId,
+          )
+          const hasNext = originalIndex !== -1 && originalIndex + 1 < schedule.length
           return (
             <div
               key={entry.catalogId}
@@ -109,13 +155,23 @@ export default function HomeScreen({ onOpenBook }: Props) {
                   {catalogBook?.title ?? entry.catalogId}
                 </div>
                 <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>
-                  期限 {entry.deadline}
+                  期限 {entry.deadline}（{daysLabel}）
                   {entry.note ? `（${entry.note}）` : ''} /{' '}
                   {status === 'unregistered'
                     ? '未登録'
                     : STATUS_LABEL[status]}
                 </div>
               </div>
+              {registered && status === 'done' && hasNext && (
+                <button
+                  data-testid={`advance-next-${entry.catalogId}`}
+                  type="button"
+                  onClick={() => void handleAdvance(entry.catalogId)}
+                  style={{ flexShrink: 0 }}
+                >
+                  次へ進む
+                </button>
+              )}
               {registered && (
                 <button
                   type="button"
