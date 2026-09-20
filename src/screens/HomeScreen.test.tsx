@@ -173,4 +173,27 @@ describe('HomeScreen', () => {
       expect(screen.queryByTestId('advance-next-eibunpo-polaris-2')).toBeNull()
     })
   })
+
+  it('shows required pages per day on a book card using today record', async () => {
+    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
+    await db.records.add({
+      id: 'r1',
+      bookId: 'b1',
+      date: localDateStr(new Date()),
+      pages: 40,
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const card = await screen.findByTestId('book-card-b1')
+    // (100 - 40) / 今日を除く5日 = 1日12ページ
+    expect(card).toHaveTextContent('期限まで1日あたり 12 ページ')
+  })
+
+  it('shows required pages per day on a book card with no today record', async () => {
+    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: daysAgo(1), pages: 40 })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const card = await screen.findByTestId('book-card-b1')
+    // (100 - 40) / 今日を除く5日 = 1日12ページ
+    expect(card).toHaveTextContent('期限まで1日あたり 12 ページ')
+  })
 })

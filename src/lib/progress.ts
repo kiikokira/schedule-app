@@ -57,6 +57,22 @@ export function calcDailyTarget(
   return Math.ceil(remaining / remainingDays)
 }
 
+export function calcRequiredPerDay(
+  book: { totalPages: number },
+  doneBeforeToday: number,
+  todayPages: number,
+  remainingDays: number,
+): number {
+  const remainingAfterToday = Math.max(
+    book.totalPages - doneBeforeToday - todayPages,
+    0,
+  )
+  const daysLeft = Math.max(remainingDays - 1, 0)
+  if (remainingAfterToday <= 0) return 0
+  if (daysLeft <= 0) return remainingAfterToday
+  return Math.ceil(remainingAfterToday / daysLeft)
+}
+
 export function calcScheduleStatus(
   book: { totalPages: number; startDate: string; deadline: string },
   done: number,

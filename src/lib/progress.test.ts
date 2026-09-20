@@ -5,6 +5,7 @@ import {
   todayStr,
   daysBetween,
   calcDailyTarget,
+  calcRequiredPerDay,
   calcScheduleStatus,
   calcDonePages,
   type BookData,
@@ -62,6 +63,27 @@ describe('calcDailyTarget', () => {
   })
   it('returns 0 when book finished', () => {
     expect(calcDailyTarget({ totalPages: 100 }, 100, 6)).toBe(0)
+  })
+})
+
+describe('calcRequiredPerDay', () => {
+  it('subtracts today pages and divides by remaining days excluding today', () => {
+    // 残り10ページ / 期限まで5日、今日3ページ → 残り4日で7ページ = 1日2ページ
+    expect(calcRequiredPerDay({ totalPages: 100 }, 90, 3, 5)).toBe(2)
+  })
+  it('rounds up fractional required pages', () => {
+    // 残り10ページ / 今日を除いて4日、今日0ページ → 1日3ページ
+    expect(calcRequiredPerDay({ totalPages: 100 }, 90, 0, 5)).toBe(3)
+  })
+  it('returns 0 when book will be finished today', () => {
+    expect(calcRequiredPerDay({ totalPages: 100 }, 90, 10, 5)).toBe(0)
+  })
+  it('returns remaining pages when deadline is today or passed', () => {
+    expect(calcRequiredPerDay({ totalPages: 100 }, 90, 5, 0)).toBe(5)
+    expect(calcRequiredPerDay({ totalPages: 100 }, 90, 0, -3)).toBe(10)
+  })
+  it('returns remaining pages when no days after today', () => {
+    expect(calcRequiredPerDay({ totalPages: 100 }, 90, 5, 1)).toBe(5)
   })
 })
 

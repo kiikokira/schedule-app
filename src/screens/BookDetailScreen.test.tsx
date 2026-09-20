@@ -53,4 +53,32 @@ describe('BookDetailScreen', () => {
     fireEvent.click(screen.getByTestId('record-progress'))
     await waitFor(() => expect(screen.getByTestId('done-count')).toHaveTextContent('7'))
   })
+
+  it('shows required pages per day, updating live as the input changes', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(0), deadline: daysFromNow(6) })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    const line = await screen.findByTestId('required-per-day')
+    // 100ページ / 今日を除く5日 = 1日20ページ
+    expect(line).toHaveTextContent('今日 0 ページを進める場合、期限まで1日あたり 20 ページ')
+    fireEvent.change(await screen.findByTestId('progress-input'), { target: { value: '10' } })
+    // (100 - 10) / 5日 = 1日18ページ
+    expect(screen.getByTestId('required-per-day')).toHaveTextContent(
+      '今日 10 ページを進める場合、期限まで1日あたり 18 ページ',
+    )
+  })
+
+  it('reflects today record in the required pages per day', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(0), deadline: daysFromNow(6) })
+    await db.records.add({
+      id: 'r1',
+      bookId: 'b1',
+      date: localDateStr(new Date()),
+      pages: 40,
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    // (100 - 40) / 5日 = 1日12ページ
+    expect(await screen.findByTestId('required-per-day')).toHaveTextContent(
+      '今日 40 ページを進める場合、期限まで1日あたり 12 ページ',
+    )
+  })
 })

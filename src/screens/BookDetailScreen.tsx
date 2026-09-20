@@ -6,6 +6,7 @@ import { useRecords } from '../hooks/useRecords'
 import {
   calcDonePages,
   calcDailyTarget,
+  calcRequiredPerDay,
   daysBetween,
   todayStr,
   type BookData,
@@ -45,6 +46,19 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const done = calcDonePages(records, book.id)
   const remainingDays = daysBetween(today, book.deadline)
   const target = calcDailyTarget(book, done, remainingDays)
+
+  const doneBeforeToday = done - (todayRecord?.pages ?? 0)
+  const todayPages = (() => {
+    const p = Number(pagesInput)
+    if (Number.isInteger(p) && p >= 1) return p
+    return todayRecord?.pages ?? 0
+  })()
+  const requiredPerDay = calcRequiredPerDay(
+    book,
+    doneBeforeToday,
+    todayPages,
+    remainingDays,
+  )
 
   const bookRecords = records
     .filter((r) => r.bookId === book.id)
@@ -94,6 +108,10 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       <p>
         残り {Math.max(book.totalPages - done, 0)} ページ / 期限まで{' '}
         {Math.max(remainingDays, 0)} 日
+      </p>
+      <p data-testid="required-per-day">
+        今日 {todayPages} ページを進める場合、期限まで1日あたり {requiredPerDay}{' '}
+        ページ
       </p>
       <div style={{ margin: '16px 0' }}>
         <p>今日の学習（{todayRecord ? '記録済み・上書きします' : '未記録'}）</p>

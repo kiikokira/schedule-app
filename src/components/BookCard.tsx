@@ -2,6 +2,7 @@ import type { BookData, ProgressRecordData } from '../lib/progress'
 import {
   calcDonePages,
   calcDailyTarget,
+  calcRequiredPerDay,
   daysBetween,
   todayStr,
   calcScheduleStatus,
@@ -21,11 +22,21 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export default function BookCard({ book, records, onOpen }: Props) {
+  const today = todayStr()
   const done = calcDonePages(records, book.id)
+  const todayRecord = records.find((r) => r.bookId === book.id && r.date === today)
+  const todayPages = todayRecord?.pages ?? 0
+  const doneBeforeToday = done - todayPages
   const remaining = Math.max(book.totalPages - done, 0)
-  const remainingDays = daysBetween(todayStr(), book.deadline)
+  const remainingDays = daysBetween(today, book.deadline)
   const target = calcDailyTarget(book, done, remainingDays)
-  const status = calcScheduleStatus(book, done, todayStr())
+  const requiredPerDay = calcRequiredPerDay(
+    book,
+    doneBeforeToday,
+    todayPages,
+    remainingDays,
+  )
+  const status = calcScheduleStatus(book, done, today)
   const progress = book.totalPages > 0 ? (done / book.totalPages) * 100 : 0
 
   return (
@@ -52,6 +63,7 @@ export default function BookCard({ book, records, onOpen }: Props) {
           <div>
             今日の目標 <strong>{target}</strong> ページ
           </div>
+          <div>期限まで1日あたり {requiredPerDay} ページ</div>
           <div>
             期限 {book.deadline}（残り{Math.max(remainingDays, 0)}日） / {STATUS_LABEL[status]}
           </div>
