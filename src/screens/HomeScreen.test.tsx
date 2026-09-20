@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { beforeEach, describe, it, expect } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { db } from '../db/database'
 import HomeScreen from './HomeScreen'
 import { saveSchedule, resetSchedule, loadSchedule } from '../data/scheduleStore'
@@ -195,5 +195,35 @@ describe('HomeScreen', () => {
     const card = await screen.findByTestId('book-card-b1')
     // (100 - 40) / 今日を除く5日 = 1日12ページ
     expect(card).toHaveTextContent('期限まで1日あたり 12 ページ')
+  })
+
+  it('updates required pages per day live while typing on the card', async () => {
+    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const input = await screen.findByTestId('card-progress-input-b1')
+    fireEvent.change(input, { target: { value: '10' } })
+    const card = screen.getByTestId('book-card-b1')
+    // (100 - 10) / 今日を除く5日 = 1日18ページ
+    expect(card).toHaveTextContent('期限まで1日あたり 18 ページ')
+  })
+
+  it('records today progress from the card input', async () => {
+    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const input = await screen.findByTestId('card-progress-input-b1')
+    fireEvent.change(input, { target: { value: '10' } })
+    const recordBtn = screen.getByTestId('card-record-b1')
+    fireEvent.click(recordBtn)
+    const card = screen.getByTestId('book-card-b1')
+    await waitFor(() => expect(card).toHaveTextContent('残り 90 ページ'))
+  })
+
+  it('does not open the book when tapping the card record button', async () => {
+    const onOpen = vi.fn()
+    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
+    render(<HomeScreen onOpenBook={onOpen} />)
+    const recordBtn = await screen.findByTestId('card-record-b1')
+    fireEvent.click(recordBtn)
+    expect(onOpen).not.toHaveBeenCalled()
   })
 })

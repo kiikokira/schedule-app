@@ -42,7 +42,7 @@ function findRegistered(
 
 export default function HomeScreen({ onOpenBook }: Props) {
   const { books, saveBook } = useBooks()
-  const { records } = useRecords()
+  const { records, addProgress } = useRecords()
   const today = todayStr()
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(loadSchedule)
   const scheduled = sortScheduleEntries(schedule, today)
@@ -201,6 +201,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
               book={book}
               records={records}
               onOpen={onOpenBook}
+              onRecord={(bookId, pages) => void addProgress(bookId, today, pages)}
             />
           ))
         )}
