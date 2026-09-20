@@ -42,7 +42,7 @@
 - Consumes: なし（初期構築）
 - Produces: `npm run dev` / `npm run build` / `npm test` が動作する基盤。後続タスクは `src/App.tsx` と `src/` 配下にファイルを追加する。
 
-- [ ] **Step 1: 依存を定義した package.json を作成**
+- [x] **Step 1: 依存を定義した package.json を作成**
 
 ```json
 {
@@ -80,7 +80,7 @@
 }
 ```
 
-- [ ] **Step 2: vite.config.ts を作成（vitest 設定と PWA は後続タスクで追加）**
+- [x] **Step 2: vite.config.ts を作成（vitest 設定と PWA は後続タスクで追加）**
 
 ```typescript
 import { defineConfig } from 'vitest/config'
@@ -97,7 +97,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 3: tsconfig.json を作成**
+- [x] **Step 3: tsconfig.json を作成**
 
 ```json
 {
@@ -122,7 +122,7 @@ export default defineConfig({
 }
 ```
 
-- [ ] **Step 4: index.html を作成（最終的に PWA で「ホーム画面に追加」可能にするため lang・viewport を設定）**
+- [x] **Step 4: index.html を作成（最終的に PWA で「ホーム画面に追加」可能にするため lang・viewport を設定）**
 
 ```html
 <!doctype html>
@@ -140,7 +140,7 @@ export default defineConfig({
 </html>
 ```
 
-- [ ] **Step 5: .gitignore を作成**
+- [x] **Step 5: .gitignore を作成**
 
 ```gitignore
 node_modules/
@@ -149,7 +149,7 @@ dist/
 .DS_Store
 ```
 
-- [ ] **Step 6: 最小の src/main.tsx / src/App.tsx / src/vite-env.d.ts を作成**
+- [x] **Step 6: 最小の src/main.tsx / src/App.tsx / src/vite-env.d.ts を作成**
 
 `src/main.tsx`:
 
@@ -179,7 +179,7 @@ export default function App() {
 /// <reference types="vite/client" />
 ```
 
-- [ ] **Step 7: テストセットアップを作成**
+- [x] **Step 7: テストセットアップを作成**
 
 `test/setup.ts`:
 
@@ -204,7 +204,7 @@ vi.mock('virtual:pwa-register', () => ({
 }))
 ```
 
-- [ ] **Step 8: 失敗テストを作成**
+- [x] **Step 8: 失敗テストを作成**
 
 `src/App.test.tsx`:
 
@@ -218,17 +218,17 @@ it('renders app title', () => {
 })
 ```
 
-- [ ] **Step 9: テストを実行して失敗を確認**
+- [x] **Step 9: テストを実行して失敗を確認**
 
 Run: `npm test`
 Expected: 成功（`App` がタイトルを表示するため PASS）。タイトル未実装なら FAIL してから実装する。
 
-- [ ] **Step 10: 動作確認**
+- [x] **Step 10: 動作確認**
 
 Run: `npm run dev` を起動せず、`npm run build` でビルド成功を確認。
 Expected: `tsc -b` と `vite build` が成功し、`dist/` が生成される。
 
-- [ ] **Step 11: コミット**
+- [x] **Step 11: コミット**
 
 ```bash
 git add .
@@ -255,7 +255,7 @@ git commit -m "feat: scaffold vite react project with test setup"
   - `calcScheduleStatus(book: { totalPages: number; startDate: string; deadline: string }, done: number, today: string): 'scheduled' | 'behind' | 'done'`
   - 日付の唯一の正規化・書式関数 `formatDate(d: Date): string` / `parseDate(s: string): Date`
 
-- [ ] **Step 1: 失敗テストを作成**
+- [x] **Step 1: 失敗テストを作成**
 
 `src/lib/progress.test.ts`（日付はローカルタイムゾーンで生成するため `new Date(2026, 0, 5)` を使う）
 
@@ -363,12 +363,12 @@ describe('calcDonePages', () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認**
+- [x] **Step 2: テストを実行して失敗を確認**
 
 Run: `npm test`
 Expected: FAIL（モジュール未作成のため）
 
-- [ ] **Step 3: 実装**
+- [x] **Step 3: 実装**
 
 `src/lib/progress.ts`:
 
@@ -446,12 +446,12 @@ export function calcScheduleStatus(
 }
 ```
 
-- [ ] **Step 4: テストを実行して成功を確認**
+- [x] **Step 4: テストを実行して成功を確認**
 
 Run: `npm test`
 Expected: PASS
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/lib/progress.ts src/lib/progress.test.ts
@@ -482,7 +482,7 @@ git commit -m "feat: add progress calculation pure logic"
     validateBackup(data: unknown): data is BackupData
     ```
 
-- [ ] **Step 1: 失敗テスト（backup 検証）を作成**
+- [x] **Step 1: 失敗テスト（backup 検証）を作成**
 
 `src/db/backup.test.ts`:
 
@@ -522,7 +522,7 @@ it('rejects records referencing missing book', () => {
 })
 ```
 
-- [ ] **Step 2: database の失敗テストを作成**
+- [x] **Step 2: database の失敗テストを作成**
 
 `src/db/database.test.ts`:
 
@@ -573,12 +573,12 @@ describe('deleteBookCascade', () => {
 })
 ```
 
-- [ ] **Step 3: テストを実行して失敗を確認**
+- [x] **Step 3: テストを実行して失敗を確認**
 
 Run: `npm test src/db`
 Expected: FAIL（モジュール未作成）
 
-- [ ] **Step 4: `src/db/database.ts` を実装**
+- [x] **Step 4: `src/db/database.ts` を実装**
 
 ```typescript
 import Dexie, { type Table } from 'dexie'
@@ -626,7 +626,7 @@ export async function deleteBookCascade(bookId: string): Promise<void> {
 }
 ```
 
-- [ ] **Step 5: `src/db/backup.ts` を実装**
+- [x] **Step 5: `src/db/backup.ts` を実装**
 
 ```typescript
 import { db } from './database'
@@ -680,12 +680,12 @@ export async function importBackup(
 }
 ```
 
-- [ ] **Step 6: テストを実行して成功を確認**
+- [x] **Step 6: テストを実行して成功を確認**
 
 Run: `npm test`
 Expected: PASS
 
-- [ ] **Step 7: コミット**
+- [x] **Step 7: コミット**
 
 ```bash
 git add src/db/database.ts src/db/backup.ts src/db/backup.test.ts src/db/database.test.ts
@@ -709,7 +709,7 @@ git commit -m "feat: add dexie data layer and backup"
     ```
   - `fetchImpl` はテストで HTTP をモックするための注入引数（既定は `fetch`）。
 
-- [ ] **Step 1: 失敗テストを作成**
+- [x] **Step 1: 失敗テストを作成**
 
 `src/api/googleBooks.test.ts`:
 
@@ -765,12 +765,12 @@ it('throws when response is not ok', async () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認**
+- [x] **Step 2: テストを実行して失敗を確認**
 
 Run: `npm test src/api`
 Expected: FAIL（モジュール未作成）
 
-- [ ] **Step 3: `src/api/googleBooks.ts` を実装**
+- [x] **Step 3: `src/api/googleBooks.ts` を実装**
 
 ```typescript
 export type SearchResultItem = {
@@ -822,12 +822,12 @@ export async function searchBooks(
 }
 ```
 
-- [ ] **Step 4: テストを実行して成功を確認**
+- [x] **Step 4: テストを実行して成功を確認**
 
 Run: `npm test src/api`
 Expected: PASS
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/api/googleBooks.ts src/api/googleBooks.test.ts
@@ -848,7 +848,7 @@ git commit -m "feat: add google books search client"
   - `useBooks(): { books: BookData[]; saveBook(book: BookData, isNew: boolean): Promise<void>; removeBook(bookId: string): Promise<void> }`
   - `useRecords(): { records: ProgressRecordData[]; addProgress(bookId: string, date: string, pages: number): Promise<void>; refresh(): Promise<void> }`
 
-- [ ] **Step 1: `src/hooks/useBooks.ts` を実装**
+- [x] **Step 1: `src/hooks/useBooks.ts` を実装**
 
 ```typescript
 import { useCallback, useEffect, useState } from 'react'
@@ -884,7 +884,7 @@ export function useBooks() {
 }
 ```
 
-- [ ] **Step 2: `src/hooks/useRecords.ts` を実装**
+- [x] **Step 2: `src/hooks/useRecords.ts` を実装**
 
 ```typescript
 import { useCallback, useEffect, useState } from 'react'
@@ -914,12 +914,12 @@ export function useRecords() {
 }
 ```
 
-- [ ] **Step 3: ビルドで型チェック**
+- [x] **Step 3: ビルドで型チェック**
 
 Run: `npm run build`
 Expected: 成功（型チェック通過）
 
-- [ ] **Step 4: コミット**
+- [x] **Step 4: コミット**
 
 ```bash
 git add src/hooks/useBooks.ts src/hooks/useRecords.ts
@@ -941,7 +941,7 @@ git commit -m "feat: add state management hooks"
   - `BookCard({ book, done, records, onOpen }: { book: BookData; done: number; records: ProgressRecordData[]; onOpen: (id: string) => void })`
   - `HomeScreen({ onOpenBook }: { onOpenBook: (id: string) => void })` — カードをクリックで詳細へ
 
-- [ ] **Step 1: 失敗テストを作成**
+- [x] **Step 1: 失敗テストを作成**
 
 `src/screens/HomeScreen.test.tsx`:
 
@@ -993,12 +993,12 @@ it('calls onOpenBook when card clicked', async () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認**
+- [x] **Step 2: テストを実行して失敗を確認**
 
 Run: `npm test src/screens`
 Expected: FAIL（コンポーネント未作成）
 
-- [ ] **Step 3: `src/components/BookCard.tsx` を実装**
+- [x] **Step 3: `src/components/BookCard.tsx` を実装**
 
 ```tsx
 import type { BookData, ProgressRecordData } from '../lib/progress'
@@ -1083,7 +1083,7 @@ export default function BookCard({ book, records, onOpen }: Props) {
 }
 ```
 
-- [ ] **Step 4: `src/screens/HomeScreen.tsx` を実装**
+- [x] **Step 4: `src/screens/HomeScreen.tsx` を実装**
 
 ```tsx
 import BookCard from '../components/BookCard'
@@ -1116,12 +1116,12 @@ export default function HomeScreen({ onOpenBook }: Props) {
 }
 ```
 
-- [ ] **Step 5: テストを実行して成功を確認**
+- [x] **Step 5: テストを実行して成功を確認**
 
 Run: `npm test src/screens`
 Expected: PASS
 
-- [ ] **Step 6: コミット**
+- [x] **Step 6: コミット**
 
 ```bash
 git add src/components/BookCard.tsx src/screens/HomeScreen.tsx src/screens/HomeScreen.test.tsx
@@ -1145,7 +1145,7 @@ git commit -m "feat: add home book list screen"
   - 検索入力 id は `book-search-input`、検索実行ボタン id は `book-search-btn`。
   - 検索結果の追加ボタンはテキスト「追加」を持つ。保存を確定するボタンは id `book-save`。
 
-- [ ] **Step 1: 失敗テストを作成**
+- [x] **Step 1: 失敗テストを作成**
 
 `src/screens/BookFormScreen.test.tsx`:
 
@@ -1195,12 +1195,12 @@ it('validates page count is a positive integer', async () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認**
+- [x] **Step 2: テストを実行して失敗を確認**
 
 Run: `npm test src/screens/BookFormScreen.test.tsx`
 Expected: FAIL（コンポーネント未作成）
 
-- [ ] **Step 3: `src/screens/BookFormScreen.tsx` を実装**
+- [x] **Step 3: `src/screens/BookFormScreen.tsx` を実装**
 
 ```tsx
 import { useState } from 'react'
@@ -1346,12 +1346,12 @@ export default function BookFormScreen({ book, onDone }: Props) {
 }
 ```
 
-- [ ] **Step 4: テストを実行して成功を確認**
+- [x] **Step 4: テストを実行して成功を確認**
 
 Run: `npm test src/screens/BookFormScreen.test.tsx`
 Expected: PASS
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/screens/BookFormScreen.tsx src/screens/BookFormScreen.test.tsx
@@ -1373,7 +1373,7 @@ git commit -m "feat: add book add/edit screen with search"
   - `ProgressChart({ dates, values }: { dates: string[]; values: number[] })` — 日次ページ数の折れ線グラフ（`data-testid="progress-chart"`）
   - `BookDetailScreen({ bookId, onBack, onEdit }: { bookId: string; onBack: () => void; onEdit: (id: string) => void })` — 大きな「今日やったページ数を記録」ボタン、目標表示、グラフ
 
-- [ ] **Step 1: 失敗テストを作成**
+- [x] **Step 1: 失敗テストを作成**
 
 `src/screens/BookDetailScreen.test.tsx`:
 
@@ -1434,12 +1434,12 @@ it('overwrites same-day record', async () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認**
+- [x] **Step 2: テストを実行して失敗を確認**
 
 Run: `npm test src/screens/BookDetailScreen.test.tsx`
 Expected: FAIL
 
-- [ ] **Step 3: `src/components/ProgressChart.tsx` を実装**
+- [x] **Step 3: `src/components/ProgressChart.tsx` を実装**
 
 ```tsx
 import { Line } from 'react-chartjs-2'
@@ -1481,7 +1481,7 @@ export default function ProgressChart({ dates, values }: Props) {
 }
 ```
 
-- [ ] **Step 4: `src/screens/BookDetailScreen.tsx` を実装**
+- [x] **Step 4: `src/screens/BookDetailScreen.tsx` を実装**
 
 ```tsx
 import { useState } from 'react'
@@ -1592,12 +1592,12 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
 }
 ```
 
-- [ ] **Step 5: テストを実行して成功を確認**
+- [x] **Step 5: テストを実行して成功を確認**
 
 Run: `npm test src/screens/BookDetailScreen.test.tsx`
 Expected: PASS
 
-- [ ] **Step 6: コミット**
+- [x] **Step 6: コミット**
 
 ```bash
 git add src/screens/BookDetailScreen.tsx src/components/ProgressChart.tsx src/screens/BookDetailScreen.test.tsx
@@ -1618,7 +1618,7 @@ git commit -m "feat: add book detail screen with progress recording"
   - `SettingsScreen({ onDone }: { onDone: () => void })` — バックアップ書き出し/読み込み/全削除
   - 操作対象となる要素の id: 書き出しボタン `backup-export`、読み込みファイルボタン `backup-import`、全削除ボタン `delete-all`、結果表示 `backup-result`。
 
-- [ ] **Step 1: 失敗テストを作成**
+- [x] **Step 1: 失敗テストを作成**
 
 `src/screens/SettingsScreen.test.tsx`:
 
@@ -1655,12 +1655,12 @@ it('shows result message after import', async () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認**
+- [x] **Step 2: テストを実行して失敗を確認**
 
 Run: `npm test src/screens/SettingsScreen.test.tsx`
 Expected: FAIL
 
-- [ ] **Step 3: `src/screens/SettingsScreen.tsx` を実装**
+- [x] **Step 3: `src/screens/SettingsScreen.tsx` を実装**
 
 ```tsx
 import { useRef, useState } from 'react'
@@ -1750,12 +1750,12 @@ export default function SettingsScreen({ onDone }: Props) {
 }
 ```
 
-- [ ] **Step 4: テストを実行して成功を確認**
+- [x] **Step 4: テストを実行して成功を確認**
 
 Run: `npm test src/screens/SettingsScreen.test.tsx`
 Expected: PASS
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/screens/SettingsScreen.tsx src/screens/SettingsScreen.test.tsx
@@ -1782,7 +1782,7 @@ git commit -m "feat: add settings screen with backup"
 
 **アイコン画像について:** アイコン PNG 2枚は Task 10 の Step 1 で PowerShell を使い 192×192 と 512×512 の単色 PNG（青 #2563eb、中央に白の「書」）を生成して `public/icons/` に置く。生成できない環境では、直接 PNG Base64 を書き出すスクリプトで代替する。
 
-- [ ] **Step 1: アイコン PNG を生成**
+- [x] **Step 1: アイコン PNG を生成**
 
 Run（PowerShell）:
 
@@ -1813,7 +1813,7 @@ New-Icon 192 128 (Join-Path $PWD 'public\icons\icon-192.png')
 
 Expected: `public/icons/icon-192.png` と `public/icons/icon-512.png` が生成される。
 
-- [ ] **Step 2: `src/pwa.ts` を作成（PWA アップデート通知用の registerSW）**
+- [x] **Step 2: `src/pwa.ts` を作成（PWA アップデート通知用の registerSW）**
 
 ```typescript
 export async function registerSW() {
@@ -1827,7 +1827,7 @@ export async function registerSW() {
 }
 ```
 
-- [ ] **Step 3: `src/hooks/usePwaReload.ts` を作成**
+- [x] **Step 3: `src/hooks/usePwaReload.ts` を作成**
 
 ```typescript
 import { useEffect, useState } from 'react'
@@ -1847,7 +1847,7 @@ export function usePwaReload() {
 }
 ```
 
-- [ ] **Step 4: `src/App.tsx` を統合置き換え**
+- [x] **Step 4: `src/App.tsx` を統合置き換え**
 
 ```tsx
 import { useState } from 'react'
@@ -1929,7 +1929,7 @@ export default function App() {
 }
 ```
 
-- [ ] **Step 5: `src/styles.css` を作成**
+- [x] **Step 5: `src/styles.css` を作成**
 
 ```css
 * { box-sizing: border-box; }
@@ -1967,7 +1967,7 @@ label { font-size: 14px; color: #475569; }
 main { padding-bottom: 80px; }
 ```
 
-- [ ] **Step 6: vite.config.ts に PWA プラグインを追加**
+- [x] **Step 6: vite.config.ts に PWA プラグインを追加**
 
 ```typescript
 import { defineConfig } from 'vitest/config'
@@ -2005,7 +2005,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 7: `src/vite-env.d.ts` に PWA 型参照を追加**
+- [x] **Step 7: `src/vite-env.d.ts` に PWA 型参照を追加**
 
 `virtual:pwa-register` を TypeScript で解決するため、ファイル末尾に追記する。
 
@@ -2013,7 +2013,7 @@ export default defineConfig({
 /// <reference types="vite-plugin-pwa/client" />
 ```
 
-- [ ] **Step 8: 全テスト・ビルドが通ることを確認**
+- [x] **Step 8: 全テスト・ビルドが通ることを確認**
 
 Run: `npm test`
 Expected: 全 PASS
@@ -2021,7 +2021,7 @@ Expected: 全 PASS
 Run: `npm run build`
 Expected: 成功、`dist/` に `sw.js`・`manifest.webmanifest` を含む PWA 成果物が生成される
 
-- [ ] **Step 9: コミット**
+- [x] **Step 9: コミット**
 
 ```bash
 git add .
@@ -2041,7 +2041,7 @@ git commit -m "feat: integrate screens as pwa app"
 - Consumes: 完了した PWA アプリ
 - Produces: 公開 URL と利用手順
 
-- [ ] **Step 1: package.json に homepage を追加**
+- [x] **Step 1: package.json に homepage を追加**
 
 ```json
 "homepage": "https://<あなたのGitHubユーザー名>.github.io/schedule-app/",
@@ -2049,7 +2049,7 @@ git commit -m "feat: integrate screens as pwa app"
 
 ※リポジトリ名が `schedule-app` でない場合はその名前を使う。`<あなたのGitHubユーザー名>` は実際の GitHub ユーザー名に置き換える。
 
-- [ ] **Step 2: GitHub Actions ワークフローを作成**
+- [x] **Step 2: GitHub Actions ワークフローを作成**
 
 `.github/workflows/deploy.yml`:
 
@@ -2081,7 +2081,7 @@ jobs:
         uses: actions/deploy-pages@v4
 ```
 
-- [ ] **Step 3: 利用手順ドキュメントを作成**
+- [x] **Step 3: 利用手順ドキュメントを作成**
 
 `docs/usage.md`:
 
@@ -2098,7 +2098,7 @@ jobs:
 
 Expected: 公開 URL でアプリが開ける
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add .
