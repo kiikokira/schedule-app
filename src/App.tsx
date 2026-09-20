@@ -30,7 +30,8 @@ export default function App() {
             top: 0,
             zIndex: 10,
             padding: 8,
-            background: '#f59e0b',
+            background: 'var(--gold)',
+            color: '#202020',
           }}
         >
           アプリが更新されました。

@@ -6,6 +6,7 @@ import {
   todayStr,
   calcScheduleStatus,
 } from '../lib/progress'
+import CoverImage from './CoverImage'
 
 type Props = {
   book: BookData
@@ -38,17 +39,13 @@ export default function BookCard({ book, records, onOpen }: Props) {
         marginBottom: '12px',
         padding: '12px',
         textAlign: 'left',
-        border: '1px solid #ddd',
+        border: '1px solid var(--border)',
         borderRadius: '8px',
-        background: status === 'behind' ? '#fff0f0' : '#fff',
+        background: status === 'behind' ? '#2a1c1e' : 'var(--surface)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {book.coverUrl ? (
-          <img src={book.coverUrl} alt="" width={56} height={80} style={{ objectFit: 'contain' }} />
-        ) : (
-          <div style={{ width: 56, height: 80, background: '#eee', borderRadius: 4 }} />
-        )}
+        <CoverImage src={book.coverUrl ?? null} width={56} height={80} />
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700 }}>{book.title}</div>
           <div>残り {remaining} ページ</div>
@@ -68,7 +65,7 @@ export default function BookCard({ book, records, onOpen }: Props) {
         style={{
           height: 8,
           borderRadius: 4,
-          background: '#eee',
+          background: 'var(--cover-placeholder)',
           marginTop: 8,
           overflow: 'hidden',
         }}
@@ -77,7 +74,7 @@ export default function BookCard({ book, records, onOpen }: Props) {
           style={{
             width: `${progress}%`,
             height: '100%',
-            background: status === 'done' ? '#16a34a' : '#2563eb',
+            background: status === 'done' ? '#2f9e63' : 'var(--accent-strong)',
           }}
         />
       </div>

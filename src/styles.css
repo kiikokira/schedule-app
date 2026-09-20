@@ -1,18 +1,34 @@
 * { box-sizing: border-box; }
+:root {
+  color-scheme: dark;
+  --bg: #0e1119;
+  --surface: #161b2a;
+  --surface-2: #1d2436;
+  --border: #2b3450;
+  --text: #e8ecf4;
+  --text-dim: #9aa6c0;
+  --accent: #3f56a8;
+  --accent-strong: #5a74c9;
+  --danger: #f07c7c;
+  --gold: #f5c842;
+  --cover-placeholder: #232b40;
+}
+html { background: var(--bg); }
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Meiryo', sans-serif;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--bg);
+  color: var(--text);
 }
 .app-header {
   padding: 16px;
-  background: #2563eb;
+  background: linear-gradient(180deg, #1c2440, #131a2e);
   color: #fff;
   font-weight: 700;
   font-size: 18px;
   position: sticky;
   top: 0;
+  border-bottom: 1px solid var(--border);
 }
 .app-footer {
   position: fixed;
@@ -22,12 +38,35 @@ body {
   display: flex;
   gap: 8px;
   padding: 12px 16px;
-  background: #fff;
-  border-top: 1px solid #e2e8f0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
   z-index: 5;
 }
 .app-footer button { flex: 1; min-height: 44px; }
-button { min-height: 44px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 16px; }
-input, select { min-height: 44px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 8px; width: 100%; margin: 4px 0 12px; }
-label { font-size: 14px; color: #475569; }
+button {
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px;
+}
+input, select {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 8px;
+  width: 100%;
+  margin: 4px 0 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+}
+label { font-size: 14px; color: var(--text-dim); }
 main { padding-bottom: 80px; }
+.cover-placeholder {
+  background: var(--cover-placeholder);
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  flex-shrink: 0;
+}

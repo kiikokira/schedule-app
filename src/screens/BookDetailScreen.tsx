@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ProgressChart from '../components/ProgressChart'
+import CoverImage from '../components/CoverImage'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import {
@@ -83,7 +84,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       <h1 data-testid="book-title" style={{ fontSize: 20 }}>
         {book.title}
       </h1>
-      {book.coverUrl && <img src={book.coverUrl} alt="" width={96} height={136} />}
+      <CoverImage src={book.coverUrl ?? null} width={96} height={136} />
       <p>
         完了ページ: <span data-testid="done-count">{done}</span> / {book.totalPages}
       </p>
@@ -108,7 +109,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           今日やったページ数を記録
         </button>
         {error && (
-          <p data-testid="record-error" style={{ color: '#b91c1c' }}>
+          <p data-testid="record-error" style={{ color: 'var(--danger)' }}>
             {error}
           </p>
         )}
@@ -121,7 +122,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
         <button onClick={() => onEdit(book.id)}>編集</button>
-        <button onClick={() => void handleDelete()} style={{ color: '#b91c1c' }}>
+        <button onClick={() => void handleDelete()} style={{ color: 'var(--danger)' }}>
           削除
         </button>
       </div>

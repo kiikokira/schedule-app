@@ -75,7 +75,7 @@ export default function SettingsScreen({ onDone }: Props) {
         data-testid="delete-all"
         type="button"
         onClick={() => void handleDeleteAll()}
-        style={{ color: '#b91c1c' }}
+        style={{ color: 'var(--danger)' }}
       >
         すべてのデータを削除
       </button>
@@ -83,7 +83,7 @@ export default function SettingsScreen({ onDone }: Props) {
         <button onClick={onDone}>戻る</button>
       </p>
       {result && (
-        <p data-testid="backup-result" style={{ color: '#2563eb' }}>
+        <p data-testid="backup-result" style={{ color: 'var(--accent-strong)' }}>
           {result}
         </p>
       )}

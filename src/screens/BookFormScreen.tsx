@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { searchBooks, type SearchResultItem } from '../api/googleBooks'
 import { useBooks } from '../hooks/useBooks'
 import { todayStr, type BookData } from '../lib/progress'
+import CoverImage from '../components/CoverImage'
+import { searchCatalog, type CatalogBook } from '../data/catalog'
 
 type Props = {
   book: BookData | null
@@ -16,19 +18,23 @@ export default function BookFormScreen({ book, onDone }: Props) {
   const [coverUrl, setCoverUrl] = useState<string | null>(book?.coverUrl ?? null)
   const [startDate, setStartDate] = useState(book?.startDate ?? todayStr())
   const [deadline, setDeadline] = useState(book?.deadline ?? '')
+  const [tab, setTab] = useState<'catalog' | 'search'>('catalog')
+  const [catalogQuery, setCatalogQuery] = useState('')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResultItem[]>([])
   const [error, setError] = useState('')
   const [searchError, setSearchError] = useState('')
+
+  const catalogResults = searchCatalog(catalogQuery)
 
   const runSearch = async () => {
     if (!query.trim()) return
     setSearchError('')
     try {
       setResults(await searchBooks(query))
-    } catch (e) {
+    } catch {
       setResults([])
-      setSearchError(e instanceof Error ? e.message : '検索できませんでした')
+      setSearchError('検索できませんでした。参考書一覧から選んでください')
     }
   }
 
@@ -36,6 +42,13 @@ export default function BookFormScreen({ book, onDone }: Props) {
     setTitle(item.title)
     if (item.pageCount) setTotalPages(String(item.pageCount))
     setCoverUrl(item.thumbnail)
+  }
+
+  const pickCatalog = (item: CatalogBook) => {
+    setTitle(item.title)
+    setSubject(item.subject)
+    setTotalPages(String(item.totalPages))
+    setCoverUrl(item.coverSrc ?? null)
   }
 
   const handleSave = async () => {
@@ -83,38 +96,94 @@ export default function BookFormScreen({ book, onDone }: Props) {
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>{book ? '参考書を編集' : '参考書を追加'}</h1>
       {book === null && (
-        <div style={{ border: '1px solid #ccc', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-          <h2 style={{ fontSize: 16 }}>本を検索して追加</h2>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              data-testid="book-search-input"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="タイトルを入力"
-            />
-            <button data-testid="book-search-btn" type="button" onClick={() => void runSearch()}>
-              検索
+        <div style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <button
+              data-testid="tab-catalog"
+              type="button"
+              aria-pressed={tab === 'catalog'}
+              onClick={() => setTab('catalog')}
+            >
+              参考書一覧
+            </button>
+            <button
+              data-testid="tab-search"
+              type="button"
+              aria-pressed={tab === 'search'}
+              onClick={() => setTab('search')}
+            >
+              Google Booksで検索
             </button>
           </div>
-          {searchError && <p style={{ color: '#b91c1c' }}>{searchError}</p>}
-          {results.map((item) => (
-            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-              {item.thumbnail ? (
-                <img src={item.thumbnail} alt="" width={40} height={56} />
-              ) : (
-                <div style={{ width: 40, height: 56, background: '#eee' }} />
-              )}
-              <div style={{ flex: 1 }}>
-                <div>{item.title}</div>
-                <div style={{ color: '#666', fontSize: 12 }}>
-                  {item.pageCount ? `${item.pageCount}ページ` : 'ページ数不明'}
+          {tab === 'catalog' && (
+            <div>
+              <input
+                data-testid="catalog-search-input"
+                value={catalogQuery}
+                onChange={(e) => setCatalogQuery(e.target.value)}
+                placeholder="タイトルで絞り込み"
+              />
+              {catalogResults.map((item) => (
+                <div
+                  key={item.id}
+                  data-testid={`catalog-item-${item.id}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}
+                >
+                  <CoverImage src={item.coverSrc ?? null} width={40} height={56} />
+                  <div style={{ flex: 1 }}>
+                    <div>{item.title}</div>
+                    <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>
+                      {item.subject} / {item.totalPages}ページ
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => pickCatalog(item)}>
+                    選ぶ
+                  </button>
                 </div>
-              </div>
-              <button type="button" onClick={() => pickResult(item)}>
-                追加
-              </button>
+              ))}
             </div>
-          ))}
+          )}
+          {tab === 'search' && (
+            <div>
+              <h2 style={{ fontSize: 16 }}>本を検索して追加</h2>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  data-testid="book-search-input"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="タイトルを入力"
+                />
+                <button data-testid="book-search-btn" type="button" onClick={() => void runSearch()}>
+                  検索
+                </button>
+              </div>
+              {searchError && <p style={{ color: 'var(--danger)' }}>{searchError}</p>}
+              {results.length === 0 && !searchError && (
+                <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 8 }}>
+                  参考書一覧から選ぶと、確実に入力できます。
+                </p>
+              )}
+              {results.map((item) => (
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                  <CoverImage src={item.thumbnail} width={40} height={56} />
+                  <div style={{ flex: 1 }}>
+                    <div>{item.title}</div>
+                    <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>
+                      {item.pageCount ? `${item.pageCount}ページ` : 'ページ数不明'}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => pickResult(item)}>
+                    追加
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {coverUrl && (
+        <div style={{ marginBottom: 12 }}>
+          <CoverImage src={coverUrl} width={56} height={80} />
         </div>
       )}
       <div>
@@ -137,7 +206,7 @@ export default function BookFormScreen({ book, onDone }: Props) {
         <label htmlFor="book-deadline">期限日</label>
         <input id="book-deadline" data-testid="book-deadline" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
       </div>
-      {error && <p data-testid="book-error" style={{ color: '#b91c1c' }}>{error}</p>}
+      {error && <p data-testid="book-error" style={{ color: 'var(--danger)' }}>{error}</p>}
       <button data-testid="book-save" type="button" onClick={() => void handleSave()}>
         {book ? '保存' : '登録する'}
       </button>

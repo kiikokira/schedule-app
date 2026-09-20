@@ -22,11 +22,11 @@ export default function HomeScreen({ onOpenBook }: Props) {
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>参考書スケジュール</h1>
-      <p style={{ color: '#666' }}>
+      <p style={{ color: 'var(--text-dim)' }}>
         今日の目標を毎日見て、参考書を期限内に終わらせよう。
       </p>
       {sortedBooks.length === 0 ? (
-        <p style={{ color: '#888' }}>参考書がありません。「＋」から追加してください。</p>
+        <p style={{ color: 'var(--text-dim)' }}>参考書がありません。「＋」から追加してください。</p>
       ) : (
         sortedBooks.map((book) => (
           <BookCard key={book.id} book={book} records={records} onOpen={onOpenBook} />

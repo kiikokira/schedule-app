@@ -25,8 +25,8 @@ export default function ProgressChart({ dates, values }: Props) {
             {
               label: '1日当たりのページ数',
               data: values,
-              borderColor: '#2563eb',
-              backgroundColor: '#2563eb',
+              borderColor: '#5a74c9',
+              backgroundColor: '#5a74c9',
             },
           ],
         }}
