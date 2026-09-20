@@ -41,7 +41,7 @@ export default function BookCard({ book, records, onOpen }: Props) {
         textAlign: 'left',
         border: '1px solid var(--border)',
         borderRadius: '8px',
-        background: status === 'behind' ? '#2a1c1e' : 'var(--surface)',
+        background: status === 'behind' ? '#fdeaea' : 'var(--surface)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

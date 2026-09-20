@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { exportBackup, importBackup, validateBackup } from '../db/backup'
+import { getBooksApiKey, setBooksApiKey } from '../api/googleBooks'
 
 type Props = {
   onDone: () => void
@@ -7,6 +8,7 @@ type Props = {
 
 export default function SettingsScreen({ onDone }: Props) {
   const [result, setResult] = useState<string | null>(null)
+  const [apiKey, setApiKey] = useState(getBooksApiKey())
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleExport = async () => {
@@ -44,6 +46,11 @@ export default function SettingsScreen({ onDone }: Props) {
     }
   }
 
+  const handleSaveApiKey = () => {
+    setBooksApiKey(apiKey)
+    setResult('Google Books APIキーを保存しました')
+  }
+
   const handleDeleteAll = async () => {
     if (!window.confirm('すべてのデータを削除しますか？この操作は戻せません。')) return
     const { db } = await import('../db/database')
@@ -57,6 +64,25 @@ export default function SettingsScreen({ onDone }: Props) {
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>設定</h1>
+      <section style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 16 }}>Google Books 検索</h2>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+          Google Booksで参考書を検索するためのAPIキー。発行方法は docs/usage.md を参照してください。
+        </p>
+        <label htmlFor="google-books-api-key">APIキー（任意）</label>
+        <input
+          id="google-books-api-key"
+          data-testid="google-books-api-key"
+          type="text"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder="AIza...（未設定なら空のまま）"
+          autoComplete="off"
+        />
+        <button data-testid="save-google-books-api-key" type="button" onClick={handleSaveApiKey}>
+          APIキーを保存
+        </button>
+      </section>
       <button data-testid="backup-export" type="button" onClick={() => void handleExport()}>
         バックアップを書き出す
       </button>

@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { searchCatalog, CATALOG } from './catalog'
 
 describe('catalog', () => {
-  it('contains at least 20 English reference books', () => {
-    expect(CATALOG.length).toBeGreaterThanOrEqual(20)
+  it('contains 29 English reference books', () => {
+    expect(CATALOG.length).toBe(29)
   })
 
   it('returns all books for an empty query', () => {
@@ -22,10 +22,24 @@ describe('catalog', () => {
     expect(result.every((b) => b.title.toLowerCase().includes('next'))).toBe(true)
   })
 
-  it('requires each book to have pages and a subject', () => {
+  it('requires each book to have pages, a subject, and cover url', () => {
     for (const b of CATALOG) {
       expect(b.totalPages).toBeGreaterThanOrEqual(1)
       expect(b.subject.length).toBeGreaterThan(0)
+      expect(b.coverSrc).toBeTruthy()
+      expect(b.coverSrc).toMatch(/^https:\/\//)
     }
+  })
+
+  it('unique ids across the catalog', () => {
+    const ids = CATALOG.map((b) => b.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('includes the newly added 英文法ポラリス2', () => {
+    const book = CATALOG.find((b) => b.id === 'eibunpo-polaris-2')
+    expect(book).toBeDefined()
+    expect(book?.title).toBe('英文法ポラリス2（応用レベル）')
+    expect(book?.totalPages).toBe(320)
   })
 })

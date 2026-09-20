@@ -1,17 +1,17 @@
 * { box-sizing: border-box; }
 :root {
-  color-scheme: dark;
-  --bg: #0e1119;
-  --surface: #161b2a;
-  --surface-2: #1d2436;
-  --border: #2b3450;
-  --text: #e8ecf4;
-  --text-dim: #9aa6c0;
+  color-scheme: light;
+  --bg: #f2f4f8;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --border: #d5dbe6;
+  --text: #1c2330;
+  --text-dim: #5b6478;
   --accent: #3f56a8;
   --accent-strong: #5a74c9;
-  --danger: #f07c7c;
-  --gold: #f5c842;
-  --cover-placeholder: #232b40;
+  --danger: #c44b4b;
+  --gold: #eab308;
+  --cover-placeholder: #e2e7f0;
 }
 html { background: var(--bg); }
 body {
@@ -22,8 +22,8 @@ body {
 }
 .app-header {
   padding: 16px;
-  background: linear-gradient(180deg, #1c2440, #131a2e);
-  color: #fff;
+  background: linear-gradient(180deg, #ffffff, #eef1f6);
+  color: #1c2330;
   font-weight: 700;
   font-size: 18px;
   position: sticky;
@@ -47,7 +47,7 @@ button {
   min-height: 44px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--text);
   font-size: 16px;
 }

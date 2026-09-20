@@ -1,21 +1,15 @@
-# 表紙画像を置く場所
+# 表紙画像
 
-ここ（`public/covers/`）に参考書の表紙画像を置くと、参考書一覧の候補に表示されます。
+参考書一覧の表紙は、版元ドットコム（hanmoto）などの公開画像URLを `src/data/catalog.ts` の `coverSrc` に設定して表示しています。
 
-## 手順
+## coverSrc に使う画像
 
-1. 表紙画像ファイルをここへ追加する
-   - GitHub のリポジトリ画面から `public/covers/` → 「Add file」→「Upload files」
-   - ファイル名は半角英数字（例: `polaris1.png`）
-2. `src/data/catalog.ts` の該当する参考書に `coverSrc` を指定する
-   ```
-   { id: 'eibunpo-polaris-1', title: '英文法ポラリス1 Final', subject: '文法', totalPages: 360, coverSrc: 'covers/polaris1.png' },
-   ```
+- 版元ドットコム: `https://img.hanmoto.com/bd/img/{ISBN13}_600.jpg`
+- 出版社公式サイトの表紙画像（例: いいずな書店）
+- Amazon 画像（ISBN で参照）
 
-画像を指定していない本は、自動的にプレースホルダ（未設定）表示になります。
+画像の表示に失敗する本は、自動的にプレースホルダ（未設定）表示になります。
 
 ### 注意
 
-- 画像の推奨サイズ: 縦横比 約3:4（例: 300×400px）
-- PNG / JPG が使えます
-- ファイルはアプリのデータと一緒に GitHub Pages へ公開されます。著作権に注意してください（個人利用の範囲を想定しています）
+- 表紙画像の著作権は各出版社に帰属します。個人利用・学習管理アプリのアイコン表示の範囲を想定しています

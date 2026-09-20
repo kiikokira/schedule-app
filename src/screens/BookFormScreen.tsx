@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { searchBooks, type SearchResultItem } from '../api/googleBooks'
+import { searchBooks, getBooksApiKey, type SearchResultItem } from '../api/googleBooks'
 import { useBooks } from '../hooks/useBooks'
 import { todayStr, type BookData } from '../lib/progress'
 import CoverImage from '../components/CoverImage'
@@ -31,7 +31,7 @@ export default function BookFormScreen({ book, onDone }: Props) {
     if (!query.trim()) return
     setSearchError('')
     try {
-      setResults(await searchBooks(query))
+      setResults(await searchBooks(query, 10, fetch, getBooksApiKey()))
     } catch {
       setResults([])
       setSearchError('検索できませんでした。参考書一覧から選んでください')

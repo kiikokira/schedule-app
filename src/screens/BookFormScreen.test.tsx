@@ -16,19 +16,19 @@ describe('BookFormScreen', () => {
   it('shows catalog books by default and allows picking one', () => {
     render(<BookFormScreen book={null} onDone={() => {}} />)
     expect(screen.getByTestId('catalog-search-input')).toBeInTheDocument()
-    expect(screen.getByText('英文法ポラリス1 Final')).toBeInTheDocument()
+    expect(screen.getByText('英文法ポラリス1（標準レベル）')).toBeInTheDocument()
     fireEvent.change(screen.getByTestId('catalog-search-input'), { target: { value: 'ポラリス' } })
     fireEvent.click(screen.getAllByRole('button', { name: /選ぶ/ })[0])
-    expect((screen.getByTestId('book-title') as HTMLInputElement).value).toBe('英文法ポラリス1 Final')
-    expect((screen.getByTestId('book-pages') as HTMLInputElement).value).toBe('360')
+    expect((screen.getByTestId('book-title') as HTMLInputElement).value).toBe('英文法ポラリス1（標準レベル）')
+    expect((screen.getByTestId('book-pages') as HTMLInputElement).value).toBe('308')
     expect((screen.getByTestId('book-subject') as HTMLInputElement).value).toBe('文法')
   })
 
   it('filters catalog by query', () => {
     render(<BookFormScreen book={null} onDone={() => {}} />)
     fireEvent.change(screen.getByTestId('catalog-search-input'), { target: { value: 'ポラリス' } })
-    expect(screen.getByText('英文法ポラリス1 Final')).toBeInTheDocument()
-    expect(screen.queryByText('システム英単語 5訂版')).not.toBeInTheDocument()
+    expect(screen.getByText('英文法ポラリス1（標準レベル）')).toBeInTheDocument()
+    expect(screen.queryByText('システム英単語＜5訂版＞')).not.toBeInTheDocument()
   })
 
   it('shows Google Books search results and fills page count when selected', async () => {

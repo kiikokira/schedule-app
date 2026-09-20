@@ -47,3 +47,42 @@ it('throws when response is not ok', async () => {
     '検索できませんでした',
   )
 })
+
+it('appends the api key when provided', async () => {
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ items: [] }) })
+  await searchBooks('英単語', 10, fetchMock as unknown as typeof fetch, 'secret-key')
+  const url = (fetchMock.mock.calls[0][0] as string) ?? ''
+  expect(url).toContain('key=secret-key')
+})
+
+it('retries up to 3 times on 429 when an api key is set, then throws', async () => {
+  vi.useFakeTimers()
+  try {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 429 })
+    const assertion = expect(
+      searchBooks('英単語', 10, fetchMock as unknown as typeof fetch, 'k'),
+    ).rejects.toThrow('検索できませんでした')
+    await vi.advanceTimersByTimeAsync(900)
+    await assertion
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+it('succeeds on the second attempt after a 429 when an api key is set', async () => {
+  vi.useFakeTimers()
+  try {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 429 })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ items: [] }) })
+    const promise = searchBooks('英単語', 10, fetchMock as unknown as typeof fetch, 'k')
+    await vi.advanceTimersByTimeAsync(900)
+    const result = await promise
+    expect(result).toEqual([])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  } finally {
+    vi.useRealTimers()
+  }
+})

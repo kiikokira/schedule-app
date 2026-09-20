@@ -32,3 +32,11 @@ it('shows result message after import', async () => {
   fireEvent.change(screen.getByTestId('backup-import'), { target: { files: [file] } })
   await waitFor(() => expect(screen.getByTestId('backup-result')).toHaveTextContent(/読み込みました/))
 })
+
+it('saves the Google Books api key to localStorage', () => {
+  localStorage.removeItem('google-books-api-key')
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.change(screen.getByTestId('google-books-api-key'), { target: { value: 'AIza-test' } })
+  fireEvent.click(screen.getByTestId('save-google-books-api-key'))
+  expect(localStorage.getItem('google-books-api-key')).toBe('AIza-test')
+})
