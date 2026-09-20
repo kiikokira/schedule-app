@@ -324,6 +324,20 @@ export const CATALOG: CatalogBook[] = [
     totalPages: 232,
     coverSrc: 'https://m.media-amazon.com/images/I/81P7PjCL1cL._AC_SL1500_.jpg',
   },
+  {
+    id: 'sfc-eigo-kakomon',
+    title: '慶應SFC英語 過去問（赤本 総合政策学部）',
+    subject: '過去問',
+    totalPages: 250,
+    coverSrc: hanmoto('9784325275817'),
+  },
+  {
+    id: 'sfc-shoronbun',
+    title: '慶應の小論文 総合政策・環境情報（赤本 [第4版]）',
+    subject: '小論文',
+    totalPages: 250,
+    coverSrc: hanmoto('9784325273257'),
+  },
 ]
 
 export function searchCatalog(query: string): CatalogBook[] {

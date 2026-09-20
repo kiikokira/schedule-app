@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { searchCatalog, CATALOG } from './catalog'
 
 describe('catalog', () => {
-  it('contains 45 English reference books', () => {
-    expect(CATALOG.length).toBe(45)
+  it('contains 47 reference books', () => {
+    expect(CATALOG.length).toBe(47)
   })
 
   it('returns all books for an empty query', () => {
@@ -50,5 +50,14 @@ describe('catalog', () => {
     expect(rules1?.coverSrc).toMatch(/^https:\/\//)
     expect(rules4).toBeDefined()
     expect(rules4?.totalPages).toBe(224)
+  })
+
+  it('includes SFC past paper and essay books', () => {
+    const kakomon = CATALOG.find((b) => b.id === 'sfc-eigo-kakomon')
+    const shoronbun = CATALOG.find((b) => b.id === 'sfc-shoronbun')
+    expect(kakomon).toBeDefined()
+    expect(kakomon?.coverSrc).toMatch(/^https:\/\//)
+    expect(shoronbun).toBeDefined()
+    expect(shoronbun?.coverSrc).toMatch(/^https:\/\//)
   })
 })

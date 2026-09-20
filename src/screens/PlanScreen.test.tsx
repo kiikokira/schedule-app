@@ -2,44 +2,104 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, describe, it, expect } from 'vitest'
 import { db } from '../db/database'
 import PlanScreen from './PlanScreen'
-
-const pad = (n: number) => String(n).padStart(2, '0')
-const localDateStr = (d: Date) =>
-  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+import { SCHEDULE, suggestDeadline } from '../data/schedule'
+import { todayStr } from '../lib/progress'
+import { loadSchedule } from '../data/scheduleStore'
 
 beforeEach(async () => {
   await db.books.clear()
   await db.records.clear()
+  localStorage.clear()
 })
 
 describe('PlanScreen', () => {
-  it('shows schedule phases with deadline dates', () => {
+  it('shows all schedule books with start and end dates', () => {
     render(<PlanScreen onDone={() => {}} />)
     expect(screen.getByText('学習スケジュールを登録')).toBeInTheDocument()
-    expect(screen.getByText(/2028-08-31/)).toBeInTheDocument()
-    expect(screen.getByText('関正生のThe Rules英語長文問題集1 入試基礎')).toBeInTheDocument()
+    for (const entry of SCHEDULE) {
+      expect(screen.getByTestId(`entry-start-${entry.catalogId}`)).toHaveValue(
+        entry.startDate,
+      )
+      expect(
+        screen.getByTestId(`entry-deadline-${entry.catalogId}`),
+      ).toHaveValue(entry.deadline)
+    }
   })
 
-  it('registers all schedule books with deadlines when none exist', async () => {
+  it('shows a suggested deadline when adding a book from the catalog', () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('catalog-select'), {
+      target: { value: 'leap' },
+    })
+    const start = screen.getByTestId<HTMLInputElement>('add-start')
+    if (start.value === '') fireEvent.change(start, {
+      target: { value: todayStr() },
+    })
+    expect(screen.getByTestId<HTMLInputElement>('add-deadline').value).toBe(
+      suggestDeadline(start.value, 90),
+    )
+  })
+
+  it('adds a book from the catalog to the schedule', () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('catalog-select'), {
+      target: { value: 'leap' },
+    })
+    fireEvent.change(screen.getByTestId('add-start'), {
+      target: { value: '2026-09-01' },
+    })
+    fireEvent.click(screen.getByTestId('add-entry'))
+    expect(
+      screen.getByTestId('entry-start-leap'),
+    ).toHaveValue('2026-09-01')
+    expect(screen.getByTestId('entry-deadline-leap')).toHaveValue(
+      suggestDeadline('2026-09-01', 90),
+    )
+  })
+
+  it('saves edited dates to localStorage', () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(
+      screen.getByTestId('entry-deadline-eibunpo-polaris-2'),
+      { target: { value: '2026-12-15' } },
+    )
+    fireEvent.click(screen.getByTestId('save-schedule'))
+    expect(screen.getByTestId('save-result')).toHaveTextContent('保存しました')
+    const saved = loadSchedule()
+    const entry = saved.find((e) => e.catalogId === 'eibunpo-polaris-2')
+    expect(entry?.deadline).toBe('2026-12-15')
+  })
+
+  it('removes a book from the schedule and saves', () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('entry-delete-sfc-shoronbun'))
+    fireEvent.click(screen.getByTestId('save-schedule'))
+    const saved = loadSchedule()
+    expect(saved.some((e) => e.catalogId === 'sfc-shoronbun')).toBe(false)
+  })
+
+  it('registers all schedule books when none exist', async () => {
     render(<PlanScreen onDone={() => {}} />)
     fireEvent.click(screen.getByTestId('apply-schedule'))
-    expect(await screen.findByTestId('apply-result')).toHaveTextContent('新規 20 冊')
+    expect(await screen.findByTestId('apply-result')).toHaveTextContent(
+      '新規 17 冊',
+    )
     const books = await db.books.toArray()
-    expect(books).toHaveLength(20)
-    const leap = books.find((b) => b.catalogId === 'leap')
-    expect(leap?.deadline).toBe('2027-07-15')
-    expect(leap?.startDate).toBe(localDateStr(new Date()))
-    expect(leap?.coverUrl).toMatch(/^https:\/\//)
+    expect(books).toHaveLength(17)
+    const eibunpo = books.find((b) => b.catalogId === 'eibunpo-polaris-2')
+    expect(eibunpo?.deadline).toBe('2026-11-30')
+    expect(eibunpo?.startDate).toBe('2026-09-01')
+    expect(eibunpo?.coverUrl).toMatch(/^https:\/\//)
   })
 
-  it('updates deadline of an existing registered book', async () => {
+  it('updates deadline of an existing registered book keeping start and cover', async () => {
     await db.books.add({
       id: 'b1',
-      title: '改訂版 必携 英単語 LEAP',
-      catalogId: 'leap',
-      subject: '英単語',
-      totalPages: 576,
-      coverUrl: 'https://example.com/leap.jpg',
+      title: '英文法ポラリス2（応用レベル）',
+      catalogId: 'eibunpo-polaris-2',
+      subject: '英文法',
+      totalPages: 280,
+      coverUrl: 'https://example.com/polaris2.jpg',
       startDate: '2026-04-01',
       deadline: '2026-06-01',
       createdAt: '2026-04-01T00:00:00.000Z',
@@ -48,12 +108,19 @@ describe('PlanScreen', () => {
     render(<PlanScreen onDone={() => {}} />)
     fireEvent.click(screen.getByTestId('apply-schedule'))
     expect(await screen.findByTestId('apply-result')).toHaveTextContent(
-      '新規 19 冊 / 期限を更新 1 冊',
+      '新規 16 冊 / 期限を更新 1 冊',
     )
     const books = await db.books.toArray()
-    const leap = books.find((b) => b.id === 'b1')
-    expect(leap?.deadline).toBe('2027-07-15')
-    expect(leap?.startDate).toBe('2026-04-01')
-    expect(leap?.coverUrl).toBe('https://example.com/leap.jpg')
+    const eibunpo = books.find((b) => b.id === 'b1')
+    expect(eibunpo?.deadline).toBe('2026-11-30')
+    expect(eibunpo?.startDate).toBe('2026-04-01')
+    expect(eibunpo?.coverUrl).toBe('https://example.com/polaris2.jpg')
+  })
+
+  it('calls onDone when the back button is pressed', () => {
+    let done = false
+    render(<PlanScreen onDone={() => { done = true }} />)
+    fireEvent.click(screen.getByTestId('back-button'))
+    expect(done).toBe(true)
   })
 })
