@@ -27,40 +27,40 @@ describe('schedule', () => {
     }
   })
 
-  it('starts 英文法ポラリス2 in Jul 2026 and finishes by Sep 2026', () => {
+  it('starts 英文法ポラリス2 on 2026-09-21 and finishes by Sep 2026', () => {
     expect(scheduleEntryOf('eibunpo-polaris-2')).toEqual({
       catalogId: 'eibunpo-polaris-2',
-      startDate: '2026-07-02',
+      startDate: '2026-09-21',
       deadline: '2026-09-30',
     })
   })
 
   it('schedules やっておきたい700 and ハイパートレーニング3 in the final prep', () => {
     expect(scheduleEntryOf('yatteokitai-700')).toMatchObject({
-      startDate: '2027-10-01',
-      deadline: '2027-12-01',
+      startDate: '2027-06-16',
+      deadline: '2027-08-15',
     })
     expect(scheduleEntryOf('hyper-training-3')).toMatchObject({
-      startDate: '2027-10-01',
-      deadline: '2027-12-01',
+      startDate: '2027-07-16',
+      deadline: '2027-08-31',
     })
   })
 
-  it('keeps Eiken EX for reviews after its completion', () => {
+  it('keeps Eiken EX until the end of Apr 2027', () => {
     expect(scheduleEntryOf('eiken-jun1-tanjukugo')).toMatchObject({
+      startDate: '2026-11-01',
       deadline: '2027-04-30',
-      note: expect.any(String) as string,
     })
   })
 
-  it('includes SFC past papers and essays running to Dec 2027', () => {
+  it('runs SFC past papers and essays from the end of Aug until the exam', () => {
     expect(scheduleEntryOf('sfc-eigo-kakomon')).toMatchObject({
-      startDate: '2027-01-30',
-      deadline: '2027-12-30',
+      startDate: '2027-08-31',
+      deadline: '2028-02-05',
     })
     expect(scheduleEntryOf('sfc-shoronbun')).toMatchObject({
-      startDate: '2027-01-30',
-      deadline: '2027-12-30',
+      startDate: '2027-08-31',
+      deadline: '2028-02-05',
     })
   })
 
@@ -70,11 +70,11 @@ describe('schedule', () => {
     expect(updatedBooks).toHaveLength(0)
     expect(newBooks).toHaveLength(17)
     const polaris2 = newBooks.find((b) => b.catalogId === 'eibunpo-polaris-2')
-    expect(polaris2?.startDate).toBe('2026-07-02')
+    expect(polaris2?.startDate).toBe('2026-09-21')
     expect(polaris2?.deadline).toBe('2026-09-30')
     expect(polaris2?.coverUrl).toMatch(/^https:\/\//)
     const kakomon = newBooks.find((b) => b.catalogId === 'sfc-eigo-kakomon')
-    expect(kakomon?.deadline).toBe('2027-12-30')
+    expect(kakomon?.deadline).toBe('2028-02-05')
     expect(kakomon?.subject).toBeTruthy()
   })
 
@@ -117,7 +117,7 @@ describe('schedule', () => {
     expect(newBooks).toHaveLength(16)
     expect(updatedBooks).toHaveLength(1)
     expect(updatedBooks[0].catalogId).toBe('porepore')
-    expect(updatedBooks[0].deadline).toBe('2027-09-30')
+    expect(updatedBooks[0].deadline).toBe('2027-07-31')
   })
 })
 

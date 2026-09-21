@@ -134,7 +134,7 @@ describe('PlanScreen', () => {
     expect(books).toHaveLength(17)
     const eibunpo = books.find((b) => b.catalogId === 'eibunpo-polaris-2')
     expect(eibunpo?.deadline).toBe('2026-09-30')
-    expect(eibunpo?.startDate).toBe('2026-07-02')
+    expect(eibunpo?.startDate).toBe('2026-09-21')
     expect(eibunpo?.coverUrl).toMatch(/^https:\/\//)
   })
 
