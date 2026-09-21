@@ -3,6 +3,7 @@ import {
   getNotifySettings,
   setNotifySettings,
   stateTopicOf,
+  normalizeTopic,
   publishPush,
   publishState,
 } from './notify'
@@ -34,6 +35,28 @@ describe('stateTopicOf', () => {
   })
 })
 
+describe('normalizeTopic', () => {
+  it('trims whitespace', () => {
+    expect(normalizeTopic('  my-topic  ')).toBe('my-topic')
+  })
+
+  it('strips a pasted https://ntfy.sh/ prefix', () => {
+    expect(normalizeTopic('https://ntfy.sh/my-topic')).toBe('my-topic')
+  })
+
+  it('strips a pasted http://ntfy.sh/ prefix', () => {
+    expect(normalizeTopic('http://ntfy.sh/my-topic')).toBe('my-topic')
+  })
+
+  it('strips a pasted ntfy.sh/ prefix and trailing slashes', () => {
+    expect(normalizeTopic('ntfy.sh/my-topic/')).toBe('my-topic')
+  })
+
+  it('keeps a plain topic unchanged', () => {
+    expect(normalizeTopic('my-topic')).toBe('my-topic')
+  })
+})
+
 describe('publishPush', () => {
   const okFetch = vi.fn(
     async (_input: RequestInfo | URL, _init?: RequestInit) =>
@@ -41,34 +64,45 @@ describe('publishPush', () => {
   )
 
   it('posts the message to the ntfy topic and returns success', async () => {
-    const ok = await publishPush(
+    const result = await publishPush(
       'my-topic',
       '今日の学習を記録しましたか？',
       {},
       okFetch as typeof fetch,
     )
-    expect(ok).toBe(true)
+    expect(result.ok).toBe(true)
     expect(okFetch).toHaveBeenCalledWith(
       'https://ntfy.sh/my-topic',
       expect.objectContaining({ method: 'POST', body: '今日の学習を記録しましたか？' }),
     )
   })
 
-  it('returns false when the request fails', async () => {
+  it('returns a network failure when the request throws', async () => {
     const fetchImpl = vi.fn(
       async (_input: RequestInfo | URL, _init?: RequestInit) => {
         throw new Error('network down')
       },
     )
-    expect(await publishPush('my-topic', 'hi', {}, fetchImpl as typeof fetch)).toBe(false)
+    const result = await publishPush('my-topic', 'hi', {}, fetchImpl as typeof fetch)
+    expect(result).toEqual({ ok: false, reason: 'network', status: null })
   })
 
-  it('returns false when the response is not ok', async () => {
+  it('returns an http failure with the status when the response is not ok', async () => {
     const fetchImpl = vi.fn(
       async (_input: RequestInfo | URL, _init?: RequestInit) =>
-        ({ ok: false }) as Response,
+        ({ ok: false, status: 404 }) as Response,
     )
-    expect(await publishPush('my-topic', 'hi', {}, fetchImpl as typeof fetch)).toBe(false)
+    const result = await publishPush('my-topic', 'hi', {}, fetchImpl as typeof fetch)
+    expect(result).toEqual({ ok: false, reason: 'http', status: 404 })
+  })
+
+  it('publishes to the normalized URL when a full address is pasted', async () => {
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        ({ ok: true }) as Response,
+    )
+    await publishPush('https://ntfy.sh/my-topic', 'hi', {}, fetchImpl as typeof fetch)
+    expect(fetchImpl).toHaveBeenCalledWith('https://ntfy.sh/my-topic', expect.anything())
   })
 
   it('sends a title header', async () => {

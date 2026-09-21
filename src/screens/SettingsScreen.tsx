@@ -81,8 +81,14 @@ export default function SettingsScreen({ onDone }: Props) {
       setNtfyTestResult('トピックを入力してください')
       return
     }
-    const ok = await publishPush(topic, 'テスト通知です（参考書スケジュール管理）')
-    setNtfyTestResult(ok ? 'テスト通知を送信しました' : '送信に失敗しました')
+    const result = await publishPush(topic, 'テスト通知です（参考書スケジュール管理）')
+    setNtfyTestResult(
+      result.ok
+        ? 'テスト通知を送信しました'
+        : result.reason === 'network'
+          ? '送信に失敗しました（ネットワークでntfy.shに届きませんでした。インターネット接続を確認してください）'
+          : `送信に失敗しました（ntfy.sh が HTTP ${result.status ?? '?'} を返しました。トピック名を確認してください）`,
+    )
   }
 
   return (
@@ -112,7 +118,10 @@ export default function SettingsScreen({ onDone }: Props) {
         <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
           毎日20:00に「今日の学習を記録しましたか？」の通知を送ります。進捗が遅れている場合は、
           その内容に変わります。アプリを閉じていても届くには ntfy
-          の受信アプリをインストールし、同じトピックを購読してください。
+          の受信アプリをインストールし、同じトピックを購読してください。トピックは例:
+          my-schedule3 のような文字列です(アドレス欄をコピーした場合もそのまま入力できます)。テスト通知は
+          ntfy.sh へ直接送信するため、ネットワークから ntfy.sh
+          に繋がらない環境では失敗します。
         </p>
         <label htmlFor="ntfy-topic">トピック名</label>
         <input

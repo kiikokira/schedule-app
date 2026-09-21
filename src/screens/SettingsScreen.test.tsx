@@ -52,6 +52,18 @@ it('saves the ntfy topic and enabled flag to localStorage', () => {
   )
 })
 
+it('normalizes a pasted ntfy URL before saving', () => {
+  localStorage.removeItem('schedule-app-ntfy')
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.change(screen.getByTestId('ntfy-topic'), {
+    target: { value: 'https://ntfy.sh/my-topic' },
+  })
+  fireEvent.click(screen.getByTestId('ntfy-save'))
+  expect(localStorage.getItem('schedule-app-ntfy')).toBe(
+    JSON.stringify({ enabled: false, topic: 'my-topic' }),
+  )
+})
+
 it('sends a test notification to the ntfy topic', async () => {
   const fetchImpl = vi.fn(async () => ({ ok: true } as Response))
   vi.stubGlobal('fetch', fetchImpl)
@@ -70,7 +82,21 @@ it('sends a test notification to the ntfy topic', async () => {
   )
 })
 
-it('reports a failure result when the test notification fails', async () => {
+it('sends a test notification to the normalized URL when a full address is pasted', async () => {
+  const fetchImpl = vi.fn(async () => ({ ok: true } as Response))
+  vi.stubGlobal('fetch', fetchImpl)
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.change(screen.getByTestId('ntfy-topic'), {
+    target: { value: 'https://ntfy.sh/my-topic' },
+  })
+  fireEvent.click(screen.getByTestId('ntfy-test'))
+  await waitFor(() =>
+    expect(screen.getByTestId('ntfy-result')).toHaveTextContent('テスト通知を送信しました'),
+  )
+  expect(fetchImpl).toHaveBeenCalledWith('https://ntfy.sh/my-topic', expect.anything())
+})
+
+it('reports a network failure when the request throws', async () => {
   const fetchImpl = vi.fn(async () => {
     throw new Error('network down')
   })
@@ -82,6 +108,17 @@ it('reports a failure result when the test notification fails', async () => {
   render(<SettingsScreen onDone={() => {}} />)
   fireEvent.click(screen.getByTestId('ntfy-test'))
   await waitFor(() =>
-    expect(screen.getByTestId('ntfy-result')).toHaveTextContent('送信に失敗しました'),
+    expect(screen.getByTestId('ntfy-result')).toHaveTextContent(/送信に失敗しました（ネットワーク/),
+  )
+})
+
+it('reports an http failure with the status', async () => {
+  const fetchImpl = vi.fn(async () => ({ ok: false, status: 404 }) as Response)
+  vi.stubGlobal('fetch', fetchImpl)
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.change(screen.getByTestId('ntfy-topic'), { target: { value: 'wrong/topic' } })
+  fireEvent.click(screen.getByTestId('ntfy-test'))
+  await waitFor(() =>
+    expect(screen.getByTestId('ntfy-result')).toHaveTextContent(/HTTP 404/),
   )
 })
