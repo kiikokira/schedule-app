@@ -582,13 +582,41 @@ describe('HomeScreen', () => {
     })
   })
 
-  it('does not show a NOW progress bar when the current book is not registered', () => {
+  it('shows a 0% progress bar under the NOW title when the current book is not registered', () => {
     const custom: ScheduleEntry[] = [
       { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(2), deadline: daysAhead(6) },
     ]
     saveSchedule(custom)
     render(<HomeScreen onOpenBook={() => {}} />)
-    expect(screen.queryByTestId('now-next-progress')).not.toBeInTheDocument()
+    const bar = screen.getByTestId('now-next-progress')
+    expect(bar).toHaveTextContent('0%')
+  })
+
+  it('shows a progress bar on a schedule row reflecting the registered book progress', async () => {
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(2), deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'eibunpo-polaris-2',
+      totalPages: 100,
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: todayStr(), pages: 40 })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const bar = await screen.findByTestId('row-progressbar-eibunpo-polaris-2')
+    expect(bar).toHaveAttribute('aria-valuenow', '40')
+  })
+
+  it('shows a 0% progress bar on an unregistered schedule row', () => {
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'porepore', startDate: daysAgo(2), deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const bar = screen.getByTestId('row-progressbar-porepore')
+    expect(bar).toHaveAttribute('aria-valuenow', '0')
   })
 
   it('shows a behind warning banner with an evenly spread daily pace', async () => {

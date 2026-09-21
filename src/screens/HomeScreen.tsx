@@ -175,6 +175,7 @@ function ScheduleRow({
     return todayRecordPages
   })()
   const totalPages = registered?.totalPages ?? catalogBook?.totalPages ?? 0
+  const progress = totalPages > 0 ? (done / totalPages) * 100 : 0
   const requiredPerDay = calcRequiredPerDay(
     { totalPages },
     done - todayRecordPages,
@@ -280,6 +281,28 @@ function ScheduleRow({
             完了
           </button>
         )}
+      </div>
+      <div
+        role="progressbar"
+        aria-valuenow={Math.round(progress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        data-testid={`row-progressbar-${entry.catalogId}`}
+        style={{
+          height: 8,
+          borderRadius: 4,
+          background: 'var(--cover-placeholder)',
+          marginTop: 8,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            width: `${progress}%`,
+            height: '100%',
+            background: status === 'done' ? '#2f9e63' : 'var(--accent-strong)',
+          }}
+        />
       </div>
       <div
         style={{
@@ -454,7 +477,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
           nowTotal > 0
             ? Math.min(Math.round((nowInRound / nowTotal) * 100), 100)
             : 0
-        const nowProgress = nowRegistered ? nowPercent : undefined
+        const nowProgress = nowRegistered ? nowPercent : 0
         return (
           <section
             data-testid="now-next-section"
