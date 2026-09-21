@@ -54,7 +54,7 @@ export default function PlanScreen({ onDone }: Props) {
   }
 
   const reset = () => {
-    if (!window.confirm('学習スケジュールを初期状態に戻しますか？変更内容は戻ります。')) return
+    if (!window.confirm('学習スケジュールを最新の内容に更新しますか？変更内容は置き換わります。')) return
     setEntries([...SCHEDULE])
   }
 
@@ -191,7 +191,7 @@ export default function PlanScreen({ onDone }: Props) {
           スケジュールを保存
         </button>
         <button data-testid="reset-schedule" type="button" onClick={reset}>
-          初期状態に戻す
+          最新のスケジュールに更新
         </button>
         <button data-testid="apply-schedule" type="button" onClick={() => void apply()}>
           このスケジュールで登録する
