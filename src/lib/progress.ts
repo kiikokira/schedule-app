@@ -53,6 +53,12 @@ export function calcDonePages(records: ProgressRecordData[], bookId: string): nu
     .reduce((sum, r) => sum + r.pages, 0)
 }
 
+export function currentRound(donePages: number, totalPages: number): number {
+  if (!Number.isInteger(totalPages) || totalPages <= 0) return 1
+  if (!Number.isInteger(donePages) || donePages <= 0) return 1
+  return Math.floor((donePages - 1) / totalPages) + 1
+}
+
 export function calcDailyTarget(
   book: { totalPages: number },
   done: number,

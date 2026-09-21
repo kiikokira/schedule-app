@@ -7,6 +7,7 @@ import {
   calcDonePages,
   calcRequiredPerDay,
   calcScheduleStatus,
+  currentRound,
   daysBetween,
   formatJaDate,
   todayStr,
@@ -28,6 +29,8 @@ const STATUS_LABEL: Record<string, string> = {
   behind: '遅れ',
   scheduled: '順調',
 }
+
+const ROUND_BADGE_COUNT = 5
 
 type Props = {
   onOpenBook: (id: string) => void
@@ -92,6 +95,7 @@ type ScheduleRowProps = {
   records: ProgressRecordData[]
   today: string
   hasNext: boolean
+  round: number | undefined
   onOpen: (id: string) => void
   onRecord: (catalogId: string, pages: number) => void
   onAdvance: (catalogId: string) => void
@@ -104,6 +108,7 @@ function ScheduleRow({
   records,
   today,
   hasNext,
+  round,
   onOpen,
   onRecord,
   onAdvance,
@@ -158,6 +163,24 @@ function ScheduleRow({
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 700 }}>
           {catalogBook?.title ?? entry.catalogId}
+          {round !== undefined && (
+            <span
+              data-testid={`round-badge-${entry.catalogId}`}
+              style={{
+                display: 'inline-block',
+                marginLeft: 6,
+                fontSize: 11,
+                fontWeight: 700,
+                lineHeight: '18px',
+                padding: '0 8px',
+                borderRadius: 999,
+                color: 'var(--accent)',
+                border: '1px solid var(--accent)',
+              }}
+            >
+              {round}周目中
+            </span>
+          )}
         </div>
         <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>
           期限 {entry.deadline}（{daysLabel}）
@@ -405,7 +428,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
         <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
           期限が近い順。遅れている参考書が上に表示されます。
         </p>
-        {scheduled.map((entry) => {
+        {scheduled.map((entry, index) => {
           const catalogBook = CATALOG.find((c) => c.id === entry.catalogId)
           const registered = findRegistered(
             books,
@@ -417,6 +440,12 @@ export default function HomeScreen({ onOpenBook }: Props) {
           )
           const hasNext =
             originalIndex !== -1 && originalIndex + 1 < schedule.length
+          const done = registered ? calcDonePages(records, registered.id) : 0
+          const total = catalogBook?.totalPages ?? 0
+          const round =
+            index < ROUND_BADGE_COUNT && total > 0
+              ? currentRound(done, total)
+              : undefined
           return (
             <ScheduleRow
               key={entry.catalogId}
@@ -426,6 +455,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
               records={records}
               today={today}
               hasNext={hasNext}
+              round={round}
               onOpen={onOpenBook}
               onRecord={(catalogId, pages) =>
                 void handleRowRecord(catalogId, pages)

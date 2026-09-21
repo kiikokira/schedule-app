@@ -120,6 +120,38 @@ describe('HomeScreen', () => {
     expect(screen.queryByTestId('now-next-section')).not.toBeInTheDocument()
   })
 
+  it('shows a 周目 badge on the first five schedule rows only', () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(screen.getAllByText('1周目中')).toHaveLength(5)
+    const first = screen.getByTestId('round-badge-eibunpo-polaris-2')
+    expect(first).toHaveTextContent('1周目中')
+    const sixth = screen.queryByTestId('round-badge-the-rules-2')
+    expect(sixth).not.toBeInTheDocument()
+  })
+
+  it('shows 2周目中 once a registered book’s recorded pages exceed the total', async () => {
+    const catalog = CATALOG.find((c) => c.id === 'eibunpo-polaris-2')
+    expect(catalog).toBeDefined()
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'eibunpo-polaris-2',
+      totalPages: (catalog as { totalPages: number }).totalPages,
+    })
+    await db.records.add({
+      id: 'r1',
+      bookId: 'b1',
+      date: daysAgo(1),
+      pages: (catalog as { totalPages: number }).totalPages + 1,
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('round-badge-eibunpo-polaris-2'),
+      ).toHaveTextContent('2周目中'),
+    )
+  })
+
   it('shows the deadline of each scheduled book', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     const row = screen.getByTestId('schedule-row-eibunpo-polaris-2')

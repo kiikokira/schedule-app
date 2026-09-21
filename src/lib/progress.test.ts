@@ -8,6 +8,7 @@ import {
   calcRequiredPerDay,
   calcScheduleStatus,
   calcDonePages,
+  currentRound,
   formatJaDate,
   type BookData,
   type ProgressRecordData,
@@ -127,5 +128,26 @@ describe('calcDonePages', () => {
   })
   it('returns 0 when no records', () => {
     expect(calcDonePages([], 'b1')).toBe(0)
+  })
+})
+
+describe('currentRound', () => {
+  it('stays on 1周目 through the first pass of the whole book', () => {
+    expect(currentRound(0, 308)).toBe(1)
+    expect(currentRound(1, 308)).toBe(1)
+    expect(currentRound(308, 308)).toBe(1)
+  })
+
+  it('moves to 2周目 once the recorded pages pass the total', () => {
+    expect(currentRound(309, 308)).toBe(2)
+    expect(currentRound(616, 308)).toBe(2)
+  })
+
+  it('continues to further rounds', () => {
+    expect(currentRound(617, 308)).toBe(3)
+  })
+
+  it('returns 1周目 for a zero or missing total', () => {
+    expect(currentRound(10, 0)).toBe(1)
   })
 })
