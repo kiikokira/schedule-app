@@ -54,6 +54,7 @@ export default function PlanScreen({ onDone }: Props) {
   }
 
   const reset = () => {
+    if (!window.confirm('学習スケジュールを初期状態に戻しますか？変更内容は戻ります。')) return
     setEntries([...SCHEDULE])
   }
 
@@ -173,9 +174,10 @@ export default function PlanScreen({ onDone }: Props) {
             <button
               data-testid={`entry-delete-${entry.catalogId}`}
               type="button"
-              onClick={() =>
+              onClick={() => {
+                if (!window.confirm(`「${book.title}」をスケジュールから削除しますか？`)) return
                 setEntries((prev) => removeEntry(prev, entry.catalogId))
-              }
+              }}
               style={{ flexShrink: 0 }}
             >
               削除

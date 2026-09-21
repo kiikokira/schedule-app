@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { beforeEach, describe, it, expect } from 'vitest'
+import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { db } from '../db/database'
 import PlanScreen from './PlanScreen'
 import { SCHEDULE, suggestDeadline } from '../data/schedule'
@@ -10,6 +10,10 @@ beforeEach(async () => {
   await db.books.clear()
   await db.records.clear()
   localStorage.clear()
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe('PlanScreen', () => {
@@ -70,12 +74,54 @@ describe('PlanScreen', () => {
     expect(entry?.deadline).toBe('2026-12-15')
   })
 
-  it('removes a book from the schedule and saves', () => {
+  it('removes a book from the schedule and saves after confirmation', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
     render(<PlanScreen onDone={() => {}} />)
     fireEvent.click(screen.getByTestId('entry-delete-sfc-shoronbun'))
     fireEvent.click(screen.getByTestId('save-schedule'))
     const saved = loadSchedule()
     expect(saved.some((e) => e.catalogId === 'sfc-shoronbun')).toBe(false)
+  })
+
+  it('keeps the book in the schedule when delete is cancelled', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('entry-delete-sfc-shoronbun'))
+    fireEvent.click(screen.getByTestId('save-schedule'))
+    const saved = loadSchedule()
+    expect(saved.some((e) => e.catalogId === 'sfc-shoronbun')).toBe(true)
+  })
+
+  it('reverts edited dates only after confirming reset', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(
+      screen.getByTestId('entry-deadline-eibunpo-polaris-2'),
+      { target: { value: '2026-12-15' } },
+    )
+    expect(
+      screen.getByTestId<HTMLInputElement>('entry-deadline-eibunpo-polaris-2')
+        .value,
+    ).toBe('2026-12-15')
+    fireEvent.click(screen.getByTestId('reset-schedule'))
+    expect(
+      screen.getByTestId<HTMLInputElement>('entry-deadline-eibunpo-polaris-2')
+        .value,
+    ).toBe('2026-09-30')
+  })
+
+  it('keeps edited dates when reset is cancelled', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(
+      screen.getByTestId('entry-deadline-eibunpo-polaris-2'),
+      { target: { value: '2026-12-15' } },
+    )
+    fireEvent.click(screen.getByTestId('reset-schedule'))
+    expect(
+      screen.getByTestId<HTMLInputElement>('entry-deadline-eibunpo-polaris-2')
+        .value,
+    ).toBe('2026-12-15')
   })
 
   it('registers all schedule books when none exist', async () => {
