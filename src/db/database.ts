@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import type { BookData, ProgressRecordData } from '../lib/progress'
+import type { AvailabilitySlot, Adjustment } from '../data/dayplanStore'
 
 export type DexieBook = BookData
 export type DexieRecord = ProgressRecordData
@@ -7,12 +8,20 @@ export type DexieRecord = ProgressRecordData
 class ScheduleDB extends Dexie {
   books!: Table<DexieBook, string>
   records!: Table<DexieRecord, string>
+  availability!: Table<AvailabilitySlot, string>
+  adjustments!: Table<Adjustment, string>
 
   constructor() {
     super('schedule-app')
     this.version(1).stores({
       books: 'id, deadline, startDate',
       records: 'id, bookId, [bookId+date]',
+    })
+    this.version(2).stores({
+      books: 'id, deadline, startDate',
+      records: 'id, bookId, [bookId+date]',
+      availability: 'id, weekday, date',
+      adjustments: 'id, date, bookId',
     })
   }
 }
