@@ -40,3 +40,48 @@ it('saves the Google Books api key to localStorage', () => {
   fireEvent.click(screen.getByTestId('save-google-books-api-key'))
   expect(localStorage.getItem('google-books-api-key')).toBe('AIza-test')
 })
+
+it('saves the ntfy topic and enabled flag to localStorage', () => {
+  localStorage.removeItem('schedule-app-ntfy')
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.change(screen.getByTestId('ntfy-topic'), { target: { value: 'my-topic' } })
+  fireEvent.click(screen.getByTestId('ntfy-enabled'))
+  fireEvent.click(screen.getByTestId('ntfy-save'))
+  expect(localStorage.getItem('schedule-app-ntfy')).toBe(
+    JSON.stringify({ enabled: true, topic: 'my-topic' }),
+  )
+})
+
+it('sends a test notification to the ntfy topic', async () => {
+  const fetchImpl = vi.fn(async () => ({ ok: true } as Response))
+  vi.stubGlobal('fetch', fetchImpl)
+  localStorage.setItem(
+    'schedule-app-ntfy',
+    JSON.stringify({ enabled: true, topic: 'my-topic' }),
+  )
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.click(screen.getByTestId('ntfy-test'))
+  await waitFor(() =>
+    expect(screen.getByTestId('ntfy-result')).toHaveTextContent('テスト通知を送信しました'),
+  )
+  expect(fetchImpl).toHaveBeenCalledWith(
+    'https://ntfy.sh/my-topic',
+    expect.objectContaining({ method: 'POST' }),
+  )
+})
+
+it('reports a failure result when the test notification fails', async () => {
+  const fetchImpl = vi.fn(async () => {
+    throw new Error('network down')
+  })
+  vi.stubGlobal('fetch', fetchImpl)
+  localStorage.setItem(
+    'schedule-app-ntfy',
+    JSON.stringify({ enabled: true, topic: 'my-topic' }),
+  )
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.click(screen.getByTestId('ntfy-test'))
+  await waitFor(() =>
+    expect(screen.getByTestId('ntfy-result')).toHaveTextContent('送信に失敗しました'),
+  )
+})

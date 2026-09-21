@@ -427,8 +427,9 @@ describe('HomeScreen', () => {
     })
     render(<HomeScreen onOpenBook={() => {}} />)
     const input = await screen.findByTestId('row-progress-input-porepore')
-    fireEvent.change(input, { target: { value: '10' } })
     const row = screen.getByTestId('schedule-row-porepore')
+    await waitFor(() => expect(row).not.toHaveTextContent('未登録'))
+    fireEvent.change(input, { target: { value: '10' } })
     // (100 - 10) / 今日を除く5日 = 1日18ページ
     expect(row).toHaveTextContent('期限まで1日あたり 18 ページ')
   })
@@ -539,5 +540,157 @@ describe('HomeScreen', () => {
     render(<HomeScreen onOpenBook={onOpen} />)
     fireEvent.click(await screen.findByTestId('schedule-row-open-porepore'))
     expect(onOpen).toHaveBeenCalledWith('b1')
+  })
+
+  it('shows the current book progress percent on the NOW card', async () => {
+    const today = localDateStr(new Date())
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(2), deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'eibunpo-polaris-2',
+      totalPages: 100,
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 25 })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await waitFor(async () => {
+      expect(
+        await screen.findByTestId('now-next-progress'),
+      ).toHaveTextContent('25%')
+    })
+  })
+
+  it('shows 0% on the NOW card when a registered book has no progress', async () => {
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(2), deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'eibunpo-polaris-2',
+      totalPages: 100,
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await waitFor(async () => {
+      expect(
+        await screen.findByTestId('now-next-progress'),
+      ).toHaveTextContent('0%')
+    })
+  })
+
+  it('does not show a NOW progress bar when the current book is not registered', () => {
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(2), deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(screen.queryByTestId('now-next-progress')).not.toBeInTheDocument()
+  })
+
+  it('shows a behind warning banner with an evenly spread daily pace', async () => {
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      totalPages: 150,
+      startDate: daysAgo(30),
+      deadline: daysAhead(150),
+    })
+    await db.books.add({
+      ...book,
+      id: 'b2',
+      title: '英文法ポラリス1（標準レベル）',
+      totalPages: 150,
+      startDate: daysAgo(30),
+      deadline: daysAhead(150),
+    })
+    await db.records.add({
+      id: 'r1',
+      bookId: 'b1',
+      date: daysAgo(1),
+      pages: 5,
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const banner = await screen.findByTestId('overall-pace-banner')
+    // 残り300ページ / 150日 = 1日2ページ。直近7日実績 5/7 < 2 → 遅れ
+    expect(banner).toHaveTextContent('間に合いません')
+    expect(banner).toHaveTextContent('1日 2 ページ')
+  })
+
+  it('shows an on-pace message when the recent pace is fast enough', async () => {
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      totalPages: 150,
+      startDate: daysAgo(30),
+      deadline: daysAhead(150),
+    })
+    await db.books.add({
+      ...book,
+      id: 'b2',
+      title: '英文法ポラリス1（標準レベル）',
+      totalPages: 150,
+      startDate: daysAgo(30),
+      deadline: daysAhead(150),
+    })
+    for (let i = 0; i < 7; i++) {
+      await db.records.add({
+        id: `r${i}`,
+        bookId: 'b1',
+        date: daysAgo(i),
+        pages: 5,
+      })
+    }
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const banner = await screen.findByTestId('overall-pace-banner-ok')
+    // 直近7日間 35ページ → 5/日で必要2/日を上回る → 順調
+    expect(banner).toHaveTextContent('間に合いそう')
+  })
+
+  it('shows no overall pace banner when no books are registered', () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(screen.queryByTestId('overall-pace-banner')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('overall-pace-banner-ok')).not.toBeInTheDocument()
+  })
+
+  it('publishes the diagnosis state to the ntfy state topic when enabled', async () => {
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        ({ ok: true }) as Response,
+    )
+    vi.stubGlobal('fetch', fetchImpl)
+    localStorage.setItem(
+      'schedule-app-ntfy',
+      JSON.stringify({ enabled: true, topic: 'my-topic' }),
+    )
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      totalPages: 150,
+      deadline: daysAhead(150),
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: daysAgo(1), pages: 5 })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await waitFor(() => {
+      expect(fetchImpl).toHaveBeenCalledWith(
+        'https://ntfy.sh/my-topic-state',
+        expect.objectContaining({ method: 'POST' }),
+      )
+    })
+    const [, init] = fetchImpl.mock.calls[0]
+    const body = JSON.parse(init?.body as string)
+    expect(body.behind).toBe(true)
+  })
+
+  it('does not publish state when the notification is disabled', async () => {
+    const fetchImpl = vi.fn(async () => ({ ok: true } as Response))
+    vi.stubGlobal('fetch', fetchImpl)
+    localStorage.removeItem('schedule-app-ntfy')
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    expect(fetchImpl).not.toHaveBeenCalled()
   })
 })

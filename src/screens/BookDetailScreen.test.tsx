@@ -81,4 +81,68 @@ describe('BookDetailScreen', () => {
       '今日 40 ページを進める場合、期限まで1日あたり 12 ページ',
     )
   })
+
+  it('lists each record with its date and pages', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: daysFromNow(-2), pages: 10 })
+    await db.records.add({ id: 'r2', bookId: 'b1', date: daysFromNow(-1), pages: 20 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByText('記録一覧')).toBeInTheDocument()
+    const row1 = screen.getByTestId('record-row-r1')
+    expect(row1).toHaveTextContent('10 ページ')
+    const row2 = screen.getByTestId('record-row-r2')
+    expect(row2).toHaveTextContent('20 ページ')
+    for (const id of ['r1', 'r2']) {
+      expect(screen.getByTestId(`record-edit-${id}`)).toBeInTheDocument()
+      expect(screen.getByTestId(`record-delete-${id}`)).toBeInTheDocument()
+    }
+  })
+
+  it('updates the pages of a record from the list', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: localDateStr(new Date()), pages: 10 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('record-edit-r1'))
+    fireEvent.change(screen.getByTestId('record-edit-pages-r1'), { target: { value: '25' } })
+    fireEvent.click(screen.getByTestId('record-save-r1'))
+    await waitFor(() => expect(screen.getByTestId('done-count')).toHaveTextContent('25'))
+    expect(screen.getByTestId('record-row-r1')).toHaveTextContent('25 ページ')
+  })
+
+  it('updates the date of a record from the list', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: localDateStr(new Date()), pages: 10 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    const newDate = daysFromNow(2)
+    fireEvent.click(await screen.findByTestId('record-edit-r1'))
+    fireEvent.change(screen.getByTestId('record-edit-date-r1'), { target: { value: newDate } })
+    fireEvent.click(screen.getByTestId('record-save-r1'))
+    await waitFor(async () => {
+      const stored = await db.records.get('r1')
+      expect(stored?.date).toBe(newDate)
+    })
+  })
+
+  it('deletes a record after confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: localDateStr(new Date()), pages: 10 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('record-delete-r1'))
+    await waitFor(async () => {
+      expect(screen.queryByTestId('record-row-r1')).not.toBeInTheDocument()
+      const stored = await db.records.get('r1')
+      expect(stored).toBeUndefined()
+    })
+  })
+
+  it('keeps a record when deletion is cancelled', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: localDateStr(new Date()), pages: 10 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('record-delete-r1'))
+    expect(await db.records.get('r1')).toBeDefined()
+    expect(screen.getByTestId('record-row-r1')).toBeInTheDocument()
+  })
 })

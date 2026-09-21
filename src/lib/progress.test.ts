@@ -10,6 +10,8 @@ import {
   calcDonePages,
   currentRound,
   formatJaDate,
+  recentAvgPagesPerDay,
+  overallDiagnosis,
   type BookData,
   type ProgressRecordData,
 } from './progress'
@@ -149,5 +151,92 @@ describe('currentRound', () => {
 
   it('returns 1周目 for a zero or missing total', () => {
     expect(currentRound(10, 0)).toBe(1)
+  })
+})
+
+describe('recentAvgPagesPerDay', () => {
+  const rec = (id: string, date: string, pages: number): ProgressRecordData => ({
+    id,
+    bookId: 'b1',
+    date,
+    pages,
+  })
+
+  it('averages only the last 7 days including today', () => {
+    const records = [
+      rec('r1', '2026-01-04', 10),
+      rec('r2', '2026-01-06', 20),
+      rec('r3', '2026-01-10', 40),
+    ]
+    // (10 + 20 + 40) / 7 = 10
+    expect(recentAvgPagesPerDay(records, '2026-01-10')).toBe(10)
+  })
+
+  it('ignores records older than the window', () => {
+    const records = [rec('r1', '2026-01-03', 700), rec('r2', '2026-01-09', 14)]
+    // 2026-01-03 は窓(01-04〜01-10)の外。14 / 7 = 2
+    expect(recentAvgPagesPerDay(records, '2026-01-10')).toBe(2)
+  })
+
+  it('returns 0 when there are no records in the window', () => {
+    expect(recentAvgPagesPerDay([], '2026-01-10')).toBe(0)
+    expect(
+      recentAvgPagesPerDay([rec('r1', '2025-01-04', 100)], '2026-01-10'),
+    ).toBe(0)
+  })
+})
+
+describe('overallDiagnosis', () => {
+  const makeBook = (overrides: Partial<BookData> = {}): BookData => ({
+    id: 'b1',
+    title: '単語帳',
+    totalPages: 100,
+    startDate: '2026-01-01',
+    deadline: '2026-02-11',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  })
+  const rec = (id: string, bookId: string, date: string, pages: number): ProgressRecordData => ({
+    id,
+    bookId,
+    date,
+    pages,
+  })
+
+  it('spreads the remaining pages evenly over all days until the latest deadline', () => {
+    const books = [
+      makeBook({ id: 'b1', totalPages: 100, deadline: '2026-02-11' }),
+      makeBook({ id: 'b2', totalPages: 100, deadline: '2026-01-11' }),
+    ]
+    const records = [rec('r1', 'b1', '2026-01-09', 40)]
+    // 残り 160 ページ / 2026-01-11〜2026-02-11 の31日 = 切り上げ6ページ
+    const d = overallDiagnosis(books, records, '2026-01-11')
+    expect(d.remainingPages).toBe(160)
+    expect(d.requiredPerDay).toBe(6)
+    expect(d.endDate).toBe('2026-02-11')
+  })
+
+  it('is behind when the recent pace is slower than the required per-day pages', () => {
+    const books = [makeBook({ id: 'b1', totalPages: 100, deadline: '2026-02-11' })]
+    const records = [rec('r1', 'b1', '2026-01-09', 14)]
+    const d = overallDiagnosis(books, records, '2026-01-11')
+    // 必要4ページ/日、直近7日実績 14/7 = 2/日 → 遅れ
+    expect(d.behind).toBe(true)
+  })
+
+  it('is not behind when the recent pace meets the requirement', () => {
+    const books = [makeBook({ id: 'b1', totalPages: 100, deadline: '2026-02-11' })]
+    const records = [rec('r1', 'b1', '2026-01-09', 42)]
+    const d = overallDiagnosis(books, records, '2026-01-11')
+    // 必要4ページ/日、直近7日実績 42/7 = 6/日 → 順調
+    expect(d.behind).toBe(false)
+  })
+
+  it('is not behind and returns zero pace when there are no books', () => {
+    const d = overallDiagnosis([], [], '2026-01-11')
+    expect(d.remainingPages).toBe(0)
+    expect(d.requiredPerDay).toBe(0)
+    expect(d.behind).toBe(false)
   })
 })

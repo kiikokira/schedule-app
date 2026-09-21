@@ -41,3 +41,34 @@ export async function deleteBookCascade(bookId: string): Promise<void> {
     await db.books.delete(bookId)
   })
 }
+
+export type RecordPatch = {
+  date?: string
+  pages?: number
+}
+
+export async function updateProgressRecord(
+  id: string,
+  patch: RecordPatch,
+): Promise<DexieRecord> {
+  const existing = await db.records.get(id)
+  if (!existing) throw new Error('記録が見つかりません')
+  if (patch.date && patch.date !== existing.date) {
+    const clash = await db.records
+      .where('[bookId+date]')
+      .equals([existing.bookId, patch.date])
+      .first()
+    if (clash && clash.id !== id) {
+      await db.records.delete(clash.id)
+    }
+  }
+  const changes: Partial<DexieRecord> = {}
+  if (patch.date !== undefined) changes.date = patch.date
+  if (patch.pages !== undefined) changes.pages = patch.pages
+  await db.records.update(id, changes)
+  return (await db.records.get(id)) as DexieRecord
+}
+
+export async function deleteProgressRecord(id: string): Promise<void> {
+  await db.records.delete(id)
+}

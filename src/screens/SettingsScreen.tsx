@@ -1,6 +1,11 @@
 import { useRef, useState } from 'react'
 import { exportBackup, importBackup, validateBackup } from '../db/backup'
 import { getBooksApiKey, setBooksApiKey } from '../api/googleBooks'
+import {
+  getNotifySettings,
+  setNotifySettings,
+  publishPush,
+} from '../lib/notify'
 
 type Props = {
   onDone: () => void
@@ -9,6 +14,9 @@ type Props = {
 export default function SettingsScreen({ onDone }: Props) {
   const [result, setResult] = useState<string | null>(null)
   const [apiKey, setApiKey] = useState(getBooksApiKey())
+  const [ntfyTopic, setNtfyTopic] = useState(getNotifySettings().topic)
+  const [ntfyEnabled, setNtfyEnabled] = useState(getNotifySettings().enabled)
+  const [ntfyTestResult, setNtfyTestResult] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleExport = async () => {
@@ -61,6 +69,22 @@ export default function SettingsScreen({ onDone }: Props) {
     setResult('すべてのデータを削除しました')
   }
 
+  const handleSaveNtfy = () => {
+    setNotifySettings({ enabled: ntfyEnabled, topic: ntfyTopic })
+    setNtfyTestResult(null)
+    setResult('リマインダー通知の設定を保存しました')
+  }
+
+  const handleTestNtfy = async () => {
+    const topic = ntfyTopic.trim()
+    if (!topic) {
+      setNtfyTestResult('トピックを入力してください')
+      return
+    }
+    const ok = await publishPush(topic, 'テスト通知です（参考書スケジュール管理）')
+    setNtfyTestResult(ok ? 'テスト通知を送信しました' : '送信に失敗しました')
+  }
+
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>設定</h1>
@@ -82,6 +106,45 @@ export default function SettingsScreen({ onDone }: Props) {
         <button data-testid="save-google-books-api-key" type="button" onClick={handleSaveApiKey}>
           APIキーを保存
         </button>
+      </section>
+      <section style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 16 }}>リマインダー通知（Push）</h2>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+          毎日20:00に「今日の学習を記録しましたか？」の通知を送ります。進捗が遅れている場合は、
+          その内容に変わります。アプリを閉じていても届くには ntfy
+          の受信アプリをインストールし、同じトピックを購読してください。
+        </p>
+        <label htmlFor="ntfy-topic">トピック名</label>
+        <input
+          id="ntfy-topic"
+          data-testid="ntfy-topic"
+          type="text"
+          value={ntfyTopic}
+          onChange={(e) => setNtfyTopic(e.target.value)}
+          placeholder="例: my-study-reminder"
+          autoComplete="off"
+        />
+        <div>
+          <label htmlFor="ntfy-enabled">通知を有効にする</label>
+          <input
+            id="ntfy-enabled"
+            data-testid="ntfy-enabled"
+            type="checkbox"
+            checked={ntfyEnabled}
+            onChange={(e) => setNtfyEnabled(e.target.checked)}
+          />
+        </div>
+        <button data-testid="ntfy-save" type="button" onClick={handleSaveNtfy}>
+          設定を保存
+        </button>
+        <button data-testid="ntfy-test" type="button" onClick={() => void handleTestNtfy()}>
+          テスト通知を送る
+        </button>
+        {ntfyTestResult && (
+          <p data-testid="ntfy-result" style={{ color: 'var(--accent-strong)' }}>
+            {ntfyTestResult}
+          </p>
+        )}
       </section>
       <button data-testid="backup-export" type="button" onClick={() => void handleExport()}>
         バックアップを書き出す

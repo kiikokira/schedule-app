@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import BookCard from '../components/BookCard'
 import CoverImage from '../components/CoverImage'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
+import { getNotifySettings, publishState } from '../lib/notify'
 import {
   calcDonePages,
   calcRequiredPerDay,
@@ -10,6 +11,7 @@ import {
   currentRound,
   daysBetween,
   formatJaDate,
+  overallDiagnosis,
   todayStr,
   type BookData,
   type ProgressRecordData,
@@ -52,9 +54,10 @@ type NowNextItemProps = {
   label: string
   entry?: ScheduleEntry
   testid: string
+  progressPercent?: number
 }
 
-function NowNextItem({ label, entry, testid }: NowNextItemProps) {
+function NowNextItem({ label, entry, testid, progressPercent }: NowNextItemProps) {
   if (!entry) return null
   const catalogBook = CATALOG.find((c) => c.id === entry.catalogId)
   return (
@@ -84,6 +87,32 @@ function NowNextItem({ label, entry, testid }: NowNextItemProps) {
       >
         {catalogBook?.title}
       </p>
+      {progressPercent !== undefined && (
+        <div
+          data-testid="now-next-progress"
+          style={{ width: 64 }}
+        >
+          <div
+            style={{
+              height: 6,
+              borderRadius: 3,
+              background: 'var(--border)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                width: `${progressPercent}%`,
+                height: '100%',
+                background: 'var(--accent)',
+              }}
+            />
+          </div>
+          <p style={{ fontSize: 10, textAlign: 'center', margin: 2 }}>
+            {progressPercent}%
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -360,6 +389,23 @@ export default function HomeScreen({ onOpenBook }: Props) {
     return 0
   })
 
+  const diagnosis = overallDiagnosis(books, records, today)
+
+  const notify = getNotifySettings()
+  const notifyEnabled = notify.enabled
+  const notifyTopic = notify.topic
+
+  useEffect(() => {
+    if (!notifyEnabled || !notifyTopic.trim()) return
+    const timer = setTimeout(() => {
+      void publishState(notifyTopic, {
+        behind: diagnosis.behind,
+        requiredPerDay: diagnosis.requiredPerDay,
+      })
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [notifyEnabled, notifyTopic, diagnosis.behind, diagnosis.requiredPerDay])
+
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>参考書スケジュール</h1>
@@ -392,6 +438,23 @@ export default function HomeScreen({ onOpenBook }: Props) {
       {(() => {
         const { now, next } = selectNowAndNext(schedule, today)
         if (!now && !next) return null
+        const nowCatalogBook = CATALOG.find((c) => c.id === now?.catalogId)
+        const nowRegistered = now
+          ? findRegistered(books, now.catalogId, nowCatalogBook?.title)
+          : undefined
+        const nowTotal =
+          nowRegistered?.totalPages ?? nowCatalogBook?.totalPages ?? 0
+        const nowDone = nowRegistered
+          ? calcDonePages(records, nowRegistered.id)
+          : 0
+        const nowRound = nowTotal > 0 ? currentRound(nowDone, nowTotal) : 1
+        const nowInRound =
+          nowTotal > 0 ? nowDone - (nowRound - 1) * nowTotal : 0
+        const nowPercent =
+          nowTotal > 0
+            ? Math.min(Math.round((nowInRound / nowTotal) * 100), 100)
+            : 0
+        const nowProgress = nowRegistered ? nowPercent : undefined
         return (
           <section
             data-testid="now-next-section"
@@ -414,6 +477,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
                 testid="now-next-now"
                 label="NOW"
                 entry={now}
+                progressPercent={nowProgress}
               />
               {next && (
                 <>
@@ -439,6 +503,40 @@ export default function HomeScreen({ onOpenBook }: Props) {
           </section>
         )
       })()}
+
+      {books.length > 0 &&
+        (diagnosis.behind ? (
+          <div
+            data-testid="overall-pace-banner"
+            style={{
+              marginBottom: 16,
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: '#fdeaea',
+              border: '1px solid #f5c6c6',
+              fontSize: 13,
+            }}
+          >
+            現在のペースだと間に合いません。期限まで均等にすると1日{' '}
+            {diagnosis.requiredPerDay} ページ
+          </div>
+        ) : (
+          <div
+            data-testid="overall-pace-banner-ok"
+            style={{
+              marginBottom: 16,
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              fontSize: 13,
+              color: 'var(--text-dim)',
+            }}
+          >
+            現在のペースで間に合いそうです。期限まで1日 {diagnosis.requiredPerDay}{' '}
+            ページを続けましょう
+          </div>
+        ))}
 
       <section data-testid="schedule-section" style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 16 }}>学習スケジュール</h2>

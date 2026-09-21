@@ -1,0 +1,52 @@
+name: Daily push reminder
+on:
+  schedule:
+    - cron: '0 11 * * *'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send reminder
+        env:
+          TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          if [ -z "$TOPIC" ]; then
+            echo "NTFY_TOPIC が未設定のため通知をスキップしました。リポジトリの Settings > Secrets > Actions で設定してください。" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # アプリが publishState で送った直近の診断状態('<topic>-state')を取得する
+          STATE_TOPIC="${TOPIC}-state"
+          STATE=""
+          if curl -sf "https://ntfy.sh/${STATE_TOPIC}/json?since=all" > /tmp/state_json; then
+            STATE=$(tail -n 1 /tmp/state_json)
+          fi
+
+          MSG=$(printf '%s' "$STATE" | jq -r '.message // empty' 2>/dev/null || true)
+          BEHIND=$(printf '%s' "$MSG" | jq -r '.behind // false' 2>/dev/null || echo false)
+          PACE=$(printf '%s' "$MSG" | jq -r '.requiredPerDay // empty' 2>/dev/null || true)
+
+          if [ "$BEHIND" = "true" ]; then
+            TITLE="⚠ 今日は遅れ気味です"
+            if [ -n "$PACE" ]; then
+              MESSAGE="期限まで均等にすると1日 ${PACE} ページです。がんばりましょう"
+            else
+              MESSAGE="学習を進めましょう。記録を残すだけでも大きな一歩です"
+            fi
+          else
+            TITLE="学習リマインダー"
+            MESSAGE="今日の学習を記録しましたか？"
+          fi
+
+          if curl -sf -X POST "https://ntfy.sh/${TOPIC}" \
+            -H "Title: ${TITLE}" \
+            -H "Priority: high" \
+            -d "${MESSAGE}" >> "$GITHUB_STEP_SUMMARY" 2>&1; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "通知を送信しました: ${TITLE}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "通知の送信に失敗しました" >> "$GITHUB_STEP_SUMMARY"
+          fi

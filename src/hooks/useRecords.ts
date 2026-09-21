@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { db, upsertProgress } from '../db/database'
+import {
+  db,
+  upsertProgress,
+  updateProgressRecord,
+  deleteProgressRecord,
+  type RecordPatch,
+} from '../db/database'
 import type { ProgressRecordData } from '../lib/progress'
 
 export function useRecords() {
@@ -21,5 +27,21 @@ export function useRecords() {
     [refresh],
   )
 
-  return { records, refresh, addProgress }
+  const updateRecord = useCallback(
+    async (id: string, patch: RecordPatch) => {
+      await updateProgressRecord(id, patch)
+      await refresh()
+    },
+    [refresh],
+  )
+
+  const deleteRecord = useCallback(
+    async (id: string) => {
+      await deleteProgressRecord(id)
+      await refresh()
+    },
+    [refresh],
+  )
+
+  return { records, refresh, addProgress, updateRecord, deleteRecord }
 }

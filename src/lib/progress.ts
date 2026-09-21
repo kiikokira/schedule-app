@@ -99,3 +99,59 @@ export function calcScheduleStatus(
   if (done < expected) return 'behind'
   return 'scheduled'
 }
+
+export function recentAvgPagesPerDay(
+  records: ProgressRecordData[],
+  today: string,
+  windowDays = 7,
+): number {
+  if (windowDays <= 0) return 0
+  const from = addDays(today, -(windowDays - 1))
+  let total = 0
+  for (const r of records) {
+    if (r.date >= from && r.date <= today) {
+      total += r.pages
+    }
+  }
+  return total / windowDays
+}
+
+export type OverallDiagnosis = {
+  remainingPages: number
+  endDate: string
+  requiredPerDay: number
+  recentAvgPerDay: number
+  behind: boolean
+}
+
+export function overallDiagnosis(
+  books: BookData[],
+  records: ProgressRecordData[],
+  today: string,
+): OverallDiagnosis {
+  const remainingPages = books.reduce(
+    (sum, b) => sum + Math.max(b.totalPages - calcDonePages(records, b.id), 0),
+    0,
+  )
+  const endDate =
+    books.length > 0
+      ? books.reduce((latest, b) => (b.deadline > latest ? b.deadline : latest), books[0].deadline)
+      : today
+  const days = daysBetween(today, endDate)
+  const requiredPerDay =
+    remainingPages <= 0 ? 0 : days > 0 ? Math.ceil(remainingPages / days) : remainingPages
+  const recentAvgPerDay = recentAvgPagesPerDay(records, today)
+  return {
+    remainingPages,
+    endDate,
+    requiredPerDay,
+    recentAvgPerDay,
+    behind: remainingPages > 0 && recentAvgPerDay < requiredPerDay,
+  }
+}
+
+function addDays(date: string, days: number): string {
+  const d = parseDate(date)
+  d.setDate(d.getDate() + days)
+  return formatDate(d)
+}
