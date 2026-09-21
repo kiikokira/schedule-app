@@ -14,6 +14,7 @@ import {
   type ProgressRecordData,
 } from '../lib/progress'
 import { CATALOG, type CatalogBook } from '../data/catalog'
+import { quoteOf } from '../data/quotes'
 import { loadSchedule, saveSchedule } from '../data/scheduleStore'
 import {
   advanceSchedule,
@@ -210,6 +211,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
   const { books, saveBook } = useBooks()
   const { records, addProgress } = useRecords()
   const today = todayStr()
+  const todayQuote = quoteOf(today)
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(loadSchedule)
   const scheduled = sortScheduleEntries(schedule, today)
 
@@ -283,9 +285,22 @@ export default function HomeScreen({ onOpenBook }: Props) {
       <p data-testid="today-date" style={{ fontWeight: 700 }}>
         今日は {formatJaDate(today)}
       </p>
-      <p style={{ color: 'var(--text-dim)' }}>
-        今日の目標を毎日見て、参考書を期限内に終わらせよう。
-      </p>
+      {todayQuote && (
+        <div data-testid="today-quote-block">
+          <p
+            data-testid="today-quote"
+            style={{ fontSize: 15, fontStyle: 'italic' }}
+          >
+            {todayQuote.text}
+          </p>
+          <p
+            data-testid="today-quote-by"
+            style={{ fontSize: 12, textAlign: 'right', color: 'var(--text-dim)' }}
+          >
+            by {todayQuote.author}
+          </p>
+        </div>
+      )}
 
       <section data-testid="schedule-section" style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 16 }}>学習スケジュール</h2>

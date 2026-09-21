@@ -4,6 +4,8 @@ import { db } from '../db/database'
 import HomeScreen from './HomeScreen'
 import { saveSchedule, resetSchedule, loadSchedule } from '../data/scheduleStore'
 import { addDaysToDate, type ScheduleEntry } from '../data/schedule'
+import { quoteOf } from '../data/quotes'
+import { todayStr } from '../lib/progress'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
@@ -54,6 +56,23 @@ describe('HomeScreen', () => {
     const expected = `今日は ${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS[d.getDay()]}）`
     expect(screen.getByTestId('today-date')).toHaveTextContent(expected)
     expect(screen.getByTestId('today-date')).not.toHaveTextContent(String(d.getFullYear()))
+  })
+
+  it('shows a daily quote with a smaller by-author line instead of the old slogan', () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(
+      screen.queryByText('今日の目標を毎日見て、参考書を期限内に終わらせよう。'),
+    ).not.toBeInTheDocument()
+    const quote = quoteOf(todayStr())
+    expect(quote).not.toBeNull()
+    const text = screen.getByTestId('today-quote')
+    expect(text).toHaveTextContent((quote as { text: string }).text)
+    const by = screen.getByTestId('today-quote-by')
+    expect(by).toHaveTextContent(`by ${(quote as { author: string }).author}`)
+    expect(by.style.textAlign).toBe('right')
+    expect(Number(by.style.fontSize.split('px')[0])).toBeLessThan(
+      Number(text.style.fontSize.split('px')[0]),
+    )
   })
 
   it('shows the deadline of each scheduled book', () => {
