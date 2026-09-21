@@ -226,4 +226,105 @@ describe('HomeScreen', () => {
     fireEvent.click(recordBtn)
     expect(onOpen).not.toHaveBeenCalled()
   })
+
+  it('shows pages per day on a schedule row using the today record and a progress input', async () => {
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'eibunpo-polaris-2', startDate: '2026-09-01', deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'eibunpo-polaris-2',
+      totalPages: 100,
+      startDate: '2026-09-01',
+      deadline: daysAhead(6),
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: daysAgo(1), pages: 40 })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const row = await screen.findByTestId('schedule-row-eibunpo-polaris-2')
+    // (100 - 40) / 今日を除く5日 = 1日12ページ
+    await waitFor(() => expect(row).toHaveTextContent('期限まで1日あたり 12 ページ'))
+    expect(screen.getByTestId('row-progress-input-eibunpo-polaris-2')).toBeInTheDocument()
+  })
+
+  it('updates required pages per day live while typing on the schedule row', async () => {
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'porepore', startDate: '2026-01-01', deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'porepore',
+      totalPages: 100,
+      deadline: daysAhead(6),
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const input = await screen.findByTestId('row-progress-input-porepore')
+    fireEvent.change(input, { target: { value: '10' } })
+    const row = screen.getByTestId('schedule-row-porepore')
+    // (100 - 10) / 今日を除く5日 = 1日18ページ
+    expect(row).toHaveTextContent('期限まで1日あたり 18 ページ')
+  })
+
+  it('records today progress from the schedule row input', async () => {
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'porepore', startDate: '2026-01-01', deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'porepore',
+      totalPages: 100,
+      deadline: daysAhead(6),
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const input = await screen.findByTestId('row-progress-input-porepore')
+    fireEvent.change(input, { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('row-record-porepore'))
+    await waitFor(async () => {
+      const recs = await db.records.toArray()
+      expect(recs).toHaveLength(1)
+      expect(recs[0].pages).toBe(10)
+    })
+  })
+
+  it('auto-registers an unregistered scheduled book when recording from its row', async () => {
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(5), deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const input = await screen.findByTestId('row-progress-input-eibunpo-polaris-2')
+    fireEvent.change(input, { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('row-record-eibunpo-polaris-2'))
+    await waitFor(async () => {
+      const registered = await db.books.toArray()
+      expect(registered).toHaveLength(1)
+      expect(registered[0].catalogId).toBe('eibunpo-polaris-2')
+      const recs = await db.records.toArray()
+      expect(recs).toHaveLength(1)
+      expect(recs[0].pages).toBe(10)
+    })
+  })
+
+  it('opens the registered book when tapping the schedule row', async () => {
+    const onOpen = vi.fn()
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'porepore', startDate: '2026-01-01', deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'porepore',
+      totalPages: 100,
+      deadline: daysAhead(6),
+    })
+    render(<HomeScreen onOpenBook={onOpen} />)
+    fireEvent.click(await screen.findByTestId('schedule-row-open-porepore'))
+    expect(onOpen).toHaveBeenCalledWith('b1')
+  })
 })
