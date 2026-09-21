@@ -5,6 +5,7 @@ import {
   buildApplyResult,
   addDaysToDate,
   advanceSchedule,
+  selectNowAndNext,
   type ScheduleEntry,
 } from './schedule'
 import { CATALOG } from './catalog'
@@ -156,5 +157,53 @@ describe('advanceSchedule', () => {
     const today = '2026-11-10'
     const result = advanceSchedule(entries, today, 'no-such-book')
     expect(result).toEqual(entries)
+  })
+})
+
+describe('selectNowAndNext', () => {
+  const mini: ScheduleEntry[] = [
+    { catalogId: 'a', startDate: '2026-09-01', deadline: '2026-09-30' },
+    { catalogId: 'b', startDate: '2026-09-15', deadline: '2026-10-31' },
+  ]
+
+  it('picks the active book with the least buffer left as now and the next in order as next', () => {
+    // 2026-09-21: a has 9 days left, b has 40 days left -> a is now, b is next
+    expect(selectNowAndNext(SCHEDULE, '2026-09-21')).toEqual({
+      now: expect.objectContaining({ catalogId: 'eibunpo-polaris-2' }),
+      next: expect.objectContaining({ catalogId: 'nyumon-kaishaku-70' }),
+    })
+  })
+
+  it('moves now to the next book once the first one is past its deadline', () => {
+    // eibunpo grad 2026-09-30 で終了後、2026-10-01 は解釈編が最優先
+    expect(selectNowAndNext(SCHEDULE, '2026-10-01')).toEqual({
+      now: expect.objectContaining({ catalogId: 'nyumon-kaishaku-70' }),
+      next: expect.objectContaining({ catalogId: 'sokudoku-eijukugo' }),
+    })
+  })
+
+  it('breaks ties by schedule order', () => {
+    // a と b が同時期限(残り0)ならスケジュール順で先の a
+    const tied: ScheduleEntry[] = [
+      { catalogId: 'b', startDate: '2026-09-01', deadline: '2026-09-30' },
+      { catalogId: 'a', startDate: '2026-09-01', deadline: '2026-09-30' },
+    ]
+    expect(selectNowAndNext(tied, '2026-09-30').now?.catalogId).toBe('b')
+  })
+
+  it('returns no next when now is the last schedule entry', () => {
+    const result = selectNowAndNext(mini, '2026-10-01')
+    expect(result.now?.catalogId).toBe('b')
+    expect(result.next).toBeUndefined()
+  })
+
+  it('treats the soonest upcoming book as now when nothing is active yet', () => {
+    const result = selectNowAndNext(mini, '2026-08-01')
+    expect(result.now?.catalogId).toBe('a')
+    expect(result.next?.catalogId).toBe('b')
+  })
+
+  it('returns no books when the whole schedule is over', () => {
+    expect(selectNowAndNext(mini, '2026-11-01')).toEqual({})
   })
 })

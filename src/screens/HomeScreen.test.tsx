@@ -3,7 +3,8 @@ import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { db } from '../db/database'
 import HomeScreen from './HomeScreen'
 import { saveSchedule, resetSchedule, loadSchedule } from '../data/scheduleStore'
-import { addDaysToDate, type ScheduleEntry } from '../data/schedule'
+import { addDaysToDate, SCHEDULE, selectNowAndNext, type ScheduleEntry } from '../data/schedule'
+import { CATALOG } from '../data/catalog'
 import { quoteOf } from '../data/quotes'
 import { todayStr } from '../lib/progress'
 
@@ -46,8 +47,12 @@ describe('HomeScreen', () => {
   it('shows a 学習スケジュール section with the default schedule books', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     expect(screen.getByText('学習スケジュール')).toBeInTheDocument()
-    expect(screen.getByText('英文法ポラリス2（応用レベル）')).toBeInTheDocument()
-    expect(screen.getByText('関正生のThe Rules英語長文問題集2 入試標準')).toBeInTheDocument()
+    expect(
+      screen.getAllByText('英文法ポラリス2（応用レベル）').length,
+    ).toBeGreaterThanOrEqual(1)
+    expect(
+      screen.getAllByText('関正生のThe Rules英語長文問題集2 入試標準').length,
+    ).toBeGreaterThanOrEqual(1)
   })
 
   it('shows today date as 月日（曜日）without a year', () => {
@@ -82,6 +87,37 @@ describe('HomeScreen', () => {
     expect(Number(by.style.fontSize.split('px')[0])).toBeLessThan(
       Number(text.style.fontSize.split('px')[0]),
     )
+  })
+
+  it('shows current and next schedule books with covers and an arrow', () => {
+    const { now, next } = selectNowAndNext(SCHEDULE, todayStr())
+    expect(now).toBeDefined()
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const section = screen.getByTestId('now-next-section')
+    expect(section).toBeInTheDocument()
+    const nowEl = screen.getByTestId('now-next-now')
+    expect(nowEl).toHaveTextContent('今やっている')
+    const nowTitle = CATALOG.find((c) => c.id === now?.catalogId)?.title
+    expect(nowTitle).toBeTruthy()
+    expect(nowEl).toHaveTextContent((nowTitle as string) ?? '')
+    const nextEl = screen.getByTestId('now-next-next')
+    expect(nextEl).toHaveTextContent('次やる参考書')
+    const nextTitle = next
+      ? CATALOG.find((c) => c.id === next.catalogId)?.title
+      : undefined
+    if (nextTitle) {
+      expect(nextEl).toHaveTextContent(nextTitle)
+    }
+    expect(screen.getByTestId('now-next-arrow')).toHaveTextContent('>')
+  })
+
+  it('does not show the now-and-next section when the whole schedule is over', () => {
+    const over: ScheduleEntry[] = [
+      { catalogId: 'eibunpo-polaris-2', startDate: '2020-01-01', deadline: '2020-01-31' },
+    ]
+    saveSchedule(over)
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(screen.queryByTestId('now-next-section')).not.toBeInTheDocument()
   })
 
   it('shows the deadline of each scheduled book', () => {

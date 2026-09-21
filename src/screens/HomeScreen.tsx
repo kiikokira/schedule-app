@@ -18,6 +18,7 @@ import { quoteOf } from '../data/quotes'
 import { loadSchedule, saveSchedule } from '../data/scheduleStore'
 import {
   advanceSchedule,
+  selectNowAndNext,
   sortScheduleEntries,
   type ScheduleEntry,
 } from '../data/schedule'
@@ -41,6 +42,38 @@ function findRegistered(
     (b) =>
       b.catalogId === catalogId ||
       (b.catalogId === undefined && title !== undefined && b.title === title),
+  )
+}
+
+type NowNextItemProps = {
+  label: string
+  entry?: ScheduleEntry
+  testid: string
+}
+
+function NowNextItem({ label, entry, testid }: NowNextItemProps) {
+  if (!entry) return null
+  const catalogBook = CATALOG.find((c) => c.id === entry.catalogId)
+  return (
+    <div
+      data-testid={testid}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+    >
+      <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: 0 }}>
+        {label}
+      </p>
+      <CoverImage src={catalogBook?.coverSrc ?? null} width={64} height={90} />
+      <p
+        style={{
+          fontSize: 11,
+          textAlign: 'center',
+          margin: 0,
+          lineHeight: 1.3,
+        }}
+      >
+        {catalogBook?.title}
+      </p>
+    </div>
   )
 }
 
@@ -307,6 +340,56 @@ export default function HomeScreen({ onOpenBook }: Props) {
           </p>
         </div>
       )}
+
+      {(() => {
+        const { now, next } = selectNowAndNext(schedule, today)
+        if (!now && !next) return null
+        return (
+          <section
+            data-testid="now-next-section"
+            style={{
+              marginBottom: 24,
+              padding: 16,
+              borderRadius: 12,
+              background: 'var(--surface)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 12,
+              }}
+            >
+              <NowNextItem
+                testid="now-next-now"
+                label="今やっている"
+                entry={now}
+              />
+              {next && (
+                <>
+                  <span
+                    data-testid="now-next-arrow"
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: 'var(--accent)',
+                    }}
+                  >
+                    &gt;
+                  </span>
+                  <NowNextItem
+                    testid="now-next-next"
+                    label="次やる参考書"
+                    entry={next}
+                  />
+                </>
+              )}
+            </div>
+          </section>
+        )
+      })()}
 
       <section data-testid="schedule-section" style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 16 }}>学習スケジュール</h2>

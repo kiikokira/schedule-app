@@ -56,6 +56,43 @@ export function suggestDeadline(startDate: string, days = 90): string {
   return addDaysToDate(startDate, days)
 }
 
+export type NowNext = {
+  now?: ScheduleEntry
+  next?: ScheduleEntry
+}
+
+export function selectNowAndNext(
+  entries: ScheduleEntry[],
+  today: string,
+): NowNext {
+  const active = entries.filter(
+    (e) => e.startDate <= today && today <= e.deadline,
+  )
+  if (active.length > 0) {
+    active.sort((a, b) => {
+      const aLeft = daysBetween(today, a.deadline)
+      const bLeft = daysBetween(today, b.deadline)
+      if (aLeft !== bLeft) return aLeft - bLeft
+      return entries.indexOf(a) - entries.indexOf(b)
+    })
+    const now = active[0]
+    const idx = entries.indexOf(now)
+    const next = idx + 1 < entries.length ? entries[idx + 1] : undefined
+    return { now, next }
+  }
+  const upcoming = entries
+    .filter((e) => e.startDate > today)
+    .sort((a, b) => {
+      if (a.startDate !== b.startDate) return a.startDate < b.startDate ? -1 : 1
+      return entries.indexOf(a) - entries.indexOf(b)
+    })
+  if (upcoming.length === 0) return {}
+  const now = upcoming[0]
+  const idx = entries.indexOf(now)
+  const next = idx + 1 < entries.length ? entries[idx + 1] : undefined
+  return { now, next }
+}
+
 export function advanceSchedule(
   entries: ScheduleEntry[],
   finishedOn: string,
