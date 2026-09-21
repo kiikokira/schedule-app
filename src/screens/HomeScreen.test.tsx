@@ -1,11 +1,12 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { beforeEach, describe, it, expect, vi } from 'vitest'
+import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { db } from '../db/database'
 import HomeScreen from './HomeScreen'
 import { saveSchedule, resetSchedule, loadSchedule } from '../data/scheduleStore'
 import { addDaysToDate, type ScheduleEntry } from '../data/schedule'
 
 const pad = (n: number) => String(n).padStart(2, '0')
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 const localDateStr = (d: Date) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 const daysAgo = (days: number) => {
@@ -35,12 +36,24 @@ beforeEach(async () => {
   resetSchedule()
 })
 
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
 describe('HomeScreen', () => {
   it('shows a 学習スケジュール section with the default schedule books', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     expect(screen.getByText('学習スケジュール')).toBeInTheDocument()
     expect(screen.getByText('英文法ポラリス2（応用レベル）')).toBeInTheDocument()
     expect(screen.getByText('関正生のThe Rules英語長文問題集2 入試標準')).toBeInTheDocument()
+  })
+
+  it('shows today date as 月日（曜日）without a year', () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const d = new Date()
+    const expected = `今日は ${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS[d.getDay()]}）`
+    expect(screen.getByTestId('today-date')).toHaveTextContent(expected)
+    expect(screen.getByTestId('today-date')).not.toHaveTextContent(String(d.getFullYear()))
   })
 
   it('shows the deadline of each scheduled book', () => {
@@ -268,7 +281,8 @@ describe('HomeScreen', () => {
     expect(row).toHaveTextContent('期限まで1日あたり 18 ページ')
   })
 
-  it('records today progress from the schedule row input', async () => {
+  it('records today progress from the schedule row input after confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const custom: ScheduleEntry[] = [
       { catalogId: 'porepore', startDate: '2026-01-01', deadline: daysAhead(6) },
     ]
@@ -291,7 +305,54 @@ describe('HomeScreen', () => {
     })
   })
 
+  it('does not record from the schedule row when confirmation is cancelled', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'porepore', startDate: '2026-01-01', deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'porepore',
+      totalPages: 100,
+      deadline: daysAhead(6),
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const input = await screen.findByTestId('row-progress-input-porepore')
+    fireEvent.change(input, { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('row-record-porepore'))
+    const recs = await db.records.toArray()
+    expect(recs).toHaveLength(0)
+    expect(screen.getByTestId<HTMLInputElement>('row-progress-input-porepore').value).toBe(
+      '10',
+    )
+  })
+
+  it('asks for confirmation with the book title and pages on the schedule row', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const custom: ScheduleEntry[] = [
+      { catalogId: 'porepore', startDate: '2026-01-01', deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'porepore',
+      totalPages: 100,
+      deadline: daysAhead(6),
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const input = await screen.findByTestId('row-progress-input-porepore')
+    fireEvent.change(input, { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('row-record-porepore'))
+    expect(confirmSpy).toHaveBeenCalledWith(
+      '「ポレポレ英文読解プロセス50」を 10 ページで記録しますか？',
+    )
+  })
+
   it('auto-registers an unregistered scheduled book when recording from its row', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const custom: ScheduleEntry[] = [
       { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(5), deadline: daysAhead(6) },
     ]

@@ -8,6 +8,7 @@ import {
   calcRequiredPerDay,
   calcScheduleStatus,
   daysBetween,
+  formatJaDate,
   todayStr,
   type BookData,
   type ProgressRecordData,
@@ -97,6 +98,13 @@ function ScheduleRow({
   const handleRecord = () => {
     const pages = Number(pagesInput)
     if (Number.isInteger(pages) && pages >= 1) {
+      if (
+        !window.confirm(
+          `「${catalogBook?.title ?? entry.catalogId}」を ${pages} ページで記録しますか？`,
+        )
+      ) {
+        return
+      }
       setPagesInput('')
       onRecord(entry.catalogId, pages)
     }
@@ -272,6 +280,9 @@ export default function HomeScreen({ onOpenBook }: Props) {
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>参考書スケジュール</h1>
+      <p data-testid="today-date" style={{ fontWeight: 700 }}>
+        今日は {formatJaDate(today)}
+      </p>
       <p style={{ color: 'var(--text-dim)' }}>
         今日の目標を毎日見て、参考書を期限内に終わらせよう。
       </p>

@@ -34,6 +34,13 @@ export function todayStr(now: Date = new Date()): string {
   return formatDate(now)
 }
 
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'] as const
+
+export function formatJaDate(iso: string): string {
+  const d = parseDate(iso)
+  return `${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS[d.getDay()]}）`
+}
+
 export function daysBetween(from: string, to: string): number {
   const a = parseDate(from)
   const b = parseDate(to)

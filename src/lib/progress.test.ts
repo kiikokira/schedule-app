@@ -8,6 +8,7 @@ import {
   calcRequiredPerDay,
   calcScheduleStatus,
   calcDonePages,
+  formatJaDate,
   type BookData,
   type ProgressRecordData,
 } from './progress'
@@ -21,6 +22,14 @@ const makeBook = (overrides: Partial<BookData> = {}): BookData => ({
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
   ...overrides,
+})
+
+describe('formatJaDate', () => {
+  it('formats a date as 月日（曜日） without a year', () => {
+    expect(formatJaDate('2026-09-21')).toBe('9月21日（月）')
+    expect(formatJaDate('2026-01-03')).toBe('1月3日（土）')
+    expect(formatJaDate('2026-12-31')).toBe('12月31日（木）')
+  })
 })
 
 describe('formatDate / parseDate / todayStr', () => {
