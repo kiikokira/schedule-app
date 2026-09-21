@@ -152,6 +152,62 @@ describe('HomeScreen', () => {
     )
   })
 
+  it('moves a finished book to the completed section when 完了 is pressed', async () => {
+    const catalog = CATALOG.find((c) => c.id === 'eibunpo-polaris-2')
+    expect(catalog).toBeDefined()
+    const total = (catalog as { totalPages: number }).totalPages
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'eibunpo-polaris-2',
+      totalPages: total,
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: daysAgo(1), pages: total })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const button = await screen.findByTestId('advance-next-eibunpo-polaris-2')
+    fireEvent.click(button)
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId('schedule-row-eibunpo-polaris-2'),
+      ).not.toBeInTheDocument(),
+    )
+    expect(screen.getByText('完了済みの参考書')).toBeInTheDocument()
+    expect(screen.getByTestId('completed-row-eibunpo-polaris-2')).toBeInTheDocument()
+    expect(screen.getAllByText('1周目中')).toHaveLength(5)
+    expect(screen.getByTestId('round-badge-final-mondai-nankan')).toBeInTheDocument()
+    expect(screen.queryByTestId('round-badge-the-rules-2')).not.toBeInTheDocument()
+    const stored = loadSchedule()
+    expect(
+      stored.find((e) => e.catalogId === 'eibunpo-polaris-2')?.completed,
+    ).toBe(true)
+  })
+
+  it('shows 2周目中 for a completed book that keeps making progress', async () => {
+    const catalog = CATALOG.find((c) => c.id === 'eibunpo-polaris-2')
+    expect(catalog).toBeDefined()
+    const total = (catalog as { totalPages: number }).totalPages
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'eibunpo-polaris-2',
+      totalPages: total,
+    })
+    await db.records.add({
+      id: 'r1',
+      bookId: 'b1',
+      date: daysAgo(1),
+      pages: total + 1,
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const button = await screen.findByTestId('advance-next-eibunpo-polaris-2')
+    fireEvent.click(button)
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('completed-row-eibunpo-polaris-2'),
+      ).toHaveTextContent('2周目中'),
+    )
+  })
+
   it('shows the deadline of each scheduled book', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     const row = screen.getByTestId('schedule-row-eibunpo-polaris-2')

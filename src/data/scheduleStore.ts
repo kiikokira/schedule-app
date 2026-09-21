@@ -9,7 +9,8 @@ function isScheduleEntry(value: unknown): value is ScheduleEntry {
     typeof v.catalogId === 'string' &&
     typeof v.startDate === 'string' &&
     typeof v.deadline === 'string' &&
-    (v.note === undefined || typeof v.note === 'string')
+    (v.note === undefined || typeof v.note === 'string') &&
+    (v.completed === undefined || typeof v.completed === 'boolean')
   )
 }
 

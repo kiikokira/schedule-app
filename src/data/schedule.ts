@@ -7,6 +7,7 @@ export type ScheduleEntry = {
   startDate: string
   deadline: string
   note?: string
+  completed?: boolean
 }
 
 export const SCHEDULE: ScheduleEntry[] = [

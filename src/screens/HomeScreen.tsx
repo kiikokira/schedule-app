@@ -96,6 +96,8 @@ type ScheduleRowProps = {
   today: string
   hasNext: boolean
   round: number | undefined
+  isCompleted?: boolean
+  showAdvance?: boolean
   onOpen: (id: string) => void
   onRecord: (catalogId: string, pages: number) => void
   onAdvance: (catalogId: string) => void
@@ -109,11 +111,20 @@ function ScheduleRow({
   today,
   hasNext,
   round,
+  isCompleted = false,
+  showAdvance = true,
   onOpen,
   onRecord,
   onAdvance,
 }: ScheduleRowProps) {
   const [pagesInput, setPagesInput] = useState('')
+  const prefix = isCompleted ? 'completed-row' : 'schedule-row'
+  const roundTestId = isCompleted
+    ? `completed-round-${entry.catalogId}`
+    : `round-badge-${entry.catalogId}`
+  const recordTestId = isCompleted
+    ? `completed-record-${entry.catalogId}`
+    : `row-record-${entry.catalogId}`
   const done = registered ? calcDonePages(records, registered.id) : 0
   const status = registered
     ? calcScheduleStatus(
@@ -165,7 +176,7 @@ function ScheduleRow({
           {catalogBook?.title ?? entry.catalogId}
           {round !== undefined && (
             <span
-              data-testid={`round-badge-${entry.catalogId}`}
+              data-testid={roundTestId}
               style={{
                 display: 'inline-block',
                 marginLeft: 6,
@@ -196,7 +207,7 @@ function ScheduleRow({
 
   return (
     <div
-      data-testid={`schedule-row-${entry.catalogId}`}
+      data-testid={`${prefix}-${entry.catalogId}`}
       style={{
         padding: '8px 12px',
         marginBottom: 8,
@@ -208,7 +219,7 @@ function ScheduleRow({
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {registered ? (
           <button
-            data-testid={`schedule-row-open-${entry.catalogId}`}
+            data-testid={`${prefix}-open-${entry.catalogId}`}
             type="button"
             onClick={() => onOpen(registered.id)}
             style={{
@@ -230,14 +241,14 @@ function ScheduleRow({
             {infoBlock}
           </div>
         )}
-        {registered && status === 'done' && hasNext && (
+        {registered && status === 'done' && hasNext && showAdvance && (
           <button
             data-testid={`advance-next-${entry.catalogId}`}
             type="button"
             onClick={() => void onAdvance(entry.catalogId)}
             style={{ flexShrink: 0 }}
           >
-            次へ進む
+            完了
           </button>
         )}
       </div>
@@ -260,7 +271,7 @@ function ScheduleRow({
           style={{ flex: 1, minWidth: 96 }}
         />
         <button
-          data-testid={`row-record-${entry.catalogId}`}
+          data-testid={recordTestId}
           type="button"
           onClick={() => void handleRecord()}
         >
@@ -277,11 +288,17 @@ export default function HomeScreen({ onOpenBook }: Props) {
   const today = todayStr()
   const todayQuote = quoteOf(today)
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(loadSchedule)
-  const scheduled = sortScheduleEntries(schedule, today)
+  const completedEntries = schedule.filter((e) => e.completed)
+  const scheduled = sortScheduleEntries(
+    schedule.filter((e) => !e.completed),
+    today,
+  )
 
   const handleAdvance = async (finishedCatalogId: string) => {
-    const updatedSchedule = advanceSchedule(schedule, today, finishedCatalogId)
-    if (updatedSchedule === schedule) return
+    const marked = schedule.map((e) =>
+      e.catalogId === finishedCatalogId ? { ...e, completed: true } : e,
+    )
+    const updatedSchedule = advanceSchedule(marked, today, finishedCatalogId)
     saveSchedule(updatedSchedule)
     setSchedule(updatedSchedule)
     const finishedIndex = schedule.findIndex(
@@ -464,6 +481,46 @@ export default function HomeScreen({ onOpenBook }: Props) {
             />
           )
         })}
+        {completedEntries.length > 0 && (
+          <>
+            <h2 style={{ fontSize: 16 }}>完了済みの参考書</h2>
+            {completedEntries.map((entry) => {
+              const catalogBook = CATALOG.find((c) => c.id === entry.catalogId)
+              const registered = findRegistered(
+                books,
+                entry.catalogId,
+                catalogBook?.title,
+              )
+              const done = registered
+                ? calcDonePages(records, registered.id)
+                : 0
+              const total = catalogBook?.totalPages ?? 0
+              const completedRound =
+                total > 0 && currentRound(done, total) > 1
+                  ? currentRound(done, total)
+                  : undefined
+              return (
+                <ScheduleRow
+                  key={entry.catalogId}
+                  entry={entry}
+                  catalogBook={catalogBook}
+                  registered={registered}
+                  records={records}
+                  today={today}
+                  hasNext={false}
+                  round={completedRound}
+                  isCompleted
+                  showAdvance={false}
+                  onOpen={onOpenBook}
+                  onRecord={(catalogId, pages) =>
+                    void handleRowRecord(catalogId, pages)
+                  }
+                  onAdvance={(catalogId) => void handleAdvance(catalogId)}
+                />
+              )
+            })}
+          </>
+        )}
       </section>
 
       <section>
