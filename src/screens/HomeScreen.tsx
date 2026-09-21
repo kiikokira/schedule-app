@@ -59,7 +59,15 @@ function NowNextItem({ label, entry, testid }: NowNextItemProps) {
       data-testid={testid}
       style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
     >
-      <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: 0 }}>
+      <p
+        style={{
+          fontSize: 12,
+          fontWeight: 700,
+          letterSpacing: 1,
+          color: 'var(--accent)',
+          margin: 0,
+        }}
+      >
         {label}
       </p>
       <CoverImage src={catalogBook?.coverSrc ?? null} width={64} height={90} />
@@ -364,7 +372,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
             >
               <NowNextItem
                 testid="now-next-now"
-                label="今やっている"
+                label="NOW"
                 entry={now}
               />
               {next && (
@@ -372,16 +380,17 @@ export default function HomeScreen({ onOpenBook }: Props) {
                   <span
                     data-testid="now-next-arrow"
                     style={{
-                      fontSize: 28,
+                      fontSize: 32,
                       fontWeight: 700,
                       color: 'var(--accent)',
+                      lineHeight: 1,
                     }}
                   >
-                    &gt;
+                    →
                   </span>
                   <NowNextItem
                     testid="now-next-next"
-                    label="次やる参考書"
+                    label="NEXT"
                     entry={next}
                   />
                 </>

@@ -96,19 +96,19 @@ describe('HomeScreen', () => {
     const section = screen.getByTestId('now-next-section')
     expect(section).toBeInTheDocument()
     const nowEl = screen.getByTestId('now-next-now')
-    expect(nowEl).toHaveTextContent('今やっている')
+    expect(nowEl).toHaveTextContent('NOW')
     const nowTitle = CATALOG.find((c) => c.id === now?.catalogId)?.title
     expect(nowTitle).toBeTruthy()
     expect(nowEl).toHaveTextContent((nowTitle as string) ?? '')
     const nextEl = screen.getByTestId('now-next-next')
-    expect(nextEl).toHaveTextContent('次やる参考書')
+    expect(nextEl).toHaveTextContent('NEXT')
     const nextTitle = next
       ? CATALOG.find((c) => c.id === next.catalogId)?.title
       : undefined
     if (nextTitle) {
       expect(nextEl).toHaveTextContent(nextTitle)
     }
-    expect(screen.getByTestId('now-next-arrow')).toHaveTextContent('>')
+    expect(screen.getByTestId('now-next-arrow')).toHaveTextContent('→')
   })
 
   it('does not show the now-and-next section when the whole schedule is over', () => {
