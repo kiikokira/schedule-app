@@ -58,7 +58,7 @@ describe('HomeScreen', () => {
     expect(screen.getByTestId('today-date')).not.toHaveTextContent(String(d.getFullYear()))
   })
 
-  it('shows a daily quote with a smaller by-author line instead of the old slogan', () => {
+  it('shows a daily quote with a one-line explanation and a by-author line', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     expect(
       screen.queryByText('今日の目標を毎日見て、参考書を期限内に終わらせよう。'),
@@ -67,8 +67,17 @@ describe('HomeScreen', () => {
     expect(quote).not.toBeNull()
     const text = screen.getByTestId('today-quote')
     expect(text).toHaveTextContent((quote as { text: string }).text)
+    const explanation = screen.getByTestId('today-quote-explanation')
+    expect(explanation).toHaveTextContent(
+      `（${(quote as { explanation: string }).explanation}）`,
+    )
+    expect(Number(explanation.style.fontSize.split('px')[0])).toBeLessThan(
+      Number(text.style.fontSize.split('px')[0]),
+    )
     const by = screen.getByTestId('today-quote-by')
-    expect(by).toHaveTextContent(`by ${(quote as { author: string }).author}`)
+    expect(by).toHaveTextContent(
+      `by ${(quote as { author: string }).author}（${(quote as { role: string }).role}）`,
+    )
     expect(by.style.textAlign).toBe('right')
     expect(Number(by.style.fontSize.split('px')[0])).toBeLessThan(
       Number(text.style.fontSize.split('px')[0]),

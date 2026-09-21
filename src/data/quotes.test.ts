@@ -11,11 +11,13 @@ const addDays = (iso: string, days: number): string => {
 }
 
 describe('quotes', () => {
-  it('provides a non-empty text and author for every quote', () => {
+  it('provides a non-empty text, author, role and explanation for every quote', () => {
     expect(QUOTES.length).toBeGreaterThanOrEqual(25)
     for (const q of QUOTES) {
       expect(q.text.length).toBeGreaterThan(0)
       expect(q.author.length).toBeGreaterThan(0)
+      expect(q.role.length).toBeGreaterThan(0)
+      expect(q.explanation.length).toBeGreaterThan(0)
     }
   })
 

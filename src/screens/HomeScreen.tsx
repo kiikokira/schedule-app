@@ -294,10 +294,16 @@ export default function HomeScreen({ onOpenBook }: Props) {
             {todayQuote.text}
           </p>
           <p
+            data-testid="today-quote-explanation"
+            style={{ fontSize: 12, color: 'var(--text-dim)' }}
+          >
+            （{todayQuote.explanation}）
+          </p>
+          <p
             data-testid="today-quote-by"
             style={{ fontSize: 12, textAlign: 'right', color: 'var(--text-dim)' }}
           >
-            by {todayQuote.author}
+            by {todayQuote.author}（{todayQuote.role}）
           </p>
         </div>
       )}
