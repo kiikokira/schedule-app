@@ -56,6 +56,7 @@ export default function PlanScreen({ onDone }: Props) {
   const reset = () => {
     if (!window.confirm('学習スケジュールを最新の内容に更新しますか？変更内容は置き換わります。')) return
     setEntries([...SCHEDULE])
+    saveSchedule([...SCHEDULE])
   }
 
   return (

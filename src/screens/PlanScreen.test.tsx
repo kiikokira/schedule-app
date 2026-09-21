@@ -124,6 +124,42 @@ describe('PlanScreen', () => {
     ).toBe('2026-12-15')
   })
 
+  it('keeps the stored schedule when the update confirm is cancelled', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(
+      screen.getByTestId('entry-deadline-eibunpo-polaris-2'),
+      { target: { value: '2026-12-15' } },
+    )
+    fireEvent.click(screen.getByTestId('save-schedule'))
+    fireEvent.click(screen.getByTestId('reset-schedule'))
+    const saved = loadSchedule()
+    const eibunpo = saved.find((e) => e.catalogId === 'eibunpo-polaris-2')
+    expect(eibunpo?.deadline).toBe('2026-12-15')
+  })
+
+  it('persists the latest schedule to storage after 最新のスケジュールに更新', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(
+      screen.getByTestId('entry-deadline-eibunpo-polaris-2'),
+      { target: { value: '2026-12-15' } },
+    )
+    fireEvent.click(screen.getByTestId('save-schedule'))
+    expect(
+      loadSchedule().find((e) => e.catalogId === 'eibunpo-polaris-2')?.deadline,
+    ).toBe('2026-12-15')
+    fireEvent.click(screen.getByTestId('reset-schedule'))
+    const saved = loadSchedule()
+    expect(saved).toHaveLength(17)
+    expect(
+      saved.find((e) => e.catalogId === 'eibunpo-polaris-2')?.deadline,
+    ).toBe('2026-09-30')
+    expect(
+      saved.find((e) => e.catalogId === 'sfc-shoronbun')?.startDate,
+    ).toBe('2027-08-31')
+  })
+
   it('registers all schedule books when none exist', async () => {
     render(<PlanScreen onDone={() => {}} />)
     fireEvent.click(screen.getByTestId('apply-schedule'))
