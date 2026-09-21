@@ -6,6 +6,7 @@ import { CATALOG } from '../data/catalog'
 import {
   SCHEDULE,
   buildApplyResult,
+  entryKey,
   suggestDeadline,
   type ScheduleEntry,
 } from '../data/schedule'
@@ -23,15 +24,25 @@ type Props = {
 }
 
 export default function PlanScreen({ onDone }: Props) {
-  const { saveBook } = useBooks()
+  const { books, saveBook } = useBooks()
   const [entries, setEntries] = useState<ScheduleEntry[]>(() => loadSchedule())
   const [result, setResult] = useState<string | null>(null)
 
   const [selectedCatalogId, setSelectedCatalogId] = useState('')
+  const [selectedBookId, setSelectedBookId] = useState('')
   const [addStart, setAddStart] = useState(() => todayStr())
 
   const availableBooks = CATALOG.filter(
     (c) => !entries.some((e) => e.catalogId === c.id),
+  )
+
+  const registeredBooks = books.filter(
+    (b) =>
+      !entries.some(
+        (e) =>
+          entryKey(e) === b.id ||
+          (e.catalogId !== undefined && e.catalogId === b.catalogId),
+      ),
   )
 
   const apply = async () => {
@@ -67,7 +78,7 @@ export default function PlanScreen({ onDone }: Props) {
       </p>
 
       <section style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-        <h2 style={{ fontSize: 16 }}>参考書を追加</h2>
+        <h2 style={{ fontSize: 16 }}>カタログから追加</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
           <select
             data-testid="catalog-select"
@@ -123,32 +134,90 @@ export default function PlanScreen({ onDone }: Props) {
         </div>
       </section>
 
+      <section style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+        <h2 style={{ fontSize: 16 }}>登録済みの参考書を追加</h2>
+        <p data-testid="registered-books-section" style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+          検索で追加した参考書もスケジュールに組み込めます。
+        </p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
+          <select
+            data-testid="registered-select"
+            value={selectedBookId}
+            onChange={(e) => setSelectedBookId(e.target.value)}
+          >
+            <option value="">登録済みの参考書から選ぶ</option>
+            {registeredBooks.map((book) => (
+              <option key={book.id} value={book.id}>
+                {book.title}
+              </option>
+            ))}
+          </select>
+          <label>
+            開始
+            <input
+              data-testid="registered-add-start"
+              type="date"
+              value={addStart}
+              onChange={(e) => setAddStart(e.target.value)}
+            />
+          </label>
+          <button
+            data-testid="add-registered-entry"
+            type="button"
+            disabled={!selectedBookId}
+            onClick={() => {
+              if (!selectedBookId) return
+              const book = books.find((b) => b.id === selectedBookId)
+              if (!book) return
+              setEntries((prev) =>
+                addEntry(prev, {
+                  bookId: selectedBookId,
+                  startDate: addStart,
+                  deadline: book.deadline,
+                }),
+              )
+              setSelectedBookId('')
+            }}
+          >
+            追加
+          </button>
+        </div>
+      </section>
+
       {entries.map((entry) => {
-        const book = CATALOG.find((c) => c.id === entry.catalogId)
+        const key = entryKey(entry)
+        const book = entry.bookId
+          ? books.find((b) => b.id === entry.bookId)
+          : CATALOG.find((c) => c.id === entry.catalogId)
         if (!book) return null
+        const coverUrl =
+          entry.bookId && 'coverUrl' in book ? book.coverUrl : 'coverSrc' in book ? book.coverSrc : undefined
+        const displayTitle = 'title' in book ? book.title : key
+        const subject = 'subject' in book ? book.subject : undefined
+        const totalPages = 'totalPages' in book ? book.totalPages : 0
         return (
           <div
-            key={entry.catalogId}
-            data-testid={`entry-row-${entry.catalogId}`}
+            key={key}
+            data-testid={`entry-row-${key}`}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 12, border: '1px solid var(--border)', borderRadius: 8, marginBottom: 8 }}
           >
-            <CoverImage src={book.coverSrc ?? null} width={40} height={56} />
+            <CoverImage src={coverUrl ?? null} width={40} height={56} />
             <div style={{ flex: 1 }}>
-              <div>{book.title}</div>
+              <div>{displayTitle}</div>
               <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>
-                {book.subject} / {book.totalPages}ページ
+                {subject ? `${subject} / ` : ''}{totalPages}ページ
                 {entry.note ? ` / ${entry.note}` : ''}
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                 <label style={{ fontSize: 12 }}>
                   開始
                   <input
-                    data-testid={`entry-start-${entry.catalogId}`}
+                    data-testid={`entry-start-${key}`}
                     type="date"
                     value={entry.startDate}
                     onChange={(e) =>
                       setEntries((prev) =>
-                        updateEntry(prev, entry.catalogId, {
+                        updateEntry(prev, key, {
                           startDate: e.target.value,
                         }),
                       )
@@ -158,12 +227,12 @@ export default function PlanScreen({ onDone }: Props) {
                 <label style={{ fontSize: 12 }}>
                   期限
                   <input
-                    data-testid={`entry-deadline-${entry.catalogId}`}
+                    data-testid={`entry-deadline-${key}`}
                     type="date"
                     value={entry.deadline}
                     onChange={(e) =>
                       setEntries((prev) =>
-                        updateEntry(prev, entry.catalogId, {
+                        updateEntry(prev, key, {
                           deadline: e.target.value,
                         }),
                       )
@@ -173,11 +242,11 @@ export default function PlanScreen({ onDone }: Props) {
               </div>
             </div>
             <button
-              data-testid={`entry-delete-${entry.catalogId}`}
+              data-testid={`entry-delete-${key}`}
               type="button"
               onClick={() => {
-                if (!window.confirm(`「${book.title}」をスケジュールから削除しますか？`)) return
-                setEntries((prev) => removeEntry(prev, entry.catalogId))
+                if (!window.confirm(`「${displayTitle}」をスケジュールから削除しますか？`)) return
+                setEntries((prev) => removeEntry(prev, key))
               }}
               style={{ flexShrink: 0 }}
             >

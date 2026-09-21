@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { db } from '../db/database'
 import PlanScreen from './PlanScreen'
@@ -197,6 +197,93 @@ describe('PlanScreen', () => {
     expect(eibunpo?.deadline).toBe('2026-09-30')
     expect(eibunpo?.startDate).toBe('2026-04-01')
     expect(eibunpo?.coverUrl).toBe('https://example.com/polaris2.jpg')
+  })
+
+  it('adds a registered book to the schedule using its own deadline', async () => {
+    await db.books.add({
+      id: 'b1',
+      title: '英単語1000',
+      totalPages: 100,
+      coverUrl: 'https://example.com/tango1000.jpg',
+      startDate: '2026-01-01',
+      deadline: '2026-12-31',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    })
+    render(<PlanScreen onDone={() => {}} />)
+    await waitFor(() => {
+      const select = screen.getByTestId<HTMLSelectElement>('registered-select')
+      expect(Array.from(select.options).some((o) => o.value === 'b1')).toBe(true)
+    })
+    fireEvent.change(screen.getByTestId('registered-select'), {
+      target: { value: 'b1' },
+    })
+    fireEvent.change(screen.getByTestId('registered-add-start'), {
+      target: { value: '2026-09-21' },
+    })
+    fireEvent.click(screen.getByTestId('add-registered-entry'))
+    expect(screen.getByTestId('entry-start-b1')).toHaveValue('2026-09-21')
+    expect(screen.getByTestId('entry-deadline-b1')).toHaveValue('2026-12-31')
+    fireEvent.click(screen.getByTestId('save-schedule'))
+    const saved = loadSchedule()
+    const entry = saved.find((e) => e.bookId === 'b1')
+    expect(entry?.startDate).toBe('2026-09-21')
+    expect(entry?.deadline).toBe('2026-12-31')
+  })
+
+  it('does not offer an already-added registered book in the dropdown', async () => {
+    await db.books.add({
+      id: 'b1',
+      title: '英単語1000',
+      totalPages: 100,
+      startDate: '2026-01-01',
+      deadline: '2026-12-31',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    })
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('registered-select'), {
+      target: { value: 'b1' },
+    })
+    fireEvent.click(screen.getByTestId('add-registered-entry'))
+    const select = screen.getByTestId<HTMLSelectElement>('registered-select')
+    const options = Array.from(select.options).map((o) => o.value)
+    expect(options).not.toContain('b1')
+  })
+
+  it('updates only the deadline of a registered book when applying a bookId entry', async () => {
+    await db.books.add({
+      id: 'b1',
+      title: '英単語1000',
+      totalPages: 100,
+      coverUrl: 'https://example.com/tango1000.jpg',
+      startDate: '2026-01-01',
+      deadline: '2026-06-01',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    })
+    render(<PlanScreen onDone={() => {}} />)
+    await waitFor(() => {
+      const select = screen.getByTestId<HTMLSelectElement>('registered-select')
+      expect(Array.from(select.options).some((o) => o.value === 'b1')).toBe(true)
+    })
+    fireEvent.change(screen.getByTestId('registered-select'), {
+      target: { value: 'b1' },
+    })
+    fireEvent.click(screen.getByTestId('add-registered-entry'))
+    fireEvent.change(screen.getByTestId('entry-deadline-b1'), {
+      target: { value: '2026-12-20' },
+    })
+    fireEvent.click(screen.getByTestId('apply-schedule'))
+    expect(await screen.findByTestId('apply-result')).toHaveTextContent(
+      '新規 17 冊 / 期限を更新 1 冊',
+    )
+    const books = await db.books.toArray()
+    expect(books).toHaveLength(18)
+    const tango = books.find((b) => b.id === 'b1')
+    expect(tango?.deadline).toBe('2026-12-20')
+    expect(tango?.startDate).toBe('2026-01-01')
+    expect(tango?.coverUrl).toBe('https://example.com/tango1000.jpg')
   })
 
   it('calls onDone when the back button is pressed', () => {

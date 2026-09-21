@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import BookCard from '../components/BookCard'
 import CoverImage from '../components/CoverImage'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
@@ -21,6 +20,7 @@ import { quoteOf } from '../data/quotes'
 import { loadSchedule, saveSchedule } from '../data/scheduleStore'
 import {
   advanceSchedule,
+  entryKey,
   selectNowAndNext,
   sortScheduleEntries,
   type ScheduleEntry,
@@ -40,7 +40,7 @@ type Props = {
 
 function findRegistered(
   books: BookData[],
-  catalogId: string,
+  catalogId: string | undefined,
   title: string | undefined,
 ): BookData | undefined {
   return books.find(
@@ -50,14 +50,29 @@ function findRegistered(
   )
 }
 
+function resolveEntry(
+  books: BookData[],
+  entry: ScheduleEntry,
+): { catalogBook: CatalogBook | undefined; registered: BookData | undefined } {
+  if (entry.bookId) {
+    return { catalogBook: undefined, registered: books.find((b) => b.id === entry.bookId) }
+  }
+  const catalogBook = CATALOG.find((c) => c.id === entry.catalogId)
+  return {
+    catalogBook,
+    registered: findRegistered(books, entry.catalogId, catalogBook?.title),
+  }
+}
+
 type NowNextItemProps = {
   label: string
   entry?: ScheduleEntry
+  registered?: BookData
   testid: string
   progressPercent?: number
 }
 
-function NowNextItem({ label, entry, testid, progressPercent }: NowNextItemProps) {
+function NowNextItem({ label, entry, registered, testid, progressPercent }: NowNextItemProps) {
   if (!entry) return null
   const catalogBook = CATALOG.find((c) => c.id === entry.catalogId)
   return (
@@ -76,7 +91,11 @@ function NowNextItem({ label, entry, testid, progressPercent }: NowNextItemProps
       >
         {label}
       </p>
-      <CoverImage src={catalogBook?.coverSrc ?? null} width={64} height={90} />
+      <CoverImage
+        src={registered?.coverUrl ?? catalogBook?.coverSrc ?? null}
+        width={64}
+        height={90}
+      />
       <p
         style={{
           fontSize: 11,
@@ -85,7 +104,7 @@ function NowNextItem({ label, entry, testid, progressPercent }: NowNextItemProps
           lineHeight: 1.3,
         }}
       >
-        {catalogBook?.title}
+        {catalogBook?.title ?? registered?.title}
       </p>
       {progressPercent !== undefined && (
         <div
@@ -128,8 +147,8 @@ type ScheduleRowProps = {
   isCompleted?: boolean
   showAdvance?: boolean
   onOpen: (id: string) => void
-  onRecord: (catalogId: string, pages: number) => void
-  onAdvance: (catalogId: string) => void
+  onRecord: (key: string, pages: number) => void
+  onAdvance: (key: string) => void
 }
 
 function ScheduleRow({
@@ -147,13 +166,15 @@ function ScheduleRow({
   onAdvance,
 }: ScheduleRowProps) {
   const [pagesInput, setPagesInput] = useState('')
+  const key = entryKey(entry)
   const prefix = isCompleted ? 'completed-row' : 'schedule-row'
   const roundTestId = isCompleted
-    ? `completed-round-${entry.catalogId}`
-    : `round-badge-${entry.catalogId}`
+    ? `completed-round-${key}`
+    : `round-badge-${key}`
   const recordTestId = isCompleted
-    ? `completed-record-${entry.catalogId}`
-    : `row-record-${entry.catalogId}`
+    ? `completed-record-${key}`
+    : `row-record-${key}`
+  const title = catalogBook?.title ?? registered?.title ?? key
   const done = registered ? calcDonePages(records, registered.id) : 0
   const status = registered
     ? calcScheduleStatus(
@@ -188,22 +209,26 @@ function ScheduleRow({
     if (Number.isInteger(pages) && pages >= 1) {
       if (
         !window.confirm(
-          `「${catalogBook?.title ?? entry.catalogId}」を ${pages} ページで記録しますか？`,
+          `「${title}」を ${pages} ページで記録しますか？`,
         )
       ) {
         return
       }
       setPagesInput('')
-      onRecord(entry.catalogId, pages)
+      onRecord(key, pages)
     }
   }
 
   const infoBlock = (
     <>
-      <CoverImage src={catalogBook?.coverSrc ?? null} width={40} height={56} />
+      <CoverImage
+        src={registered?.coverUrl ?? catalogBook?.coverSrc ?? null}
+        width={40}
+        height={56}
+      />
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 700 }}>
-          {catalogBook?.title ?? entry.catalogId}
+          {title}
           {round !== undefined && (
             <span
               data-testid={roundTestId}
@@ -237,7 +262,7 @@ function ScheduleRow({
 
   return (
     <div
-      data-testid={`${prefix}-${entry.catalogId}`}
+      data-testid={`${prefix}-${key}`}
       style={{
         padding: '8px 12px',
         marginBottom: 8,
@@ -249,7 +274,7 @@ function ScheduleRow({
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {registered ? (
           <button
-            data-testid={`${prefix}-open-${entry.catalogId}`}
+            data-testid={`${prefix}-open-${key}`}
             type="button"
             onClick={() => onOpen(registered.id)}
             style={{
@@ -273,9 +298,9 @@ function ScheduleRow({
         )}
         {registered && status === 'done' && hasNext && showAdvance && (
           <button
-            data-testid={`advance-next-${entry.catalogId}`}
+            data-testid={`advance-next-${key}`}
             type="button"
-            onClick={() => void onAdvance(entry.catalogId)}
+            onClick={() => void onAdvance(key)}
             style={{ flexShrink: 0 }}
           >
             完了
@@ -287,7 +312,7 @@ function ScheduleRow({
         aria-valuenow={Math.round(progress)}
         aria-valuemin={0}
         aria-valuemax={100}
-        data-testid={`row-progressbar-${entry.catalogId}`}
+        data-testid={`row-progressbar-${key}`}
         style={{
           height: 8,
           borderRadius: 4,
@@ -314,7 +339,7 @@ function ScheduleRow({
         }}
       >
         <input
-          data-testid={`row-progress-input-${entry.catalogId}`}
+          data-testid={`row-progress-input-${key}`}
           type="number"
           inputMode="numeric"
           value={pagesInput}
@@ -346,29 +371,24 @@ export default function HomeScreen({ onOpenBook }: Props) {
     today,
   )
 
-  const handleAdvance = async (finishedCatalogId: string) => {
+  const handleAdvance = async (finishedKey: string) => {
     const marked = schedule.map((e) =>
-      e.catalogId === finishedCatalogId ? { ...e, completed: true } : e,
+      entryKey(e) === finishedKey ? { ...e, completed: true } : e,
     )
-    const updatedSchedule = advanceSchedule(marked, today, finishedCatalogId)
+    const updatedSchedule = advanceSchedule(marked, today, finishedKey)
     saveSchedule(updatedSchedule)
     setSchedule(updatedSchedule)
     const finishedIndex = schedule.findIndex(
-      (e) => e.catalogId === finishedCatalogId,
+      (e) => entryKey(e) === finishedKey,
     )
     const nextEntry =
       finishedIndex !== -1 ? updatedSchedule[finishedIndex + 1] : undefined
     if (!nextEntry) return
-    const nextCatalogBook = CATALOG.find((c) => c.id === nextEntry.catalogId)
-    const nextRegistered = findRegistered(
-      books,
-      nextEntry.catalogId,
-      nextCatalogBook?.title,
-    )
-    if (nextRegistered) {
+    const next = resolveEntry(books, nextEntry)
+    if (next.registered) {
       await saveBook(
         {
-          ...nextRegistered,
+          ...next.registered,
           startDate: nextEntry.startDate,
           deadline: nextEntry.deadline,
           updatedAt: new Date().toISOString(),
@@ -378,11 +398,18 @@ export default function HomeScreen({ onOpenBook }: Props) {
     }
   }
 
-  const handleRowRecord = async (catalogId: string, pages: number) => {
-    const entry = schedule.find((e) => e.catalogId === catalogId)
-    const catalogBook = CATALOG.find((c) => c.id === catalogId)
-    if (!entry || !catalogBook) return
-    const registeredBook = findRegistered(books, catalogId, catalogBook.title)
+  const handleRowRecord = async (key: string, pages: number) => {
+    const entry = schedule.find((e) => entryKey(e) === key)
+    if (!entry) return
+    if (entry.bookId) {
+      const registeredBook = books.find((b) => b.id === entry.bookId)
+      if (!registeredBook) return
+      await addProgress(registeredBook.id, today, pages)
+      return
+    }
+    const catalogBook = CATALOG.find((c) => c.id === entry.catalogId)
+    if (!catalogBook) return
+    const registeredBook = findRegistered(books, entry.catalogId, catalogBook.title)
     let bookId = registeredBook?.id
     if (!bookId) {
       const nowIso = new Date().toISOString()
@@ -392,7 +419,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
         subject: catalogBook.subject,
         totalPages: catalogBook.totalPages,
         coverUrl: catalogBook.coverSrc,
-        catalogId,
+        catalogId: entry.catalogId,
         startDate: entry.startDate,
         deadline: entry.deadline,
         createdAt: nowIso,
@@ -403,14 +430,6 @@ export default function HomeScreen({ onOpenBook }: Props) {
     }
     await addProgress(bookId, today, pages)
   }
-
-  const sortedBooks = [...books].sort((a, b) => {
-    const sa = calcScheduleStatus(a, calcDonePages(records, a.id), today)
-    const sb = calcScheduleStatus(b, calcDonePages(records, b.id), today)
-    if (sa === 'behind' && sb !== 'behind') return -1
-    if (sa !== 'behind' && sb === 'behind') return 1
-    return 0
-  })
 
   const diagnosis = overallDiagnosis(books, records, today)
 
@@ -461,14 +480,11 @@ export default function HomeScreen({ onOpenBook }: Props) {
       {(() => {
         const { now, next } = selectNowAndNext(schedule, today)
         if (!now && !next) return null
-        const nowCatalogBook = CATALOG.find((c) => c.id === now?.catalogId)
-        const nowRegistered = now
-          ? findRegistered(books, now.catalogId, nowCatalogBook?.title)
-          : undefined
+        const nowView = now ? resolveEntry(books, now) : { catalogBook: undefined, registered: undefined }
         const nowTotal =
-          nowRegistered?.totalPages ?? nowCatalogBook?.totalPages ?? 0
-        const nowDone = nowRegistered
-          ? calcDonePages(records, nowRegistered.id)
+          nowView.registered?.totalPages ?? nowView.catalogBook?.totalPages ?? 0
+        const nowDone = nowView.registered
+          ? calcDonePages(records, nowView.registered.id)
           : 0
         const nowRound = nowTotal > 0 ? currentRound(nowDone, nowTotal) : 1
         const nowInRound =
@@ -477,7 +493,8 @@ export default function HomeScreen({ onOpenBook }: Props) {
           nowTotal > 0
             ? Math.min(Math.round((nowInRound / nowTotal) * 100), 100)
             : 0
-        const nowProgress = nowRegistered ? nowPercent : 0
+        const nowProgress = nowView.registered ? nowPercent : 0
+        const nextView = next ? resolveEntry(books, next) : { catalogBook: undefined, registered: undefined }
         return (
           <section
             data-testid="now-next-section"
@@ -500,6 +517,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
                 testid="now-next-now"
                 label="NOW"
                 entry={now}
+                registered={nowView.registered}
                 progressPercent={nowProgress}
               />
               {next && (
@@ -519,6 +537,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
                     testid="now-next-next"
                     label="NEXT"
                     entry={next}
+                    registered={nextView.registered}
                   />
                 </>
               )}
@@ -567,38 +586,36 @@ export default function HomeScreen({ onOpenBook }: Props) {
           期限が近い順。遅れている参考書が上に表示されます。
         </p>
         {scheduled.map((entry, index) => {
-          const catalogBook = CATALOG.find((c) => c.id === entry.catalogId)
-          const registered = findRegistered(
-            books,
-            entry.catalogId,
-            catalogBook?.title,
-          )
+          const rowView = resolveEntry(books, entry)
           const originalIndex = schedule.findIndex(
-            (e) => e.catalogId === entry.catalogId,
+            (e) => entryKey(e) === entryKey(entry),
           )
           const hasNext =
             originalIndex !== -1 && originalIndex + 1 < schedule.length
-          const done = registered ? calcDonePages(records, registered.id) : 0
-          const total = catalogBook?.totalPages ?? 0
+          const done = rowView.registered
+            ? calcDonePages(records, rowView.registered.id)
+            : 0
+          const total =
+            rowView.registered?.totalPages ?? rowView.catalogBook?.totalPages ?? 0
           const round =
             index < ROUND_BADGE_COUNT && total > 0
               ? currentRound(done, total)
               : undefined
           return (
             <ScheduleRow
-              key={entry.catalogId}
+              key={entryKey(entry)}
               entry={entry}
-              catalogBook={catalogBook}
-              registered={registered}
+              catalogBook={rowView.catalogBook}
+              registered={rowView.registered}
               records={records}
               today={today}
               hasNext={hasNext}
               round={round}
               onOpen={onOpenBook}
-              onRecord={(catalogId, pages) =>
-                void handleRowRecord(catalogId, pages)
+              onRecord={(key, pages) =>
+                void handleRowRecord(key, pages)
               }
-              onAdvance={(catalogId) => void handleAdvance(catalogId)}
+              onAdvance={(key) => void handleAdvance(key)}
             />
           )
         })}
@@ -606,26 +623,22 @@ export default function HomeScreen({ onOpenBook }: Props) {
           <>
             <h2 style={{ fontSize: 16 }}>完了済みの参考書</h2>
             {completedEntries.map((entry) => {
-              const catalogBook = CATALOG.find((c) => c.id === entry.catalogId)
-              const registered = findRegistered(
-                books,
-                entry.catalogId,
-                catalogBook?.title,
-              )
-              const done = registered
-                ? calcDonePages(records, registered.id)
+              const rowView = resolveEntry(books, entry)
+              const done = rowView.registered
+                ? calcDonePages(records, rowView.registered.id)
                 : 0
-              const total = catalogBook?.totalPages ?? 0
+              const total =
+                rowView.registered?.totalPages ?? rowView.catalogBook?.totalPages ?? 0
               const completedRound =
                 total > 0 && currentRound(done, total) > 1
                   ? currentRound(done, total)
                   : undefined
               return (
                 <ScheduleRow
-                  key={entry.catalogId}
+                  key={entryKey(entry)}
                   entry={entry}
-                  catalogBook={catalogBook}
-                  registered={registered}
+                  catalogBook={rowView.catalogBook}
+                  registered={rowView.registered}
                   records={records}
                   today={today}
                   hasNext={false}
@@ -633,35 +646,14 @@ export default function HomeScreen({ onOpenBook }: Props) {
                   isCompleted
                   showAdvance={false}
                   onOpen={onOpenBook}
-                  onRecord={(catalogId, pages) =>
-                    void handleRowRecord(catalogId, pages)
+                  onRecord={(key, pages) =>
+                    void handleRowRecord(key, pages)
                   }
-                  onAdvance={(catalogId) => void handleAdvance(catalogId)}
+                  onAdvance={(key) => void handleAdvance(key)}
                 />
               )
             })}
           </>
-        )}
-      </section>
-
-      <section>
-        <h2 data-testid="book-list-heading" style={{ fontSize: 16 }}>
-          登録済みの参考書
-        </h2>
-        {sortedBooks.length === 0 ? (
-          <p style={{ color: 'var(--text-dim)' }}>
-            参考書がありません。「＋」から追加してください。
-          </p>
-        ) : (
-          sortedBooks.map((book) => (
-            <BookCard
-              key={book.id}
-              book={book}
-              records={records}
-              onOpen={onOpenBook}
-              onRecord={(bookId, pages) => void addProgress(bookId, today, pages)}
-            />
-          ))
         )}
       </section>
     </div>

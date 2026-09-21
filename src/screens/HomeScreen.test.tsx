@@ -267,12 +267,6 @@ describe('HomeScreen', () => {
     })
   })
 
-  it('displays the book cards for registered books as before', async () => {
-    await db.books.add({ ...book, id: 'b1' })
-    render(<HomeScreen onOpenBook={() => {}} />)
-    expect(await screen.findByText('英単語1000')).toBeInTheDocument()
-  })
-
   it('shows the days until deadline for an upcoming book', () => {
     const custom: ScheduleEntry[] = [
       { catalogId: 'porepore', startDate: '2026-01-01', deadline: daysAhead(5) },
@@ -337,59 +331,6 @@ describe('HomeScreen', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('advance-next-eibunpo-polaris-2')).toBeNull()
     })
-  })
-
-  it('shows required pages per day on a book card using today record', async () => {
-    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
-    await db.records.add({
-      id: 'r1',
-      bookId: 'b1',
-      date: localDateStr(new Date()),
-      pages: 40,
-    })
-    render(<HomeScreen onOpenBook={() => {}} />)
-    const card = await screen.findByTestId('book-card-b1')
-    // (100 - 40) / 今日を除く5日 = 1日12ページ
-    expect(card).toHaveTextContent('期限まで1日あたり 12 ページ')
-  })
-
-  it('shows required pages per day on a book card with no today record', async () => {
-    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
-    await db.records.add({ id: 'r1', bookId: 'b1', date: daysAgo(1), pages: 40 })
-    render(<HomeScreen onOpenBook={() => {}} />)
-    const card = await screen.findByTestId('book-card-b1')
-    // (100 - 40) / 今日を除く5日 = 1日12ページ
-    expect(card).toHaveTextContent('期限まで1日あたり 12 ページ')
-  })
-
-  it('updates required pages per day live while typing on the card', async () => {
-    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
-    render(<HomeScreen onOpenBook={() => {}} />)
-    const input = await screen.findByTestId('card-progress-input-b1')
-    fireEvent.change(input, { target: { value: '10' } })
-    const card = screen.getByTestId('book-card-b1')
-    // (100 - 10) / 今日を除く5日 = 1日18ページ
-    expect(card).toHaveTextContent('期限まで1日あたり 18 ページ')
-  })
-
-  it('records today progress from the card input', async () => {
-    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
-    render(<HomeScreen onOpenBook={() => {}} />)
-    const input = await screen.findByTestId('card-progress-input-b1')
-    fireEvent.change(input, { target: { value: '10' } })
-    const recordBtn = screen.getByTestId('card-record-b1')
-    fireEvent.click(recordBtn)
-    const card = screen.getByTestId('book-card-b1')
-    await waitFor(() => expect(card).toHaveTextContent('残り 90 ページ'))
-  })
-
-  it('does not open the book when tapping the card record button', async () => {
-    const onOpen = vi.fn()
-    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
-    render(<HomeScreen onOpenBook={onOpen} />)
-    const recordBtn = await screen.findByTestId('card-record-b1')
-    fireEvent.click(recordBtn)
-    expect(onOpen).not.toHaveBeenCalled()
   })
 
   it('shows pages per day on a schedule row using the today record and a progress input', async () => {
@@ -540,6 +481,38 @@ describe('HomeScreen', () => {
     render(<HomeScreen onOpenBook={onOpen} />)
     fireEvent.click(await screen.findByTestId('schedule-row-open-porepore'))
     expect(onOpen).toHaveBeenCalledWith('b1')
+  })
+
+  it('shows a schedule row for a bookId entry and records progress to its book', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const custom: ScheduleEntry[] = [
+      { bookId: 'b1', startDate: '2026-01-01', deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const row = await screen.findByTestId('schedule-row-b1')
+    expect(row).toHaveTextContent('英単語1000')
+    const input = screen.getByTestId('row-progress-input-b1')
+    fireEvent.change(input, { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('row-record-b1'))
+    await waitFor(async () => {
+      const recs = await db.records.toArray()
+      expect(recs).toHaveLength(1)
+      expect(recs[0].bookId).toBe('b1')
+      expect(recs[0].pages).toBe(10)
+    })
+  })
+
+  it('shows the NOW card for a bookId entry', async () => {
+    const custom: ScheduleEntry[] = [
+      { bookId: 'b1', startDate: '2026-01-01', deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const now = await screen.findByTestId('now-next-now')
+    expect(now).toHaveTextContent('英単語1000')
   })
 
   it('shows the current book progress percent on the NOW card', async () => {

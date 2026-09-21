@@ -1,4 +1,4 @@
-import { SCHEDULE, type ScheduleEntry } from './schedule'
+import { entryKey, SCHEDULE, type ScheduleEntry } from './schedule'
 
 const STORAGE_KEY = 'schedule-app-schedule'
 
@@ -6,7 +6,7 @@ function isScheduleEntry(value: unknown): value is ScheduleEntry {
   if (typeof value !== 'object' || value === null) return false
   const v = value as Record<string, unknown>
   return (
-    typeof v.catalogId === 'string' &&
+    (typeof v.catalogId === 'string' || typeof v.bookId === 'string') &&
     typeof v.startDate === 'string' &&
     typeof v.deadline === 'string' &&
     (v.note === undefined || typeof v.note === 'string') &&
@@ -46,23 +46,23 @@ export function addEntry(
   entries: ScheduleEntry[],
   entry: ScheduleEntry,
 ): ScheduleEntry[] {
-  if (entries.some((e) => e.catalogId === entry.catalogId)) return entries
+  if (entries.some((e) => entryKey(e) === entryKey(entry))) return entries
   return [...entries, entry]
 }
 
 export function removeEntry(
   entries: ScheduleEntry[],
-  catalogId: string,
+  key: string,
 ): ScheduleEntry[] {
-  return entries.filter((e) => e.catalogId !== catalogId)
+  return entries.filter((e) => entryKey(e) !== key)
 }
 
 export function updateEntry(
   entries: ScheduleEntry[],
-  catalogId: string,
+  key: string,
   patch: Partial<Pick<ScheduleEntry, 'startDate' | 'deadline'>>,
 ): ScheduleEntry[] {
   return entries.map((e) =>
-    e.catalogId === catalogId ? { ...e, ...patch } : e,
+    entryKey(e) === key ? { ...e, ...patch } : e,
   )
 }

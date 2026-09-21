@@ -3,11 +3,16 @@ import { formatDate, parseDate, daysBetween } from '../lib/progress'
 import { CATALOG } from './catalog'
 
 export type ScheduleEntry = {
-  catalogId: string
+  catalogId?: string
+  bookId?: string
   startDate: string
   deadline: string
   note?: string
   completed?: boolean
+}
+
+export function entryKey(entry: Pick<ScheduleEntry, 'bookId' | 'catalogId'>): string {
+  return entry.bookId ?? entry.catalogId ?? ''
 }
 
 export const SCHEDULE: ScheduleEntry[] = [
@@ -97,9 +102,9 @@ export function selectNowAndNext(
 export function advanceSchedule(
   entries: ScheduleEntry[],
   finishedOn: string,
-  finishedCatalogId: string,
+  finishedKey: string,
 ): ScheduleEntry[] {
-  const index = entries.findIndex((e) => e.catalogId === finishedCatalogId)
+  const index = entries.findIndex((e) => entryKey(e) === finishedKey)
   if (index === -1 || index + 1 >= entries.length) return entries
   const next = entries[index + 1]
   const duration = Math.max(daysBetween(next.startDate, next.deadline), 1)
@@ -126,6 +131,16 @@ export function buildApplyResult(
   const updatedBooks: BookData[] = []
 
   for (const entry of entries) {
+    if (entry.bookId) {
+      const existing = registered.find((b) => b.id === entry.bookId)
+      if (!existing) continue
+      updatedBooks.push({
+        ...existing,
+        deadline: entry.deadline,
+        updatedAt: nowIso,
+      })
+      continue
+    }
     const catalog = CATALOG.find((c) => c.id === entry.catalogId)
     if (!catalog) continue
     const existing = registered.find(

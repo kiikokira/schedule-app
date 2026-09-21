@@ -75,6 +75,56 @@ describe('scheduleStore', () => {
     })
   })
 
+  it('saves and loads a bookId entry referencing a registered book', () => {
+    saveSchedule([
+      { bookId: 'custom-1', startDate: '2026-09-01', deadline: '2026-11-30' },
+    ])
+    expect(loadSchedule()).toEqual([
+      { bookId: 'custom-1', startDate: '2026-09-01', deadline: '2026-11-30' },
+    ])
+  })
+
+  it('does not add a duplicate bookId entry', () => {
+    const entries = addEntry(
+      [{ bookId: 'custom-1', startDate: '2026-09-01', deadline: '2026-11-30' }],
+      { bookId: 'custom-1', startDate: '2026-09-01', deadline: '2026-11-30' },
+    )
+    expect(entries).toHaveLength(1)
+  })
+
+  it('dedupes catalogId and bookId entries by the same underlying key only', () => {
+    const entries = addEntry(
+      THE_SCHEDULE,
+      { bookId: 'eibunpo-polaris-2', startDate: '2026-09-01', deadline: '2026-11-30' },
+    )
+    expect(entries).toHaveLength(THE_SCHEDULE.length)
+  })
+
+  it('allows a bookId entry to coexist with catalog entries', () => {
+    const entries = addEntry(
+      THE_SCHEDULE,
+      { bookId: 'custom-1', startDate: '2026-09-01', deadline: '2026-11-30' },
+    )
+    expect(entries).toHaveLength(THE_SCHEDULE.length + 1)
+  })
+
+  it('removes a bookId entry by key', () => {
+    const entries = removeEntry(
+      [{ bookId: 'custom-1', startDate: '2026-09-01', deadline: '2026-11-30' }],
+      'custom-1',
+    )
+    expect(entries).toHaveLength(0)
+  })
+
+  it('updates the deadlines of a bookId entry', () => {
+    const entries = updateEntry(
+      [{ bookId: 'custom-1', startDate: '2026-09-01', deadline: '2026-11-30' }],
+      'custom-1',
+      { deadline: '2026-12-31' },
+    )
+    expect(entries[0].deadline).toBe('2026-12-31')
+  })
+
   it('resets to the default schedule', () => {
     saveSchedule(THE_SCHEDULE)
     resetSchedule()

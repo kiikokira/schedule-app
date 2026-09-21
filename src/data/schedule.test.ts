@@ -24,7 +24,7 @@ describe('schedule', () => {
   it('all catalog ids in the schedule exist', () => {
     const ids = new Set(CATALOG.map((c) => c.id))
     for (const entry of SCHEDULE) {
-      expect(ids.has(entry.catalogId)).toBe(true)
+      expect(ids.has(entry.catalogId as string)).toBe(true)
     }
   })
 
@@ -63,6 +63,38 @@ describe('schedule', () => {
       startDate: '2027-08-31',
       deadline: '2028-02-05',
     })
+  })
+
+  it('updates the deadline of a book registered by bookId without creating a new one', () => {
+    const now = new Date(2026, 8, 20, 10, 0, 0)
+    const existing: Parameters<typeof buildApplyResult>[0] = [
+      {
+        id: 'custom-1',
+        title: 'オリジナル問題集',
+        totalPages: 200,
+        startDate: '2026-06-01',
+        deadline: '2026-12-31',
+        createdAt: '2026-06-01T00:00:00.000Z',
+        updatedAt: '2026-06-01T00:00:00.000Z',
+      },
+    ]
+    const { newBooks, updatedBooks } = buildApplyResult(existing, now, [
+      { bookId: 'custom-1', startDate: '2026-09-01', deadline: '2026-11-30' },
+    ])
+    expect(newBooks).toHaveLength(0)
+    expect(updatedBooks).toHaveLength(1)
+    expect(updatedBooks[0].id).toBe('custom-1')
+    expect(updatedBooks[0].deadline).toBe('2026-11-30')
+    expect(updatedBooks[0].startDate).toBe('2026-06-01')
+  })
+
+  it('skips a bookId entry whose registered book is missing', () => {
+    const now = new Date(2026, 8, 20, 10, 0, 0)
+    const { newBooks, updatedBooks } = buildApplyResult([], now, [
+      { bookId: 'gone-book', startDate: '2026-09-01', deadline: '2026-11-30' },
+    ])
+    expect(newBooks).toHaveLength(0)
+    expect(updatedBooks).toHaveLength(0)
   })
 
   it('creates new books with the scheduled start and deadline when none are registered', () => {
@@ -157,6 +189,19 @@ describe('advanceSchedule', () => {
     const today = '2026-11-10'
     const result = advanceSchedule(entries, today, 'no-such-book')
     expect(result).toEqual(entries)
+  })
+
+  it('matches a bookId entry by bookId key', () => {
+    const bookIdEntries: ScheduleEntry[] = [
+      { catalogId: 'eibunpo-polaris-2', startDate: '2026-09-01', deadline: '2026-11-30' },
+      { bookId: 'custom-1', startDate: '2026-09-01', deadline: '2026-12-31' },
+      { catalogId: 'the-rules-1', startDate: '2027-01-01', deadline: '2027-03-31' },
+    ]
+    const today = '2026-11-10'
+    const result = advanceSchedule(bookIdEntries, today, 'custom-1')
+    expect(result[1].bookId).toBe('custom-1')
+    const next = result[2]
+    expect(next.startDate).toBe(today)
   })
 })
 
