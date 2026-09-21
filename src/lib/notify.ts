@@ -55,20 +55,27 @@ export function stateTopicOf(topic: string): string {
   return `${encodeTopic(topic)}-state`
 }
 
+const withTimeout = (controller: AbortController) =>
+  setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+// カスタムヘッダーを送らない「シンプルリクエスト(Content-Type: text/plain)」にする。
+// CORSプリフライトが不要になり、iOS Safari等でも送信がブロックされにくい。
+// タイトルはURLのクエリ(?title=)でntfyへ渡す。
 export async function publishPush(
   topic: string,
   message: string,
   options: { title?: string } = {},
   fetchImpl: typeof fetch = fetch,
 ): Promise<PublishResult> {
+  const title = options.title ?? '参考書スケジュール管理'
+  const url = `${NTFY_BASE}/${encodeTopic(topic)}${title ? `?title=${encodeURIComponent(title)}` : ''}`
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  const timer = withTimeout(controller)
   try {
-    const res = await fetchImpl(`${NTFY_BASE}/${encodeTopic(topic)}`, {
+    const res = await fetchImpl(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'text/plain',
-        Title: options.title ?? '参考書スケジュール管理',
       },
       body: message,
       cache: 'no-store',
@@ -76,29 +83,38 @@ export async function publishPush(
     })
     if (res.ok) return { ok: true }
     return { ok: false, reason: 'http', status: res.status }
-  } catch {
+  } catch (err) {
+    console.info('[notify] publish failed:', err)
     return { ok: false, reason: 'network', status: null }
   } finally {
     clearTimeout(timer)
   }
 }
 
+// 状態配信もシンプルリクエストのみにする。ボディ(JSON文字列)はntfyがそのまま保持し、
+// サーバー側の jq が読み取れる。TTLはカスタムヘッダーを避けるため既定値(12時間)に任せる。
 export async function publishState(
   topic: string,
   state: DiagnosisState,
   fetchImpl: typeof fetch = fetch,
 ): Promise<boolean> {
+  const controller = new AbortController()
+  const timer = withTimeout(controller)
   try {
     const res = await fetchImpl(`${NTFY_BASE}/${stateTopicOf(topic)}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-TTL': '172800',
+        'Content-Type': 'text/plain',
       },
       body: JSON.stringify({ ...state, savedAt: new Date().toISOString() }),
+      cache: 'no-store',
+      signal: controller.signal,
     })
     return res.ok
-  } catch {
+  } catch (err) {
+    console.info('[notify] state publish failed:', err)
     return false
+  } finally {
+    clearTimeout(timer)
   }
 }

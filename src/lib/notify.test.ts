@@ -72,9 +72,19 @@ describe('publishPush', () => {
     )
     expect(result.ok).toBe(true)
     expect(okFetch).toHaveBeenCalledWith(
-      'https://ntfy.sh/my-topic',
+      'https://ntfy.sh/my-topic?title=%E5%8F%82%E8%80%83%E6%9B%B8%E3%82%B9%E3%82%B1%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB%E7%AE%A1%E7%90%86',
       expect.objectContaining({ method: 'POST', body: '今日の学習を記録しましたか？' }),
     )
+  })
+
+  it('keeps the message body without custom headers so no CORS preflight is needed', async () => {
+    await publishPush('my-topic', 'hi', { title: '遅れています' }, okFetch as typeof fetch)
+    const [url, init] = okFetch.mock.calls[0]
+    expect(url).toBe('https://ntfy.sh/my-topic?title=%E9%81%85%E3%82%8C%E3%81%A6%E3%81%84%E3%81%BE%E3%81%99')
+    expect(init).toBeDefined()
+    const headers = (init as RequestInit).headers as Record<string, string>
+    expect(headers).not.toHaveProperty('Title')
+    expect(headers['Content-Type']).toBe('text/plain')
   })
 
   it('returns a network failure when the request throws', async () => {
@@ -102,18 +112,26 @@ describe('publishPush', () => {
         ({ ok: true }) as Response,
     )
     await publishPush('https://ntfy.sh/my-topic', 'hi', {}, fetchImpl as typeof fetch)
-    expect(fetchImpl).toHaveBeenCalledWith('https://ntfy.sh/my-topic', expect.anything())
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.stringMatching(/^https:\/\/ntfy\.sh\/my-topic\?title=/),
+      expect.anything(),
+    )
   })
 
-  it('sends a title header', async () => {
-    await publishPush('my-topic', 'hi', { title: '遅れています' }, okFetch as typeof fetch)
-    const [, init] = okFetch.mock.calls[0]
-    expect((init?.headers as Record<string, string>).Title).toBe('遅れています')
+  it('omits a query string when no title is given', async () => {
+    const result = await publishPush(
+      'my-topic',
+      'hi',
+      { title: '' },
+      okFetch as typeof fetch,
+    )
+    expect(result.ok).toBe(true)
+    expect(okFetch.mock.calls[0][0]).toBe('https://ntfy.sh/my-topic')
   })
 })
 
 describe('publishState', () => {
-  it('posts the diagnosis to the -state topic with a TTL header', async () => {
+  it('posts the diagnosis to the -state topic using only safelisted headers', async () => {
     const fetchImpl = vi.fn(
       async (_input: RequestInfo | URL, _init?: RequestInit) =>
         ({ ok: true }) as Response,
@@ -124,15 +142,12 @@ describe('publishState', () => {
       fetchImpl as typeof fetch,
     )
     expect(ok).toBe(true)
-    expect(fetchImpl).toHaveBeenCalledWith(
-      'https://ntfy.sh/my-topic-state',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({ 'X-TTL': '172800' }),
-      }),
-    )
-    const [, init] = fetchImpl.mock.calls[0]
-    const body = JSON.parse(init?.body as string)
+    const [url, init] = fetchImpl.mock.calls[0]
+    expect(url).toBe('https://ntfy.sh/my-topic-state')
+    const headers = (init as RequestInit).headers as Record<string, string>
+    expect(headers).not.toHaveProperty('X-TTL')
+    expect(headers['Content-Type']).toBe('text/plain')
+    const body = JSON.parse((init as RequestInit).body as string)
     expect(body.behind).toBe(true)
     expect(body.requiredPerDay).toBe(6)
   })

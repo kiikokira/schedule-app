@@ -77,7 +77,7 @@ it('sends a test notification to the ntfy topic', async () => {
     expect(screen.getByTestId('ntfy-result')).toHaveTextContent('テスト通知を送信しました'),
   )
   expect(fetchImpl).toHaveBeenCalledWith(
-    'https://ntfy.sh/my-topic',
+    expect.stringMatching(/^https:\/\/ntfy\.sh\/my-topic\?title=/),
     expect.objectContaining({ method: 'POST' }),
   )
 })
@@ -93,7 +93,10 @@ it('sends a test notification to the normalized URL when a full address is paste
   await waitFor(() =>
     expect(screen.getByTestId('ntfy-result')).toHaveTextContent('テスト通知を送信しました'),
   )
-  expect(fetchImpl).toHaveBeenCalledWith('https://ntfy.sh/my-topic', expect.anything())
+  expect(fetchImpl).toHaveBeenCalledWith(
+    expect.stringMatching(/^https:\/\/ntfy\.sh\/my-topic\?title=/),
+    expect.anything(),
+  )
 })
 
 it('reports a network failure when the request throws', async () => {
