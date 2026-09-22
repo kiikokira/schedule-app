@@ -492,7 +492,7 @@ describe('HomeScreen', () => {
     await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
     render(<HomeScreen onOpenBook={() => {}} />)
     const row = await screen.findByTestId('schedule-row-b1')
-    expect(row).toHaveTextContent('英単語1000')
+    await waitFor(() => expect(row).toHaveTextContent('英単語1000'))
     const input = screen.getByTestId('row-progress-input-b1')
     fireEvent.change(input, { target: { value: '10' } })
     fireEvent.click(screen.getByTestId('row-record-b1'))
