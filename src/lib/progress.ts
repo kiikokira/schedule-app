@@ -9,6 +9,9 @@ export type BookData = {
   deadline: string
   createdAt: string
   updatedAt: string
+  minutesPerPage?: number
+  priority?: number
+  allottedRatio?: number
 }
 
 export type ProgressRecordData = {

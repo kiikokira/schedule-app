@@ -1,0 +1,74 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
+import TodayPlanScreen from './TodayPlanScreen'
+import { db } from '../db/database'
+import { saveAvailabilitySlot } from '../data/dayplanStore'
+import { resetSchedule } from '../data/scheduleStore'
+
+beforeEach(async () => {
+  await db.books.clear()
+  await db.records.clear()
+  await db.availability.clear()
+  resetSchedule()
+})
+
+const fillBook = (id: string, over: Record<string, unknown> = {}) => {
+  const now = new Date().toISOString()
+  return db.books.add({
+    id,
+    title: id === 'b1' ? '英文法ポラリス2（応用レベル）' : 'システム英単語',
+    subject: '英語',
+    totalPages: 100,
+    catalogId: id === 'b1' ? 'eibunpo-polaris-2' : undefined,
+    startDate: '2026-09-01',
+    deadline: '2026-11-30',
+    createdAt: now,
+    updatedAt: now,
+    ...over,
+  } as any)
+}
+
+describe('TodayPlanScreen', () => {
+  it('shows the today timetable with the planned book', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    // 2026-09-21 は月曜。today を注入して曜日依存をなくす
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('today-table')).toBeInTheDocument()
+    expect(await screen.findByText('英文法ポラリス2（応用レベル）')).toBeInTheDocument()
+  })
+
+  it('shows a notice and empty table when there is no availability', async () => {
+    await fillBook('b1')
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('empty-availability-notice')).toBeInTheDocument()
+  })
+
+  it('records the day pages from a plan row using upsert semantics', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const input = await screen.findByTestId('plan-input-b1')
+    fireEvent.change(input, { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('plan-record-b1'))
+    await waitFor(async () => {
+      const recs = await db.records.toArray()
+      expect(recs).toHaveLength(1)
+      expect(recs[0].pages).toBe(10)
+    })
+  })
+
+  it('calls onSettings when the settings link is tapped', async () => {
+    const onSettings = vi.fn()
+    await fillBook('b1')
+    render(<TodayPlanScreen onBack={() => {}} onSettings={onSettings} />)
+    fireEvent.click(await screen.findByTestId('go-settings'))
+    expect(onSettings).toHaveBeenCalled()
+  })
+})

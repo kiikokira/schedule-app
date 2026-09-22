@@ -4,11 +4,13 @@ import BookDetailScreen from './screens/BookDetailScreen'
 import BookFormScreen from './screens/BookFormScreen'
 import SettingsScreen from './screens/SettingsScreen'
 import PlanScreen from './screens/PlanScreen'
+import TodayPlanScreen from './screens/TodayPlanScreen'
 import { useBooks } from './hooks/useBooks'
 import './styles.css'
 
 type Route =
   | { name: 'home' }
+  | { name: 'today' }
   | { name: 'detail'; bookId: string }
   | { name: 'add' }
   | { name: 'edit'; bookId: string }
@@ -45,10 +47,19 @@ export default function App() {
         )}
         {route.name === 'settings' && <SettingsScreen onDone={() => setRoute({ name: 'home' })} />}
         {route.name === 'plan' && <PlanScreen onDone={() => setRoute({ name: 'home' })} />}
+        {route.name === 'today' && (
+          <TodayPlanScreen
+            onBack={() => setRoute({ name: 'home' })}
+            onSettings={() => setRoute({ name: 'plan' })}
+          />
+        )}
       </main>
       <footer className="app-footer">
         {route.name === 'home' && (
           <>
+            <button data-testid="nav-today" onClick={() => setRoute({ name: 'today' })}>
+              今日の計画
+            </button>
             <button data-testid="nav-plan" onClick={() => setRoute({ name: 'plan' })}>
               スケジュールで参考書を追加
             </button>
