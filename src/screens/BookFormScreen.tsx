@@ -8,6 +8,7 @@ import { searchCatalog, type CatalogBook } from '../data/catalog'
 type Props = {
   book: BookData | null
   onDone: () => void
+  onRebalance?: (bookId: string) => void
 }
 
 export default function BookFormScreen({ book, onDone }: Props) {
@@ -19,6 +20,9 @@ export default function BookFormScreen({ book, onDone }: Props) {
   const [catalogId, setCatalogId] = useState(book?.catalogId ?? null)
   const [startDate, setStartDate] = useState(book?.startDate ?? todayStr())
   const [deadline, setDeadline] = useState(book?.deadline ?? '')
+  const [minutes, setMinutes] = useState(
+    book?.minutesPerPage ? String(book.minutesPerPage) : '',
+  )
   const [tab, setTab] = useState<'catalog' | 'search'>('catalog')
   const [catalogQuery, setCatalogQuery] = useState('')
   const [query, setQuery] = useState('')
@@ -84,6 +88,7 @@ export default function BookFormScreen({ book, onDone }: Props) {
       catalogId: catalogId ?? undefined,
       startDate,
       deadline,
+      minutesPerPage: minutes ? Number(minutes) : undefined,
       createdAt: book?.createdAt ?? now,
       updatedAt: now,
     }
@@ -209,6 +214,10 @@ export default function BookFormScreen({ book, onDone }: Props) {
       <div>
         <label htmlFor="book-deadline">期限日</label>
         <input id="book-deadline" data-testid="book-deadline" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+      </div>
+      <div>
+        <label htmlFor="book-minutes">1ページあたりの所要時間（分）</label>
+        <input id="book-minutes" data-testid="book-minutes" type="number" inputMode="numeric" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
       </div>
       {error && <p data-testid="book-error" style={{ color: 'var(--danger)' }}>{error}</p>}
       <button data-testid="book-save" type="button" onClick={() => void handleSave()}>

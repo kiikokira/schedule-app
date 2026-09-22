@@ -79,6 +79,52 @@ describe('BookFormScreen', () => {
     expect(screen.getByTestId('book-error')).toHaveTextContent(/ページ数/)
   })
 
+  it('saves the minutes-per-page input', async () => {
+    render(<BookFormScreen book={null} onDone={() => {}} onRebalance={() => {}} />)
+    fireEvent.change(screen.getByTestId('book-title'), {
+      target: { value: 'テスト本' },
+    })
+    fireEvent.change(screen.getByTestId('book-pages'), {
+      target: { value: '100' },
+    })
+    fireEvent.change(screen.getByTestId('book-start'), {
+      target: { value: '2026-09-01' },
+    })
+    fireEvent.change(screen.getByTestId('book-deadline'), {
+      target: { value: '2026-11-30' },
+    })
+    fireEvent.change(screen.getByTestId('book-minutes'), {
+      target: { value: '4' },
+    })
+    fireEvent.click(screen.getByTestId('book-save'))
+    await waitFor(async () => {
+      const books = await db.books.toArray()
+      const created = books.find((b) => b.title === 'テスト本')
+      expect(created?.minutesPerPage).toBe(4)
+    })
+  })
+
+  it('does not call onRebalance when saving a new book (wired in Task 8)', async () => {
+    const now = new Date().toISOString()
+    await db.books.add({
+      id: 'b1',
+      title: '本',
+      totalPages: 100,
+      startDate: '2026-09-01',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+    })
+    const cb = vi.fn()
+    render(<BookFormScreen book={null} onDone={() => {}} onRebalance={cb} />)
+    // 新規の場合は onRebalance を呼ばない仕様なので、cb が呼ばれないことを確認
+    fireEvent.change(screen.getByTestId('book-title'), { target: { value: '別の本' } })
+    fireEvent.change(screen.getByTestId('book-pages'), { target: { value: '50' } })
+    fireEvent.change(screen.getByTestId('book-deadline'), { target: { value: '2026-12-31' } })
+    fireEvent.click(screen.getByTestId('book-save'))
+    await waitFor(() => expect(cb).not.toHaveBeenCalled())
+  })
+
   it('stores catalogId when saving a catalog book', async () => {
     render(<BookFormScreen book={null} onDone={() => {}} />)
     fireEvent.change(screen.getByTestId('catalog-search-input'), { target: { value: 'システム英単語＜5訂版＞' } })
