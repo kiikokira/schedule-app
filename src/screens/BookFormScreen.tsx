@@ -11,7 +11,7 @@ type Props = {
   onRebalance?: (bookId: string) => void
 }
 
-export default function BookFormScreen({ book, onDone }: Props) {
+export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
   const { saveBook } = useBooks()
   const [title, setTitle] = useState(book?.title ?? '')
   const [subject, setSubject] = useState(book?.subject ?? '英語')
@@ -98,7 +98,12 @@ export default function BookFormScreen({ book, onDone }: Props) {
       setError('保存に失敗しました。もう一度お試しください')
       return
     }
+    if (book === null) {
+      onDone()
+      return
+    }
     onDone()
+    onRebalance?.(book.id)
   }
 
   return (

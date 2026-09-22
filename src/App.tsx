@@ -5,6 +5,7 @@ import BookFormScreen from './screens/BookFormScreen'
 import SettingsScreen from './screens/SettingsScreen'
 import PlanScreen from './screens/PlanScreen'
 import TodayPlanScreen from './screens/TodayPlanScreen'
+import RebalanceScreen from './screens/RebalanceScreen'
 import { useBooks } from './hooks/useBooks'
 import './styles.css'
 
@@ -14,6 +15,7 @@ type Route =
   | { name: 'detail'; bookId: string }
   | { name: 'add' }
   | { name: 'edit'; bookId: string }
+  | { name: 'rebalance'; bookId: string }
   | { name: 'settings' }
   | { name: 'plan' }
 
@@ -40,7 +42,18 @@ export default function App() {
           />
         )}
         {route.name === 'edit' && editBook && (
-          <BookFormScreen book={editBook} onDone={() => setRoute({ name: 'home' })} />
+          <BookFormScreen
+            book={editBook}
+            onDone={() => setRoute({ name: 'home' })}
+            onRebalance={(bookId) => setRoute({ name: 'rebalance', bookId })}
+          />
+        )}
+        {route.name === 'rebalance' && (
+          <RebalanceScreen
+            bookId={route.bookId}
+            onBack={() => setRoute({ name: 'home' })}
+            onSchedule={() => setRoute({ name: 'today' })}
+          />
         )}
         {route.name === 'add' && (
           <BookFormScreen book={null} onDone={() => setRoute({ name: 'home' })} />

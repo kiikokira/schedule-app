@@ -125,6 +125,27 @@ describe('BookFormScreen', () => {
     await waitFor(() => expect(cb).not.toHaveBeenCalled())
   })
 
+  it('calls onRebalance with the book id after saving an edit', async () => {
+    const now = new Date().toISOString()
+    const existing = {
+      id: 'b1',
+      title: '本',
+      totalPages: 100,
+      startDate: '2026-09-01',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+    }
+    await db.books.add(existing as any)
+    const cb = vi.fn()
+    render(
+      <BookFormScreen book={existing as any} onDone={() => {}} onRebalance={cb} />,
+    )
+    fireEvent.change(screen.getByTestId('book-title'), { target: { value: '更新した本' } })
+    fireEvent.click(screen.getByTestId('book-save'))
+    await waitFor(() => expect(cb).toHaveBeenCalledWith('b1'))
+  })
+
   it('stores catalogId when saving a catalog book', async () => {
     render(<BookFormScreen book={null} onDone={() => {}} />)
     fireEvent.change(screen.getByTestId('catalog-search-input'), { target: { value: 'システム英単語＜5訂版＞' } })
