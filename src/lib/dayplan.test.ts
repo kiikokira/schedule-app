@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
   DEFAULT_MINUTES_PER_PAGE,
+  effectiveSpeed,
   generateDayPlan,
   improvePlan,
+  learnSpeed,
   minutesPerPageFor,
   parseTimeToMin,
   planScore,
@@ -203,4 +205,24 @@ it('planScore prefers fewer switches', () => {
 it('improvePlan merges adjacent same-book slots', () => {
   const merged = improvePlan([slot(0, 30, 'b1', 5), slot(30, 60, 'b1', 5)])
   expect(merged).toEqual([{ startMin: 0, endMin: 60, bookId: 'b1', pages: 10 }])
+})
+
+it('learnSpeed blends current with effective speed', () => {
+  // 30分で10ページ → 実効3分/頁。現行2分/頁 → 2*0.7 + 3*0.3 = 2.3
+  expect(learnSpeed(2, 30, 10)).toBeCloseTo(2.3)
+})
+
+it('learnSpeed rejects pages=0 or minutes=0 (keeps current)', () => {
+  expect(learnSpeed(2, 0, 10)).toBe(2)
+  expect(learnSpeed(2, 30, 0)).toBe(2)
+})
+
+it('learnSpeed ignores abnormal ratios (speed outside 0.1..120 min/page)', () => {
+  expect(learnSpeed(2, 10, 1000)).toBe(2) // 0.01分/頁 → 範囲外は無視
+  expect(learnSpeed(2, 1000, 5)).toBe(2) // 200分/頁 → 範囲外は無視
+})
+
+it('effectiveSpeed falls back to per-subject default', () => {
+  expect(effectiveSpeed(undefined, '英単語')).toBe(1)
+  expect(effectiveSpeed(4, '英単語')).toBe(4)
 })

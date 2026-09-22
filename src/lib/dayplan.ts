@@ -278,3 +278,24 @@ export function generateDayPlan(params: {
 
   return { today: todayPlan, upcoming, notice }
 }
+
+export function effectiveSpeed(
+  saved: number | undefined,
+  subject: string | undefined,
+): number {
+  return minutesPerPageFor(subject, saved)
+}
+
+export function learnSpeed(current: number, minutes: number, pages: number): number {
+  if (
+    !Number.isSafeInteger(pages) ||
+    pages < 1 ||
+    !Number.isFinite(minutes) ||
+    minutes < 1
+  ) {
+    return current
+  }
+  const effective = minutes / pages
+  if (effective < 0.1 || effective > 120) return current
+  return Number((current * 0.7 + effective * 0.3).toFixed(2))
+}
