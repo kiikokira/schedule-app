@@ -5,10 +5,15 @@ import PlanScreen from './PlanScreen'
 import { SCHEDULE, suggestDeadline } from '../data/schedule'
 import { todayStr } from '../lib/progress'
 import { loadSchedule } from '../data/scheduleStore'
+import {
+  saveAvailabilitySlot,
+  listAvailability,
+} from '../data/dayplanStore'
 
 beforeEach(async () => {
   await db.books.clear()
   await db.records.clear()
+  await db.availability.clear()
   localStorage.clear()
 })
 
@@ -284,6 +289,60 @@ describe('PlanScreen', () => {
     expect(tango?.deadline).toBe('2026-12-20')
     expect(tango?.startDate).toBe('2026-01-01')
     expect(tango?.coverUrl).toBe('https://example.com/tango1000.jpg')
+  })
+
+  it('adds a weekday availability slot', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('slot-weekday-select'), {
+      target: { value: '1' },
+    })
+    fireEvent.change(screen.getByTestId('slot-start'), {
+      target: { value: '21:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-end'), {
+      target: { value: '23:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-add'))
+    await waitFor(async () => {
+      const slots = await listAvailability()
+      expect(slots).toHaveLength(1)
+      expect(slots[0].weekday).toBe(1)
+    })
+  })
+
+  it('deletes a weekday availability slot', async () => {
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('slot-delete-a1')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByTestId('slot-delete-a1'))
+    await waitFor(async () => {
+      expect(await listAvailability()).toEqual([])
+    })
+  })
+
+  it('adds a date-override slot and stores the date', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('slot-date'), {
+      target: { value: '2026-09-22' },
+    })
+    fireEvent.change(screen.getByTestId('slot-date-start'), {
+      target: { value: '07:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-date-end'), {
+      target: { value: '08:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-date-add'))
+    await waitFor(async () => {
+      const slots = await listAvailability()
+      expect(slots).toHaveLength(1)
+      expect(slots[0].date).toBe('2026-09-22')
+      expect(slots[0].weekday).toBeNull()
+    })
   })
 
   it('calls onDone when the back button is pressed', () => {

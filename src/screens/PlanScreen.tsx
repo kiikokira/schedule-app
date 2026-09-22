@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import CoverImage from '../components/CoverImage'
 import { useBooks } from '../hooks/useBooks'
 import { db } from '../db/database'
@@ -18,6 +18,12 @@ import {
   saveSchedule,
   updateEntry,
 } from '../data/scheduleStore'
+import {
+  listAvailability,
+  saveAvailabilitySlot,
+  deleteAvailabilitySlot,
+  type AvailabilitySlot,
+} from '../data/dayplanStore'
 
 type Props = {
   onDone: () => void
@@ -27,6 +33,52 @@ export default function PlanScreen({ onDone }: Props) {
   const { books, saveBook } = useBooks()
   const [entries, setEntries] = useState<ScheduleEntry[]>(() => loadSchedule())
   const [result, setResult] = useState<string | null>(null)
+  const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
+  const [slotWeekday, setSlotWeekday] = useState('')
+  const [slotStart, setSlotStart] = useState('')
+  const [slotEnd, setSlotEnd] = useState('')
+  const [slotDate, setSlotDate] = useState('')
+  const [slotDateStart, setSlotDateStart] = useState('')
+  const [slotDateEnd, setSlotDateEnd] = useState('')
+
+  const refreshAvailability = async () => {
+    setAvailability(await listAvailability())
+  }
+
+  useEffect(() => {
+    void refreshAvailability()
+  }, [])
+
+  const addWeekdaySlot = async () => {
+    if (slotWeekday === '' || !slotStart || !slotEnd) return
+    const id = crypto.randomUUID()
+    await saveAvailabilitySlot(
+      { id, weekday: Number(slotWeekday), date: null, start: slotStart, end: slotEnd },
+      true,
+    )
+    setSlotWeekday('')
+    setSlotStart('')
+    setSlotEnd('')
+    await refreshAvailability()
+  }
+
+  const addDateSlot = async () => {
+    if (!slotDate || !slotDateStart || !slotDateEnd) return
+    const id = crypto.randomUUID()
+    await saveAvailabilitySlot(
+      { id, weekday: null, date: slotDate, start: slotDateStart, end: slotDateEnd },
+      true,
+    )
+    setSlotDate('')
+    setSlotDateStart('')
+    setSlotDateEnd('')
+    await refreshAvailability()
+  }
+
+  const removeSlot = async (id: string) => {
+    await deleteAvailabilitySlot(id)
+    await refreshAvailability()
+  }
 
   const [selectedCatalogId, setSelectedCatalogId] = useState('')
   const [selectedBookId, setSelectedBookId] = useState('')
@@ -255,6 +307,45 @@ export default function PlanScreen({ onDone }: Props) {
           </div>
         )
       })}
+
+      <section data-testid="availability-section" style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+        <h2 style={{ fontSize: 16 }}>空き時間の設定</h2>
+        <div data-testid="availability-list">
+          {availability.map((slot) => (
+            <div key={slot.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+              <span>
+                {slot.date ?? `曜日 ${['日','月','火','水','木','金','土'][slot.weekday ?? 0]}`} {slot.start}〜{slot.end}
+              </span>
+              <button data-testid={`slot-delete-${slot.id}`} type="button" onClick={() => void removeSlot(slot.id)}>
+                削除
+              </button>
+            </div>
+          ))}
+        </div>
+        <h3 style={{ fontSize: 14 }}>曜日ごと</h3>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+          <select data-testid="slot-weekday-select" value={slotWeekday} onChange={(e) => setSlotWeekday(e.target.value)}>
+            <option value="">曜日を選択</option>
+            {['日','月','火','水','木','金','土'].map((w, i) => (
+              <option key={i} value={i}>{w}</option>
+            ))}
+          </select>
+          <input data-testid="slot-start" type="time" value={slotStart} onChange={(e) => setSlotStart(e.target.value)} />
+          <input data-testid="slot-end" type="time" value={slotEnd} onChange={(e) => setSlotEnd(e.target.value)} />
+          <button data-testid="slot-add" type="button" disabled={slotWeekday === ''} onClick={() => void addWeekdaySlot()}>
+            追加
+          </button>
+        </div>
+        <h3 style={{ fontSize: 14, marginTop: 12 }}>当日上書き</h3>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+          <input data-testid="slot-date" type="date" value={slotDate} onChange={(e) => setSlotDate(e.target.value)} />
+          <input data-testid="slot-date-start" type="time" value={slotDateStart} onChange={(e) => setSlotDateStart(e.target.value)} />
+          <input data-testid="slot-date-end" type="time" value={slotDateEnd} onChange={(e) => setSlotDateEnd(e.target.value)} />
+          <button data-testid="slot-date-add" type="button" disabled={!slotDate} onClick={() => void addDateSlot()}>
+            追加
+          </button>
+        </div>
+      </section>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
         <button data-testid="save-schedule" type="button" onClick={save}>
