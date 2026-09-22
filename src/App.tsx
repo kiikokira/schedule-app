@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import HomeScreen from './screens/HomeScreen'
 import BookDetailScreen from './screens/BookDetailScreen'
 import BookFormScreen from './screens/BookFormScreen'
@@ -7,6 +7,8 @@ import PlanScreen from './screens/PlanScreen'
 import TodayPlanScreen from './screens/TodayPlanScreen'
 import RebalanceScreen from './screens/RebalanceScreen'
 import { useBooks } from './hooks/useBooks'
+import { prunePastOverrides } from './data/dayplanStore'
+import { todayStr } from './lib/progress'
 import './styles.css'
 
 type Route =
@@ -22,6 +24,11 @@ type Route =
 export default function App() {
   const { books } = useBooks()
   const [route, setRoute] = useState<Route>({ name: 'home' })
+
+  // 起動時に過去日の「当日上書き」を、ユーザーが画面を見る前にバックグラウンドで削除する
+  useEffect(() => {
+    void prunePastOverrides(todayStr())
+  }, [])
 
   const editBook = route.name === 'edit' ? books.find((b) => b.id === route.bookId) : undefined
 

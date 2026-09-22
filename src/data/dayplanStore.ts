@@ -35,6 +35,16 @@ export async function deleteAvailabilitySlot(id: string): Promise<void> {
   await db.availability.delete(id)
 }
 
+// アプリ起動時に過去日の「当日上書き」だけを自動削除する。
+// 曜日ごと(weekday)や date が null のエントリには一切影響しない。
+export async function prunePastOverrides(today: string): Promise<number> {
+  return db.availability
+    .filter(
+      (slot) => slot.date !== null && slot.date < today,
+    )
+    .delete()
+}
+
 export async function listAdjustments(): Promise<Adjustment[]> {
   return db.adjustments.orderBy('id').toArray()
 }

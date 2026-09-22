@@ -4,6 +4,7 @@ import {
   listAvailability,
   saveAvailabilitySlot,
   deleteAvailabilitySlot,
+  prunePastOverrides,
   listAdjustments,
   addAdjustment,
   type AvailabilitySlot,
@@ -48,6 +49,44 @@ describe('availability store', () => {
       true,
     )
     await deleteAvailabilitySlot('a1')
+    expect(await listAvailability()).toEqual([])
+  })
+})
+
+describe('prune past overrides', () => {
+  beforeEach(async () => {
+    await db.availability.clear()
+  })
+
+  it('deletes overrides whose date is before today only', async () => {
+    await saveAvailabilitySlot(
+      { id: 'past', weekday: null, date: '2026-09-20', start: '21:00', end: '23:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'today', weekday: null, date: '2026-09-22', start: '21:00', end: '23:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'future', weekday: null, date: '2026-09-23', start: '21:00', end: '23:00' },
+      true,
+    )
+    await prunePastOverrides('2026-09-22')
+    const slots = await listAvailability()
+    expect(slots.map((s) => s.id).sort()).toEqual(['future', 'today'])
+  })
+
+  it('keeps weekday slots unaffected', async () => {
+    await saveAvailabilitySlot(
+      { id: 'wd', weekday: 2, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    await prunePastOverrides('2026-09-22')
+    expect(await listAvailability()).toHaveLength(1)
+  })
+
+  it('does not delete when today has no past overrides', async () => {
+    await prunePastOverrides('2026-09-22')
     expect(await listAvailability()).toEqual([])
   })
 })
