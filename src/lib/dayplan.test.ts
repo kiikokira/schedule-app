@@ -183,6 +183,28 @@ describe('generateDayPlan', () => {
     expect(b1Min).toBeLessThanOrEqual(30) // 120分の25%
   })
 
+  it('generateDayPlan runs within a few milliseconds', () => {
+    const books: ScheduledBook[] = Array.from({ length: 30 }, (_, i) =>
+      book({
+        bookId: `b${i}`,
+        totalPages: 200,
+        donePages: 0,
+        minutesPerPage: 2,
+        deadline: i % 2 === 0 ? '2026-10-01' : '2026-11-30',
+      }),
+    )
+    const t0 = performance.now()
+    for (let i = 0; i < 20; i++) {
+      generateDayPlan({
+        availability: [weekSlot(1, '18:00', '22:00')],
+        books,
+        today: '2026-09-21',
+      })
+    }
+    const elapsed = performance.now() - t0
+    expect(elapsed).toBeLessThan(200) // 20回で200ms → 1回10ms以内
+  })
+
   it('builds upcoming summaries for the next days', () => {
     const out = generateDayPlan({
       availability: [weekSlot(1, '21:00', '23:00'), weekSlot(2, '21:00', '23:00')],
