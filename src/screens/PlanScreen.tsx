@@ -66,6 +66,15 @@ export default function PlanScreen({ onDone }: Props) {
   const [weekdayRows, setWeekdayRows] = useState<SlotRow[]>(() => [emptyRow()])
   const [slotDate, setSlotDate] = useState('')
   const [dateRows, setDateRows] = useState<SlotRow[]>(() => [emptyRow()])
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set())
+
+  const toggleGroup = (key: string) =>
+    setExpandedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
 
   const refreshAvailability = async () => {
     setAvailability(await listAvailability())
@@ -170,6 +179,32 @@ export default function PlanScreen({ onDone }: Props) {
     setEntries([...SCHEDULE])
     saveSchedule([...SCHEDULE])
   }
+
+  const byStart = (a: AvailabilitySlot, b: AvailabilitySlot) =>
+    parseTimeToMin(a.start) - parseTimeToMin(b.start)
+
+  const weekdayOrder = [1, 2, 3, 4, 5, 6, 0]
+  const weekdayNames = ['日', '月', '火', '水', '木', '金', '土']
+
+  const weekdayGroups = weekdayOrder
+    .map((w) => ({
+      key: `weekday-${w}`,
+      weekday: w,
+      slots: availability.filter((s) => s.weekday === w).sort(byStart),
+    }))
+    .filter((g) => g.slots.length > 0)
+
+  const dateGroups = [
+    ...new Set(
+      availability.filter((s) => s.date !== null).map((s) => s.date as string),
+    ),
+  ]
+    .sort()
+    .map((d) => ({
+      key: `date-${d}`,
+      date: d,
+      slots: availability.filter((s) => s.date === d).sort(byStart),
+    }))
 
   return (
     <div style={{ padding: 16 }}>
@@ -360,14 +395,34 @@ export default function PlanScreen({ onDone }: Props) {
       <section data-testid="availability-section" style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
         <h2 style={{ fontSize: 16 }}>空き時間の設定</h2>
         <div data-testid="availability-list">
-          {availability.map((slot) => {
-            const label = `${slot.date ?? `曜日 ${['日','月','火','水','木','金','土'][slot.weekday ?? 0]}`} ${slot.start}〜${slot.end}`
+          {[...weekdayGroups, ...dateGroups].map((group) => {
+            const label =
+              'weekday' in group
+                ? `${weekdayNames[group.weekday]}曜 ${group.slots.map((s) => `${s.start}〜${s.end}`).join(', ')}`
+                : `${group.date} ${group.slots.map((s) => `${s.start}〜${s.end}`).join(', ')}`
+            const open = expandedGroups.has(group.key)
             return (
-              <div key={slot.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-                <span>{label}</span>
-                <button data-testid={`slot-delete-${slot.id}`} type="button" onClick={() => void removeSlot(slot.id, label)}>
-                  削除
+              <div key={group.key} style={{ marginTop: 8 }}>
+                <button
+                  data-testid={`slot-group-${group.key}`}
+                  type="button"
+                  onClick={() => toggleGroup(group.key)}
+                  style={{ width: '100%', textAlign: 'left' }}
+                >
+                  {label}
                 </button>
+                {open &&
+                  group.slots.map((slot) => {
+                    const slotLabel = `${slot.start}〜${slot.end}`
+                    return (
+                      <div key={slot.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, paddingLeft: 8 }}>
+                        <span>{slotLabel}</span>
+                        <button data-testid={`slot-delete-${slot.id}`} type="button" onClick={() => void removeSlot(slot.id, `${label} ${slotLabel}`)}>
+                          削除
+                        </button>
+                      </div>
+                    )
+                  })}
               </div>
             )
           })}

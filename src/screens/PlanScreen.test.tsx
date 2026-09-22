@@ -428,6 +428,10 @@ describe('PlanScreen', () => {
     )
     render(<PlanScreen onDone={() => {}} />)
     await waitFor(() => {
+      expect(screen.getByTestId('slot-group-weekday-1')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByTestId('slot-group-weekday-1'))
+    await waitFor(() => {
       expect(screen.getByTestId('slot-delete-a1')).toBeInTheDocument()
     })
     fireEvent.click(screen.getByTestId('slot-delete-a1'))
@@ -444,12 +448,108 @@ describe('PlanScreen', () => {
     )
     render(<PlanScreen onDone={() => {}} />)
     await waitFor(() => {
+      expect(screen.getByTestId('slot-group-weekday-1')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByTestId('slot-group-weekday-1'))
+    await waitFor(() => {
       expect(screen.getByTestId('slot-delete-a1')).toBeInTheDocument()
     })
     fireEvent.click(screen.getByTestId('slot-delete-a1'))
     await waitFor(async () => {
       expect(await listAvailability()).toHaveLength(1)
     })
+  })
+
+  it('groups weekday slots by day and collapses them by default', async () => {
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'a2', weekday: 1, date: null, start: '09:00', end: '12:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('slot-group-weekday-1')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('slot-group-weekday-1')).toHaveTextContent(
+      '月曜 09:00〜12:00, 21:00〜23:00',
+    )
+    expect(screen.queryByTestId('slot-delete-a1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('slot-delete-a2')).not.toBeInTheDocument()
+  })
+
+  it('expands a weekday group on tap and collapses it again', async () => {
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('slot-group-weekday-1')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('slot-delete-a1')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('slot-group-weekday-1'))
+    expect(screen.getByTestId('slot-delete-a1')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('slot-group-weekday-1'))
+    expect(screen.queryByTestId('slot-delete-a1')).not.toBeInTheDocument()
+  })
+
+  it('orders weekday groups Monday to Sunday with date groups last', async () => {
+    await saveAvailabilitySlot(
+      { id: 'a-sun', weekday: 0, date: null, start: '10:00', end: '11:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'a-mon', weekday: 1, date: null, start: '10:00', end: '11:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'a-sat', weekday: 6, date: null, start: '10:00', end: '11:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'a-date', weekday: null, date: '2026-09-30', start: '10:00', end: '11:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('slot-group-weekday-1')).toBeInTheDocument()
+    })
+    const ids = screen
+      .getAllByTestId(/^slot-group-/)
+      .map((el) => el.getAttribute('data-testid'))
+    expect(ids).toEqual([
+      'slot-group-weekday-1',
+      'slot-group-weekday-6',
+      'slot-group-weekday-0',
+      'slot-group-date-2026-09-30',
+    ])
+  })
+
+  it('groups date-override slots by date and expands on tap', async () => {
+    await saveAvailabilitySlot(
+      { id: 'd1', weekday: null, date: '2026-09-22', start: '07:00', end: '08:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'd2', weekday: null, date: '2026-09-22', start: '20:00', end: '21:30' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('slot-group-date-2026-09-22'),
+      ).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('slot-group-date-2026-09-22')).toHaveTextContent(
+      '2026-09-22 07:00〜08:00, 20:00〜21:30',
+    )
+    expect(screen.queryByTestId('slot-delete-d1')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('slot-group-date-2026-09-22'))
+    expect(screen.getByTestId('slot-delete-d1')).toBeInTheDocument()
+    expect(screen.getByTestId('slot-delete-d2')).toBeInTheDocument()
   })
 
   it('adds a date-override slot and stores the date', async () => {
