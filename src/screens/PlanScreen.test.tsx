@@ -296,10 +296,10 @@ describe('PlanScreen', () => {
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '1' },
     })
-    fireEvent.change(screen.getByTestId('slot-start'), {
+    fireEvent.change(screen.getByTestId('slot-start-0'), {
       target: { value: '21:00' },
     })
-    fireEvent.change(screen.getByTestId('slot-end'), {
+    fireEvent.change(screen.getByTestId('slot-end-0'), {
       target: { value: '23:00' },
     })
     fireEvent.click(screen.getByTestId('slot-add'))
@@ -310,7 +310,118 @@ describe('PlanScreen', () => {
     })
   })
 
-  it('deletes a weekday availability slot', async () => {
+  it('adds multiple weekday slots at once', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('slot-weekday-select'), {
+      target: { value: '0' },
+    })
+    fireEvent.change(screen.getByTestId('slot-start-0'), {
+      target: { value: '10:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-end-0'), {
+      target: { value: '12:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-row-add'))
+    fireEvent.change(screen.getByTestId('slot-start-1'), {
+      target: { value: '13:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-end-1'), {
+      target: { value: '16:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-add'))
+    await waitFor(async () => {
+      const slots = await listAvailability()
+      expect(slots).toHaveLength(2)
+      expect(slots.map((s) => s.start).sort()).toEqual(['10:00', '13:00'])
+      expect(slots.every((s) => s.weekday === 0)).toBe(true)
+    })
+    expect((screen.getByTestId('slot-start-0') as HTMLInputElement).value).toBe('')
+    expect(screen.queryByTestId('slot-start-1')).not.toBeInTheDocument()
+  })
+
+  it('ignores fully empty trailing rows and saves only filled rows', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('slot-weekday-select'), {
+      target: { value: '1' },
+    })
+    fireEvent.change(screen.getByTestId('slot-start-0'), {
+      target: { value: '21:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-end-0'), {
+      target: { value: '23:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-row-add'))
+    fireEvent.click(screen.getByTestId('slot-add'))
+    await waitFor(async () => {
+      const slots = await listAvailability()
+      expect(slots).toHaveLength(1)
+      expect(slots[0].start).toBe('21:00')
+    })
+  })
+
+  it('rejects a partial row and saves nothing', async () => {
+    vi.spyOn(window, 'alert').mockImplementation(() => {})
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('slot-weekday-select'), {
+      target: { value: '1' },
+    })
+    fireEvent.change(screen.getByTestId('slot-start-0'), {
+      target: { value: '21:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-add'))
+    await waitFor(async () => {
+      expect(await listAvailability()).toEqual([])
+    })
+    expect(window.alert).toHaveBeenCalled()
+  })
+
+  it('rejects a row whose end is not after start', async () => {
+    vi.spyOn(window, 'alert').mockImplementation(() => {})
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('slot-weekday-select'), {
+      target: { value: '1' },
+    })
+    fireEvent.change(screen.getByTestId('slot-start-0'), {
+      target: { value: '23:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-end-0'), {
+      target: { value: '22:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-add'))
+    await waitFor(async () => {
+      expect(await listAvailability()).toEqual([])
+    })
+    expect(window.alert).toHaveBeenCalled()
+  })
+
+  it('rejects overlapping rows within the same weekday', async () => {
+    vi.spyOn(window, 'alert').mockImplementation(() => {})
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('slot-weekday-select'), {
+      target: { value: '0' },
+    })
+    fireEvent.change(screen.getByTestId('slot-start-0'), {
+      target: { value: '10:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-end-0'), {
+      target: { value: '12:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-row-add'))
+    fireEvent.change(screen.getByTestId('slot-start-1'), {
+      target: { value: '11:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-end-1'), {
+      target: { value: '13:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-add'))
+    await waitFor(async () => {
+      expect(await listAvailability()).toEqual([])
+    })
+    expect(window.alert).toHaveBeenCalled()
+  })
+
+  it('deletes a weekday availability slot after confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
     await saveAvailabilitySlot(
       { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
       true,
@@ -325,15 +436,31 @@ describe('PlanScreen', () => {
     })
   })
 
+  it('keeps a slot when delete confirmation is cancelled', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('slot-delete-a1')).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByTestId('slot-delete-a1'))
+    await waitFor(async () => {
+      expect(await listAvailability()).toHaveLength(1)
+    })
+  })
+
   it('adds a date-override slot and stores the date', async () => {
     render(<PlanScreen onDone={() => {}} />)
     fireEvent.change(screen.getByTestId('slot-date'), {
       target: { value: '2026-09-22' },
     })
-    fireEvent.change(screen.getByTestId('slot-date-start'), {
+    fireEvent.change(screen.getByTestId('slot-date-start-0'), {
       target: { value: '07:00' },
     })
-    fireEvent.change(screen.getByTestId('slot-date-end'), {
+    fireEvent.change(screen.getByTestId('slot-date-end-0'), {
       target: { value: '08:00' },
     })
     fireEvent.click(screen.getByTestId('slot-date-add'))
@@ -342,6 +469,33 @@ describe('PlanScreen', () => {
       expect(slots).toHaveLength(1)
       expect(slots[0].date).toBe('2026-09-22')
       expect(slots[0].weekday).toBeNull()
+    })
+  })
+
+  it('adds multiple date-override slots at once', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('slot-date'), {
+      target: { value: '2026-09-22' },
+    })
+    fireEvent.change(screen.getByTestId('slot-date-start-0'), {
+      target: { value: '07:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-date-end-0'), {
+      target: { value: '08:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-date-row-add'))
+    fireEvent.change(screen.getByTestId('slot-date-start-1'), {
+      target: { value: '20:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-date-end-1'), {
+      target: { value: '21:30' },
+    })
+    fireEvent.click(screen.getByTestId('slot-date-add'))
+    await waitFor(async () => {
+      const slots = await listAvailability()
+      expect(slots).toHaveLength(2)
+      expect(slots.map((s) => s.start).sort()).toEqual(['07:00', '20:00'])
+      expect(slots.every((s) => s.date === '2026-09-22' && s.weekday === null)).toBe(true)
     })
   })
 

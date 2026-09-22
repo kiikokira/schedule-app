@@ -11,6 +11,7 @@ import {
   type ScheduleEntry,
 } from '../data/schedule'
 import { todayStr } from '../lib/progress'
+import { parseTimeToMin } from '../lib/dayplan'
 import {
   addEntry,
   loadSchedule,
@@ -29,17 +30,42 @@ type Props = {
   onDone: () => void
 }
 
+type SlotRow = { start: string; end: string }
+
+const emptyRow = (): SlotRow => ({ start: '', end: '' })
+
+type RowsResult = { ok: true; rows: SlotRow[] } | { ok: false; message: string }
+
+function collectRows(rows: SlotRow[]): RowsResult {
+  const filled = rows.filter((r) => r.start !== '' || r.end !== '')
+  for (const r of filled) {
+    if (r.start === '' || r.end === '') {
+      return { ok: false, message: '開始と終了の両方を入力してください' }
+    }
+    if (parseTimeToMin(r.end) <= parseTimeToMin(r.start)) {
+      return { ok: false, message: '終了時刻は開始時刻より後にしてください' }
+    }
+  }
+  const sorted = [...filled].sort(
+    (a, b) => parseTimeToMin(a.start) - parseTimeToMin(b.start),
+  )
+  for (let i = 1; i < sorted.length; i++) {
+    if (parseTimeToMin(sorted[i].start) < parseTimeToMin(sorted[i - 1].end)) {
+      return { ok: false, message: '時間帯が重複しないようにしてください' }
+    }
+  }
+  return { ok: true, rows: filled }
+}
+
 export default function PlanScreen({ onDone }: Props) {
   const { books, saveBook } = useBooks()
   const [entries, setEntries] = useState<ScheduleEntry[]>(() => loadSchedule())
   const [result, setResult] = useState<string | null>(null)
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
   const [slotWeekday, setSlotWeekday] = useState('')
-  const [slotStart, setSlotStart] = useState('')
-  const [slotEnd, setSlotEnd] = useState('')
+  const [weekdayRows, setWeekdayRows] = useState<SlotRow[]>(() => [emptyRow()])
   const [slotDate, setSlotDate] = useState('')
-  const [slotDateStart, setSlotDateStart] = useState('')
-  const [slotDateEnd, setSlotDateEnd] = useState('')
+  const [dateRows, setDateRows] = useState<SlotRow[]>(() => [emptyRow()])
 
   const refreshAvailability = async () => {
     setAvailability(await listAvailability())
@@ -49,33 +75,56 @@ export default function PlanScreen({ onDone }: Props) {
     void refreshAvailability()
   }, [])
 
-  const addWeekdaySlot = async () => {
-    if (slotWeekday === '' || !slotStart || !slotEnd) return
-    const id = crypto.randomUUID()
-    await saveAvailabilitySlot(
-      { id, weekday: Number(slotWeekday), date: null, start: slotStart, end: slotEnd },
-      true,
+  const updateWeekdayRow = (i: number, patch: Partial<SlotRow>) =>
+    setWeekdayRows((rows) =>
+      rows.map((r, ri) => (ri === i ? { ...r, ...patch } : r)),
     )
+
+  const updateDateRow = (i: number, patch: Partial<SlotRow>) =>
+    setDateRows((rows) =>
+      rows.map((r, ri) => (ri === i ? { ...r, ...patch } : r)),
+    )
+
+  const addWeekdaySlot = async () => {
+    if (slotWeekday === '') return
+    const res = collectRows(weekdayRows)
+    if (!res.ok) {
+      window.alert(res.message)
+      return
+    }
+    if (res.rows.length === 0) return
+    for (const row of res.rows) {
+      await saveAvailabilitySlot(
+        { id: crypto.randomUUID(), weekday: Number(slotWeekday), date: null, start: row.start, end: row.end },
+        true,
+      )
+    }
     setSlotWeekday('')
-    setSlotStart('')
-    setSlotEnd('')
+    setWeekdayRows([emptyRow()])
     await refreshAvailability()
   }
 
   const addDateSlot = async () => {
-    if (!slotDate || !slotDateStart || !slotDateEnd) return
-    const id = crypto.randomUUID()
-    await saveAvailabilitySlot(
-      { id, weekday: null, date: slotDate, start: slotDateStart, end: slotDateEnd },
-      true,
-    )
+    if (!slotDate) return
+    const res = collectRows(dateRows)
+    if (!res.ok) {
+      window.alert(res.message)
+      return
+    }
+    if (res.rows.length === 0) return
+    for (const row of res.rows) {
+      await saveAvailabilitySlot(
+        { id: crypto.randomUUID(), weekday: null, date: slotDate, start: row.start, end: row.end },
+        true,
+      )
+    }
     setSlotDate('')
-    setSlotDateStart('')
-    setSlotDateEnd('')
+    setDateRows([emptyRow()])
     await refreshAvailability()
   }
 
-  const removeSlot = async (id: string) => {
+  const removeSlot = async (id: string, label: string) => {
+    if (!window.confirm(`「${label}」の空き時間を削除しますか？`)) return
     await deleteAvailabilitySlot(id)
     await refreshAvailability()
   }
@@ -311,16 +360,17 @@ export default function PlanScreen({ onDone }: Props) {
       <section data-testid="availability-section" style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
         <h2 style={{ fontSize: 16 }}>空き時間の設定</h2>
         <div data-testid="availability-list">
-          {availability.map((slot) => (
-            <div key={slot.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-              <span>
-                {slot.date ?? `曜日 ${['日','月','火','水','木','金','土'][slot.weekday ?? 0]}`} {slot.start}〜{slot.end}
-              </span>
-              <button data-testid={`slot-delete-${slot.id}`} type="button" onClick={() => void removeSlot(slot.id)}>
-                削除
-              </button>
-            </div>
-          ))}
+          {availability.map((slot) => {
+            const label = `${slot.date ?? `曜日 ${['日','月','火','水','木','金','土'][slot.weekday ?? 0]}`} ${slot.start}〜${slot.end}`
+            return (
+              <div key={slot.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+                <span>{label}</span>
+                <button data-testid={`slot-delete-${slot.id}`} type="button" onClick={() => void removeSlot(slot.id, label)}>
+                  削除
+                </button>
+              </div>
+            )
+          })}
         </div>
         <h3 style={{ fontSize: 14 }}>曜日ごと</h3>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
@@ -330,21 +380,35 @@ export default function PlanScreen({ onDone }: Props) {
               <option key={i} value={i}>{w}</option>
             ))}
           </select>
-          <input data-testid="slot-start" type="time" value={slotStart} onChange={(e) => setSlotStart(e.target.value)} />
-          <input data-testid="slot-end" type="time" value={slotEnd} onChange={(e) => setSlotEnd(e.target.value)} />
-          <button data-testid="slot-add" type="button" disabled={slotWeekday === ''} onClick={() => void addWeekdaySlot()}>
-            追加
+          <button data-testid="slot-row-add" type="button" onClick={() => setWeekdayRows((rows) => [...rows, emptyRow()])}>
+            時間帯を追加
           </button>
         </div>
+        {weekdayRows.map((row, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+            <input data-testid={`slot-start-${i}`} type="time" value={row.start} onChange={(e) => updateWeekdayRow(i, { start: e.target.value })} />
+            <input data-testid={`slot-end-${i}`} type="time" value={row.end} onChange={(e) => updateWeekdayRow(i, { end: e.target.value })} />
+          </div>
+        ))}
+        <button data-testid="slot-add" type="button" disabled={slotWeekday === ''} onClick={() => void addWeekdaySlot()}>
+          まとめて追加
+        </button>
         <h3 style={{ fontSize: 14, marginTop: 12 }}>当日上書き</h3>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
           <input data-testid="slot-date" type="date" value={slotDate} onChange={(e) => setSlotDate(e.target.value)} />
-          <input data-testid="slot-date-start" type="time" value={slotDateStart} onChange={(e) => setSlotDateStart(e.target.value)} />
-          <input data-testid="slot-date-end" type="time" value={slotDateEnd} onChange={(e) => setSlotDateEnd(e.target.value)} />
-          <button data-testid="slot-date-add" type="button" disabled={!slotDate} onClick={() => void addDateSlot()}>
-            追加
+          <button data-testid="slot-date-row-add" type="button" onClick={() => setDateRows((rows) => [...rows, emptyRow()])}>
+            時間帯を追加
           </button>
         </div>
+        {dateRows.map((row, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+            <input data-testid={`slot-date-start-${i}`} type="time" value={row.start} onChange={(e) => updateDateRow(i, { start: e.target.value })} />
+            <input data-testid={`slot-date-end-${i}`} type="time" value={row.end} onChange={(e) => updateDateRow(i, { end: e.target.value })} />
+          </div>
+        ))}
+        <button data-testid="slot-date-add" type="button" disabled={!slotDate} onClick={() => void addDateSlot()}>
+          まとめて追加
+        </button>
       </section>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
