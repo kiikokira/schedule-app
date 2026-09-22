@@ -36,7 +36,7 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
     if (!query.trim()) return
     setSearchError('')
     try {
-      setResults(await searchBooks(query, 10, fetch, getBooksApiKey()))
+      setResults(await searchBooks(query, 40, fetch, getBooksApiKey()))
     } catch {
       setResults([])
       setSearchError('検索できませんでした。参考書一覧から選んでください')

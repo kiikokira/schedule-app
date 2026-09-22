@@ -62,6 +62,20 @@ describe('BookFormScreen', () => {
     expect((screen.getByTestId('book-pages') as HTMLInputElement).value).toBe('320')
   })
 
+  it('requests up to 40 Google Books search results', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue({ ok: true, json: async () => ({ items: [] }) } as Response)
+    render(<BookFormScreen book={null} onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('tab-search'))
+    fireEvent.change(screen.getByTestId('book-search-input'), { target: { value: 'LEAP' } })
+    fireEvent.click(screen.getByTestId('book-search-btn'))
+    await waitFor(() => {
+      const url = fetchSpy.mock.calls[0][0] as string
+      expect(new URL(url).searchParams.get('maxResults')).toBe('40')
+    })
+  })
+
   it('shows a notice pointing to the catalog when Google Books fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('fail'))
     render(<BookFormScreen book={null} onDone={() => {}} />)

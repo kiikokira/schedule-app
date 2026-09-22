@@ -75,6 +75,13 @@ const intitleOf = (fetchMock: ReturnType<typeof vi.fn>, callIndex: number) => {
   return new URL(url).searchParams.get('q')
 }
 
+it('requests up to 40 results by default', async () => {
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ items: [] }) })
+  await searchBooks('LEAP', undefined, fetchMock as unknown as typeof fetch)
+  const url = fetchMock.mock.calls[0][0] as string
+  expect(new URL(url).searchParams.get('maxResults')).toBe('40')
+})
+
 it('rewrites the query to a title-only search', async () => {
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ items: [] }) })
   await searchBooks('LEAP', 10, fetchMock as unknown as typeof fetch)

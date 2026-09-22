@@ -106,7 +106,7 @@ async function searchOne(
 
 export async function searchBooks(
   query: string,
-  limit = 10,
+  limit = 40,
   fetchImpl: typeof fetch = fetch,
   apiKey = getBooksApiKey(),
 ): Promise<SearchResultItem[]> {
