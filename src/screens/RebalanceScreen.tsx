@@ -14,9 +14,10 @@ type Props = {
   onSchedule: () => void
 }
 
-const PRIORITY_OPTIONS: { value: number; label: string }[] = [
-  { value: 0, label: '公平均分' },
-  { value: 1, label: '優先' },
+const PRIORITY_OPTIONS: { value: number | ''; label: string }[] = [
+  { value: '', label: '未設定' },
+  { value: 0, label: '優先' },
+  { value: 1, label: '公平均分' },
   { value: 2, label: '軽視' },
   { value: 3, label: 'スキップ' },
 ]
@@ -46,19 +47,20 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
     void listAvailability().then(setAvailability)
   }, [])
 
-  const priorityOf = (b: BookData) => priorities[b.id] ?? b.priority ?? 2
+  const priorityOf = (b: BookData): number | undefined =>
+    priorities[b.id] !== undefined ? priorities[b.id] : b.priority
   const ratioOf = (b: BookData) =>
     ratios[b.id] !== undefined ? clampRatio(ratios[b.id]) : b.allottedRatio
 
   const scheduled = (includeTarget: boolean, overrides: boolean) =>
     books
       .filter((b) => includeTarget || b.id !== bookId)
-      .filter((b) => (overrides ? priorityOf(b) : (b.priority ?? 2)) !== 3)
+      .filter((b) => (overrides ? priorityOf(b) : b.priority) !== 3)
       .map((b) =>
         toScheduledBook(
           {
             ...b,
-            priority: overrides ? priorityOf(b) : b.priority ?? 2,
+            priority: overrides ? priorityOf(b) : b.priority,
             allottedRatio: overrides ? ratioOf(b) : b.allottedRatio,
           },
           0,
@@ -83,14 +85,12 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   const report = async () => {
     const book = books.find((b) => b.id === bookId)
     if (!book) return
+    const effectivePriority = priorityOf(book)
     const changed: Partial<BookData> = {}
-    if (priorities[bookId] !== undefined && priorityOf(book) !== book.priority) {
-      changed.priority = priorityOf(book)
+    if (effectivePriority !== undefined && effectivePriority !== book.priority) {
+      changed.priority = effectivePriority
     }
-    if (
-      ratios[bookId] !== undefined &&
-      ratioOf(book) !== book.allottedRatio
-    ) {
+    if (ratios[bookId] !== undefined && ratioOf(book) !== book.allottedRatio) {
       changed.allottedRatio = ratioOf(book)
     }
     await saveBook({ ...book, ...changed, updatedAt: new Date().toISOString() }, false)
@@ -168,10 +168,19 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
             {isTarget ? (
               <select
                 data-testid={`priority-select-${b.id}`}
-                value={String(priorityOf(b))}
-                onChange={(e) =>
-                  setPriorities((p) => ({ ...p, [b.id]: Number(e.target.value) }))
-                }
+                value={String(priorityOf(b) ?? '')}
+                onChange={(e) => {
+                  const v = e.target.value
+                  if (v === '') {
+                    setPriorities((p) => {
+                      const next = { ...p }
+                      delete next[b.id]
+                      return next
+                    })
+                  } else {
+                    setPriorities((p) => ({ ...p, [b.id]: Number(v) }))
+                  }
+                }}
                 style={{ width: 120 }}
               >
                 {PRIORITY_OPTIONS.map((o) => (
@@ -184,7 +193,7 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
               <input
                 data-testid={`priority-select-${b.id}`}
                 type="hidden"
-                value={String(priorityOf(b))}
+                value={String(priorityOf(b) ?? '')}
                 readOnly
               />
             )}
