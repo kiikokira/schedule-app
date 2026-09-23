@@ -10,7 +10,7 @@ import {
   suggestDeadline,
   type ScheduleEntry,
 } from '../data/schedule'
-import { todayStr } from '../lib/progress'
+import { todayStr, formatJaDate } from '../lib/progress'
 import { parseTimeToMin } from '../lib/dayplan'
 import {
   addEntry,
@@ -405,7 +405,7 @@ export default function PlanScreen({ onDone }: Props) {
             const label =
               'weekday' in group
                 ? `${weekdayNames[group.weekday]}曜 ${group.slots.map((s) => `${s.start}〜${s.end}`).join(', ')}`
-                : `${group.date} ${group.slots.map((s) => `${s.start}〜${s.end}`).join(', ')}`
+                : `${formatJaDate(group.date)} ${group.slots.map((s) => `${s.start}〜${s.end}`).join(', ')}`
             const open = expandedGroups.has(group.key)
             return (
               <div key={group.key} style={{ marginTop: 8 }}>

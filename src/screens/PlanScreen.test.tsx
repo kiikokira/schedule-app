@@ -585,7 +585,7 @@ describe('PlanScreen', () => {
       ).toBeInTheDocument()
     })
     expect(screen.getByTestId('slot-group-date-2026-09-22')).toHaveTextContent(
-      '2026-09-22 07:00〜08:00, 20:00〜21:30',
+      '9月22日（火） 07:00〜08:00, 20:00〜21:30',
     )
     expect(screen.queryByTestId('slot-delete-d1')).not.toBeInTheDocument()
     fireEvent.click(screen.getByTestId('slot-group-date-2026-09-22'))
