@@ -3,7 +3,7 @@ import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import { listAvailability } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, learnSpeed, type ScheduledBook } from '../lib/dayplan'
-import { todayStr, type BookData } from '../lib/progress'
+import { todayStr, formatJaDate, type BookData } from '../lib/progress'
 import CoverImage from '../components/CoverImage'
 
 type Props = {
@@ -98,34 +98,43 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                 style={{ display: 'flex', gap: 8, alignItems: 'center', padding: 8, border: '1px solid var(--border)', borderRadius: 8, marginBottom: 8 }}
               >
                 <CoverImage src={book?.coverUrl ?? null} width={48} height={68} />
-                <div data-testid="plan-row-hours">
-                  {fmt(s.startMin)}-{fmt(s.endMin)}
-                </div>
-                <div data-testid="plan-row-book" style={{ flex: 1 }}>
-                  {book?.title ?? s.bookId}
-                </div>
-                <div data-testid="plan-row-pages">予定 {s.pages}ページ</div>
-                {book && (
-                  <>
-                    <input
-                      data-testid={`plan-input-${s.bookId}`}
-                      type="number"
-                      inputMode="numeric"
-                      value={inputs[s.bookId] ?? ''}
-                      onChange={(e) =>
-                        setInputs((p) => ({ ...p, [s.bookId]: e.target.value }))
-                      }
-                      placeholder="ページ"
-                    />
-                    <button
-                      data-testid={`plan-record-${s.bookId}`}
-                      type="button"
-                      onClick={() => void handleRecord(s.bookId)}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div
+                      data-testid="plan-row-book"
+                      style={{ flex: 1, fontWeight: 700, fontSize: 15 }}
                     >
-                      記録
-                    </button>
-                  </>
-                )}
+                      {book?.title ?? s.bookId}
+                    </div>
+                    {book && (
+                      <>
+                        <input
+                          data-testid={`plan-input-${s.bookId}`}
+                          type="number"
+                          inputMode="numeric"
+                          value={inputs[s.bookId] ?? ''}
+                          onChange={(e) =>
+                            setInputs((p) => ({ ...p, [s.bookId]: e.target.value }))
+                          }
+                          placeholder="ページ"
+                        />
+                        <button
+                          data-testid={`plan-record-${s.bookId}`}
+                          type="button"
+                          onClick={() => void handleRecord(s.bookId)}
+                        >
+                          記録
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 12, color: 'var(--text-dim)' }}>
+                    <div data-testid="plan-row-hours">
+                      {fmt(s.startMin)}-{fmt(s.endMin)}
+                    </div>
+                    <div data-testid="plan-row-pages">予定 {s.pages}ページ</div>
+                  </div>
+                </div>
               </div>
             )
           })}
@@ -135,7 +144,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
         <h2 style={{ fontSize: 16 }}>今後数日</h2>
         {planned.upcoming.map((u) => (
           <div key={u.date} style={{ marginBottom: 8 }}>
-            <div style={{ fontWeight: 700 }}>{u.date}</div>
+            <div style={{ fontWeight: 700 }}>{formatJaDate(u.date)}</div>
             {u.items.map((it) => {
               const book = books.find((b) => b.id === it.bookId)
               return (

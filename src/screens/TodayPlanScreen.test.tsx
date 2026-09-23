@@ -105,4 +105,29 @@ describe('TodayPlanScreen', () => {
       ).not.toBeNull()
     })
   })
+
+  it('shows the planned book title in bold on its own line', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const title = await screen.findByTestId('plan-row-book')
+    expect(title).toHaveStyle({ fontWeight: '700' })
+    expect(screen.getByTestId('plan-row-hours')).toHaveTextContent('21:00-23:00')
+    expect(screen.getByTestId('plan-row-pages')).toHaveTextContent('予定 40ページ')
+  })
+
+  it('shows upcoming dates as month/day with weekday', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('upcoming-list')).toBeInTheDocument()
+    expect(screen.getByText('9月22日（火）')).toBeInTheDocument()
+    expect(screen.getByText('9月28日（月）')).toBeInTheDocument()
+  })
 })
