@@ -102,7 +102,15 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <div
                       data-testid="plan-row-book"
-                      style={{ flex: 1, fontWeight: 700, fontSize: 15 }}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontWeight: 700,
+                        fontSize: 15,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
                     >
                       {book?.title ?? s.bookId}
                     </div>
@@ -162,8 +170,17 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                   }}
                 >
                   <CoverImage src={book?.coverUrl ?? null} width={40} height={56} />
-                  <div>
-                    <div>{book?.title ?? it.bookId}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      data-testid="upcoming-title"
+                      style={{
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {book?.title ?? it.bookId}
+                    </div>
                     <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>
                       {it.minutes}分・{it.pages}ページ
                     </div>
