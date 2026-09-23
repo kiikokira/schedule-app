@@ -138,6 +138,12 @@ export default function PlanScreen({ onDone }: Props) {
     await refreshAvailability()
   }
 
+  const copyWeekdaySlots = (w: number) => {
+    const slots = availability.filter((s) => s.weekday === w).sort(byStart)
+    setSlotWeekday(String(w))
+    setWeekdayRows(slots.map((s) => ({ start: s.start, end: s.end })))
+  }
+
   const [selectedCatalogId, setSelectedCatalogId] = useState('')
   const [selectedBookId, setSelectedBookId] = useState('')
   const [addStart, setAddStart] = useState(() => todayStr())
@@ -403,14 +409,25 @@ export default function PlanScreen({ onDone }: Props) {
             const open = expandedGroups.has(group.key)
             return (
               <div key={group.key} style={{ marginTop: 8 }}>
-                <button
-                  data-testid={`slot-group-${group.key}`}
-                  type="button"
-                  onClick={() => toggleGroup(group.key)}
-                  style={{ width: '100%', textAlign: 'left' }}
-                >
-                  {label}
-                </button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button
+                    data-testid={`slot-group-${group.key}`}
+                    type="button"
+                    onClick={() => toggleGroup(group.key)}
+                    style={{ flex: 1, textAlign: 'left' }}
+                  >
+                    {label}
+                  </button>
+                  {'weekday' in group && (
+                    <button
+                      data-testid={`slot-copy-weekday-${group.weekday}`}
+                      type="button"
+                      onClick={() => copyWeekdaySlots(group.weekday)}
+                    >
+                      コピー
+                    </button>
+                  )}
+                </div>
                 {open &&
                   group.slots.map((slot) => {
                     const slotLabel = `${slot.start}〜${slot.end}`

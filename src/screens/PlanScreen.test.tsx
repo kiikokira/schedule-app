@@ -420,6 +420,47 @@ describe('PlanScreen', () => {
     expect(window.alert).toHaveBeenCalled()
   })
 
+  it('copies a weekday group into the weekday form', async () => {
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-copy-weekday-1'))
+    expect((screen.getByTestId('slot-weekday-select') as HTMLSelectElement).value).toBe('1')
+    expect((screen.getByTestId('slot-start-0') as HTMLInputElement).value).toBe('21:00')
+    expect((screen.getByTestId('slot-end-0') as HTMLInputElement).value).toBe('23:00')
+  })
+
+  it('copies a weekday group and saves it to another weekday', async () => {
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-copy-weekday-1'))
+    fireEvent.change(screen.getByTestId('slot-weekday-select'), {
+      target: { value: '2' },
+    })
+    fireEvent.click(screen.getByTestId('slot-add'))
+    await waitFor(async () => {
+      const slots = await listAvailability()
+      expect(slots).toHaveLength(2)
+      expect(slots.map((s) => s.weekday).sort()).toEqual([1, 2])
+      expect(slots.filter((s) => s.weekday === 2)[0].start).toBe('21:00')
+    })
+  })
+
+  it('does not show a copy button for date override groups', async () => {
+    await saveAvailabilitySlot(
+      { id: 'd1', weekday: null, date: '2026-09-30', start: '10:00', end: '11:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    expect(await screen.findByTestId('slot-group-date-2026-09-30')).toBeInTheDocument()
+    expect(screen.queryByTestId('slot-copy-date-2026-09-30')).not.toBeInTheDocument()
+  })
+
   it('deletes a weekday availability slot after confirmation', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     await saveAvailabilitySlot(
