@@ -640,6 +640,81 @@ describe('PlanScreen', () => {
     })
   })
 
+  it('edits a weekday slot with new times and saves the update', async () => {
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-group-weekday-1'))
+    fireEvent.change(screen.getByTestId('slot-edit-start-a1'), {
+      target: { value: '20:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-edit-end-a1'), {
+      target: { value: '22:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-save-a1'))
+    await waitFor(async () => {
+      const slots = await listAvailability()
+      expect(slots).toHaveLength(1)
+      expect(slots[0].id).toBe('a1')
+      expect(slots[0].start).toBe('20:00')
+      expect(slots[0].end).toBe('22:00')
+    })
+    expect(screen.getByTestId('slot-group-weekday-1')).toHaveTextContent(
+      '月曜 20:00〜22:00',
+    )
+  })
+
+  it('rejects an edit whose end time is not after the start time', async () => {
+    vi.spyOn(window, 'alert').mockImplementation(() => {})
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-group-weekday-1'))
+    fireEvent.change(screen.getByTestId('slot-edit-start-a1'), {
+      target: { value: '23:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-edit-end-a1'), {
+      target: { value: '22:00' },
+    })
+    fireEvent.click(screen.getByTestId('slot-save-a1'))
+    await waitFor(async () => {
+      const slots = await listAvailability()
+      expect(slots).toHaveLength(1)
+      expect(slots[0].start).toBe('21:00')
+      expect(slots[0].end).toBe('23:00')
+    })
+  })
+
+  it('edits a date-override slot and keeps the date group', async () => {
+    await saveAvailabilitySlot(
+      { id: 'd1', weekday: null, date: '2026-09-22', start: '07:00', end: '08:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-group-date-2026-09-22'))
+    fireEvent.change(screen.getByTestId('slot-edit-start-d1'), {
+      target: { value: '08:00' },
+    })
+    fireEvent.change(screen.getByTestId('slot-edit-end-d1'), {
+      target: { value: '09:30' },
+    })
+    fireEvent.click(screen.getByTestId('slot-save-d1'))
+    await waitFor(async () => {
+      const slots = await listAvailability()
+      expect(slots).toHaveLength(1)
+      expect(slots[0].date).toBe('2026-09-22')
+      expect(slots[0].start).toBe('08:00')
+      expect(slots[0].end).toBe('09:30')
+    })
+    expect(screen.getByTestId('slot-group-date-2026-09-22')).toHaveTextContent(
+      '9月22日（火） 08:00〜09:30',
+    )
+  })
+
   it('calls onDone when the back button is pressed', () => {
     let done = false
     render(<PlanScreen onDone={() => { done = true }} />)

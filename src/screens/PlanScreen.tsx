@@ -67,6 +67,10 @@ export default function PlanScreen({ onDone }: Props) {
   const [slotDate, setSlotDate] = useState('')
   const [dateRows, setDateRows] = useState<SlotRow[]>(() => [emptyRow()])
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set())
+  const [slotDrafts, setSlotDrafts] = useState<Record<string, SlotRow>>({})
+
+  const updateSlotDraft = (id: string, patch: Partial<SlotRow>) =>
+    setSlotDrafts((prev) => ({ ...prev, [id]: { ...(prev[id] ?? { start: '', end: '' }), ...patch } }))
 
   const toggleGroup = (key: string) =>
     setExpandedGroups((prev) => {
@@ -135,6 +139,21 @@ export default function PlanScreen({ onDone }: Props) {
   const removeSlot = async (id: string, label: string) => {
     if (!window.confirm(`「${label}」の空き時間を削除しますか？`)) return
     await deleteAvailabilitySlot(id)
+    await refreshAvailability()
+  }
+
+  const saveSlotTimes = async (slot: AvailabilitySlot) => {
+    const draft = slotDrafts[slot.id] ?? { start: slot.start, end: slot.end }
+    if (parseTimeToMin(draft.end) <= parseTimeToMin(draft.start)) {
+      window.alert('終了時刻は開始時刻より後にしてください')
+      return
+    }
+    await saveAvailabilitySlot({ ...slot, start: draft.start, end: draft.end }, false)
+    setSlotDrafts((prev) => {
+      const next = { ...prev }
+      delete next[slot.id]
+      return next
+    })
     await refreshAvailability()
   }
 
@@ -430,10 +449,26 @@ export default function PlanScreen({ onDone }: Props) {
                 </div>
                 {open &&
                   group.slots.map((slot) => {
+                    const draft = slotDrafts[slot.id] ?? { start: slot.start, end: slot.end }
                     const slotLabel = `${slot.start}〜${slot.end}`
                     return (
                       <div key={slot.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, paddingLeft: 8 }}>
-                        <span>{slotLabel}</span>
+                        <input
+                          data-testid={`slot-edit-start-${slot.id}`}
+                          type="time"
+                          value={draft.start}
+                          onChange={(e) => updateSlotDraft(slot.id, { start: e.target.value })}
+                        />
+                        <span>〜</span>
+                        <input
+                          data-testid={`slot-edit-end-${slot.id}`}
+                          type="time"
+                          value={draft.end}
+                          onChange={(e) => updateSlotDraft(slot.id, { end: e.target.value })}
+                        />
+                        <button data-testid={`slot-save-${slot.id}`} type="button" onClick={() => void saveSlotTimes(slot)}>
+                          保存
+                        </button>
                         <button data-testid={`slot-delete-${slot.id}`} type="button" onClick={() => void removeSlot(slot.id, `${label} ${slotLabel}`)}>
                           削除
                         </button>
