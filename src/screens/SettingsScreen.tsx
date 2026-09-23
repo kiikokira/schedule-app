@@ -6,6 +6,7 @@ import {
   setNotifySettings,
   publishPush,
 } from '../lib/notify'
+import { getAiSettings, setAiSettings } from '../lib/ai'
 
 type Props = {
   onDone: () => void
@@ -17,6 +18,9 @@ export default function SettingsScreen({ onDone }: Props) {
   const [ntfyTopic, setNtfyTopic] = useState(getNotifySettings().topic)
   const [ntfyEnabled, setNtfyEnabled] = useState(getNotifySettings().enabled)
   const [ntfyTestResult, setNtfyTestResult] = useState<string | null>(null)
+  const [aiEndpoint, setAiEndpoint] = useState(getAiSettings().endpoint)
+  const [aiApiKey, setAiApiKey] = useState(getAiSettings().apiKey)
+  const [aiModel, setAiModel] = useState(getAiSettings().model)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleExport = async () => {
@@ -91,6 +95,11 @@ export default function SettingsScreen({ onDone }: Props) {
     )
   }
 
+  const handleSaveAi = () => {
+    setAiSettings({ endpoint: aiEndpoint, apiKey: aiApiKey, model: aiModel })
+    setResult('調整AIの設定を保存しました')
+  }
+
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>設定</h1>
@@ -154,6 +163,44 @@ export default function SettingsScreen({ onDone }: Props) {
             {ntfyTestResult}
           </p>
         )}
+      </section>
+      <section style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 16 }}>調整AI（オンライン）</h2>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+          オンラインでの自由文相談に使う高精度AI接続（OpenAI互換API）。未設定でもオフラインの内蔵AI（定型文＋自動提案）は動きます。期限は変更されません。APIキーはこの端末内だけに保存されます。
+        </p>
+        <label htmlFor="ai-endpoint">エンドポイントURL</label>
+        <input
+          id="ai-endpoint"
+          data-testid="ai-endpoint"
+          type="text"
+          value={aiEndpoint}
+          onChange={(e) => setAiEndpoint(e.target.value)}
+          autoComplete="off"
+        />
+        <label htmlFor="ai-api-key">APIキー</label>
+        <input
+          id="ai-api-key"
+          data-testid="ai-api-key"
+          type="password"
+          value={aiApiKey}
+          onChange={(e) => setAiApiKey(e.target.value)}
+          placeholder="sk-..."
+          autoComplete="off"
+        />
+        <label htmlFor="ai-model">モデル名</label>
+        <input
+          id="ai-model"
+          data-testid="ai-model"
+          type="text"
+          value={aiModel}
+          onChange={(e) => setAiModel(e.target.value)}
+          placeholder="例: gpt-5-mini"
+          autoComplete="off"
+        />
+        <button data-testid="ai-save" type="button" onClick={handleSaveAi}>
+          設定を保存
+        </button>
       </section>
       <button data-testid="backup-export" type="button" onClick={() => void handleExport()}>
         バックアップを書き出す

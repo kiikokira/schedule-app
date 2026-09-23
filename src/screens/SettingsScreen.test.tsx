@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { it, expect, vi, beforeEach } from 'vitest'
 import SettingsScreen from './SettingsScreen'
 import { db } from '../db/database'
+import { getAiSettings } from '../lib/ai'
 
 beforeEach(async () => {
   vi.restoreAllMocks()
@@ -124,4 +125,23 @@ it('reports an http failure with the status', async () => {
   await waitFor(() =>
     expect(screen.getByTestId('ntfy-result')).toHaveTextContent(/HTTP 404/),
   )
+})
+
+describe('adjustment AI settings', () => {
+  it('shows the default AI settings', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    expect(screen.getByTestId('ai-endpoint')).toHaveValue('https://api.openai.com/v1/chat/completions')
+    expect(screen.getByTestId('ai-api-key')).toHaveValue('')
+  })
+
+  it('saves AI settings', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
+    fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'gpt-5-mini' } })
+    fireEvent.click(screen.getByTestId('ai-save'))
+    const saved = getAiSettings()
+    expect(saved.apiKey).toBe('sk-test')
+    expect(saved.model).toBe('gpt-5-mini')
+    expect(screen.getByTestId('backup-result')).toHaveTextContent('調整AIの設定を保存しました')
+  })
 })
