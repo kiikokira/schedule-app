@@ -107,9 +107,6 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                         minWidth: 0,
                         fontWeight: 700,
                         fontSize: 15,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
                       }}
                     >
                       {book?.title ?? s.bookId}
@@ -171,14 +168,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                 >
                   <CoverImage src={book?.coverUrl ?? null} width={40} height={56} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      data-testid="upcoming-title"
-                      style={{
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
+                    <div data-testid="upcoming-title">
                       {book?.title ?? it.bookId}
                     </div>
                     <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>

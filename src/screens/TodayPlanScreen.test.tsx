@@ -131,7 +131,7 @@ describe('TodayPlanScreen', () => {
     expect(screen.getByText('9月28日（月）')).toBeInTheDocument()
   })
 
-  it('keeps the book name on a single horizontal line in today rows', async () => {
+  it('displays the full book title horizontally in today rows', async () => {
     await fillBook('b1')
     await saveAvailabilitySlot(
       { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
@@ -139,10 +139,11 @@ describe('TodayPlanScreen', () => {
     )
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
     const title = await screen.findByTestId('plan-row-book')
-    expect(title).toHaveStyle({ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' })
+    expect(title).toHaveTextContent('英文法ポラリス2（応用レベル）')
+    expect(title).not.toHaveStyle({ whiteSpace: 'nowrap', overflow: 'hidden' })
   })
 
-  it('keeps the book name on a single horizontal line in the upcoming list', async () => {
+  it('displays the full book title in the upcoming list', async () => {
     await fillBook('b1')
     await saveAvailabilitySlot(
       { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
@@ -152,10 +153,7 @@ describe('TodayPlanScreen', () => {
     expect(await screen.findByTestId('upcoming-list')).toBeInTheDocument()
     const title = await screen.findAllByTestId('upcoming-title')
     expect(title.length).toBeGreaterThan(0)
-    expect(title[0]).toHaveStyle({
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-    })
+    expect(title[0]).toHaveTextContent('英文法ポラリス2（応用レベル）')
+    expect(title[0]).not.toHaveStyle({ whiteSpace: 'nowrap', overflow: 'hidden' })
   })
 })
