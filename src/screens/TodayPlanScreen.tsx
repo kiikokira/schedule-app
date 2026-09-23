@@ -98,41 +98,40 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                 style={{ display: 'flex', gap: 8, alignItems: 'center', padding: 8, border: '1px solid var(--border)', borderRadius: 8, marginBottom: 8 }}
               >
                 <CoverImage src={book?.coverUrl ?? null} width={48} height={68} />
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <div
-                      data-testid="plan-row-book"
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                        fontWeight: 700,
-                        fontSize: 15,
-                      }}
-                    >
-                      {book?.title ?? s.bookId}
-                    </div>
-                    {book && (
-                      <>
-                        <input
-                          data-testid={`plan-input-${s.bookId}`}
-                          type="number"
-                          inputMode="numeric"
-                          value={inputs[s.bookId] ?? ''}
-                          onChange={(e) =>
-                            setInputs((p) => ({ ...p, [s.bookId]: e.target.value }))
-                          }
-                          placeholder="ページ"
-                        />
-                        <button
-                          data-testid={`plan-record-${s.bookId}`}
-                          type="button"
-                          onClick={() => void handleRecord(s.bookId)}
-                        >
-                          記録
-                        </button>
-                      </>
-                    )}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                  <div
+                    data-testid="plan-row-book"
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 15,
+                      overflowWrap: 'anywhere',
+                    }}
+                  >
+                    {book?.title ?? s.bookId}
                   </div>
+                  {book && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        data-testid={`plan-input-${s.bookId}`}
+                        type="number"
+                        inputMode="numeric"
+                        value={inputs[s.bookId] ?? ''}
+                        onChange={(e) =>
+                          setInputs((p) => ({ ...p, [s.bookId]: e.target.value }))
+                        }
+                        placeholder="ページ"
+                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0 }}
+                      />
+                      <button
+                        data-testid={`plan-record-${s.bookId}`}
+                        type="button"
+                        style={{ flexShrink: 0 }}
+                        onClick={() => void handleRecord(s.bookId)}
+                      >
+                        記録
+                      </button>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 12, color: 'var(--text-dim)' }}>
                     <div data-testid="plan-row-hours">
                       {fmt(s.startMin)}-{fmt(s.endMin)}

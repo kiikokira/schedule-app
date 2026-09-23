@@ -143,6 +143,19 @@ describe('TodayPlanScreen', () => {
     expect(title).not.toHaveStyle({ whiteSpace: 'nowrap', overflow: 'hidden' })
   })
 
+  it('keeps the book title on its own line, not beside the page input', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const title = await screen.findByTestId('plan-row-book')
+    const input = await screen.findByTestId('plan-input-b1')
+    expect(title.parentElement).not.toBe(input.parentElement)
+    expect(title.contains(input)).toBe(false)
+  })
+
   it('displays the full book title in the upcoming list', async () => {
     await fillBook('b1')
     await saveAvailabilitySlot(
