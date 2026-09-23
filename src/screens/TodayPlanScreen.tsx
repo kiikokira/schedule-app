@@ -4,6 +4,7 @@ import { useRecords } from '../hooks/useRecords'
 import { listAvailability } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, learnSpeed, type ScheduledBook } from '../lib/dayplan'
 import { todayStr, type BookData } from '../lib/progress'
+import CoverImage from '../components/CoverImage'
 
 type Props = {
   onBack: () => void
@@ -96,6 +97,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                 data-testid={`plan-row-${i}`}
                 style={{ display: 'flex', gap: 8, alignItems: 'center', padding: 8, border: '1px solid var(--border)', borderRadius: 8, marginBottom: 8 }}
               >
+                <CoverImage src={book?.coverUrl ?? null} width={48} height={68} />
                 <div data-testid="plan-row-hours">
                   {fmt(s.startMin)}-{fmt(s.endMin)}
                 </div>
@@ -137,8 +139,26 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
             {u.items.map((it) => {
               const book = books.find((b) => b.id === it.bookId)
               return (
-                <div key={it.bookId} style={{ color: 'var(--text-dim)', fontSize: 13 }}>
-                  {book?.title ?? it.bookId}: {it.minutes}分・{it.pages}ページ
+                <div
+                  key={it.bookId}
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    alignItems: 'center',
+                    padding: 8,
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    marginTop: 4,
+                    fontSize: 15,
+                  }}
+                >
+                  <CoverImage src={book?.coverUrl ?? null} width={40} height={56} />
+                  <div>
+                    <div>{book?.title ?? it.bookId}</div>
+                    <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+                      {it.minutes}分・{it.pages}ページ
+                    </div>
+                  </div>
                 </div>
               )
             })}

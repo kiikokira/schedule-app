@@ -38,7 +38,9 @@ describe('TodayPlanScreen', () => {
     // 2026-09-21 は月曜。today を注入して曜日依存をなくす
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
     expect(await screen.findByTestId('today-table')).toBeInTheDocument()
-    expect(await screen.findByText('英文法ポラリス2（応用レベル）')).toBeInTheDocument()
+    expect(await screen.findByTestId('plan-row-book')).toHaveTextContent(
+      '英文法ポラリス2（応用レベル）',
+    )
   })
 
   it('shows a notice and empty table when there is no availability', async () => {
@@ -70,5 +72,37 @@ describe('TodayPlanScreen', () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={onSettings} />)
     fireEvent.click(await screen.findByTestId('go-settings'))
     expect(onSettings).toHaveBeenCalled()
+  })
+
+  it('shows the book cover at the left of the book name in today rows', async () => {
+    await fillBook('b1', { coverUrl: 'https://example.com/polaris-cover.jpg' })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('today-table')).toBeInTheDocument()
+    expect(
+      document.querySelector(
+        '[data-testid="plan-row-0"] img[src="https://example.com/polaris-cover.jpg"]',
+      ),
+    ).not.toBeNull()
+  })
+
+  it('shows the book cover next to the book name in the upcoming list', async () => {
+    await fillBook('b1', { coverUrl: 'https://example.com/polaris-cover.jpg' })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('upcoming-list')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(
+        document.querySelector(
+          '[data-testid="upcoming-list"] img[src="https://example.com/polaris-cover.jpg"]',
+        ),
+      ).not.toBeNull()
+    })
   })
 })
