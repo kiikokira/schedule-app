@@ -36,3 +36,9 @@ it('prunes past overrides before rendering the availability screens', async () =
     expect(ids).toEqual(['today-a'])
   })
 })
+
+it('navigates to the adjustment AI screen from home', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByTestId('nav-ai'))
+  expect(await screen.findByTestId('chat-screen')).toBeInTheDocument()
+})

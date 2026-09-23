@@ -6,6 +6,7 @@ import SettingsScreen from './screens/SettingsScreen'
 import PlanScreen from './screens/PlanScreen'
 import TodayPlanScreen from './screens/TodayPlanScreen'
 import RebalanceScreen from './screens/RebalanceScreen'
+import ChatScreen from './screens/ChatScreen'
 import { useBooks } from './hooks/useBooks'
 import { prunePastOverrides } from './data/dayplanStore'
 import { todayStr } from './lib/progress'
@@ -20,6 +21,7 @@ type Route =
   | { name: 'rebalance'; bookId: string }
   | { name: 'settings' }
   | { name: 'plan' }
+  | { name: 'ai' }
 
 export default function App() {
   const { books } = useBooks()
@@ -66,6 +68,7 @@ export default function App() {
           <BookFormScreen book={null} onDone={() => setRoute({ name: 'home' })} />
         )}
         {route.name === 'settings' && <SettingsScreen onDone={() => setRoute({ name: 'home' })} />}
+        {route.name === 'ai' && <ChatScreen onBack={() => setRoute({ name: 'home' })} />}
         {route.name === 'plan' && <PlanScreen onDone={() => setRoute({ name: 'home' })} />}
         {route.name === 'today' && (
           <TodayPlanScreen
@@ -82,6 +85,9 @@ export default function App() {
             </button>
             <button data-testid="nav-plan" onClick={() => setRoute({ name: 'plan' })}>
               スケジュールで参考書を追加
+            </button>
+            <button data-testid="nav-ai" onClick={() => setRoute({ name: 'ai' })}>
+              調整AI
             </button>
             <button data-testid="nav-add" onClick={() => setRoute({ name: 'add' })}>
               ＋ 参考書を追加
