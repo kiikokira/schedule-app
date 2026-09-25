@@ -37,24 +37,47 @@
   });
 
   let generator = null;
+  let loadTimer = null;
+  let lastLoadedBytes = 0;
+  let loadStartMs = 0;
 
   document.getElementById('btn-load').addEventListener('click', async () => {
     try {
+      loadStartMs = performance.now();
+      lastLoadedBytes = 0;
       log('--- 読込開始 ---');
-      const t0 = performance.now();
+      loadTimer = setInterval(() => {
+        const el = Math.round((performance.now() - loadStartMs) / 1000);
+        log(`…経過${el}秒・受信済み約${(lastLoadedBytes / 1048576).toFixed(1)}MB`);
+      }, 30000);
       const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1');
+      let lastKey = '';
       generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
         dtype: 'q4f16',
         progress_callback: (p) => {
           if (p.status === 'progress' && p.file) {
-            log(`読込中 ${p.file}: ${Math.round(p.progress ?? 0)}%`);
+            if (typeof p.loaded === 'number') {
+              lastLoadedBytes = Math.max(lastLoadedBytes, p.loaded);
+            }
+            const key = p.file + ':' + Math.round(p.progress ?? 0);
+            if (key !== lastKey) {
+              lastKey = key;
+              log(`読込中 ${p.file}: ${Math.round(p.progress ?? 0)}%`);
+            }
           }
         },
       });
-      const sec = ((performance.now() - t0) / 1000).toFixed(1);
+      clearInterval(loadTimer);
+      loadTimer = null;
+      const sec = ((performance.now() - loadStartMs) / 1000).toFixed(1);
       log(`読込完了: ${sec}秒`);
     } catch (e) {
-      log('読込エラー: ' + (e && e.message ? e.message : String(e)));
+      if (loadTimer) {
+        clearInterval(loadTimer);
+        loadTimer = null;
+      }
+      const sec = ((performance.now() - loadStartMs) / 1000).toFixed(1);
+      log(`読込エラー(${sec}秒): ` + (e && e.message ? e.message : String(e)));
     }
   });
 
