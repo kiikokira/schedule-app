@@ -13,10 +13,11 @@
 </head>
 <body>
 <h1>端末内AI 動作検証（使い捨てページ）</h1>
-<p>Wi-Fi接続の状態で、下のボタンを <strong>1→2の順</strong> に押してください。結果の数値・文章を報告してください。</p>
+<p>Wi-Fi接続の状態で、下のボタンを <strong>1→2の順</strong> に押してください（2が進まない時は2b）。結果の数値・文章を報告してください。</p>
 <button id="btn-env" type="button">1. 環境チェック</button>
 <button id="btn-load" type="button">2. モデル読込（約500MB・Wi-Fi推奨）</button>
-<button id="btn-gen" type="button">3. 生成テスト</button>
+<button id="btn-load-small" type="button">2b. 軽量モデルで試す（約100MB・2が進まない時用）</button>
+<button id="btn-gen" type="button" disabled>3. 生成テスト</button>
 <div id="log">待機中…</div>
 <script type="module">
   const log = (msg) => {
@@ -41,18 +42,24 @@
   let lastLoadedBytes = 0;
   let loadStartMs = 0;
 
-  document.getElementById('btn-load').addEventListener('click', async () => {
+  const setGenEnabled = (on) => {
+    document.getElementById('btn-gen').disabled = !on;
+  };
+
+  async function loadModel(modelId, label) {
     try {
+      generator = null;
+      setGenEnabled(false);
       loadStartMs = performance.now();
       lastLoadedBytes = 0;
-      log('--- 読込開始 ---');
+      log(`--- 読込開始（${label}） ---`);
       loadTimer = setInterval(() => {
         const el = Math.round((performance.now() - loadStartMs) / 1000);
         log(`…経過${el}秒・受信済み約${(lastLoadedBytes / 1048576).toFixed(1)}MB`);
       }, 30000);
       const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1');
       let lastKey = '';
-      generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
+      generator = await pipeline('text-generation', modelId, {
         dtype: 'q4f16',
         progress_callback: (p) => {
           if (p.status === 'progress' && p.file) {
@@ -71,6 +78,7 @@
       loadTimer = null;
       const sec = ((performance.now() - loadStartMs) / 1000).toFixed(1);
       log(`読込完了: ${sec}秒`);
+      setGenEnabled(true);
     } catch (e) {
       if (loadTimer) {
         clearInterval(loadTimer);
@@ -79,6 +87,14 @@
       const sec = ((performance.now() - loadStartMs) / 1000).toFixed(1);
       log(`読込エラー(${sec}秒): ` + (e && e.message ? e.message : String(e)));
     }
+  }
+
+  document.getElementById('btn-load').addEventListener('click', () => {
+    void loadModel('onnx-community/Qwen2.5-0.5B-Instruct', '通常モデル');
+  });
+
+  document.getElementById('btn-load-small').addEventListener('click', () => {
+    void loadModel('onnx-community/SmolLM2-135M-Instruct', '軽量モデル');
   });
 
   document.getElementById('btn-gen').addEventListener('click', async () => {
