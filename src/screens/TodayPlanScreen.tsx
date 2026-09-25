@@ -47,12 +47,12 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   // スケジュールに含まれていない登録本も対象にする
   const planned = generateDayPlan({ availability, books: scheduled, today })
 
-  const handleRecord = async (bookId: string) => {
-    const raw = inputs[bookId] ?? ''
+  const handleRecord = async (slotKey: string, bookId: string) => {
+    const raw = inputs[slotKey] ?? ''
     const pages = Number(raw)
     if (!Number.isInteger(pages) || pages < 1) return
     await addProgress(bookId, today, pages)
-    setInputs((p) => ({ ...p, [bookId]: '' }))
+    setInputs((p) => ({ ...p, [slotKey]: '' }))
     // 速度学習: その日に割り当てられた時間の合計
     const todayMin = planned.today.slots
       .filter((s) => s.bookId === bookId)
@@ -91,9 +91,10 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
         <div data-testid="today-table">
           {planned.today.slots.map((s, i) => {
             const book = books.find((b) => b.id === s.bookId)
+            const inputKey = `${s.bookId}-${s.startMin}-${i}`
             return (
               <div
-                key={`${s.startMin}-${s.bookId}`}
+                key={`${s.startMin}-${s.bookId}-${i}`}
                 data-testid={`plan-row-${i}`}
                 style={{ display: 'flex', gap: 8, alignItems: 'center', padding: 8, border: '1px solid var(--border)', borderRadius: 8, marginBottom: 8 }}
               >
@@ -115,9 +116,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                         data-testid={`plan-input-${s.bookId}`}
                         type="number"
                         inputMode="numeric"
-                        value={inputs[s.bookId] ?? ''}
+                        value={inputs[inputKey] ?? ''}
                         onChange={(e) =>
-                          setInputs((p) => ({ ...p, [s.bookId]: e.target.value }))
+                          setInputs((p) => ({ ...p, [inputKey]: e.target.value }))
                         }
                         placeholder="ページ"
                         style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0 }}
@@ -126,7 +127,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                         data-testid={`plan-record-${s.bookId}`}
                         type="button"
                         style={{ flexShrink: 0 }}
-                        onClick={() => void handleRecord(s.bookId)}
+                        onClick={() => void handleRecord(inputKey, s.bookId)}
                       >
                         記録
                       </button>

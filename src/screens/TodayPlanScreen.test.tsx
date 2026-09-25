@@ -169,4 +169,27 @@ describe('TodayPlanScreen', () => {
     expect(title[0]).toHaveTextContent('英文法ポラリス2（応用レベル）')
     expect(title[0]).not.toHaveStyle({ whiteSpace: 'nowrap', overflow: 'hidden' })
   })
+
+  it('keeps page inputs independent per time slot for the same book', async () => {
+    await fillBook('b1', { totalPages: 1000 })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '15:55', end: '16:50' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'a2', weekday: 1, date: null, start: '17:45', end: '19:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'a3', weekday: 1, date: null, start: '21:00', end: '21:45' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const inputs = await screen.findAllByTestId('plan-input-b1')
+    expect(inputs).toHaveLength(3)
+    fireEvent.change(inputs[0], { target: { value: '5' } })
+    expect((inputs[0] as HTMLInputElement).value).toBe('5')
+    expect((inputs[1] as HTMLInputElement).value).toBe('')
+    expect((inputs[2] as HTMLInputElement).value).toBe('')
+  })
 })
