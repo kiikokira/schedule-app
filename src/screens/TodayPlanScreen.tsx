@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import { listAvailability } from '../data/dayplanStore'
-import { generateDayPlan, effectiveSpeed, learnSpeed, type ScheduledBook } from '../lib/dayplan'
+import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, type ScheduledBook } from '../lib/dayplan'
 import { todayStr, formatJaDate, type BookData } from '../lib/progress'
+import { getNotifySettings, publishSlots } from '../lib/notify'
+import { buildSlotsPayload } from '../lib/slotNotify'
+import { useSlotEndReminder } from '../lib/useSlotEndReminder'
 import CoverImage from '../components/CoverImage'
 
 type Props = {
@@ -25,15 +28,22 @@ function toScheduledBook(b: BookData): ScheduledBook {
   }
 }
 
+// 同じ内容の公開は繰り返さないための記録キー
+const SLOTS_PUBLISHED_KEY = 'schedule-app-slots-published'
+
 export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }: Props) {
   const { books, saveBook } = useBooks()
   const { records, addProgress } = useRecords()
   const today = todayProp ?? todayStr()
   const [availability, setAvailability] = useState<Awaited<ReturnType<typeof listAvailability>>>([])
+  const [availabilityLoaded, setAvailabilityLoaded] = useState(false)
   const [inputs, setInputs] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    void listAvailability().then(setAvailability)
+    void listAvailability().then((a) => {
+      setAvailability(a)
+      setAvailabilityLoaded(true)
+    })
   }, [])
 
   const doneByBook = new Map(books.map((b) => [b.id, 0]))
@@ -46,6 +56,43 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
     .map((sb) => sb)
   // スケジュールに含まれていない登録本も対象にする
   const planned = generateDayPlan({ availability, books: scheduled, today })
+
+  // リマインダー用: その日の空き時間帯と終了予定をntfyへ送る。
+  // ワークフローが15分ごとに読み、終わった直後の時間帯だけ通知する。
+  const notify = getNotifySettings()
+  const notifyEnabled = notify.enabled
+  const notifyTopic = notify.topic
+  const slotsPayload = useMemo(
+    () =>
+      availabilityLoaded
+        ? buildSlotsPayload(today, slotsForDate(availability, today), planned.today.slots, books)
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [availabilityLoaded, availability, today, planned, books],
+  )
+
+  useEffect(() => {
+    if (!notifyEnabled || !notifyTopic.trim() || !slotsPayload) return
+    const hash = `${slotsPayload.date}|${JSON.stringify(slotsPayload.slots)}`
+    try {
+      if (localStorage.getItem(SLOTS_PUBLISHED_KEY) === hash) return
+    } catch {
+      return
+    }
+    void publishSlots(notifyTopic, slotsPayload).then((ok) => {
+      if (!ok) return
+      try {
+        localStorage.setItem(SLOTS_PUBLISHED_KEY, hash)
+      } catch {
+        // localStorage が利用できない環境では保存しない
+      }
+    })
+  }, [notifyEnabled, notifyTopic, slotsPayload])
+
+  // アプリを開いている間は、直近の終了時刻にその場で通知を送る。
+  // サーバー側の定期実行（最大15分遅れ）より早く届く。タイトルを
+  // 統一しているため、サーバー側の二重送信防止にもかかる。
+  useSlotEndReminder(notifyEnabled, notifyTopic, slotsPayload)
 
   const handleRecord = async (slotKey: string, bookId: string) => {
     const raw = inputs[slotKey] ?? ''

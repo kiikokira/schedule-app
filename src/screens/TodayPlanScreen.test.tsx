@@ -192,4 +192,62 @@ describe('TodayPlanScreen', () => {
     expect((inputs[1] as HTMLInputElement).value).toBe('')
     expect((inputs[2] as HTMLInputElement).value).toBe('')
   })
+
+  it('publishes today slot ends for the reminder workflow when notifications are enabled', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '21:45' },
+      true,
+    )
+    localStorage.setItem(
+      'schedule-app-ntfy',
+      JSON.stringify({ enabled: true, topic: 'my-topic' }),
+    )
+    localStorage.removeItem('schedule-app-slots-published')
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => ({ ok: true }) as Response,
+    )
+    vi.stubGlobal('fetch', fetchImpl)
+    try {
+      render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+      await waitFor(() => {
+        expect(fetchImpl).toHaveBeenCalledWith(
+          'https://ntfy.sh/my-topic-slots',
+          expect.objectContaining({ method: 'POST' }),
+        )
+      })
+      const found = fetchImpl.mock.calls.find(([url]) => url === 'https://ntfy.sh/my-topic-slots')
+      expect(found).toBeDefined()
+      const [, init] = found!
+      const body = JSON.parse((init as RequestInit).body as string)
+      expect(body.date).toBe('2026-09-21')
+      expect(body.slots).toEqual([
+        { start: '21:00', end: '21:45', books: ['英文法ポラリス2（応用レベル）'] },
+      ])
+    } finally {
+      vi.unstubAllGlobals()
+      localStorage.removeItem('schedule-app-ntfy')
+      localStorage.removeItem('schedule-app-slots-published')
+    }
+  })
+
+  it('does not publish slots when notifications are disabled', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '21:45' },
+      true,
+    )
+    localStorage.removeItem('schedule-app-ntfy')
+    localStorage.removeItem('schedule-app-slots-published')
+    const fetchImpl = vi.fn(async () => ({ ok: true }) as Response)
+    vi.stubGlobal('fetch', fetchImpl)
+    try {
+      render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+      await screen.findByTestId('today-table')
+      await new Promise((resolve) => setTimeout(resolve, 200))
+      expect(fetchImpl).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
 })

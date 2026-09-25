@@ -3,9 +3,11 @@ import {
   getNotifySettings,
   setNotifySettings,
   stateTopicOf,
+  slotsTopicOf,
   normalizeTopic,
   publishPush,
   publishState,
+  publishSlots,
 } from './notify'
 
 beforeEach(() => {
@@ -32,6 +34,12 @@ describe('getNotifySettings / setNotifySettings', () => {
 describe('stateTopicOf', () => {
   it('appends -state to the topic', () => {
     expect(stateTopicOf('my-topic')).toBe('my-topic-state')
+  })
+})
+
+describe('slotsTopicOf', () => {
+  it('appends -slots to the topic', () => {
+    expect(slotsTopicOf('my-topic')).toBe('my-topic-slots')
   })
 })
 
@@ -150,5 +158,46 @@ describe('publishState', () => {
     const body = JSON.parse((init as RequestInit).body as string)
     expect(body.behind).toBe(true)
     expect(body.requiredPerDay).toBe(6)
+  })
+})
+
+describe('publishSlots', () => {
+  it('posts the slots payload to the -slots topic using only safelisted headers', async () => {
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        ({ ok: true }) as Response,
+    )
+    const ok = await publishSlots(
+      'my-topic',
+      {
+        date: '2026-09-21',
+        slots: [{ start: '21:00', end: '21:45', books: ['英文法ポラリス2'] }],
+        savedAt: '2026-09-21T00:00:00.000Z',
+      },
+      fetchImpl as typeof fetch,
+    )
+    expect(ok).toBe(true)
+    const [url, init] = fetchImpl.mock.calls[0]
+    expect(url).toBe('https://ntfy.sh/my-topic-slots')
+    const headers = (init as RequestInit).headers as Record<string, string>
+    expect(headers).not.toHaveProperty('X-TTL')
+    expect(headers['Content-Type']).toBe('text/plain')
+    const body = JSON.parse((init as RequestInit).body as string)
+    expect(body.date).toBe('2026-09-21')
+    expect(body.slots).toHaveLength(1)
+  })
+
+  it('returns false when the request throws', async () => {
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        throw new Error('network down')
+      },
+    )
+    const ok = await publishSlots(
+      'my-topic',
+      { date: '2026-09-21', slots: [], savedAt: '2026-09-21T00:00:00.000Z' },
+      fetchImpl as typeof fetch,
+    )
+    expect(ok).toBe(false)
   })
 })

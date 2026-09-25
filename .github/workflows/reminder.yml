@@ -1,7 +1,7 @@
-name: Daily push reminder
+name: Study slot-end reminders
 on:
   schedule:
-    - cron: '0 11 * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -9,44 +9,77 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Send reminder
+      - name: Send slot-end reminders
         env:
           TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: |
-          if [ -z "$TOPIC" ]; then
+          set -u
+          if [ -z "${TOPIC:-}" ]; then
             echo "NTFY_TOPIC が未設定のため通知をスキップしました。リポジトリの Settings > Secrets > Actions で設定してください。" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
-          # アプリが publishState で送った直近の診断状態('<topic>-state')を取得する
-          STATE_TOPIC="${TOPIC}-state"
-          STATE=""
-          if curl -sf "https://ntfy.sh/${STATE_TOPIC}/json?since=all" > /tmp/state_json; then
-            STATE=$(tail -n 1 /tmp/state_json)
+          TODAY_JST=$(TZ=Asia/Tokyo date +%F)
+          NOW_MIN=$(( 10#$(TZ=Asia/Tokyo date +%H) * 60 + 10#$(TZ=Asia/Tokyo date +%M) ))
+          TODAY_START=$(TZ=Asia/Tokyo date -d "$TODAY_JST 00:00" +%s)
+          WINDOW_MIN=15
+
+          # 注意: /json は poll=1 なしだとストリームが閉じず curl が永遠に
+          # 終わらないため、必ず poll=1 を付けて即時返却させること。
+          RAW_SLOTS=$(curl -sf "https://ntfy.sh/${TOPIC}-slots/json?poll=1&since=${TODAY_START}" 2>/dev/null || true)
+          if [ -z "$RAW_SLOTS" ]; then
+            echo "今日の時間帯データ(-slots)の配信がありません。アプリで「今日の計画」を開くと登録されます。" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
 
-          MSG=$(printf '%s' "$STATE" | jq -r '.message // empty' 2>/dev/null || true)
-          BEHIND=$(printf '%s' "$MSG" | jq -r '.behind // false' 2>/dev/null || echo false)
-          PACE=$(printf '%s' "$MSG" | jq -r '.requiredPerDay // empty' 2>/dev/null || true)
+          MSG=$(printf '%s\n' "$RAW_SLOTS" | tail -n 1 | jq -r '.message // empty' 2>/dev/null || true)
+          PAYLOAD_DATE=$(printf '%s' "$MSG" | jq -r '.date // empty' 2>/dev/null || true)
+          if [ "$PAYLOAD_DATE" != "$TODAY_JST" ]; then
+            echo "最新の時間帯データは ${PAYLOAD_DATE:-不明} のもので今日分ではありません。スキップしました。" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
 
-          if [ "$BEHIND" = "true" ]; then
-            TITLE="⚠ 今日は遅れ気味です"
-            if [ -n "$PACE" ]; then
-              MESSAGE="期限まで均等にすると1日 ${PACE} ページです。がんばりましょう"
-            else
-              MESSAGE="学習を進めましょう。記録を残すだけでも大きな一歩です"
+          SENT=0
+          while read -r slot; do
+            START=$(printf '%s' "$slot" | jq -r '.start // empty')
+            END=$(printf '%s' "$slot" | jq -r '.end // empty')
+            if [ -z "$START" ] || [ -z "$END" ]; then
+              continue
             fi
-          else
-            TITLE="学習リマインダー"
-            MESSAGE="今日の学習を記録しましたか？"
-          fi
+            END_MIN=$(( 10#${END%%:*} * 60 + 10#${END##*:} ))
+            ELAPSED=$(( NOW_MIN - END_MIN ))
+            if [ "$ELAPSED" -lt 0 ] || [ "$ELAPSED" -ge "$WINDOW_MIN" ]; then
+              continue
+            fi
+            TITLE="学習時間終了 ${END}"
+            # 二重送信防止: 今日すでに同じタイトルで送っていたら送らない
+            # (アプリを開いていた場合の即時通知と重複するため)
+            ALREADY=$(curl -sf "https://ntfy.sh/${TOPIC}/json?poll=1&since=${TODAY_START}" 2>/dev/null \
+              | jq -s --arg t "$TITLE" --argjson since "$TODAY_START" \
+                '[.[] | select(.title == $t and .time >= $since)] | length' 2>/dev/null || echo 0)
+            if [ "${ALREADY:-0}" != "0" ]; then
+              echo "スキップ(送信済み): ${TITLE}" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            BOOKS=$(printf '%s' "$slot" | jq -r '[.books[]?] | join("、")')
+            if [ -n "$BOOKS" ]; then
+              BODY="${START}～${END} の空き時間が終わりました。今日の学習を記録しましたか？（${BOOKS}）"
+            else
+              BODY="${START}～${END} の空き時間が終わりました。今日の学習を記録しましたか？"
+            fi
+            if curl -sf -X POST "https://ntfy.sh/${TOPIC}" \
+              -H "Title: ${TITLE}" \
+              -d "${BODY}" >> "$GITHUB_STEP_SUMMARY" 2>&1; then
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "通知を送信しました: ${TITLE}" >> "$GITHUB_STEP_SUMMARY"
+              SENT=$(( SENT + 1 ))
+            else
+              echo "通知の送信に失敗しました: ${TITLE}" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done <<EOF
+          $(printf '%s' "$MSG" | jq -c '.slots[]?' 2>/dev/null || true)
+          EOF
 
-          if curl -sf -X POST "https://ntfy.sh/${TOPIC}" \
-            -H "Title: ${TITLE}" \
-            -H "Priority: high" \
-            -d "${MESSAGE}" >> "$GITHUB_STEP_SUMMARY" 2>&1; then
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "通知を送信しました: ${TITLE}" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "通知の送信に失敗しました" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$SENT" = "0" ]; then
+            echo "今周期に終わった時間帯はありませんでした。" >> "$GITHUB_STEP_SUMMARY"
           fi

@@ -1,3 +1,5 @@
+import type { SlotsPayload } from './slotNotify'
+
 export type NotifySettings = {
   enabled: boolean
   topic: string
@@ -53,6 +55,10 @@ const encodeTopic = (topic: string) => encodeURIComponent(normalizeTopic(topic))
 
 export function stateTopicOf(topic: string): string {
   return `${encodeTopic(topic)}-state`
+}
+
+export function slotsTopicOf(topic: string): string {
+  return `${encodeTopic(topic)}-slots`
 }
 
 const withTimeout = (controller: AbortController) =>
@@ -113,6 +119,34 @@ export async function publishState(
     return res.ok
   } catch (err) {
     console.info('[notify] state publish failed:', err)
+    return false
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// その日の空き時間帯の終了予定を -slots トピックへ送る。
+// ワークフローが15分ごとに読み、終わった直後の時間帯だけ通知する。
+export async function publishSlots(
+  topic: string,
+  payload: SlotsPayload,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  const controller = new AbortController()
+  const timer = withTimeout(controller)
+  try {
+    const res = await fetchImpl(`${NTFY_BASE}/${slotsTopicOf(topic)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body: JSON.stringify(payload),
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+    return res.ok
+  } catch (err) {
+    console.info('[notify] slots publish failed:', err)
     return false
   } finally {
     clearTimeout(timer)

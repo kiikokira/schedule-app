@@ -657,44 +657,6 @@ describe('HomeScreen', () => {
     expect(screen.queryByTestId('overall-pace-banner-ok')).not.toBeInTheDocument()
   })
 
-  it('publishes the diagnosis state to the ntfy state topic when enabled', async () => {
-    const fetchImpl = vi.fn(
-      async (_input: RequestInfo | URL, _init?: RequestInit) =>
-        ({ ok: true }) as Response,
-    )
-    vi.stubGlobal('fetch', fetchImpl)
-    localStorage.setItem(
-      'schedule-app-ntfy',
-      JSON.stringify({ enabled: true, topic: 'my-topic' }),
-    )
-    await db.books.add({
-      ...book,
-      id: 'b1',
-      totalPages: 150,
-      deadline: daysAhead(150),
-    })
-    await db.records.add({ id: 'r1', bookId: 'b1', date: daysAgo(1), pages: 5 })
-    render(<HomeScreen onOpenBook={() => {}} />)
-    await waitFor(() => {
-      expect(fetchImpl).toHaveBeenCalledWith(
-        'https://ntfy.sh/my-topic-state',
-        expect.objectContaining({ method: 'POST' }),
-      )
-    })
-    const [, init] = fetchImpl.mock.calls[0]
-    const body = JSON.parse(init?.body as string)
-    expect(body.behind).toBe(true)
-  })
-
-  it('does not publish state when the notification is disabled', async () => {
-    const fetchImpl = vi.fn(async () => ({ ok: true } as Response))
-    vi.stubGlobal('fetch', fetchImpl)
-    localStorage.removeItem('schedule-app-ntfy')
-    render(<HomeScreen onOpenBook={() => {}} />)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    expect(fetchImpl).not.toHaveBeenCalled()
-  })
-
   it('removes orphan bookId schedule entries left by deleted books', async () => {
     saveSchedule([
       { bookId: 'orphan-uuid', startDate: daysAgo(1), deadline: daysAhead(10) },

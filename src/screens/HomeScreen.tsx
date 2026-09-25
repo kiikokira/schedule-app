@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import CoverImage from '../components/CoverImage'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
-import { getNotifySettings, publishState } from '../lib/notify'
 import {
   calcDonePages,
   calcRequiredPerDay,
@@ -432,21 +431,6 @@ export default function HomeScreen({ onOpenBook }: Props) {
   }
 
   const diagnosis = overallDiagnosis(books, records, today)
-
-  const notify = getNotifySettings()
-  const notifyEnabled = notify.enabled
-  const notifyTopic = notify.topic
-
-  useEffect(() => {
-    if (!notifyEnabled || !notifyTopic.trim()) return
-    const timer = setTimeout(() => {
-      void publishState(notifyTopic, {
-        behind: diagnosis.behind,
-        requiredPerDay: diagnosis.requiredPerDay,
-      })
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [notifyEnabled, notifyTopic, diagnosis.behind, diagnosis.requiredPerDay])
 
   // 削除済みの参考書を指すbookIdエントリの残留を掃除する。
   // booksLoaded が false の間（DB読み込み前）は何もしない。
