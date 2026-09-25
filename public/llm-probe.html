@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>端末内AI 動作検証（使い捨て）</title>
+<style>
+  body { font-family: sans-serif; padding: 16px; line-height: 1.6; }
+  button { font-size: 16px; padding: 10px 16px; margin: 8px 8px 8px 0; }
+  #log { white-space: pre-wrap; background: #f2f4f8; border-radius: 8px; padding: 12px; margin-top: 12px; }
+  .warn { color: #b00; }
+</style>
+</head>
+<body>
+<h1>端末内AI 動作検証（使い捨てページ）</h1>
+<p>Wi-Fi接続の状態で、下のボタンを <strong>1→2の順</strong> に押してください。結果の数値・文章を報告してください。</p>
+<button id="btn-env" type="button">1. 環境チェック</button>
+<button id="btn-load" type="button">2. モデル読込（約500MB・Wi-Fi推奨）</button>
+<button id="btn-gen" type="button">3. 生成テスト</button>
+<div id="log">待機中…</div>
+<script type="module">
+  const log = (msg) => {
+    const el = document.getElementById('log');
+    el.textContent += '\n' + msg;
+  };
+
+  document.getElementById('btn-env').addEventListener('click', () => {
+    log('--- 環境 ---');
+    log('WebGPU: ' + ('gpu' in navigator ? 'あり' : 'なし'));
+    log('CPUコア数: ' + (navigator.hardwareConcurrency ?? '不明'));
+    log('メモリ(GB): ' + (navigator.deviceMemory ?? '不明'));
+    log('UA: ' + navigator.userAgent);
+  });
+
+  let generator = null;
+
+  document.getElementById('btn-load').addEventListener('click', async () => {
+    try {
+      log('--- 読込開始 ---');
+      const t0 = performance.now();
+      const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1');
+      generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
+        dtype: 'q4f16',
+        progress_callback: (p) => {
+          if (p.status === 'progress' && p.file) {
+            log(`読込中 ${p.file}: ${Math.round(p.progress ?? 0)}%`);
+          }
+        },
+      });
+      const sec = ((performance.now() - t0) / 1000).toFixed(1);
+      log(`読込完了: ${sec}秒`);
+    } catch (e) {
+      log('読込エラー: ' + (e && e.message ? e.message : String(e)));
+    }
+  });
+
+  document.getElementById('btn-gen').addEventListener('click', async () => {
+    try {
+      if (!generator) {
+        log('先に「2. モデル読込」を実行してください');
+        return;
+      }
+      const prompt = '勉強のやる気が出ないときのアドバイスを、日本語で一言ください。';
+      log('--- 生成開始 ---');
+      const t0 = performance.now();
+      const out = await generator(prompt, {
+        max_new_tokens: 40,
+        do_sample: false,
+        return_full_text: false,
+      });
+      const sec = (performance.now() - t0) / 1000;
+      const text = out[0]?.generated_text ?? '(空)';
+      const approxTokPerSec = (40 / sec).toFixed(1);
+      log(`生成完了: ${sec.toFixed(1)}秒（約${approxTokPerSec}トークン/秒・上限40トークン）`);
+      log('出力: ' + text);
+    } catch (e) {
+      log('生成エラー: ' + (e && e.message ? e.message : String(e)));
+    }
+  });
+</script>
+</body>
+</html>
