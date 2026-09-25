@@ -23,6 +23,10 @@
     const el = document.getElementById('log');
     el.textContent += '\n' + msg;
   };
+  window.addEventListener('error', (e) => {
+    log('ページエラー: ' + (e.message || String(e)));
+  });
+  log('ページ読込OK（下のボタンを押せます）');
 
   document.getElementById('btn-env').addEventListener('click', () => {
     log('--- 環境 ---');
