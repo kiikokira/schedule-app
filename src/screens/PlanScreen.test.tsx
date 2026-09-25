@@ -721,4 +721,66 @@ describe('PlanScreen', () => {
     fireEvent.click(screen.getByTestId('back-button'))
     expect(done).toBe(true)
   })
+
+  it('pins a book to a weekday slot and saves it', async () => {
+    const now = new Date().toISOString()
+    await db.books.add({
+      id: 'b1',
+      title: '英単語1000',
+      totalPages: 100,
+      startDate: '2026-09-01',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+    } as any)
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-group-weekday-1'))
+    const select = await screen.findByTestId('slot-book-a1')
+    await waitFor(() => {
+      expect(select).toHaveTextContent('英単語1000')
+    })
+    fireEvent.change(select, { target: { value: 'b1' } })
+    fireEvent.click(screen.getByTestId('slot-save-a1'))
+    await waitFor(async () => {
+      const slots = await listAvailability()
+      expect(slots).toHaveLength(1)
+      expect(slots[0].bookId).toBe('b1')
+      expect(slots[0].start).toBe('21:00')
+    })
+    expect(screen.getByTestId('slot-group-weekday-1')).toHaveTextContent(
+      '月曜 21:00〜23:00（英単語1000）',
+    )
+  })
+
+  it('clears the pin when switching a slot back to auto', async () => {
+    const now = new Date().toISOString()
+    await db.books.add({
+      id: 'b1',
+      title: '英単語1000',
+      totalPages: 100,
+      startDate: '2026-09-01',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+    } as any)
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00', bookId: 'b1' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-group-weekday-1'))
+    const select = await screen.findByTestId('slot-book-a1')
+    expect((select as HTMLSelectElement).value).toBe('b1')
+    fireEvent.change(select, { target: { value: '' } })
+    fireEvent.click(screen.getByTestId('slot-save-a1'))
+    await waitFor(async () => {
+      const slots = await listAvailability()
+      expect(slots).toHaveLength(1)
+      expect(slots[0].bookId).toBeUndefined()
+    })
+  })
 })

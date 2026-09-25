@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { db, deleteBookCascade } from '../db/database'
 import { removeBookEntries } from '../data/scheduleStore'
+import { unpinBook } from '../data/dayplanStore'
 import type { BookData } from '../lib/progress'
 
 export function useBooks() {
@@ -32,6 +33,7 @@ export function useBooks() {
     async (bookId: string) => {
       await deleteBookCascade(bookId)
       removeBookEntries(bookId)
+      await unpinBook(bookId)
       await refresh()
     },
     [refresh],

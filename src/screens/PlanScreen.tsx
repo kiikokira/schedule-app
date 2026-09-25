@@ -30,7 +30,7 @@ type Props = {
   onDone: () => void
 }
 
-type SlotRow = { start: string; end: string }
+type SlotRow = { start: string; end: string; bookId?: string }
 
 const emptyRow = (): SlotRow => ({ start: '', end: '' })
 
@@ -69,8 +69,12 @@ export default function PlanScreen({ onDone }: Props) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set())
   const [slotDrafts, setSlotDrafts] = useState<Record<string, SlotRow>>({})
 
-  const updateSlotDraft = (id: string, patch: Partial<SlotRow>) =>
-    setSlotDrafts((prev) => ({ ...prev, [id]: { ...(prev[id] ?? { start: '', end: '' }), ...patch } }))
+  const updateSlotDraft = (slot: AvailabilitySlot, patch: Partial<SlotRow>) =>
+    setSlotDrafts((prev) => {
+      const base: SlotRow = { start: slot.start, end: slot.end, bookId: slot.bookId }
+      const next: SlotRow = Object.assign({}, base, prev[slot.id] ?? {}, patch)
+      return { ...prev, [slot.id]: next }
+    })
 
   const toggleGroup = (key: string) =>
     setExpandedGroups((prev) => {
@@ -143,12 +147,19 @@ export default function PlanScreen({ onDone }: Props) {
   }
 
   const saveSlotTimes = async (slot: AvailabilitySlot) => {
-    const draft = slotDrafts[slot.id] ?? { start: slot.start, end: slot.end }
+    const draft: SlotRow = slotDrafts[slot.id] ?? {
+      start: slot.start,
+      end: slot.end,
+      bookId: slot.bookId,
+    }
     if (parseTimeToMin(draft.end) <= parseTimeToMin(draft.start)) {
       window.alert('終了時刻は開始時刻より後にしてください')
       return
     }
-    await saveAvailabilitySlot({ ...slot, start: draft.start, end: draft.end }, false)
+    const next: AvailabilitySlot = { ...slot, start: draft.start, end: draft.end }
+    if (draft.bookId) next.bookId = draft.bookId
+    else delete next.bookId
+    await saveAvailabilitySlot(next, false)
     setSlotDrafts((prev) => {
       const next = { ...prev }
       delete next[slot.id]
@@ -210,6 +221,13 @@ export default function PlanScreen({ onDone }: Props) {
 
   const weekdayOrder = [1, 2, 3, 4, 5, 6, 0]
   const weekdayNames = ['日', '月', '火', '水', '木', '金', '土']
+
+  const slotLabelWithPin = (s: AvailabilitySlot) => {
+    const base = `${s.start}〜${s.end}`
+    if (!s.bookId) return base
+    const pinned = books.find((b) => b.id === s.bookId)
+    return pinned ? `${base}（${pinned.title}）` : base
+  }
 
   const weekdayGroups = weekdayOrder
     .map((w) => ({
@@ -423,8 +441,8 @@ export default function PlanScreen({ onDone }: Props) {
           {[...weekdayGroups, ...dateGroups].map((group) => {
             const label =
               'weekday' in group
-                ? `${weekdayNames[group.weekday]}曜 ${group.slots.map((s) => `${s.start}〜${s.end}`).join(', ')}`
-                : `${formatJaDate(group.date)} ${group.slots.map((s) => `${s.start}〜${s.end}`).join(', ')}`
+                ? `${weekdayNames[group.weekday]}曜 ${group.slots.map(slotLabelWithPin).join(', ')}`
+                : `${formatJaDate(group.date)} ${group.slots.map(slotLabelWithPin).join(', ')}`
             const open = expandedGroups.has(group.key)
             return (
               <div key={group.key} style={{ marginTop: 8 }}>
@@ -449,23 +467,42 @@ export default function PlanScreen({ onDone }: Props) {
                 </div>
                 {open &&
                   group.slots.map((slot) => {
-                    const draft = slotDrafts[slot.id] ?? { start: slot.start, end: slot.end }
+                    const draft: SlotRow = slotDrafts[slot.id] ?? {
+                      start: slot.start,
+                      end: slot.end,
+                      bookId: slot.bookId,
+                    }
                     const slotLabel = `${slot.start}〜${slot.end}`
                     return (
-                      <div key={slot.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, paddingLeft: 8 }}>
+                      <div key={slot.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, paddingLeft: 8, flexWrap: 'wrap' }}>
                         <input
                           data-testid={`slot-edit-start-${slot.id}`}
                           type="time"
                           value={draft.start}
-                          onChange={(e) => updateSlotDraft(slot.id, { start: e.target.value })}
+                          onChange={(e) => updateSlotDraft(slot, { start: e.target.value })}
                         />
                         <span>〜</span>
                         <input
                           data-testid={`slot-edit-end-${slot.id}`}
                           type="time"
                           value={draft.end}
-                          onChange={(e) => updateSlotDraft(slot.id, { end: e.target.value })}
+                          onChange={(e) => updateSlotDraft(slot, { end: e.target.value })}
                         />
+                        <select
+                          data-testid={`slot-book-${slot.id}`}
+                          value={draft.bookId ?? ''}
+                          onChange={(e) =>
+                            updateSlotDraft(slot, { bookId: e.target.value || undefined })
+                          }
+                          aria-label="この時間にする本"
+                        >
+                          <option value="">おまかせ</option>
+                          {books.map((book) => (
+                            <option key={book.id} value={book.id}>
+                              {book.title}
+                            </option>
+                          ))}
+                        </select>
                         <button data-testid={`slot-save-${slot.id}`} type="button" onClick={() => void saveSlotTimes(slot)}>
                           保存
                         </button>

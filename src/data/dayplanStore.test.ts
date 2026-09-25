@@ -4,6 +4,7 @@ import {
   listAvailability,
   saveAvailabilitySlot,
   deleteAvailabilitySlot,
+  unpinBook,
   prunePastOverrides,
   listAdjustments,
   addAdjustment,
@@ -50,6 +51,37 @@ describe('availability store', () => {
     )
     await deleteAvailabilitySlot('a1')
     expect(await listAvailability()).toEqual([])
+  })
+
+  it('saves and lists a slot with a pinned book', async () => {
+    const slot: AvailabilitySlot = {
+      id: 'a1',
+      weekday: 1,
+      date: null,
+      start: '21:00',
+      end: '23:00',
+      bookId: 'b1',
+    }
+    await saveAvailabilitySlot(slot, true)
+    expect(await listAvailability()).toEqual([slot])
+  })
+})
+
+describe('unpinBook', () => {
+  it('clears the pinned book from matching slots and keeps the slots', async () => {
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00', bookId: 'b1' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'a2', weekday: 1, date: null, start: '15:00', end: '16:00', bookId: 'b2' },
+      true,
+    )
+    await unpinBook('b1')
+    const all = await listAvailability()
+    expect(all).toHaveLength(2)
+    expect(all.find((s) => s.id === 'a1')?.bookId).toBeUndefined()
+    expect(all.find((s) => s.id === 'a2')?.bookId).toBe('b2')
   })
 })
 

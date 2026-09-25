@@ -29,6 +29,20 @@ const dateSlot = (date: string, start: string, end: string): AvailabilitySlot =>
   end,
 })
 
+const pinnedWeekSlot = (
+  weekday: number,
+  start: string,
+  end: string,
+  bookId: string,
+): AvailabilitySlot => ({
+  id: `w${weekday}-${start}`,
+  weekday,
+  date: null,
+  start,
+  end,
+  bookId,
+})
+
 const book = (partial: Partial<ScheduledBook> = {}): ScheduledBook => ({
   bookId: 'b1',
   donePages: 0,
@@ -92,6 +106,14 @@ describe('slotsForDate', () => {
     )
     expect(slots).toEqual([{ startMin: 1200, endMin: 1260 }])
   })
+
+  it('propagates the pinned book of a slot', () => {
+    const slots = slotsForDate(
+      [pinnedWeekSlot(1, '21:00', '22:00', 'b9')],
+      '2026-09-21',
+    )
+    expect(slots).toEqual([{ startMin: 1260, endMin: 1320, bookId: 'b9' }])
+  })
 })
 
 describe('generateDayPlan', () => {
@@ -124,6 +146,69 @@ describe('generateDayPlan', () => {
     })
     expect(out.today.slots[0].bookId).toBe('b1')
     expect(out.today.totalMinutes).toBe(90)
+  })
+
+  it('prefers the pinned book over a higher-priority book in a pinned slot', () => {
+    const out = generateDayPlan({
+      availability: [pinnedWeekSlot(1, '21:00', '22:00', 'bPin')],
+      books: [
+        book({ bookId: 'bHigh', totalPages: 1000, minutesPerPage: 2, priority: 0 }),
+        book({
+          bookId: 'bPin',
+          totalPages: 100,
+          minutesPerPage: 2,
+          priority: 5,
+          deadline: '2026-09-22',
+        }),
+      ],
+      today: '2026-09-21',
+    })
+    expect(out.today.slots).toEqual([slot(1260, 1320, 'bPin', 30)])
+  })
+
+  it('fills the remainder of a pinned slot with other books', () => {
+    const out = generateDayPlan({
+      availability: [pinnedWeekSlot(1, '21:00', '23:00', 'bPin')],
+      books: [
+        book({
+          bookId: 'bHigh',
+          totalPages: 100,
+          minutesPerPage: 2,
+          priority: 0,
+          deadline: '2026-09-22',
+        }),
+        book({
+          bookId: 'bPin',
+          totalPages: 15,
+          minutesPerPage: 2,
+          priority: 5,
+          deadline: '2026-09-22',
+        }),
+      ],
+      today: '2026-09-21',
+    })
+    expect(out.today.slots).toEqual([
+      slot(1260, 1290, 'bPin', 15),
+      slot(1290, 1380, 'bHigh', 45),
+    ])
+  })
+
+  it('auto-fills a pinned slot when the pinned book needs nothing', () => {
+    const out = generateDayPlan({
+      availability: [pinnedWeekSlot(1, '21:00', '22:00', 'bPin')],
+      books: [
+        book({
+          bookId: 'bHigh',
+          totalPages: 100,
+          minutesPerPage: 2,
+          priority: 0,
+          deadline: '2026-09-22',
+        }),
+        book({ bookId: 'bPin', donePages: 100, totalPages: 100, priority: 5 }),
+      ],
+      today: '2026-09-21',
+    })
+    expect(out.today.slots).toEqual([slot(1260, 1320, 'bHigh', 30)])
   })
 
   it('carries over the deficit from past days into today and shows a notice', () => {

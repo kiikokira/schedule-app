@@ -6,6 +6,8 @@ export type AvailabilitySlot = {
   date: string | null
   start: string
   end: string
+  // その時間はこの本を優先する指定。未設定なら自動割り当て。
+  bookId?: string
 }
 
 export type Adjustment = {
@@ -33,6 +35,18 @@ export async function saveAvailabilitySlot(
 
 export async function deleteAvailabilitySlot(id: string): Promise<void> {
   await db.availability.delete(id)
+}
+
+// 参考書の削除に連動して、その本に固定された時間帯の固定を外す。枠自体は残す。
+export async function unpinBook(bookId: string): Promise<void> {
+  const all = await listAvailability()
+  for (const slot of all) {
+    if (slot.bookId === bookId) {
+      const next = { ...slot }
+      delete next.bookId
+      await saveAvailabilitySlot(next, false)
+    }
+  }
 }
 
 // アプリ起動時に過去日の「当日上書き」だけを自動削除する。

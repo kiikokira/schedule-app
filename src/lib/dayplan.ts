@@ -26,7 +26,7 @@ export function minutesPerPageFor(
   return DEFAULT_MINUTES_PER_PAGE
 }
 
-export type TimeSlot = { startMin: number; endMin: number }
+export type TimeSlot = { startMin: number; endMin: number; bookId?: string }
 
 export function parseTimeToMin(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number)
@@ -42,7 +42,11 @@ export function slotsForDate(
     .sort((a, b) => parseTimeToMin(a.start) - parseTimeToMin(b.start))
   if (dateOverrides.length > 0) {
     return dateOverrides
-      .map((a) => ({ startMin: parseTimeToMin(a.start), endMin: parseTimeToMin(a.end) }))
+      .map((a) => ({
+        startMin: parseTimeToMin(a.start),
+        endMin: parseTimeToMin(a.end),
+        bookId: a.bookId,
+      }))
       .filter((s) => s.endMin > s.startMin && s.endMin <= 1440)
   }
   const d = parseDate(date)
@@ -50,7 +54,11 @@ export function slotsForDate(
   return availability
     .filter((a) => a.weekday === weekday)
     .sort((a, b) => parseTimeToMin(a.start) - parseTimeToMin(b.start))
-    .map((a) => ({ startMin: parseTimeToMin(a.start), endMin: parseTimeToMin(a.end) }))
+    .map((a) => ({
+      startMin: parseTimeToMin(a.start),
+      endMin: parseTimeToMin(a.end),
+      bookId: a.bookId,
+    }))
     .filter((s) => s.endMin > s.startMin && s.endMin <= 1440)
 }
 
@@ -175,11 +183,42 @@ function buildDayPlan(
   const wantOf = (t: { book: ScheduledBook; need: number }) =>
     Math.min(t.need * t.book.minutesPerPage, capOf(t.book, totalMin))
 
+  // 固定指定の予約を先に確保する(その本のその日の上限まで)。残りは従来通り。
+  const pinned: PlanSlot[] = []
+  const openSegs: TimeSlot[] = []
+  const reserved = new Map<string, number>()
+  for (const s of slots) {
+    const target = s.bookId
+      ? targets.find((t) => t.book.bookId === s.bookId)
+      : undefined
+    let c = s.startMin
+    let left = s.endMin - s.startMin
+    if (target) {
+      const take = Math.min(
+        left,
+        Math.max(wantOf(target) - (reserved.get(target.book.bookId) ?? 0), 0),
+      )
+      if (take > 0) {
+        pinned.push({
+          startMin: c,
+          endMin: c + take,
+          bookId: target.book.bookId,
+          pages: Math.max(Math.floor(take / target.book.minutesPerPage), 0),
+        })
+        reserved.set(target.book.bookId, (reserved.get(target.book.bookId) ?? 0) + take)
+        c += take
+        left -= take
+      }
+    }
+    if (left > 0) openSegs.push({ startMin: c, endMin: s.endMin })
+  }
+
   // 15分スロット単位で優先度順に詰め込む(1回あたりの割当=15分)
-  const assigned = new Map<string, number>()
-  let remaining = totalMin
+  const assigned = new Map<string, number>(reserved)
+  const openTotal = openSegs.reduce((sum, s) => sum + (s.endMin - s.startMin), 0)
+  let remaining = openTotal
   let guard = 0
-  for (let cur = 0; cur < totalMin && guard < 200; cur += 15, guard += 1) {
+  for (let cur = 0; cur < openTotal && guard < 200; cur += 15, guard += 1) {
     const cand = targets.filter((t) => (assigned.get(t.book.bookId) ?? 0) < wantOf(t))
     if (cand.length === 0) break
     const t = cand[0]
@@ -188,8 +227,10 @@ function buildDayPlan(
     remaining -= take
   }
 
-  const result = distributeMinutes(slots, targets, assigned)
-  const improved = improvePlan(result)
+  const result = distributeMinutes(openSegs, targets, assigned)
+  const improved = improvePlan(
+    [...pinned, ...result].sort((a, b) => a.startMin - b.startMin),
+  )
   return {
     date,
     slots: improved,
