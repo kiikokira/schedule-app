@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .superpowers/
+.worktrees/
 *.local
 .DS_Store
 *.tsbuildinfo
