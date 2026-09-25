@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { db, deleteBookCascade } from '../db/database'
+import { removeBookEntries } from '../data/scheduleStore'
 import type { BookData } from '../lib/progress'
 
 export function useBooks() {
   const [books, setBooks] = useState<BookData[]>([])
+  const [loaded, setLoaded] = useState(false)
 
   const refresh = useCallback(async () => {
     setBooks(await db.books.orderBy('deadline').toArray())
+    setLoaded(true)
   }, [])
 
   useEffect(() => {
@@ -28,10 +31,11 @@ export function useBooks() {
   const removeBook = useCallback(
     async (bookId: string) => {
       await deleteBookCascade(bookId)
+      removeBookEntries(bookId)
       await refresh()
     },
     [refresh],
   )
 
-  return { books, refresh, saveBook, removeBook }
+  return { books, loaded, refresh, saveBook, removeBook }
 }

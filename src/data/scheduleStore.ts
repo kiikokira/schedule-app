@@ -57,6 +57,14 @@ export function removeEntry(
   return entries.filter((e) => entryKey(e) !== key)
 }
 
+// 参考書の削除に連動して、その参考書を指すスケジュールエントリを消す。
+// catalogId のエントリは学習計画自体なので残す。
+export function removeBookEntries(bookId: string): ScheduleEntry[] {
+  const cleaned = loadSchedule().filter((e) => e.bookId !== bookId)
+  saveSchedule(cleaned)
+  return cleaned
+}
+
 export function updateEntry(
   entries: ScheduleEntry[],
   key: string,

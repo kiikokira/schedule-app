@@ -360,7 +360,7 @@ function ScheduleRow({
 }
 
 export default function HomeScreen({ onOpenBook }: Props) {
-  const { books, saveBook } = useBooks()
+  const { books, saveBook, loaded: booksLoaded } = useBooks()
   const { records, addProgress } = useRecords()
   const today = todayStr()
   const todayQuote = quoteOf(today)
@@ -447,6 +447,17 @@ export default function HomeScreen({ onOpenBook }: Props) {
     }, 500)
     return () => clearTimeout(timer)
   }, [notifyEnabled, notifyTopic, diagnosis.behind, diagnosis.requiredPerDay])
+
+  // 削除済みの参考書を指すbookIdエントリの残留を掃除する。
+  // booksLoaded が false の間（DB読み込み前）は何もしない。
+  useEffect(() => {
+    if (!booksLoaded) return
+    const ids = new Set(books.map((b) => b.id))
+    if (!schedule.some((e) => e.bookId && !ids.has(e.bookId))) return
+    const cleaned = schedule.filter((e) => !e.bookId || ids.has(e.bookId))
+    saveSchedule(cleaned)
+    setSchedule(cleaned)
+  }, [booksLoaded, books, schedule])
 
   return (
     <div style={{ padding: 16 }}>

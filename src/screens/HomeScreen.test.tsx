@@ -694,4 +694,17 @@ describe('HomeScreen', () => {
     await new Promise((resolve) => setTimeout(resolve, 500))
     expect(fetchImpl).not.toHaveBeenCalled()
   })
+
+  it('removes orphan bookId schedule entries left by deleted books', async () => {
+    saveSchedule([
+      { bookId: 'orphan-uuid', startDate: daysAgo(1), deadline: daysAhead(10) },
+      { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(1), deadline: daysAhead(10) },
+    ])
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await waitFor(() => {
+      expect(screen.queryByTestId('schedule-row-orphan-uuid')).not.toBeInTheDocument()
+    })
+    expect(loadSchedule().some((e) => e.bookId === 'orphan-uuid')).toBe(false)
+    expect(screen.getByTestId('schedule-row-eibunpo-polaris-2')).toBeInTheDocument()
+  })
 })
