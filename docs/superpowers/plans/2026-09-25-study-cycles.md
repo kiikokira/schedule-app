@@ -1,16 +1,16 @@
-# 反復学習（区画×周回） Implementation Plan
+# 反復学習（区画×周回）実装計画
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **実装担当エージェントへ:** 必須サブスキル: superpowers:subagent-driven-development（推奨）または superpowers:executing-plans を使い、この計画をタスクごとに実装すること。ステップはチェックボックス（`- [ ]`）形式で管理する。
 
-**Goal:** 本ごとに選べる「反復モード（区画×周回）」を追加し、範囲＋周回数の記録を毎日の目標に反映する。
+**目標:** 本ごとに選べる「反復モード（区画×周回）」を追加し、範囲＋周回数の記録を毎日の目標に反映する。
 
-**Architecture:** ページ記録（`records`）とは別の新テーブル `cycleRecords` に範囲＋周回を保存し、進捗は (区画, 周回) ペアの distinct で数える。時間割・AI・全体診断の心臓部には手を入れず、反復本はそこから除外して別枠表示する。
+**方針:** ページ記録（`records`）とは別の新テーブル `cycleRecords` に範囲＋周回を保存し、進捗は (区画, 周回) ペアの重複なし件数で数える。時間割・AI・全体診断の中心ロジックには手を入れず、反復本はそこから除外して別枠で表示する。
 
-**Tech Stack:** React 18 + TypeScript + Dexie (IndexedDB) + Vitest (jsdom, fake-indexeddb)。テスト実行は `cmd /c "npm run test -- --run <path>"`。
+**技術スタック:** React 18 + TypeScript + Dexie (IndexedDB) + Vitest (jsdom, fake-indexeddb)。テスト実行は `cmd /c "npm run test -- --run <パス>"`。
 
-**Spec:** `docs/superpowers/specs/2026-09-25-study-cycles-design.md`
+**仕様書:** `docs/superpowers/specs/2026-09-25-study-cycles-design.md`
 
-## Global Constraints
+## 全体制約
 
 - TDD: 先に失敗テストを書き、失敗を確認してから最小実装する。
 - 既存の通常ページ本の動作・既存テスト全緑を維持する。
@@ -19,21 +19,21 @@
 
 ---
 
-## File Structure
+## ファイル構成
 
-- Modify: `src/lib/progress.ts` — 型追加＋区画進捗計算の純粋関数。
-- Test: `src/lib/progress.test.ts`（既存ファイルに追記）。
-- Modify: `src/db/database.ts` — Dexie v3 `cycleRecords` テーブル＋CRUDヘルパー。
-- Create: `src/hooks/useCycleRecords.ts` — `useRecords` と同形のフック。
-- Test: `src/db/cycleRecords.test.ts`（新規）。
-- Modify: `src/db/backup.ts` / Test: `src/db/backup.test.ts`（既存に追記）— export/import/validate に `cycleRecords` を含める。
-- Modify: `src/screens/BookFormScreen.tsx` / Test: `src/screens/BookFormScreen.test.tsx`（既存に追記）。
-- Modify: `src/screens/BookDetailScreen.tsx` / Test: `src/screens/BookDetailScreen.test.tsx`（既存に追記）。
-- Modify: `src/screens/HomeScreen.tsx` / Test: `src/screens/HomeScreen.test.tsx`（既存に追記）。
-- Modify: `src/screens/TodayPlanScreen.tsx` / Test: `src/screens/TodayPlanScreen.test.tsx`（既存に追記）。
-- Modify: `src/screens/ChatScreen.tsx`（既存テストで回帰確認）。
+- 変更: `src/lib/progress.ts` — 型追加＋区画進捗計算の純粋関数。
+- テスト: `src/lib/progress.test.ts`（既存ファイルに追記）。
+- 変更: `src/db/database.ts` — Dexie v3 `cycleRecords` テーブル＋CRUDヘルパー。
+- 新規: `src/hooks/useCycleRecords.ts` — `useRecords` と同形のフック。
+- テスト: `src/db/cycleRecords.test.ts`（新規）。
+- 変更: `src/db/backup.ts` / テスト: `src/db/backup.test.ts`（既存に追記）— export/import/validate に `cycleRecords` を含める。
+- 変更: `src/screens/BookFormScreen.tsx` / テスト: `src/screens/BookFormScreen.test.tsx`（既存に追記）。
+- 変更: `src/screens/BookDetailScreen.tsx` / テスト: `src/screens/BookDetailScreen.test.tsx`（既存に追記）。
+- 変更: `src/screens/HomeScreen.tsx` / テスト: `src/screens/HomeScreen.test.tsx`（既存に追記）。
+- 変更: `src/screens/TodayPlanScreen.tsx` / テスト: `src/screens/TodayPlanScreen.test.tsx`（既存に追記）。
+- 変更: `src/screens/ChatScreen.tsx`（既存テストで回帰確認）。
 
-## Shared Interfaces (all tasks use these exact names)
+## 共通インターフェース（全タスクでこの名前を使う）
 
 ```typescript
 // src/lib/progress.ts に追加
@@ -42,11 +42,11 @@ export type CycleRecordData = {
   id: string
   bookId: string
   date: string       // yyyy-MM-dd
-  unitFrom: number   // 開始区画 (>=1 の整数)
-  unitTo: number     // 終了区画 (>= unitFrom の整数)
-  round: number      // 周回 (>=1 の整数)
+  unitFrom: number   // 開始区画（1以上の整数）
+  unitTo: number     // 終了区画（unitFrom 以上の整数）
+  round: number      // 周回（1以上の整数）
 }
-// BookData に追加 (全て optional)
+// BookData に追加（すべて optional）
 studyMode?: StudyMode
 totalUnits?: number
 targetRounds?: number
@@ -54,7 +54,7 @@ initialDoneUnits?: number
 ```
 
 ```typescript
-// src/lib/progress.ts に追加する関数 (シグネチャ固定)
+// src/lib/progress.ts に追加する関数（シグネチャ固定）
 export function expandCyclePairs(records: CycleRecordData[]): Set<string>
 export function calcCycleDonePairs(
   book: { initialDoneUnits?: number },
@@ -73,7 +73,7 @@ export function currentCycleRound(
 ```
 
 ```typescript
-// src/db/database.ts に追加 (シグネチャ固定)
+// src/db/database.ts に追加（シグネチャ固定）
 export async function listCycleRecords(bookId: string): Promise<CycleRecordData[]>
 export async function addCycleRecord(rec: CycleRecordData): Promise<void>
 export async function updateCycleRecord(
@@ -87,17 +87,17 @@ export async function deleteCycleRecord(id: string): Promise<void>
 
 ---
 
-### Task 1: 区画進捗計算 (progress.ts)
+### タスク1: 区画進捗計算 (progress.ts)
 
-**Files:**
-- Modify: `src/lib/progress.ts`
-- Test: `src/lib/progress.test.ts`（追記）
+**ファイル:**
+- 変更: `src/lib/progress.ts`
+- テスト: `src/lib/progress.test.ts`（追記）
 
-**Interfaces:**
-- Consumes: 既存 `BookData`, `daysBetween`。
-- Produces: Shared Interfaces の5関数＋型。Task 3〜6が使う。
+**入出力:**
+- 使うもの: 既存 `BookData`、`daysBetween`。
+- 作るもの: 共通インターフェースの5関数＋型。タスク3〜6が使う。
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **ステップ1: 失敗テストを書く**
 
 ```typescript
 import {
@@ -114,13 +114,13 @@ describe('cycle progress', () => {
     id, bookId: 'b1', date: '2026-01-05', unitFrom, unitTo, round,
   })
 
-  it('counts distinct (unit, round) pairs without double counting overlap', () => {
+  it('重なった範囲を二重計上せず distinct で数える', () => {
     const records = [rec('r1', 1, 5, 1), rec('r2', 4, 8, 1)]
     expect(expandCyclePairs(records).size).toBe(8)
     expect(calcCycleDonePairs({}, records)).toBe(8)
   })
 
-  it('adds initialDoneUnits and computes grand total and daily target', () => {
+  it('初期完了分を加算し総量と毎日の目標を計算する', () => {
     const book = { totalUnits: 10, targetRounds: 3, initialDoneUnits: 10 }
     expect(cycleGrandTotal(book)).toBe(30)
     // 完了 10 + 記録 8 = 18、残り 12 / 6日 = 2区画/日
@@ -129,13 +129,13 @@ describe('cycle progress', () => {
     expect(calcCycleDailyTarget(book, done, 6)).toBe(2)
   })
 
-  it('returns the smallest incomplete round', () => {
+  it('未完の最小周回を返す', () => {
     const book = { totalUnits: 5, targetRounds: 3 }
     const records = [rec('r1', 1, 5, 1), rec('r2', 1, 2, 2)]
     expect(currentCycleRound(book, records)).toBe(2)
   })
 
-  it('returns 0 daily target when finished and full remaining when days run out', () => {
+  it('完了時は0、期限切れ時は残り全部を返す', () => {
     const book = { totalUnits: 10, targetRounds: 1 }
     expect(calcCycleDailyTarget(book, 10, 5)).toBe(0)
     expect(calcCycleDailyTarget(book, 4, 0)).toBe(6)
@@ -143,12 +143,12 @@ describe('cycle progress', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **ステップ2: テストを実行し失敗を確認する**
 
-Run: `cmd /c "npm run test -- --run src/lib/progress.test.ts"`
-Expected: FAIL（`expandCyclePairs is not a function` 等の import 失敗）
+実行: `cmd /c "npm run test -- --run src/lib/progress.test.ts"`
+期待: FAIL（`expandCyclePairs is not a function` 等の import 失敗）
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **ステップ3: 通るための最小実装を書く**
 
 ```typescript
 export type StudyMode = 'pages' | 'cycles'
@@ -225,12 +225,12 @@ export function currentCycleRound(
   initialDoneUnits?: number
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **ステップ4: テストを実行し成功を確認する**
 
-Run: `cmd /c "npm run test -- --run src/lib/progress.test.ts"`
-Expected: PASS（全テスト緑）
+実行: `cmd /c "npm run test -- --run src/lib/progress.test.ts"`
+期待: PASS（全テスト緑）
 
-- [ ] **Step 5: Commit**
+- [ ] **ステップ5: コミットする**
 
 ```bash
 git add src/lib/progress.ts src/lib/progress.test.ts
@@ -239,19 +239,19 @@ git commit -m "feat: add cycle (section x round) progress math"
 
 ---
 
-### Task 2: cycleRecords テーブル＋バックアップ対応
+### タスク2: cycleRecords テーブル＋バックアップ対応
 
-**Files:**
-- Modify: `src/db/database.ts`
-- Create: `src/hooks/useCycleRecords.ts`
-- Create: `src/db/cycleRecords.test.ts`
-- Modify: `src/db/backup.ts`, `src/db/backup.test.ts`（追記）
+**ファイル:**
+- 変更: `src/db/database.ts`
+- 新規: `src/hooks/useCycleRecords.ts`
+- 新規: `src/db/cycleRecords.test.ts`
+- 変更: `src/db/backup.ts`、`src/db/backup.test.ts`（追記）
 
-**Interfaces:**
-- Consumes: Task 1 の `CycleRecordData` 型。
-- Produces: DB4ヘルパー＋`useCycleRecords` フック。Task 4 が使う。
+**入出力:**
+- 使うもの: タスク1の `CycleRecordData` 型。
+- 作るもの: DBヘルパー4関数＋`useCycleRecords` フック。タスク4が使う。
 
-- [ ] **Step 1: Write the failing test** (`src/db/cycleRecords.test.ts` を新規作成)
+- [ ] **ステップ1: 失敗テストを書く**（`src/db/cycleRecords.test.ts` を新規作成）
 
 ```typescript
 import { describe, it, expect, beforeEach } from 'vitest'
@@ -269,13 +269,13 @@ beforeEach(async () => {
 })
 
 describe('cycleRecords', () => {
-  it('adds and lists records per book', async () => {
+  it('本ごとに記録を追加・取得できる', async () => {
     await addCycleRecord(rec('r1'))
     await addCycleRecord(rec('r2', { bookId: 'b2' }))
     expect((await listCycleRecords('b1')).map((r) => r.id)).toEqual(['r1'])
   })
 
-  it('updates and deletes a record', async () => {
+  it('記録を更新・削除できる', async () => {
     await addCycleRecord(rec('r1'))
     await updateCycleRecord('r1', { unitTo: 5, round: 2 })
     const got = await db.cycleRecords.get('r1')
@@ -290,7 +290,7 @@ describe('cycleRecords', () => {
 バックアップの追記テスト（`src/db/backup.test.ts` に追加）：
 
 ```typescript
-it('round-trips cycleRecords', async () => {
+it('cycleRecords を含めて保存・復元できる', async () => {
   const data = {
     exportedAt: '2026-01-05T00:00:00.000Z',
     books: [{ ...book, studyMode: 'cycles', totalUnits: 10, targetRounds: 3 }],
@@ -304,20 +304,20 @@ it('round-trips cycleRecords', async () => {
   expect(await db.cycleRecords.count()).toBe(1)
 })
 
-it('accepts old backups without cycleRecords', () => {
+it('cycleRecords のない古いバックアップも受け付ける', () => {
   const old = { exportedAt: '2026-01-05T00:00:00.000Z', books: [book], records: [record] }
   expect(validateBackup(old)).toBe(true)
 })
 ```
 
-（`book`, `record` は当該ファイル既存の fixture 名に合わせること。合わなければ既存定義を流用し、新規定義は作らない。）
+（`book`、`record` は当該ファイルの既存fixture名に合わせること。合わなければ既存定義を流用し、新規定義は作らない。）
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **ステップ2: テストを実行し失敗を確認する**
 
-Run: `cmd /c "npm run test -- --run src/db/cycleRecords.test.ts src/db/backup.test.ts"`
-Expected: FAIL（`db.cycleRecords is undefined` / `validateBackup` が新形式を弾く等）
+実行: `cmd /c "npm run test -- --run src/db/cycleRecords.test.ts src/db/backup.test.ts"`
+期待: FAIL（`db.cycleRecords is undefined`／新形式が弾かれる等）
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **ステップ3: 通るための最小実装を書く**
 
 `src/db/database.ts` の変更：
 
@@ -325,7 +325,7 @@ Expected: FAIL（`db.cycleRecords is undefined` / `validateBackup` が新形式�
 import type { BookData, ProgressRecordData, CycleRecordData } from '../lib/progress'
 ```
 
-クラスに `cycleRecords!: Table<CycleRecordData, string>` を追加し、version 3 を追加する（Dexieは各versionで全storeを列挙するため既存2つも再掲）：
+クラスに `cycleRecords!: Table<CycleRecordData, string>` を追加し、version 3 を追加する（Dexieは各versionで全storeを列挙する必要があるため既存分も再掲）：
 
 ```typescript
 this.version(3).stores({
@@ -408,14 +408,14 @@ export function useCycleRecords(bookId?: string) {
 }
 ```
 
-`src/db/backup.ts` の変更：`BackupData` に `cycleRecords: CycleRecordData[]` を追加し、`exportBackup` に `cycleRecords: await db.cycleRecords.toArray()` を追加する。`validateBackup` は `cycleRecords` が無い旧形式も許容し（欠落時は `[]` 扱い）、ある場合は各件の `id/bookId/date/unitFrom/unitTo/round` と `unitFrom <= unitTo`・`round >= 1`・bookId存在を検証する。`importBackup` のtransactionに `db.cycleRecords` を加え、clear＋bulkAdd（欠落時は空配列）し、戻り値は従来通り `{ books, records }` とする。
+`src/db/backup.ts` の変更：`BackupData` に `cycleRecords: CycleRecordData[]` を追加し、`exportBackup` に `cycleRecords: await db.cycleRecords.toArray()` を追加する。`validateBackup` は `cycleRecords` が無い古い形式も許容し（欠落時は `[]` 扱い）、ある場合は各件の `id/bookId/date/unitFrom/unitTo/round` と `unitFrom <= unitTo`・`round >= 1`・bookId存在を検証する。`importBackup` のtransactionに `db.cycleRecords` を加え、clear＋bulkAdd（欠落時は空配列）し、戻り値は従来通り `{ books, records }` とする。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **ステップ4: テストを実行し成功を確認する**
 
-Run: `cmd /c "npm run test -- --run src/db/cycleRecords.test.ts src/db/backup.test.ts src/db/database.test.ts"`
-Expected: PASS
+実行: `cmd /c "npm run test -- --run src/db/cycleRecords.test.ts src/db/backup.test.ts src/db/database.test.ts"`
+期待: PASS
 
-- [ ] **Step 5: Commit**
+- [ ] **ステップ5: コミットする**
 
 ```bash
 git add src/db/database.ts src/hooks/useCycleRecords.ts src/db/cycleRecords.test.ts src/db/backup.ts src/db/backup.test.ts
@@ -424,20 +424,20 @@ git commit -m "feat: add cycleRecords table and backup support"
 
 ---
 
-### Task 3: 登録・編集フォームの反復モード
+### タスク3: 登録・編集フォームの反復モード
 
-**Files:**
-- Modify: `src/screens/BookFormScreen.tsx`
-- Test: `src/screens/BookFormScreen.test.tsx`（追記）
+**ファイル:**
+- 変更: `src/screens/BookFormScreen.tsx`
+- テスト: `src/screens/BookFormScreen.test.tsx`（追記）
 
-**Interfaces:**
-- Consumes: Task 1 の型（`studyMode/totalUnits/targetRounds/initialDoneUnits`）。
-- Produces: 反復本の `BookData`。Task 4・5が読む。
+**入出力:**
+- 使うもの: タスク1の型（`studyMode/totalUnits/targetRounds/initialDoneUnits`）。
+- 作るもの: 反復本の `BookData`。タスク4・5が読む。
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **ステップ1: 失敗テストを書く**
 
 ```typescript
-it('saves cycle mode with total units and target rounds', async () => {
+it('反復モードで全区画数・目標周回を保存できる', async () => {
   render(<BookFormScreen book={null} onDone={() => {}} />)
   fireEvent.change(screen.getByTestId('book-title'), { target: { value: 'LEAP' } })
   fireEvent.change(screen.getByTestId('book-pages'), { target: { value: '576' } })
@@ -458,7 +458,7 @@ it('saves cycle mode with total units and target rounds', async () => {
   })
 })
 
-it('rejects cycle settings exceeding the grand total', () => {
+it('総量を超える初期完了分は拒否する', () => {
   render(<BookFormScreen book={null} onDone={() => {}} />)
   fireEvent.change(screen.getByTestId('book-title'), { target: { value: 'LEAP' } })
   fireEvent.change(screen.getByTestId('book-pages'), { target: { value: '576' } })
@@ -473,12 +473,12 @@ it('rejects cycle settings exceeding the grand total', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **ステップ2: テストを実行し失敗を確認する**
 
-Run: `cmd /c "npm run test -- --run src/screens/BookFormScreen.test.tsx"`
-Expected: FAIL（`book-mode-cycles` が見つからない）
+実行: `cmd /c "npm run test -- --run src/screens/BookFormScreen.test.tsx"`
+期待: FAIL（`book-mode-cycles` が見つからない）
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **ステップ3: 通るための最小実装を書く**
 
 state を3つ追加する（初期値は `book` から）：
 
@@ -566,12 +566,12 @@ JSX（「すでに進めたページ数」の下あたり）に以下を追加�
 )}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **ステップ4: テストを実行し成功を確認する**
 
-Run: `cmd /c "npm run test -- --run src/screens/BookFormScreen.test.tsx"`
-Expected: PASS
+実行: `cmd /c "npm run test -- --run src/screens/BookFormScreen.test.tsx"`
+期待: PASS
 
-- [ ] **Step 5: Commit**
+- [ ] **ステップ5: コミットする**
 
 ```bash
 git add src/screens/BookFormScreen.tsx src/screens/BookFormScreen.test.tsx
@@ -580,20 +580,20 @@ git commit -m "feat: add cycle mode inputs to book form"
 
 ---
 
-### Task 4: 詳細画面の反復表示・記録CRUD
+### タスク4: 詳細画面の反復表示・記録CRUD
 
-**Files:**
-- Modify: `src/screens/BookDetailScreen.tsx`
-- Test: `src/screens/BookDetailScreen.test.tsx`（追記）
+**ファイル:**
+- 変更: `src/screens/BookDetailScreen.tsx`
+- テスト: `src/screens/BookDetailScreen.test.tsx`（追記）
 
-**Interfaces:**
-- Consumes: Task 1 の計算関数、Task 2 の `useCycleRecords`。
-- Produces: なし（末端画面）。
+**入出力:**
+- 使うもの: タスク1の計算関数、タスク2の `useCycleRecords`。
+- 作るもの: なし（末端画面）。
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **ステップ1: 失敗テストを書く**
 
 ```typescript
-it('shows cycle progress and records a section range with round', async () => {
+it('反復の進捗を表示し範囲＋周回を記録できる', async () => {
   await db.books.add({
     ...book,
     totalPages: 576,
@@ -614,7 +614,7 @@ it('shows cycle progress and records a section range with round', async () => {
   await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('4 / 60'))
 })
 
-it('rejects a range where from exceeds to', async () => {
+it('From＞To の範囲は拒否する', async () => {
   await db.books.add({
     ...book,
     studyMode: 'cycles',
@@ -631,12 +631,12 @@ it('rejects a range where from exceeds to', async () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **ステップ2: テストを実行し失敗を確認する**
 
-Run: `cmd /c "npm run test -- --run src/screens/BookDetailScreen.test.tsx"`
-Expected: FAIL（`cycle-summary` が見つからない）
+実行: `cmd /c "npm run test -- --run src/screens/BookDetailScreen.test.tsx"`
+期待: FAIL（`cycle-summary` が見つからない）
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **ステップ3: 通るための最小実装を書く**
 
 import に追加する：
 
@@ -660,9 +660,9 @@ if (book.studyMode === 'cycles') {
   const done = calcCycleDonePairs(book, cycleRecords.filter((r) => r.bookId === book.id))
   const round = currentCycleRound(book, cycleRecords.filter((r) => r.bookId === book.id))
   const target = calcCycleDailyTarget(book, done, daysBetween(today, book.deadline))
-  // ...記録フォーム (cycle-from / cycle-to / cycle-round / cycle-date) と
-  // 一覧 (cycle-row-*)、エラー (cycle-error)、概要 (cycle-summary) を描画する。
-  // 既存ページ用の `done-count`・グラフ・記録一覧ブロックはこの分岐では描画しない。
+  // ...記録フォーム（cycle-from / cycle-to / cycle-round / cycle-date）と
+  // 一覧（cycle-row-*）、エラー（cycle-error）、概要（cycle-summary）を描画する。
+  // 既存ページ用の done-count・グラフ・記録一覧ブロックはこの分岐では描画しない。
 }
 ```
 
@@ -685,12 +685,12 @@ await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: cycleDate || to
 
 概要の文言は `完了パス {done} / {total}（全{totalUnits}区画×{targetRounds}周）・今{round}周目` とし、`data-testid="cycle-summary"` を付ける。今日の目標の `data-testid="today-target"` は既存と同じtestidで区画数を出す（ページ／区画の混同を避けるため単位ラベルに「区画」を付ける）。一覧行のtestidは `cycle-row-{id}`、編集・削除に `updateCycle`・`removeCycle` を使う。日付範囲外（開始日〜期限日以外）は警告文のみ表示し記録は許可する。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **ステップ4: テストを実行し成功を確認する**
 
-Run: `cmd /c "npm run test -- --run src/screens/BookDetailScreen.test.tsx"`
-Expected: PASS
+実行: `cmd /c "npm run test -- --run src/screens/BookDetailScreen.test.tsx"`
+期待: PASS
 
-- [ ] **Step 5: Commit**
+- [ ] **ステップ5: コミットする**
 
 ```bash
 git add src/screens/BookDetailScreen.tsx src/screens/BookDetailScreen.test.tsx
@@ -699,23 +699,23 @@ git commit -m "feat: show and record cycle progress on detail screen"
 
 ---
 
-### Task 5: ホーム表示＋全体診断の除外
+### タスク5: ホーム表示＋全体診断の除外
 
-**Files:**
-- Modify: `src/screens/HomeScreen.tsx`
-- Modify: `src/lib/progress.ts`（`overallDiagnosis` の1行）
-- Test: `src/screens/HomeScreen.test.tsx`（追記）、`src/lib/progress.test.ts`（1件追記）
+**ファイル:**
+- 変更: `src/screens/HomeScreen.tsx`
+- 変更: `src/lib/progress.ts`（`overallDiagnosis` の1行）
+- テスト: `src/screens/HomeScreen.test.tsx`（追記）、`src/lib/progress.test.ts`（1件追記）
 
-**Interfaces:**
-- Consumes: Task 1 の関数。
-- Produces: なし（表示のみ）。
+**入出力:**
+- 使うもの: タスク1の関数。
+- 作るもの: なし（表示のみ）。
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **ステップ1: 失敗テストを書く**
 
 `src/lib/progress.test.ts` に追加：
 
 ```typescript
-it('excludes cycle books from remaining pages', () => {
+it('反復本を残りページから除外する', () => {
   const books = [
     makeBook({ id: 'b1', totalPages: 100, deadline: '2026-02-11' }),
     makeBook({ id: 'b2', totalPages: 576, studyMode: 'cycles', totalUnits: 20, targetRounds: 3, deadline: '2026-02-11' }),
@@ -728,7 +728,7 @@ it('excludes cycle books from remaining pages', () => {
 `src/screens/HomeScreen.test.tsx` に追加（登録・解決パターンは既存テストを流用）：
 
 ```typescript
-it('shows cycle progress in units for cycle books', async () => {
+it('反復本の進捗を区画単位で表示する', async () => {
   // 反復本を登録し、ホーム行に「区画」と「今○周目」が出ること
   const now = new Date().toISOString()
   await db.books.add({
@@ -748,12 +748,12 @@ it('shows cycle progress in units for cycle books', async () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **ステップ2: テストを実行し失敗を確認する**
 
-Run: `cmd /c "npm run test -- --run src/lib/progress.test.ts src/screens/HomeScreen.test.tsx"`
-Expected: FAIL（診断が676を返す／「区画」文言がない）
+実行: `cmd /c "npm run test -- --run src/lib/progress.test.ts src/screens/HomeScreen.test.tsx"`
+期待: FAIL（診断が676を返す／「区画」文言がない）
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **ステップ3: 通るための最小実装を書く**
 
 `overallDiagnosis` の残り集計を1行変更する：
 
@@ -765,12 +765,12 @@ const remainingPages = books
 
 `HomeScreen.tsx` の `ScheduleRow` 内：`registered.studyMode === 'cycles'` の場合、`done` の代わりに当該bookの `cycleRecords` 由来の完了パス・総量・今周回・1日あたり区画数を表示する。`cycleRecords` は `useCycleRecords()`（引数なし＝全件）で取得し、`records` とは別変数で扱う。進捗バーの分母は総量（区画パス）、ステータス判定 `calcScheduleStatus` には `{ totalPages: 総量 }` と完了パス数を渡す（ページ換算はしない）。行内の単位文言は「○区画」とする。
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **ステップ4: テストを実行し成功を確認する**
 
-Run: `cmd /c "npm run test -- --run src/lib/progress.test.ts src/screens/HomeScreen.test.tsx"`
-Expected: PASS
+実行: `cmd /c "npm run test -- --run src/lib/progress.test.ts src/screens/HomeScreen.test.tsx"`
+期待: PASS
 
-- [ ] **Step 5: Commit**
+- [ ] **ステップ5: コミットする**
 
 ```bash
 git add src/screens/HomeScreen.tsx src/lib/progress.ts src/lib/progress.test.ts src/screens/HomeScreen.test.tsx
@@ -779,21 +779,21 @@ git commit -m "feat: show cycle progress on home and exclude from diagnosis"
 
 ---
 
-### Task 6: 今日の計画の別枠＋AI除外＋全緑化
+### タスク6: 今日の計画の別枠＋AI除外＋全緑化
 
-**Files:**
-- Modify: `src/screens/TodayPlanScreen.tsx`
-- Modify: `src/screens/ChatScreen.tsx`
-- Test: `src/screens/TodayPlanScreen.test.tsx`（追記、既存パターン流用）
+**ファイル:**
+- 変更: `src/screens/TodayPlanScreen.tsx`
+- 変更: `src/screens/ChatScreen.tsx`
+- テスト: `src/screens/TodayPlanScreen.test.tsx`（追記、既存パターン流用）
 
-**Interfaces:**
-- Consumes: Task 1・2。
-- Produces: 完成機能。
+**入出力:**
+- 使うもの: タスク1・2。
+- 作るもの: 完成機能。
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **ステップ1: 失敗テストを書く**
 
 ```typescript
-it('lists cycle books separately with daily unit quota', async () => {
+it('反復本を1日あたり区画数つきで別枠表示する', async () => {
   const now = new Date().toISOString()
   await db.books.add({
     id: 'cycle-1',
@@ -812,21 +812,21 @@ it('lists cycle books separately with daily unit quota', async () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **ステップ2: テストを実行し失敗を確認する**
 
-Run: `cmd /c "npm run test -- --run src/screens/TodayPlanScreen.test.tsx"`
-Expected: FAIL（`cycle-today-list` が見つからない）
+実行: `cmd /c "npm run test -- --run src/screens/TodayPlanScreen.test.tsx"`
+期待: FAIL（`cycle-today-list` が見つからない）
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **ステップ3: 通るための最小実装を書く**
 
-`TodayPlanScreen.tsx`：時間割に渡す `scheduled` から反復本を除外する：
+`TodayPlanScreen.tsx`：時間割に渡す本から反復本を除外する：
 
 ```typescript
 const pageBooks = books.filter((b) => b.studyMode !== 'cycles')
 const cycleBooks = books.filter((b) => b.studyMode === 'cycles')
 ```
 
-`doneByBook` の初期値を `b.initialDonePages ?? 0` から、反復本は対象外になったため変更不要（`pageBooks` ベースに切替えるだけ）。`generateDayPlan` には `pageBooks` 由来の `scheduled` を渡す。`data-testid="cycle-today-list"` の別枠セクションを追加し、各反復本について `calcCycleDailyTarget(book, 完了パス, daysBetween(today, book.deadline))` を「今日やる区画 ○区画」として表示する（完了パスは `useCycleRecords()` 全件から当該book分を `calcCycleDonePairs` で算出）。
+`doneByBook` は `pageBooks` ベースに切り替えるだけ（反復本は対象外になったため初期値の変更は不要）。`generateDayPlan` には `pageBooks` 由来の予定を渡す。`data-testid="cycle-today-list"` の別枠セクションを追加し、各反復本について `calcCycleDailyTarget(book, 完了パス, daysBetween(today, book.deadline))` を「今日やる区画 ○区画」として表示する（完了パスは `useCycleRecords()` 全件から当該book分を `calcCycleDonePairs` で算出）。
 
 `ChatScreen.tsx`：`loadReport` 内でレポート対象から反復本を除外する：
 
@@ -838,12 +838,12 @@ const donePagesByBook = Object.fromEntries(
 return buildAdvisorReport({ today, books: targetBooks, donePagesByBook, availability })
 ```
 
-- [ ] **Step 4: Run tests to verify all green**
+- [ ] **ステップ4: 全テストが緑であることを確認する**
 
-Run: `cmd /c "npm run test -- --run"`
-Expected: PASS（全ファイル緑）。続けて `cmd /c "npx tsc --noEmit"` が無出力であること。
+実行: `cmd /c "npm run test -- --run"`
+期待: PASS（全ファイル緑）。続けて `cmd /c "npx tsc --noEmit"` が無出力であること。
 
-- [ ] **Step 5: Commit and push**
+- [ ] **ステップ5: コミットしてプッシュする**
 
 ```bash
 git add src/screens/TodayPlanScreen.tsx src/screens/TodayPlanScreen.test.tsx src/screens/ChatScreen.tsx
@@ -851,12 +851,12 @@ git commit -m "feat: separate cycle quota on today plan and exclude from AI"
 git push origin main
 ```
 
-（pushはスマホ反映のための運用ルール。デプロイはmainへのpushで自動実行される。）
+（プッシュはスマホ反映のための運用ルール。デプロイはmainへのプッシュで自動実行される。）
 
 ---
 
-## Self-Review
+## 自己レビュー
 
-- Spec coverage: §1→Task1・2、§2→Task3・4・5（ホーム）、§3→Task5（診断）・Task6（時間割・AI・対象外）、§4→Task2（移行・バックアップ）・各Taskの検証・テスト。Specの全要件にタスクが対応している。
-- Placeholder scan: 「適切に」「同様に」等の丸投げ表現なし。各ステップに実コード・実コマンド・期待結果を記載した。
-- Type consistency: `CycleRecordData`、`calcCycleDonePairs(book, records)`、`cycleGrandTotal`、`calcCycleDailyTarget`、`currentCycleRound`、`expandCyclePairs`、`listCycleRecords/addCycleRecord/updateCycleRecord/deleteCycleRecord`、`useCycleRecords` の名前・引数順は全タスクで統一した。testid（`book-mode-cycles`、`cycle-summary`、`cycle-today-list` 等）はTask間で重複なく一貫している。
+- 仕様カバー: §1→タスク1・2、§2→タスク3・4・5（ホーム）、§3→タスク5（診断）・タスク6（時間割・AI・対象外）、§4→タスク2（移行・バックアップ）・各タスクの検証・テスト。仕様の全要件に対応するタスクがある。
+- プレースホルダ検査: 「適切に」「同様に」等の丸投げ表現なし。各ステップに実コード・実コマンド・期待結果を記載した。
+- 型一貫性: `CycleRecordData`、`calcCycleDonePairs(book, records)`、`cycleGrandTotal`、`calcCycleDailyTarget`、`currentCycleRound`、`expandCyclePairs`、`listCycleRecords/addCycleRecord/updateCycleRecord/deleteCycleRecord`、`useCycleRecords` の名前・引数順は全タスクで統一した。testid（`book-mode-cycles`、`cycle-summary`、`cycle-today-list` 等）はタスク間で重複なく一貫している。
