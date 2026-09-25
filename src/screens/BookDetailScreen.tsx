@@ -4,7 +4,7 @@ import CoverImage from '../components/CoverImage'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import {
-  calcDonePages,
+  calcTotalDone,
   calcDailyTarget,
   calcRequiredPerDay,
   daysBetween,
@@ -49,7 +49,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
 
   const todayRecord = records.find((r) => r.bookId === book.id && r.date === today)
 
-  const done = calcDonePages(records, book.id)
+  const done = calcTotalDone(book, records)
   const remainingDays = daysBetween(today, book.deadline)
   const target = calcDailyTarget(book, done, remainingDays)
 

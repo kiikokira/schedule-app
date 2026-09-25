@@ -12,6 +12,7 @@ export type BookData = {
   minutesPerPage?: number
   priority?: number
   allottedRatio?: number
+  initialDonePages?: number
 }
 
 export type ProgressRecordData = {
@@ -54,6 +55,13 @@ export function calcDonePages(records: ProgressRecordData[], bookId: string): nu
   return records
     .filter((r) => r.bookId === bookId)
     .reduce((sum, r) => sum + r.pages, 0)
+}
+
+export function calcTotalDone(
+  book: { id: string; initialDonePages?: number },
+  records: ProgressRecordData[],
+): number {
+  return (book.initialDonePages ?? 0) + calcDonePages(records, book.id)
 }
 
 export function currentRound(donePages: number, totalPages: number): number {
@@ -133,7 +141,7 @@ export function overallDiagnosis(
   today: string,
 ): OverallDiagnosis {
   const remainingPages = books.reduce(
-    (sum, b) => sum + Math.max(b.totalPages - calcDonePages(records, b.id), 0),
+    (sum, b) => sum + Math.max(b.totalPages - calcTotalDone(b, records), 0),
     0,
   )
   const endDate =

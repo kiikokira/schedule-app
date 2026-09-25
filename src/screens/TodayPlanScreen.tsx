@@ -46,7 +46,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
     })
   }, [])
 
-  const doneByBook = new Map(books.map((b) => [b.id, 0]))
+  const doneByBook = new Map(books.map((b) => [b.id, b.initialDonePages ?? 0]))
   for (const r of records) {
     const done = doneByBook.get(r.bookId)
     if (done !== undefined) doneByBook.set(r.bookId, done + r.pages)

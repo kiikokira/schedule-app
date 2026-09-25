@@ -3,7 +3,7 @@ import CoverImage from '../components/CoverImage'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import {
-  calcDonePages,
+  calcTotalDone,
   calcRequiredPerDay,
   calcScheduleStatus,
   currentRound,
@@ -174,7 +174,7 @@ function ScheduleRow({
     ? `completed-record-${key}`
     : `row-record-${key}`
   const title = catalogBook?.title ?? registered?.title ?? key
-  const done = registered ? calcDonePages(records, registered.id) : 0
+  const done = registered ? calcTotalDone(registered, records) : 0
   const status = registered
     ? calcScheduleStatus(
         { ...registered, startDate: entry.startDate, deadline: entry.deadline },
@@ -479,7 +479,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
         const nowTotal =
           nowView.registered?.totalPages ?? nowView.catalogBook?.totalPages ?? 0
         const nowDone = nowView.registered
-          ? calcDonePages(records, nowView.registered.id)
+          ? calcTotalDone(nowView.registered, records)
           : 0
         const nowRound = nowTotal > 0 ? currentRound(nowDone, nowTotal) : 1
         const nowInRound =
@@ -588,7 +588,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
           const hasNext =
             originalIndex !== -1 && originalIndex + 1 < schedule.length
           const done = rowView.registered
-            ? calcDonePages(records, rowView.registered.id)
+            ? calcTotalDone(rowView.registered, records)
             : 0
           const total =
             rowView.registered?.totalPages ?? rowView.catalogBook?.totalPages ?? 0
@@ -620,7 +620,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
             {completedEntries.map((entry) => {
               const rowView = resolveEntry(books, entry)
               const done = rowView.registered
-                ? calcDonePages(records, rowView.registered.id)
+                ? calcTotalDone(rowView.registered, records)
                 : 0
               const total =
                 rowView.registered?.totalPages ?? rowView.catalogBook?.totalPages ?? 0

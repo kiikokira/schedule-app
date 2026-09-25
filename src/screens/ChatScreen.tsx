@@ -10,7 +10,7 @@ import {
   type AdvisorReport,
 } from '../lib/advisor'
 import { getAiSettings, isAiConfigured, chatWithModel, buildSystemPrompt } from '../lib/ai'
-import { calcDonePages, todayStr } from '../lib/progress'
+import { calcTotalDone, todayStr } from '../lib/progress'
 
 type Props = {
   onBack: () => void
@@ -47,7 +47,7 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
       db.records.toArray(),
     ])
     const donePagesByBook = Object.fromEntries(
-      allBooks.map((b) => [b.id, calcDonePages(allRecords, b.id)]),
+      allBooks.map((b) => [b.id, calcTotalDone(b, allRecords)]),
     )
     return buildAdvisorReport({ today, books: allBooks, donePagesByBook, availability })
   }

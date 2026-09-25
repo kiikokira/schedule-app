@@ -172,4 +172,46 @@ describe('BookFormScreen', () => {
       expect(books.some((b) => b.catalogId === 'system-tango')).toBe(true)
     })
   })
+
+  it('saves already-done pages on new book', async () => {
+    render(<BookFormScreen book={null} onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('book-title'), { target: { value: '途中まで進めた本' } })
+    fireEvent.change(screen.getByTestId('book-pages'), { target: { value: '300' } })
+    fireEvent.change(screen.getByTestId('book-start'), { target: { value: '2026-09-01' } })
+    fireEvent.change(screen.getByTestId('book-deadline'), { target: { value: '2026-11-30' } })
+    fireEvent.change(screen.getByTestId('book-initial-done'), { target: { value: '120' } })
+    fireEvent.click(screen.getByTestId('book-save'))
+    await waitFor(async () => {
+      const books = await db.books.toArray()
+      const created = books.find((b) => b.title === '途中まで進めた本')
+      expect(created?.initialDonePages).toBe(120)
+    })
+  })
+
+  it('shows existing initial done pages when editing', () => {
+    const now = new Date().toISOString()
+    const existing = {
+      id: 'b1',
+      title: '本',
+      totalPages: 300,
+      initialDonePages: 120,
+      startDate: '2026-09-01',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+    }
+    render(<BookFormScreen book={existing as any} onDone={() => {}} />)
+    expect((screen.getByTestId('book-initial-done') as HTMLInputElement).value).toBe('120')
+  })
+
+  it('rejects initial done pages exceeding total pages', () => {
+    render(<BookFormScreen book={null} onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('book-title'), { target: { value: '単語帳' } })
+    fireEvent.change(screen.getByTestId('book-pages'), { target: { value: '100' } })
+    fireEvent.change(screen.getByTestId('book-start'), { target: { value: '2026-09-01' } })
+    fireEvent.change(screen.getByTestId('book-deadline'), { target: { value: '2026-11-30' } })
+    fireEvent.change(screen.getByTestId('book-initial-done'), { target: { value: '150' } })
+    fireEvent.click(screen.getByTestId('book-save'))
+    expect(screen.getByTestId('book-error')).toHaveTextContent(/すでに進めたページ数/)
+  })
 })

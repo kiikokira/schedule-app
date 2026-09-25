@@ -23,6 +23,9 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
   const [minutes, setMinutes] = useState(
     book?.minutesPerPage ? String(book.minutesPerPage) : '',
   )
+  const [initialDone, setInitialDone] = useState(
+    book?.initialDonePages != null ? String(book.initialDonePages) : '',
+  )
   const [tab, setTab] = useState<'catalog' | 'search'>('catalog')
   const [catalogQuery, setCatalogQuery] = useState('')
   const [query, setQuery] = useState('')
@@ -77,6 +80,15 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
       setError('期限は開始日より後を指定してください')
       return
     }
+    let initialDonePages: number | undefined
+    if (initialDone.trim() !== '') {
+      const v = Number(initialDone)
+      if (!Number.isInteger(v) || v < 0 || v > pages) {
+        setError('すでに進めたページ数は0以上かつ総ページ数以下で入力してください')
+        return
+      }
+      initialDonePages = v > 0 ? v : undefined
+    }
     const now = new Date().toISOString()
     const isNew = book === null
     const next: BookData = {
@@ -89,6 +101,7 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
       startDate,
       deadline,
       minutesPerPage: minutes ? Number(minutes) : undefined,
+      initialDonePages,
       createdAt: book?.createdAt ?? now,
       updatedAt: now,
     }
@@ -211,6 +224,10 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
       <div>
         <label htmlFor="book-pages">総ページ数</label>
         <input id="book-pages" data-testid="book-pages" type="number" inputMode="numeric" value={totalPages} onChange={(e) => setTotalPages(e.target.value)} />
+      </div>
+      <div>
+        <label htmlFor="book-initial-done">すでに進めたページ数</label>
+        <input id="book-initial-done" data-testid="book-initial-done" type="number" inputMode="numeric" min={0} value={initialDone} onChange={(e) => setInitialDone(e.target.value)} placeholder="例: 120" />
       </div>
       <div>
         <label htmlFor="book-start">開始日</label>

@@ -145,4 +145,18 @@ describe('BookDetailScreen', () => {
     expect(await db.records.get('r1')).toBeDefined()
     expect(screen.getByTestId('record-row-r1')).toBeInTheDocument()
   })
+
+  it('includes already-done pages in total and daily target', async () => {
+    await db.books.add({
+      ...book,
+      totalPages: 300,
+      initialDonePages: 120,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    // 完了 120 / 300、残り180 / 6日 = 30ページ
+    expect(await screen.findByTestId('done-count')).toHaveTextContent('120')
+    expect(screen.getByTestId('today-target')).toHaveTextContent('30')
+  })
 })

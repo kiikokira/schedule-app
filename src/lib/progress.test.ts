@@ -8,6 +8,7 @@ import {
   calcRequiredPerDay,
   calcScheduleStatus,
   calcDonePages,
+  calcTotalDone,
   currentRound,
   formatJaDate,
   recentAvgPagesPerDay,
@@ -133,6 +134,28 @@ describe('calcDonePages', () => {
   })
 })
 
+describe('calcTotalDone', () => {
+  it('adds initialDonePages to recorded pages', () => {
+    const book = makeBook({ id: 'b1', initialDonePages: 120 })
+    const records: ProgressRecordData[] = [
+      { id: 'r1', bookId: 'b1', date: '2026-01-05', pages: 10 },
+      { id: 'r2', bookId: 'b2', date: '2026-01-05', pages: 99 },
+    ]
+    expect(calcTotalDone(book, records)).toBe(130)
+  })
+  it('treats missing initialDonePages as 0', () => {
+    const book = makeBook({ id: 'b1' })
+    const records: ProgressRecordData[] = [
+      { id: 'r1', bookId: 'b1', date: '2026-01-05', pages: 10 },
+    ]
+    expect(calcTotalDone(book, records)).toBe(10)
+  })
+  it('returns initialDonePages alone when no records', () => {
+    const book = makeBook({ id: 'b1', initialDonePages: 50 })
+    expect(calcTotalDone(book, [])).toBe(50)
+  })
+})
+
 describe('currentRound', () => {
   it('stays on 1周目 through the first pass of the whole book', () => {
     expect(currentRound(0, 308)).toBe(1)
@@ -238,5 +261,12 @@ describe('overallDiagnosis', () => {
     expect(d.remainingPages).toBe(0)
     expect(d.requiredPerDay).toBe(0)
     expect(d.behind).toBe(false)
+  })
+
+  it('subtracts initialDonePages from remaining pages', () => {
+    const books = [makeBook({ id: 'b1', totalPages: 300, initialDonePages: 120, deadline: '2026-02-11' })]
+    const d = overallDiagnosis(books, [], '2026-01-11')
+    // 残り 180 ページ
+    expect(d.remainingPages).toBe(180)
   })
 })
