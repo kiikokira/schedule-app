@@ -138,4 +138,55 @@ describe('ChatScreen', () => {
     fireEvent.click(screen.getByTestId('chip-replan'))
     expect(await screen.findAllByTestId('proposal-card')).toHaveLength(2)
   })
+
+  it('shows the connection status and GB notice when AI is configured', async () => {
+    setAiSettings({ endpoint: 'https://example.test', apiKey: 'sk-test', model: 'm' })
+    await fillBook()
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('chat-screen')
+    expect(screen.getByTestId('chat-connection')).toBeInTheDocument()
+    expect(screen.getByTestId('chat-gb-notice')).toHaveTextContent(/モバイル回線/)
+  })
+
+  it('shows a timeout-specific message with retry', async () => {
+    setAiSettings({ endpoint: 'https://example.test', apiKey: 'sk-test', model: 'm' })
+    const abortErr = new Error('aborted')
+    abortErr.name = 'AbortError'
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abortErr))
+    await fillBook()
+    await addTodaySlot()
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('analysis-summary')
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'こんにちは' } })
+    fireEvent.click(screen.getByTestId('chat-send'))
+    expect(await screen.findByTestId('chat-error')).toHaveTextContent(/タイムアウト/)
+    expect(screen.getByTestId('chat-retry')).toBeInTheDocument()
+  })
+
+  it('shows an http-status message with retry', async () => {
+    setAiSettings({ endpoint: 'https://example.test', apiKey: 'sk-test', model: 'm' })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }))
+    await fillBook()
+    await addTodaySlot()
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('analysis-summary')
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'こんにちは' } })
+    fireEvent.click(screen.getByTestId('chat-send'))
+    expect(await screen.findByTestId('chat-error')).toHaveTextContent(/401/)
+    expect(screen.getByTestId('chat-retry')).toBeInTheDocument()
+  })
+
+  it('shows the mobile notice when Gemini endpoint is configured', async () => {
+    setAiSettings({
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+      apiKey: 'AIza-test',
+      model: 'gemini-2.0-flash',
+    })
+    await fillBook()
+    await addTodaySlot()
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('analysis-summary')
+    expect(screen.getByTestId('chat-gb-notice')).toHaveTextContent(/モバイル回線/)
+    expect(screen.getByTestId('chat-gb-notice')).toHaveTextContent(/無料枠/)
+  })
 })

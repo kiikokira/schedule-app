@@ -31,6 +31,26 @@ const CHIPS: { testid: string; label: string }[] = [
   { testid: 'chip-replan', label: '配分を見直して' },
 ]
 
+export function describeAiError(reason: 'network' | 'http' | 'timeout', status?: number): string {
+  if (reason === 'timeout') {
+    return 'オンラインAIの応答がタイムアウトしました（高精度モデルは30秒以上かかる場合があります）。再試行してください。'
+  }
+  if (reason === 'http') {
+    const hint =
+      status === 401
+        ? 'APIキー・モデル名を確認してください。'
+        : status === 402
+          ? '支払い・利用枠を確認してください。'
+          : status === 404
+            ? 'モデル名・エンドポイントを確認してください。'
+            : status === 429
+              ? '利用制限のため時間をおいて再試行してください。'
+              : ''
+    return `オンラインAIでエラーが発生しました（HTTP ${status ?? '?'}）。${hint}定型文もご利用ください。`
+  }
+  return 'オンラインAIに接続できませんでした（ネットワーク未接続の可能性があります。WiFi・モバイル回線を確認してください）。定型文（下のボタン）をご利用ください。'
+}
+
 export default function ChatScreen({ onBack, today: todayProp }: Props) {
   const today = todayProp ?? todayStr()
   const { saveBook } = useBooks()
@@ -39,6 +59,24 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [configured] = useState(() => isAiConfigured(getAiSettings()))
+  const [online, setOnline] = useState(() =>
+    typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
+      ? navigator.onLine
+      : true,
+  )
+  const [lastError, setLastError] = useState<{ reason: 'network' | 'http' | 'timeout'; status?: number } | null>(null)
+  const [lastFailedInput, setLastFailedInput] = useState('')
+
+  useEffect(() => {
+    const goOnline = () => setOnline(true)
+    const goOffline = () => setOnline(false)
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
+  }, [])
 
   const loadReport = async (): Promise<AdvisorReport | null> => {
     const [availability, allBooks, allRecords] = await Promise.all([
@@ -144,11 +182,7 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
     }
   }
 
-  const send = async () => {
-    const text = input.trim()
-    if (!text || loading) return
-    setInput('')
-    push({ role: 'user', text })
+  const requestAi = async (text: string) => {
     if (!report) return
     setLoading(true)
     const settings = getAiSettings()
@@ -163,11 +197,32 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
     if (result.ok) {
       push({ role: 'assistant', text: result.text })
     } else {
-      push({
-        role: 'assistant',
-        text: 'オンラインAIに接続できませんでした。定型文（下のボタン）をご利用ください。',
-      })
+      const err = result.ok === false ? result : { reason: 'network' as const }
+      setLastError('status' in err ? { reason: err.reason, status: err.status } : { reason: err.reason })
+      setLastFailedInput(text)
     }
+  }
+
+  const sendWithText = async (rawText: string) => {
+    const text = rawText.trim()
+    if (!text || loading) return
+    setInput('')
+    push({ role: 'user', text })
+    setLastError(null)
+    await requestAi(text)
+  }
+
+  const send = async () => {
+    await sendWithText(input)
+  }
+
+  const retry = async () => {
+    if (!lastFailedInput || loading) return
+    setLastError(null)
+    const text = lastFailedInput
+    setLastFailedInput('')
+    push({ role: 'user', text })
+    await requestAi(text)
   }
 
   return (
@@ -216,10 +271,30 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
         ))}
         {loading && (
           <p data-testid="chat-loading" style={{ color: 'var(--text-dim)' }}>
-            考え中…
+            考え中…（高精度モデルは30秒ほどかかる場合があります）
           </p>
         )}
+        {lastError && (
+          <div style={{ marginTop: 8 }}>
+            <p data-testid="chat-error" style={{ color: 'var(--danger)', fontSize: 13 }}>
+              {describeAiError(lastError.reason, lastError.status)}
+            </p>
+            <button data-testid="chat-retry" type="button" onClick={() => void retry()}>
+              再試行
+            </button>
+          </div>
+        )}
       </div>
+      {configured && (
+        <>
+          <p data-testid="chat-connection" style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+            接続状態: {online ? 'オンライン' : 'オフライン'}（WiFi・モバイル回線どちらでも利用可）
+          </p>
+          <p data-testid="chat-gb-notice" style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+            モバイル回線・無料枠でも利用できます（1回数KB〜数十KB程度の通信・GBを消費します）。無料枠は回数制限があります。高精度モデルは応答に時間がかかります。
+          </p>
+        </>
+      )}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
         {CHIPS.map((c) => (
           <button key={c.testid} data-testid={c.testid} type="button" onClick={() => onChip(c.testid)}>
