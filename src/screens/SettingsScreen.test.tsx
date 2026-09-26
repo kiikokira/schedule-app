@@ -196,7 +196,7 @@ describe('adjustment AI settings', () => {
     expect(screen.getByTestId('ai-endpoint')).toHaveValue(
       'https://openrouter.ai/api/v1/chat/completions',
     )
-    expect(screen.getByTestId('ai-model')).toHaveValue('meta-llama/llama-3.3-70b-instruct:free')
+    expect(screen.getByTestId('ai-model')).toHaveValue('qwen/qwen3.8-27b:free')
   })
 
   it('restores the OpenAI preset on selection', () => {

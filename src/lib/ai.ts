@@ -8,7 +8,7 @@ export const GEMINI_COMPAT_ENDPOINT =
   'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
 export const GEMINI_EXAMPLE_MODEL = 'gemini-2.0-flash'
 export const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
-export const OPENROUTER_EXAMPLE_MODEL = 'meta-llama/llama-3.3-70b-instruct:free'
+export const OPENROUTER_EXAMPLE_MODEL = 'qwen/qwen3.8-27b:free'
 
 const STORAGE_KEY = 'ai-settings'
 
