@@ -45,13 +45,17 @@ export function isAiConfigured(s: AiSettings): boolean {
 
 export type ChatResult =
   | { ok: true; text: string }
-  | { ok: false; reason: 'network' | 'http'; status?: number }
+  | { ok: false; reason: 'network' | 'http' | 'timeout'; status?: number }
 
 export async function chatWithModel(
   settings: AiSettings,
   systemPrompt: string,
   history: { role: 'user' | 'assistant'; content: string }[],
+  opts?: { timeoutMs?: number },
 ): Promise<ChatResult> {
+  const timeoutMs = opts?.timeoutMs ?? 60000
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
   let res: Response
   try {
     res = await fetch(settings.endpoint, {
@@ -64,11 +68,18 @@ export async function chatWithModel(
         model: settings.model,
         messages: [{ role: 'system', content: systemPrompt }, ...history],
         temperature: 0,
+        max_tokens: 800,
       }),
+      signal: controller.signal,
     })
-  } catch {
+  } catch (e) {
+    clearTimeout(timer)
+    if (e instanceof Error && e.name === 'AbortError') {
+      return { ok: false, reason: 'timeout' }
+    }
     return { ok: false, reason: 'network' }
   }
+  clearTimeout(timer)
   if (!res.ok) {
     return { ok: false, reason: 'http', status: res.status }
   }

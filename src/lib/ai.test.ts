@@ -82,6 +82,44 @@ describe('chatWithModel', () => {
     )
     expect(res).toEqual({ ok: false, reason: 'http', status: 401 })
   })
+
+  it('sends max_tokens to cap usage on mobile和高性能モデル', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'hi' } }] }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await chatWithModel(
+      { endpoint: 'https://example.test', apiKey: 'k', model: 'm' },
+      'sys',
+      [],
+    )
+    const [, init] = fetchMock.mock.calls[0]
+    const body = JSON.parse(init.body)
+    expect(body.max_tokens).toBe(800)
+  })
+
+  it('returns timeout when the model takes too long', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((_url: unknown, init?: { signal?: AbortSignal }) => {
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            const err = new Error('aborted')
+            err.name = 'AbortError'
+            reject(err)
+          })
+        })
+      }),
+    )
+    const res = await chatWithModel(
+      { endpoint: 'https://example.test', apiKey: 'k', model: 'm' },
+      'sys',
+      [],
+      { timeoutMs: 20 },
+    )
+    expect(res).toEqual({ ok: false, reason: 'timeout' })
+  })
 })
 
 describe('buildSystemPrompt', () => {
