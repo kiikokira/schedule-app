@@ -144,10 +144,9 @@ export function overallDiagnosis(
   records: ProgressRecordData[],
   today: string,
 ): OverallDiagnosis {
-  const remainingPages = books.reduce(
-    (sum, b) => sum + Math.max(b.totalPages - calcTotalDone(b, records), 0),
-    0,
-  )
+  const remainingPages = books
+    .filter((b) => b.studyMode !== 'cycles')
+    .reduce((sum, b) => sum + Math.max(b.totalPages - calcTotalDone(b, records), 0), 0)
   const endDate =
     books.length > 0
       ? books.reduce((latest, b) => (b.deadline > latest ? b.deadline : latest), books[0].deadline)

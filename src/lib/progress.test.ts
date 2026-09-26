@@ -275,6 +275,15 @@ describe('overallDiagnosis', () => {
     // 残り 180 ページ
     expect(d.remainingPages).toBe(180)
   })
+
+  it('反復本を残りページから除外する', () => {
+    const books = [
+      makeBook({ id: 'b1', totalPages: 100, deadline: '2026-02-11' }),
+      makeBook({ id: 'b2', totalPages: 576, studyMode: 'cycles', totalUnits: 20, targetRounds: 3, deadline: '2026-02-11' }),
+    ]
+    const d = overallDiagnosis(books, [], '2026-01-11')
+    expect(d.remainingPages).toBe(100)
+  })
 })
 
 describe('cycle progress', () => {

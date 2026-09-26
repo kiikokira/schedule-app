@@ -4,6 +4,10 @@ import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import {
   calcTotalDone,
+  calcCycleDonePairs,
+  cycleGrandTotal,
+  currentCycleRound,
+  calcCycleDailyTarget,
   calcRequiredPerDay,
   calcScheduleStatus,
   currentRound,
@@ -12,8 +16,10 @@ import {
   overallDiagnosis,
   todayStr,
   type BookData,
+  type CycleRecordData,
   type ProgressRecordData,
 } from '../lib/progress'
+import { useCycleRecords } from '../hooks/useCycleRecords'
 import { CATALOG, type CatalogBook } from '../data/catalog'
 import { quoteOf } from '../data/quotes'
 import { loadSchedule, saveSchedule } from '../data/scheduleStore'
@@ -140,6 +146,7 @@ type ScheduleRowProps = {
   catalogBook: CatalogBook | undefined
   registered: BookData | undefined
   records: ProgressRecordData[]
+  cycleRecords: CycleRecordData[]
   today: string
   hasNext: boolean
   round: number | undefined
@@ -155,6 +162,7 @@ function ScheduleRow({
   catalogBook,
   registered,
   records,
+  cycleRecords,
   today,
   hasNext,
   round,
@@ -174,10 +182,23 @@ function ScheduleRow({
     ? `completed-record-${key}`
     : `row-record-${key}`
   const title = catalogBook?.title ?? registered?.title ?? key
-  const done = registered ? calcTotalDone(registered, records) : 0
+  const isCycle = registered?.studyMode === 'cycles'
+  const bookCycleRecords =
+    isCycle && registered
+      ? cycleRecords.filter((r) => r.bookId === registered.id)
+      : []
+  const cycleDone =
+    isCycle && registered ? calcCycleDonePairs(registered, bookCycleRecords) : 0
+  const done = registered ? (isCycle ? cycleDone : calcTotalDone(registered, records)) : 0
+  const cycleTotal = isCycle && registered ? cycleGrandTotal(registered) : 0
   const status = registered
     ? calcScheduleStatus(
-        { ...registered, startDate: entry.startDate, deadline: entry.deadline },
+        {
+          ...registered,
+          totalPages: isCycle ? cycleTotal : registered.totalPages,
+          startDate: entry.startDate,
+          deadline: entry.deadline,
+        },
         done,
         today,
       )
@@ -194,14 +215,21 @@ function ScheduleRow({
     if (Number.isInteger(p) && p >= 1) return p
     return todayRecordPages
   })()
-  const totalPages = registered?.totalPages ?? catalogBook?.totalPages ?? 0
+  const totalPages = isCycle
+    ? cycleTotal
+    : (registered?.totalPages ?? catalogBook?.totalPages ?? 0)
   const progress = totalPages > 0 ? (done / totalPages) * 100 : 0
-  const requiredPerDay = calcRequiredPerDay(
-    { totalPages },
-    done - todayRecordPages,
-    previewTodayPages,
-    remainingDays,
-  )
+  const cycleRequiredPerDay =
+    isCycle && registered ? calcCycleDailyTarget(registered, cycleDone, remainingDays) : 0
+  const requiredPerDay = isCycle
+    ? cycleRequiredPerDay
+    : calcRequiredPerDay(
+        { totalPages },
+        done - todayRecordPages,
+        previewTodayPages,
+        remainingDays,
+      )
+  const requiredUnit = isCycle ? '区画' : 'ページ'
 
   const handleRecord = () => {
     const pages = Number(pagesInput)
@@ -253,7 +281,7 @@ function ScheduleRow({
           {status === 'unregistered' ? '未登録' : STATUS_LABEL[status]}
         </div>
         <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>
-          期限まで1日あたり {requiredPerDay} ページ
+          期限まで1日あたり {requiredPerDay} {requiredUnit}
         </div>
       </div>
     </>
@@ -361,6 +389,7 @@ function ScheduleRow({
 export default function HomeScreen({ onOpenBook }: Props) {
   const { books, saveBook, loaded: booksLoaded } = useBooks()
   const { records, addProgress } = useRecords()
+  const { cycleRecords } = useCycleRecords()
   const today = todayStr()
   const todayQuote = quoteOf(today)
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(loadSchedule)
@@ -476,10 +505,19 @@ export default function HomeScreen({ onOpenBook }: Props) {
         const { now, next } = selectNowAndNext(schedule, today)
         if (!now && !next) return null
         const nowView = now ? resolveEntry(books, now) : { catalogBook: undefined, registered: undefined }
+        const nowIsCycle = nowView.registered?.studyMode === 'cycles'
+        const nowCycleRecords =
+          nowIsCycle && nowView.registered
+            ? cycleRecords.filter((r) => r.bookId === nowView.registered!.id)
+            : []
         const nowTotal =
-          nowView.registered?.totalPages ?? nowView.catalogBook?.totalPages ?? 0
+          nowView.registered && nowIsCycle
+            ? cycleGrandTotal(nowView.registered)
+            : (nowView.registered?.totalPages ?? nowView.catalogBook?.totalPages ?? 0)
         const nowDone = nowView.registered
-          ? calcTotalDone(nowView.registered, records)
+          ? nowIsCycle
+            ? calcCycleDonePairs(nowView.registered, nowCycleRecords)
+            : calcTotalDone(nowView.registered, records)
           : 0
         const nowRound = nowTotal > 0 ? currentRound(nowDone, nowTotal) : 1
         const nowInRound =
@@ -587,14 +625,25 @@ export default function HomeScreen({ onOpenBook }: Props) {
           )
           const hasNext =
             originalIndex !== -1 && originalIndex + 1 < schedule.length
+          const rowIsCycle = rowView.registered?.studyMode === 'cycles'
+          const rowCycleRecords =
+            rowIsCycle && rowView.registered
+              ? cycleRecords.filter((r) => r.bookId === rowView.registered!.id)
+              : []
           const done = rowView.registered
-            ? calcTotalDone(rowView.registered, records)
+            ? rowIsCycle
+              ? calcCycleDonePairs(rowView.registered, rowCycleRecords)
+              : calcTotalDone(rowView.registered, records)
             : 0
           const total =
-            rowView.registered?.totalPages ?? rowView.catalogBook?.totalPages ?? 0
+            rowView.registered && rowIsCycle
+              ? cycleGrandTotal(rowView.registered)
+              : (rowView.registered?.totalPages ?? rowView.catalogBook?.totalPages ?? 0)
           const round =
             index < ROUND_BADGE_COUNT && total > 0
-              ? currentRound(done, total)
+              ? rowIsCycle && rowView.registered
+                ? currentCycleRound(rowView.registered, rowCycleRecords)
+                : currentRound(done, total)
               : undefined
           return (
             <ScheduleRow
@@ -603,6 +652,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
               catalogBook={rowView.catalogBook}
               registered={rowView.registered}
               records={records}
+              cycleRecords={cycleRecords}
               today={today}
               hasNext={hasNext}
               round={round}
@@ -619,14 +669,27 @@ export default function HomeScreen({ onOpenBook }: Props) {
             <h2 style={{ fontSize: 16 }}>完了済みの参考書</h2>
             {completedEntries.map((entry) => {
               const rowView = resolveEntry(books, entry)
+              const completedIsCycle = rowView.registered?.studyMode === 'cycles'
+              const completedCycleRecords =
+                completedIsCycle && rowView.registered
+                  ? cycleRecords.filter((r) => r.bookId === rowView.registered!.id)
+                  : []
               const done = rowView.registered
-                ? calcTotalDone(rowView.registered, records)
+                ? completedIsCycle
+                  ? calcCycleDonePairs(rowView.registered, completedCycleRecords)
+                  : calcTotalDone(rowView.registered, records)
                 : 0
               const total =
-                rowView.registered?.totalPages ?? rowView.catalogBook?.totalPages ?? 0
+                rowView.registered && completedIsCycle
+                  ? cycleGrandTotal(rowView.registered)
+                  : (rowView.registered?.totalPages ?? rowView.catalogBook?.totalPages ?? 0)
+              const completedRoundValue =
+                completedIsCycle && rowView.registered
+                  ? currentCycleRound(rowView.registered, completedCycleRecords)
+                  : currentRound(done, total)
               const completedRound =
-                total > 0 && currentRound(done, total) > 1
-                  ? currentRound(done, total)
+                total > 0 && completedRoundValue > 1
+                  ? completedRoundValue
                   : undefined
               return (
                 <ScheduleRow
@@ -635,6 +698,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
                   catalogBook={rowView.catalogBook}
                   registered={rowView.registered}
                   records={records}
+                  cycleRecords={cycleRecords}
                   today={today}
                   hasNext={false}
                   round={completedRound}

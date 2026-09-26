@@ -669,4 +669,27 @@ describe('HomeScreen', () => {
     expect(loadSchedule().some((e) => e.bookId === 'orphan-uuid')).toBe(false)
     expect(screen.getByTestId('schedule-row-eibunpo-polaris-2')).toBeInTheDocument()
   })
+
+  it('反復本の進捗を区画単位で表示する', async () => {
+    const now = new Date().toISOString()
+    const custom: ScheduleEntry[] = [
+      { bookId: 'cycle-1', startDate: daysAgo(1), deadline: daysAhead(10) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({
+      id: 'cycle-1',
+      title: '反復本',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysAgo(1),
+      deadline: daysAhead(10),
+      createdAt: now,
+      updatedAt: now,
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const row = await screen.findByTestId('schedule-row-cycle-1')
+    expect(row).toHaveTextContent('区画')
+  })
 })
