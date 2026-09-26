@@ -13,8 +13,14 @@ import {
   formatJaDate,
   recentAvgPagesPerDay,
   overallDiagnosis,
+  expandCyclePairs,
+  calcCycleDonePairs,
+  cycleGrandTotal,
+  calcCycleDailyTarget,
+  currentCycleRound,
   type BookData,
   type ProgressRecordData,
+  type CycleRecordData,
 } from './progress'
 
 const makeBook = (overrides: Partial<BookData> = {}): BookData => ({
@@ -268,5 +274,38 @@ describe('overallDiagnosis', () => {
     const d = overallDiagnosis(books, [], '2026-01-11')
     // 残り 180 ページ
     expect(d.remainingPages).toBe(180)
+  })
+})
+
+describe('cycle progress', () => {
+  const rec = (id: string, unitFrom: number, unitTo: number, round: number): CycleRecordData => ({
+    id, bookId: 'b1', date: '2026-01-05', unitFrom, unitTo, round,
+  })
+
+  it('重なった範囲を二重計上せず distinct で数える', () => {
+    const records = [rec('r1', 1, 5, 1), rec('r2', 4, 8, 1)]
+    expect(expandCyclePairs(records).size).toBe(8)
+    expect(calcCycleDonePairs({}, records)).toBe(8)
+  })
+
+  it('初期完了分を加算し総量と毎日の目標を計算する', () => {
+    const book = { totalUnits: 10, targetRounds: 3, initialDoneUnits: 10 }
+    expect(cycleGrandTotal(book)).toBe(30)
+    // 完了 10 + 記録 8 = 18、残り 12 / 6日 = 2区画/日
+    const done = calcCycleDonePairs(book, [rec('r1', 1, 8, 2)])
+    expect(done).toBe(18)
+    expect(calcCycleDailyTarget(book, done, 6)).toBe(2)
+  })
+
+  it('未完の最小周回を返す', () => {
+    const book = { totalUnits: 5, targetRounds: 3 }
+    const records = [rec('r1', 1, 5, 1), rec('r2', 1, 2, 2)]
+    expect(currentCycleRound(book, records)).toBe(2)
+  })
+
+  it('完了時は0、期限切れ時は残り全部を返す', () => {
+    const book = { totalUnits: 10, targetRounds: 1 }
+    expect(calcCycleDailyTarget(book, 10, 5)).toBe(0)
+    expect(calcCycleDailyTarget(book, 4, 0)).toBe(6)
   })
 })

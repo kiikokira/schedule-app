@@ -13,6 +13,10 @@ export type BookData = {
   priority?: number
   allottedRatio?: number
   initialDonePages?: number
+  studyMode?: StudyMode
+  totalUnits?: number
+  targetRounds?: number
+  initialDoneUnits?: number
 }
 
 export type ProgressRecordData = {
@@ -165,4 +169,68 @@ function addDays(date: string, days: number): string {
   const d = parseDate(date)
   d.setDate(d.getDate() + days)
   return formatDate(d)
+}
+
+export type StudyMode = 'pages' | 'cycles'
+
+export type CycleRecordData = {
+  id: string
+  bookId: string
+  date: string
+  unitFrom: number
+  unitTo: number
+  round: number
+}
+
+export function expandCyclePairs(records: CycleRecordData[]): Set<string> {
+  const pairs = new Set<string>()
+  for (const r of records) {
+    if (!Number.isInteger(r.unitFrom) || !Number.isInteger(r.unitTo)) continue
+    if (!Number.isInteger(r.round) || r.round < 1) continue
+    if (r.unitFrom < 1 || r.unitTo < r.unitFrom) continue
+    for (let u = r.unitFrom; u <= r.unitTo; u++) pairs.add(`${u}:${r.round}`)
+  }
+  return pairs
+}
+
+export function calcCycleDonePairs(
+  book: { initialDoneUnits?: number },
+  records: CycleRecordData[],
+): number {
+  return (book.initialDoneUnits ?? 0) + expandCyclePairs(records).size
+}
+
+export function cycleGrandTotal(book: {
+  totalUnits?: number
+  targetRounds?: number
+}): number {
+  return (book.totalUnits ?? 0) * (book.targetRounds ?? 0)
+}
+
+export function calcCycleDailyTarget(
+  book: { totalUnits?: number; targetRounds?: number },
+  donePairs: number,
+  remainingDays: number,
+): number {
+  const remaining = Math.max(cycleGrandTotal(book) - donePairs, 0)
+  if (remaining <= 0) return 0
+  if (remainingDays <= 0) return remaining
+  return Math.ceil(remaining / remainingDays)
+}
+
+export function currentCycleRound(
+  book: { totalUnits?: number; targetRounds?: number },
+  records: CycleRecordData[],
+): number {
+  const total = book.totalUnits ?? 0
+  const rounds = book.targetRounds ?? 0
+  if (!Number.isInteger(total) || total <= 0) return 1
+  if (!Number.isInteger(rounds) || rounds <= 0) return 1
+  const pairs = expandCyclePairs(records)
+  for (let r = 1; r <= rounds; r++) {
+    let covered = 0
+    for (let u = 1; u <= total; u++) if (pairs.has(`${u}:${r}`)) covered++
+    if (covered < total) return r
+  }
+  return rounds
 }
