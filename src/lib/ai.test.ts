@@ -6,7 +6,7 @@ import {
   chatWithModel,
   buildSystemPrompt,
 } from './ai'
-import { GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL } from './ai'
+import { GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL } from './ai'
 import { buildAdvisorReport } from './advisor'
 import type { AvailabilitySlot } from '../data/dayplanStore'
 import type { BookData } from './progress'
@@ -47,6 +47,11 @@ it('exposes the Gemini OpenAI-compatible endpoint and example model', () => {
   )
   expect(typeof GEMINI_EXAMPLE_MODEL).toBe('string')
   expect(GEMINI_EXAMPLE_MODEL.length).toBeGreaterThan(0)
+})
+
+it('exposes the OpenRouter endpoint and a free example model', () => {
+  expect(OPENROUTER_ENDPOINT).toBe('https://openrouter.ai/api/v1/chat/completions')
+  expect(OPENROUTER_EXAMPLE_MODEL.endsWith(':free')).toBe(true)
 })
 
 describe('chatWithModel', () => {
@@ -128,6 +133,38 @@ describe('chatWithModel', () => {
       { timeoutMs: 20 },
     )
     expect(res).toEqual({ ok: false, reason: 'timeout' })
+  })
+
+  it('sends OpenRouter headers when the endpoint is OpenRouter', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'hi' } }] }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await chatWithModel(
+      { endpoint: OPENROUTER_ENDPOINT, apiKey: 'k', model: 'm:free' },
+      'sys',
+      [],
+    )
+    const [, init] = fetchMock.mock.calls[0]
+    expect(init.headers['HTTP-Referer']).toBe('https://kiikokira.github.io/schedule-app/')
+    expect(init.headers['X-Title']).toBeTruthy()
+  })
+
+  it('omits OpenRouter headers for generic endpoints', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'hi' } }] }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await chatWithModel(
+      { endpoint: 'https://example.test', apiKey: 'k', model: 'm' },
+      'sys',
+      [],
+    )
+    const [, init] = fetchMock.mock.calls[0]
+    expect(init.headers['HTTP-Referer']).toBeUndefined()
+    expect(init.headers['X-Title']).toBeUndefined()
   })
 })
 

@@ -7,6 +7,8 @@ export const DEFAULT_ENDPOINT = 'https://api.openai.com/v1/chat/completions'
 export const GEMINI_COMPAT_ENDPOINT =
   'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
 export const GEMINI_EXAMPLE_MODEL = 'gemini-2.0-flash'
+export const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
+export const OPENROUTER_EXAMPLE_MODEL = 'meta-llama/llama-3.3-70b-instruct:free'
 
 const STORAGE_KEY = 'ai-settings'
 
@@ -61,13 +63,18 @@ export async function chatWithModel(
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   let res: Response
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${settings.apiKey}`,
+  }
+  if (settings.endpoint.includes('openrouter.ai')) {
+    headers['HTTP-Referer'] = 'https://kiikokira.github.io/schedule-app/'
+    headers['X-Title'] = '参考書スケジュール管理'
+  }
   try {
     res = await fetch(settings.endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${settings.apiKey}`,
-      },
+      headers,
       body: JSON.stringify({
         model: settings.model,
         messages: [{ role: 'system', content: systemPrompt }, ...history],

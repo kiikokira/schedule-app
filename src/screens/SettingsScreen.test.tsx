@@ -189,6 +189,16 @@ describe('adjustment AI settings', () => {
     expect(screen.getByTestId('ai-model')).toHaveValue('gemini-2.0-flash')
   })
 
+  it('fills the OpenRouter free preset on selection', () => {
+    localStorage.removeItem('ai-settings')
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'openrouter' } })
+    expect(screen.getByTestId('ai-endpoint')).toHaveValue(
+      'https://openrouter.ai/api/v1/chat/completions',
+    )
+    expect(screen.getByTestId('ai-model')).toHaveValue('meta-llama/llama-3.3-70b-instruct:free')
+  })
+
   it('restores the OpenAI preset on selection', () => {
     localStorage.removeItem('ai-settings')
     render(<SettingsScreen onDone={() => {}} />)
