@@ -208,4 +208,22 @@ describe('adjustment AI settings', () => {
       'https://api.openai.com/v1/chat/completions',
     )
   })
+
+  it('reports endpoint reachable on ping success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }))
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('ai-ping'))
+    await waitFor(() =>
+      expect(screen.getByTestId('ai-ping-result')).toHaveTextContent(/到達OK/),
+    )
+  })
+
+  it('reports endpoint unreachable when ping throws', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')))
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('ai-ping'))
+    await waitFor(() =>
+      expect(screen.getByTestId('ai-ping-result')).toHaveTextContent(/到達NG/),
+    )
+  })
 })

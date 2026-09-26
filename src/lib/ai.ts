@@ -69,7 +69,7 @@ export async function chatWithModel(
   }
   if (settings.endpoint.includes('openrouter.ai')) {
     headers['HTTP-Referer'] = 'https://kiikokira.github.io/schedule-app/'
-    headers['X-Title'] = '参考書スケジュール管理'
+    headers['X-OpenRouter-Title'] = '参考書スケジュール管理'
   }
   try {
     res = await fetch(settings.endpoint, {
@@ -103,6 +103,30 @@ export async function chatWithModel(
     return { ok: true, text }
   } catch {
     return { ok: false, reason: 'http', status: res.status }
+  }
+}
+
+export type PingResult = { ok: true; reachable: boolean }
+
+/**
+ * 鍵不要の到達性診断。設定エンドポイントのベースにある /models へGETし、
+ * 何らかのHTTP応答が返れば到達可（401等も到達扱い）。throw・タイムアウトは未到達。
+ */
+export async function pingEndpoint(
+  endpoint: string,
+  opts?: { timeoutMs?: number },
+): Promise<PingResult> {
+  const timeoutMs = opts?.timeoutMs ?? 15000
+  const base = endpoint.replace(/\/chat\/completions\/?$/, '')
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    await fetch(`${base}/models`, { method: 'GET', signal: controller.signal })
+    clearTimeout(timer)
+    return { ok: true, reachable: true }
+  } catch {
+    clearTimeout(timer)
+    return { ok: true, reachable: false }
   }
 }
 

@@ -6,7 +6,7 @@ import {
   chatWithModel,
   buildSystemPrompt,
 } from './ai'
-import { GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL } from './ai'
+import { GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL, pingEndpoint } from './ai'
 import { buildAdvisorReport } from './advisor'
 import type { AvailabilitySlot } from '../data/dayplanStore'
 import type { BookData } from './progress'
@@ -148,7 +148,7 @@ describe('chatWithModel', () => {
     )
     const [, init] = fetchMock.mock.calls[0]
     expect(init.headers['HTTP-Referer']).toBe('https://kiikokira.github.io/schedule-app/')
-    expect(init.headers['X-Title']).toBeTruthy()
+    expect(init.headers['X-OpenRouter-Title']).toBeTruthy()
   })
 
   it('omits OpenRouter headers for generic endpoints', async () => {
@@ -164,7 +164,42 @@ describe('chatWithModel', () => {
     )
     const [, init] = fetchMock.mock.calls[0]
     expect(init.headers['HTTP-Referer']).toBeUndefined()
-    expect(init.headers['X-Title']).toBeUndefined()
+    expect(init.headers['X-OpenRouter-Title']).toBeUndefined()
+  })
+})
+
+describe('pingEndpoint', () => {
+  it('reports reachable when any HTTP response arrives (even 401)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 })
+    vi.stubGlobal('fetch', fetchMock)
+    const res = await pingEndpoint('https://openrouter.ai/api/v1/chat/completions', { timeoutMs: 50 })
+    expect(res).toEqual({ ok: true, reachable: true })
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('https://openrouter.ai/api/v1/models')
+    expect(init.method).toBe('GET')
+  })
+
+  it('reports unreachable when fetch throws', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')))
+    const res = await pingEndpoint('https://openrouter.ai/api/v1/chat/completions', { timeoutMs: 50 })
+    expect(res).toEqual({ ok: true, reachable: false })
+  })
+
+  it('reports unreachable on timeout', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((_url: unknown, init?: { signal?: AbortSignal }) => {
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            const err = new Error('aborted')
+            err.name = 'AbortError'
+            reject(err)
+          })
+        })
+      }),
+    )
+    const res = await pingEndpoint('https://openrouter.ai/api/v1/chat/completions', { timeoutMs: 20 })
+    expect(res).toEqual({ ok: true, reachable: false })
   })
 })
 

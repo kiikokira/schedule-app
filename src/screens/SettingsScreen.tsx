@@ -6,7 +6,7 @@ import {
   setNotifySettings,
   publishPush,
 } from '../lib/notify'
-import { getAiSettings, setAiSettings, chatWithModel, GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL, DEFAULT_ENDPOINT } from '../lib/ai'
+import { getAiSettings, setAiSettings, chatWithModel, pingEndpoint, GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL, DEFAULT_ENDPOINT } from '../lib/ai'
 
 type Props = {
   onDone: () => void
@@ -23,6 +23,8 @@ export default function SettingsScreen({ onDone }: Props) {
   const [aiModel, setAiModel] = useState(getAiSettings().model)
   const [aiTestResult, setAiTestResult] = useState<string | null>(null)
   const [aiTesting, setAiTesting] = useState(false)
+  const [aiPingResult, setAiPingResult] = useState<string | null>(null)
+  const [aiPinging, setAiPinging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleExport = async () => {
@@ -127,6 +129,23 @@ export default function SettingsScreen({ onDone }: Props) {
       setAiTestResult(`接続テスト失敗：HTTP ${res.status ?? '?'}（APIキー・モデル名を確認してください）`)
     } else {
       setAiTestResult('接続テスト失敗：ネットワークに届きませんでした（WiFi・モバイル回線を確認してください）')
+    }
+  }
+
+  const handlePingAi = async () => {
+    const endpoint = aiEndpoint.trim()
+    if (!endpoint) {
+      setAiPingResult('エンドポイントURLを入力してください')
+      return
+    }
+    setAiPinging(true)
+    setAiPingResult(null)
+    const res = await pingEndpoint(endpoint)
+    setAiPinging(false)
+    if (res.reachable) {
+      setAiPingResult('到達OK：エンドポイントに届きました。問題はAPIキー・モデル名です')
+    } else {
+      setAiPingResult('到達NG：この回線では届きません。WiFiオフ（モバイル回線）等で試してください')
     }
   }
 
@@ -258,9 +277,17 @@ export default function SettingsScreen({ onDone }: Props) {
         <button data-testid="ai-test" type="button" onClick={() => void handleTestAi()} disabled={aiTesting}>
           接続テスト
         </button>
+        <button data-testid="ai-ping" type="button" onClick={() => void handlePingAi()} disabled={aiPinging}>
+          到達確認
+        </button>
         {aiTestResult && (
           <p data-testid="ai-test-result" style={{ color: 'var(--accent-strong)' }}>
             {aiTestResult}
+          </p>
+        )}
+        {aiPingResult && (
+          <p data-testid="ai-ping-result" style={{ color: 'var(--accent-strong)' }}>
+            {aiPingResult}
           </p>
         )}
       </section>
