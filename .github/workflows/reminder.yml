@@ -1,7 +1,7 @@
 name: Study slot-end reminders
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -22,13 +22,15 @@ jobs:
           TODAY_JST=$(TZ=Asia/Tokyo date +%F)
           NOW_MIN=$(( 10#$(TZ=Asia/Tokyo date +%H) * 60 + 10#$(TZ=Asia/Tokyo date +%M) ))
           TODAY_START=$(TZ=Asia/Tokyo date -d "$TODAY_JST 00:00" +%s)
-          WINDOW_MIN=15
+          # 確実化: 終了済みの枠はその日のうちなら何時間前でも拾う。
+          # cronの遅延・スキップで15分窓を逃しても次回実行で通知される。
+          # 二重送信は下のタイトル照合(ALREADY)で防ぐため、窓を広げても重複しない。
 
           # 注意: /json は poll=1 なしだとストリームが閉じず curl が永遠に
           # 終わらないため、必ず poll=1 を付けて即時返却させること。
           RAW_SLOTS=$(curl -sf "https://ntfy.sh/${TOPIC}-slots/json?poll=1&since=${TODAY_START}" 2>/dev/null || true)
           if [ -z "$RAW_SLOTS" ]; then
-            echo "今日の時間帯データ(-slots)の配信がありません。アプリで「今日の計画」を開くと登録されます。" >> "$GITHUB_STEP_SUMMARY"
+            echo "今日の時間帯データ(-slots)の配信がありません。アプリを開くと登録されます。" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
@@ -48,7 +50,7 @@ jobs:
             fi
             END_MIN=$(( 10#${END%%:*} * 60 + 10#${END##*:} ))
             ELAPSED=$(( NOW_MIN - END_MIN ))
-            if [ "$ELAPSED" -lt 0 ] || [ "$ELAPSED" -ge "$WINDOW_MIN" ]; then
+            if [ "$ELAPSED" -lt 0 ]; then
               continue
             fi
             TITLE="学習時間終了 ${END}"
@@ -81,5 +83,5 @@ jobs:
           EOF
 
           if [ "$SENT" = "0" ]; then
-            echo "今周期に終わった時間帯はありませんでした。" >> "$GITHUB_STEP_SUMMARY"
+            echo "今日まだ終わった時間帯はありませんでした（または送信済みです）。" >> "$GITHUB_STEP_SUMMARY"
           fi

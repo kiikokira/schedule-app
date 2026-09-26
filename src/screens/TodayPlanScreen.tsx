@@ -5,8 +5,9 @@ import { useCycleRecords } from '../hooks/useCycleRecords'
 import { listAvailability } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, type ScheduledBook } from '../lib/dayplan'
 import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, type BookData } from '../lib/progress'
-import { getNotifySettings, publishSlots } from '../lib/notify'
+import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
+import { publishSlotsOnce } from '../lib/slotsPublish'
 import { useSlotEndReminder } from '../lib/useSlotEndReminder'
 import CoverImage from '../components/CoverImage'
 
@@ -28,9 +29,6 @@ function toScheduledBook(b: BookData): ScheduledBook {
     deadline: b.deadline,
   }
 }
-
-// 同じ内容の公開は繰り返さないための記録キー
-const SLOTS_PUBLISHED_KEY = 'schedule-app-slots-published'
 
 export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }: Props) {
   const { books, saveBook } = useBooks()
@@ -77,20 +75,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
 
   useEffect(() => {
     if (!notifyEnabled || !notifyTopic.trim() || !slotsPayload) return
-    const hash = `${slotsPayload.date}|${JSON.stringify(slotsPayload.slots)}`
-    try {
-      if (localStorage.getItem(SLOTS_PUBLISHED_KEY) === hash) return
-    } catch {
-      return
-    }
-    void publishSlots(notifyTopic, slotsPayload).then((ok) => {
-      if (!ok) return
-      try {
-        localStorage.setItem(SLOTS_PUBLISHED_KEY, hash)
-      } catch {
-        // localStorage が利用できない環境では保存しない
-      }
-    })
+    void publishSlotsOnce(notifyTopic, slotsPayload)
   }, [notifyEnabled, notifyTopic, slotsPayload])
 
   // アプリを開いている間は、直近の終了時刻にその場で通知を送る。

@@ -8,8 +8,12 @@ import TodayPlanScreen from './screens/TodayPlanScreen'
 import RebalanceScreen from './screens/RebalanceScreen'
 import ChatScreen from './screens/ChatScreen'
 import { useBooks } from './hooks/useBooks'
-import { prunePastOverrides } from './data/dayplanStore'
+import { listAvailability, prunePastOverrides } from './data/dayplanStore'
 import { todayStr } from './lib/progress'
+import { getNotifySettings } from './lib/notify'
+import { buildSlotsPayload } from './lib/slotNotify'
+import { publishSlotsOnce } from './lib/slotsPublish'
+import { slotsForDate } from './lib/dayplan'
 import './styles.css'
 
 type Route =
@@ -30,6 +34,20 @@ export default function App() {
   // 起動時に過去日の「当日上書き」を、ユーザーが画面を見る前にバックグラウンドで削除する
   useEffect(() => {
     void prunePastOverrides(todayStr())
+  }, [])
+
+  // 起動時にその日の終了予定を登録する。「今日の計画」を開かなくても
+  // リマインダーのワークフローが時間帯を拾えるようにする。
+  // 同内容の再送は publishSlotsOnce 側で抑止される。
+  useEffect(() => {
+    const notify = getNotifySettings()
+    if (!notify.enabled || !notify.topic.trim()) return
+    const today = todayStr()
+    void listAvailability().then((availability) => {
+      const payload = buildSlotsPayload(today, slotsForDate(availability, today), [], books)
+      void publishSlotsOnce(notify.topic, payload)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
