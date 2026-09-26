@@ -36,6 +36,7 @@ const book = {
 beforeEach(async () => {
   await db.books.clear()
   await db.records.clear()
+  await db.cycleRecords.clear()
   resetSchedule()
 })
 
@@ -691,5 +692,26 @@ describe('HomeScreen', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     const row = await screen.findByTestId('schedule-row-cycle-1')
     expect(row).toHaveTextContent('区画')
+  })
+
+  it('反復本のNOWカードは反復の周回で進捗を出す', async () => {
+    const now = new Date().toISOString()
+    saveSchedule([{ bookId: 'cycle-1', startDate: daysAgo(1), deadline: daysAhead(10) }])
+    await db.books.add({
+      id: 'cycle-1',
+      title: '反復本',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysAgo(1),
+      deadline: daysAhead(10),
+      createdAt: now,
+      updatedAt: now,
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'cycle-1', date: daysAgo(1), unitFrom: 1, unitTo: 20, round: 1 })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    // 1周目完了→2周目開始のためNOW進捗は0%
+    expect(await screen.findByTestId('now-next-progress')).toHaveTextContent('0%')
   })
 })

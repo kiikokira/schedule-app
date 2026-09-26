@@ -249,4 +249,31 @@ describe('BookFormScreen', () => {
     fireEvent.click(screen.getByTestId('book-save'))
     expect(screen.getByTestId('book-error')).toHaveTextContent(/区画/)
   })
+
+  it('通常に戻しても反復設定は保持される', async () => {
+    const now = new Date().toISOString()
+    const existing = {
+      id: 'b1',
+      title: '本',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      initialDoneUnits: 5,
+      startDate: '2026-09-01',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+    }
+    await db.books.add(existing as any)
+    render(<BookFormScreen book={existing as any} onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('book-mode-pages'))
+    fireEvent.click(screen.getByTestId('book-save'))
+    await waitFor(async () => {
+      const got = await db.books.get('b1')
+      expect(got?.totalUnits).toBe(20)
+      expect(got?.targetRounds).toBe(3)
+      expect(got?.initialDoneUnits).toBe(5)
+    })
+  })
 })

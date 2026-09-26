@@ -7,6 +7,7 @@ import {
   calcCycleDonePairs,
   cycleGrandTotal,
   currentCycleRound,
+  expandCyclePairs,
   calcCycleDailyTarget,
   calcRequiredPerDay,
   calcScheduleStatus,
@@ -519,11 +520,33 @@ export default function HomeScreen({ onOpenBook }: Props) {
             ? calcCycleDonePairs(nowView.registered, nowCycleRecords)
             : calcTotalDone(nowView.registered, records)
           : 0
-        const nowRound = nowTotal > 0 ? currentRound(nowDone, nowTotal) : 1
-        const nowInRound =
-          nowTotal > 0 ? nowDone - (nowRound - 1) * nowTotal : 0
-        const nowPercent =
-          nowTotal > 0
+        const nowRound =
+          nowView.registered?.studyMode === 'cycles' && nowView.registered
+            ? currentCycleRound(nowView.registered, nowCycleRecords)
+            : nowTotal > 0
+              ? currentRound(nowDone, nowTotal)
+              : 1
+        const nowCyclePairs = nowIsCycle ? expandCyclePairs(nowCycleRecords) : new Set<string>()
+        const nowCycleUnits =
+          nowIsCycle && nowView.registered ? (nowView.registered.totalUnits ?? 0) : 0
+        const nowCycleCovered = (() => {
+          if (!nowIsCycle || nowCycleUnits <= 0) return 0
+          let covered = 0
+          for (let u = 1; u <= nowCycleUnits; u++) {
+            if (nowCyclePairs.has(`${u}:${nowRound}`)) covered++
+          }
+          return covered
+        })()
+        const nowInRound = nowIsCycle
+          ? nowCycleCovered
+          : nowTotal > 0
+            ? nowDone - (nowRound - 1) * nowTotal
+            : 0
+        const nowPercent = nowIsCycle
+          ? nowCycleUnits > 0
+            ? Math.min(Math.round((nowCycleCovered / nowCycleUnits) * 100), 100)
+            : 0
+          : nowTotal > 0
             ? Math.min(Math.round((nowInRound / nowTotal) * 100), 100)
             : 0
         const nowProgress = nowView.registered ? nowPercent : 0

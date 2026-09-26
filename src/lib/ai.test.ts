@@ -102,4 +102,22 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('期限内は絶対に変更してはいけません')
     expect(prompt).toContain('英単語1000')
   })
+
+  it('反復モードの本が集計対象外である旨を含む', () => {
+    const TODAY = '2026-09-23'
+    const slot: AvailabilitySlot = { id: 's', weekday: null, date: TODAY, start: '21:00', end: '23:00' }
+    const book = {
+      id: 'b1',
+      title: '英単語1000',
+      totalPages: 100,
+      startDate: '2026-09-01',
+      deadline: '2026-09-28',
+      createdAt: 'x',
+      updatedAt: 'x',
+    } as BookData
+    const report = buildAdvisorReport({ today: TODAY, books: [book], donePagesByBook: { b1: 0 }, availability: [slot] })
+    const prompt = buildSystemPrompt(report)
+    expect(prompt).toContain('反復モード')
+    expect(prompt).toContain('対象外')
+  })
 })

@@ -25,6 +25,7 @@ const book = {
 beforeEach(async () => {
   await db.books.clear()
   await db.records.clear()
+  await db.cycleRecords.clear()
   vi.restoreAllMocks()
 })
 
@@ -195,5 +196,66 @@ describe('BookDetailScreen', () => {
     fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '2' } })
     fireEvent.click(screen.getByTestId('cycle-record'))
     expect(screen.getByTestId('cycle-error')).toHaveTextContent(/範囲/)
+  })
+
+  it('周回別の完了区画数を表示する', async () => {
+    await db.books.add({
+      ...book,
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: daysFromNow(0), unitFrom: 1, unitTo: 20, round: 1 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByTestId('cycle-round-coverage')).toHaveTextContent('1周目: 20/20区画')
+  })
+
+  it('反復記録の削除失敗時はcycle-errorに表示する', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.spyOn(db.cycleRecords, 'delete').mockRejectedValueOnce(new Error('fail'))
+    await db.books.add({
+      ...book,
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: daysFromNow(0), unitFrom: 1, unitTo: 2, round: 1 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('cycle-delete-c1'))
+    expect(await screen.findByTestId('cycle-error')).toHaveTextContent(/削除に失敗/)
+  })
+
+  it('日付範囲外の警告にtestidが付く', async () => {
+    await db.books.add({
+      ...book,
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(1),
+      deadline: daysFromNow(10),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByTestId('cycle-date-warning')).toHaveTextContent(/範囲外/)
+  })
+
+  it('反復記録フォーム付近に二重計上の注記を表示する', async () => {
+    await db.books.add({
+      ...book,
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByText('同じ区画・同じ周回の再記録は進捗に二重計上されません')).toBeInTheDocument()
   })
 })

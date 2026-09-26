@@ -8,6 +8,7 @@ import { resetSchedule } from '../data/scheduleStore'
 beforeEach(async () => {
   await db.books.clear()
   await db.records.clear()
+  await db.cycleRecords.clear()
   await db.availability.clear()
   resetSchedule()
 })

@@ -15,6 +15,7 @@ import {
   calcCycleDailyTarget,
   cycleGrandTotal,
   currentCycleRound,
+  expandCyclePairs,
   type BookData,
   type ProgressRecordData,
   type CycleRecordData,
@@ -76,6 +77,17 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     const target = calcCycleDailyTarget(book, done, remainingDays)
     const effectiveDate = cycleDate || today
     const dateOutOfRange = effectiveDate < book.startDate || effectiveDate > book.deadline
+    const cyclePairs = expandCyclePairs(mine)
+    const cycleTotalUnits = book.totalUnits ?? 0
+    const cycleTargetRounds = book.targetRounds ?? 0
+    const cycleRoundCoverage = Array.from({ length: cycleTargetRounds }, (_, i) => {
+      const r = i + 1
+      let covered = 0
+      for (let u = 1; u <= cycleTotalUnits; u++) {
+        if (cyclePairs.has(`${u}:${r}`)) covered++
+      }
+      return { round: r, covered }
+    })
 
     const handleCycleRecord = async () => {
       const from = Number(cycleFrom)
@@ -148,11 +160,11 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
 
     const handleCycleRecordDelete = async (record: CycleRecordData) => {
       if (!window.confirm(`${formatJaDate(record.date)}の記録を削除しますか？`)) return
-      setCycleEditError(null)
+      setCycleError(null)
       try {
         await removeCycle(record.id)
       } catch {
-        setCycleEditError('削除に失敗しました。もう一度お試しください')
+        setCycleError('削除に失敗しました。もう一度お試しください')
       }
     }
 
@@ -165,6 +177,9 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
         <CoverImage src={book.coverUrl ?? null} width={96} height={136} />
         <p data-testid="cycle-summary">
           完了パス {done} / {total}（全{book.totalUnits}区画×{book.targetRounds}周）・今{round}周目
+        </p>
+        <p data-testid="cycle-round-coverage">
+          {cycleRoundCoverage.map(({ round: r, covered }) => `${r}周目: ${covered}/${cycleTotalUnits}区画`).join(' ')}
         </p>
         <p>
           今日の目標: <strong data-testid="today-target">{target}</strong> 区画
@@ -208,12 +223,13 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           <button data-testid="cycle-record" type="button" onClick={() => void handleCycleRecord()}>
             範囲を記録
           </button>
+          <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>同じ区画・同じ周回の再記録は進捗に二重計上されません</p>
           {cycleError && (
             <p data-testid="cycle-error" style={{ color: 'var(--danger)' }}>
               {cycleError}
             </p>
           )}
-          {dateOutOfRange && <p>日付が開始日〜期限日の範囲外です</p>}
+          {dateOutOfRange && <p data-testid="cycle-date-warning">日付が開始日〜期限日の範囲外です</p>}
         </div>
         {mine.length > 0 && (
           <section style={{ marginTop: 16 }}>
