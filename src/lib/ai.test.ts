@@ -97,6 +97,29 @@ describe('chatWithModel', () => {
     expect(res).toEqual({ ok: false, reason: 'http', status: 401 })
   })
 
+  it('includes the response body in http failures', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        text: async () => JSON.stringify({ error: { message: 'Rate limit exceeded, retry in 30s', code: 429 } }),
+      }),
+    )
+    const res = await chatWithModel(
+      { endpoint: 'https://example.test', apiKey: 'k', model: 'm' },
+      'sys',
+      [],
+    )
+    expect(res.ok).toBe(false)
+    if (!res.ok && res.reason === 'http') {
+      expect(res.status).toBe(429)
+      expect(res.detail).toContain('Rate limit exceeded')
+    } else {
+      throw new Error('expected http failure')
+    }
+  })
+
   it('sends max_tokens to cap usage on mobile和高性能モデル', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

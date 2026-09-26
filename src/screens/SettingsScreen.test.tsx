@@ -179,6 +179,24 @@ describe('adjustment AI settings', () => {
     )
   })
 
+  it('shows the response body on http failure', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        text: async () => JSON.stringify({ error: { message: 'Rate limit exceeded', code: 429 } }),
+      }),
+    )
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
+    fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'm' } })
+    fireEvent.click(screen.getByTestId('ai-test'))
+    await waitFor(() =>
+      expect(screen.getByTestId('ai-test-result')).toHaveTextContent(/Rate limit exceeded/),
+    )
+  })
+
   it('includes the underlying error detail on network failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Load failed')))
     render(<SettingsScreen onDone={() => {}} />)

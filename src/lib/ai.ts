@@ -108,7 +108,14 @@ export async function chatWithModel(
   }
   clearTimeout(timer)
   if (!res.ok) {
-    return { ok: false, reason: 'http', status: res.status }
+    let detail: string | undefined
+    try {
+      const text = await res.text()
+      if (text) detail = text.slice(0, 300)
+    } catch {
+      detail = undefined
+    }
+    return { ok: false, reason: 'http', status: res.status, detail }
   }
   try {
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] }
