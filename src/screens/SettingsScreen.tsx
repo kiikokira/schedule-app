@@ -6,7 +6,7 @@ import {
   setNotifySettings,
   publishPush,
 } from '../lib/notify'
-import { getAiSettings, setAiSettings } from '../lib/ai'
+import { getAiSettings, setAiSettings, chatWithModel, GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, DEFAULT_ENDPOINT } from '../lib/ai'
 
 type Props = {
   onDone: () => void
@@ -21,6 +21,8 @@ export default function SettingsScreen({ onDone }: Props) {
   const [aiEndpoint, setAiEndpoint] = useState(getAiSettings().endpoint)
   const [aiApiKey, setAiApiKey] = useState(getAiSettings().apiKey)
   const [aiModel, setAiModel] = useState(getAiSettings().model)
+  const [aiTestResult, setAiTestResult] = useState<string | null>(null)
+  const [aiTesting, setAiTesting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleExport = async () => {
@@ -100,6 +102,34 @@ export default function SettingsScreen({ onDone }: Props) {
     setResult('調整AIの設定を保存しました')
   }
 
+  const handleTestAi = async () => {
+    const endpoint = aiEndpoint.trim()
+    const apiKey = aiApiKey.trim()
+    const model = aiModel.trim()
+    if (!endpoint || !apiKey || !model) {
+      setAiTestResult('エンドポイント・APIキー・モデル名を入力してください')
+      return
+    }
+    setAiTesting(true)
+    setAiTestResult(null)
+    const res = await chatWithModel(
+      { endpoint, apiKey, model },
+      '接続テスト用のシステムプロンプトです。',
+      [{ role: 'user', content: '接続テスト' }],
+      { timeoutMs: 20000 },
+    )
+    setAiTesting(false)
+    if (res.ok) {
+      setAiTestResult('接続テスト成功：オンラインAIに接続できました')
+    } else if (res.reason === 'timeout') {
+      setAiTestResult('接続テスト失敗：タイムアウトしました（高精度モデルは時間がかかります）')
+    } else if (res.reason === 'http') {
+      setAiTestResult(`接続テスト失敗：HTTP ${res.status ?? '?'}（APIキー・モデル名を確認してください）`)
+    } else {
+      setAiTestResult('接続テスト失敗：ネットワークに届きませんでした（WiFi・モバイル回線を確認してください）')
+    }
+  }
+
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>設定</h1>
@@ -169,8 +199,25 @@ export default function SettingsScreen({ onDone }: Props) {
       </section>
       <section style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 16 }}>調整AI（オンライン）</h2>
-        <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
-          オンラインでの自由文相談に使う高精度AI接続（OpenAI互換API）。未設定でもオフラインの内蔵AI（定型文＋自動提案）は動きます。期限は変更されません。APIキーはこの端末内だけに保存されます。
+        <label htmlFor="ai-preset">プリセット</label>
+        <select
+          id="ai-preset"
+          data-testid="ai-preset"
+          defaultValue={aiEndpoint === GEMINI_COMPAT_ENDPOINT ? 'gemini' : 'openai'}
+          onChange={(e) => {
+            if (e.target.value === 'gemini') {
+              setAiEndpoint(GEMINI_COMPAT_ENDPOINT)
+              if (!aiModel.trim()) setAiModel(GEMINI_EXAMPLE_MODEL)
+            } else {
+              setAiEndpoint(DEFAULT_ENDPOINT)
+            }
+          }}
+        >
+          <option value="openai">OpenAI本家</option>
+          <option value="gemini">Gemini無料枠（OpenAI互換）</option>
+        </select>
+        <p data-testid="ai-description" style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+          オンラインでの自由文相談に使う高精度AI接続（OpenAI互換API）。WiFi・モバイル回線どちらでも利用可（GBを消費します。1回数KB〜数十KB程度）。未設定でもオフラインの内蔵AI（定型文＋自動提案）は動きます。期限は変更されません。APIキーはこの端末内だけに保存されます。高精度モデルは応答が遅く料金・GBが増えます（軽量例: gpt-4o-mini／高精度例: gpt-4o）。無料枠はGoogle AI Studioで無料キーを作成し、モデル名は一覧で確認してください。無料枠は回数制限があります。
         </p>
         <label htmlFor="ai-endpoint">エンドポイントURL</label>
         <input
@@ -188,7 +235,7 @@ export default function SettingsScreen({ onDone }: Props) {
           type="password"
           value={aiApiKey}
           onChange={(e) => setAiApiKey(e.target.value)}
-          placeholder="sk-..."
+          placeholder="sk-... / AIza...（無料枠はAIzaから始まるキー）"
           autoComplete="off"
         />
         <label htmlFor="ai-model">モデル名</label>
@@ -198,12 +245,20 @@ export default function SettingsScreen({ onDone }: Props) {
           type="text"
           value={aiModel}
           onChange={(e) => setAiModel(e.target.value)}
-          placeholder="例: gpt-5-mini"
+          placeholder="例: gpt-4o-mini（軽量）/ gpt-4o（高精度）"
           autoComplete="off"
         />
         <button data-testid="ai-save" type="button" onClick={handleSaveAi}>
           設定を保存
         </button>
+        <button data-testid="ai-test" type="button" onClick={() => void handleTestAi()} disabled={aiTesting}>
+          接続テスト
+        </button>
+        {aiTestResult && (
+          <p data-testid="ai-test-result" style={{ color: 'var(--accent-strong)' }}>
+            {aiTestResult}
+          </p>
+        )}
       </section>
       <button data-testid="backup-export" type="button" onClick={() => void handleExport()}>
         バックアップを書き出す

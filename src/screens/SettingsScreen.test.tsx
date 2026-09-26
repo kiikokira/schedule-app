@@ -144,4 +144,58 @@ describe('adjustment AI settings', () => {
     expect(saved.model).toBe('gpt-5-mini')
     expect(screen.getByTestId('backup-result')).toHaveTextContent('調整AIの設定を保存しました')
   })
+
+  it('mentions mobile data and high-accuracy models', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    expect(screen.getByTestId('ai-description')).toHaveTextContent(/モバイル回線/)
+    expect(screen.getByTestId('ai-description')).toHaveTextContent(/高精度/)
+  })
+
+  it('reports a successful AI connection test', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: 'ok' } }] }),
+      }),
+    )
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
+    fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'gpt-4o' } })
+    fireEvent.click(screen.getByTestId('ai-test'))
+    await waitFor(() =>
+      expect(screen.getByTestId('ai-test-result')).toHaveTextContent(/接続テスト成功/),
+    )
+  })
+
+  it('reports an AI connection failure with status', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }))
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
+    fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'gpt-4o' } })
+    fireEvent.click(screen.getByTestId('ai-test'))
+    await waitFor(() =>
+      expect(screen.getByTestId('ai-test-result')).toHaveTextContent(/401/),
+    )
+  })
+
+  it('fills the Gemini free-tier preset on selection', () => {
+    localStorage.removeItem('ai-settings')
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'gemini' } })
+    expect(screen.getByTestId('ai-endpoint')).toHaveValue(
+      'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    )
+    expect(screen.getByTestId('ai-model')).toHaveValue('gemini-2.0-flash')
+  })
+
+  it('restores the OpenAI preset on selection', () => {
+    localStorage.removeItem('ai-settings')
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'gemini' } })
+    fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'openai' } })
+    expect(screen.getByTestId('ai-endpoint')).toHaveValue(
+      'https://api.openai.com/v1/chat/completions',
+    )
+  })
 })
