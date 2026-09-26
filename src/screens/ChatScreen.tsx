@@ -46,10 +46,11 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
       db.books.toArray(),
       db.records.toArray(),
     ])
+    const targetBooks = allBooks.filter((b) => b.studyMode !== 'cycles')
     const donePagesByBook = Object.fromEntries(
-      allBooks.map((b) => [b.id, calcTotalDone(b, allRecords)]),
+      targetBooks.map((b) => [b.id, calcTotalDone(b, allRecords)]),
     )
-    return buildAdvisorReport({ today, books: allBooks, donePagesByBook, availability })
+    return buildAdvisorReport({ today, books: targetBooks, donePagesByBook, availability })
   }
 
   useEffect(() => {

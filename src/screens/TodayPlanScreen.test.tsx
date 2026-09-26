@@ -250,4 +250,16 @@ describe('TodayPlanScreen', () => {
       vi.unstubAllGlobals()
     }
   })
+
+  it('反復本を1日あたり区画数つきで別枠表示する', async () => {
+    await fillBook('cycle-1', {
+      title: '反復本',
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+    })
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('cycle-today-list')).toHaveTextContent('反復本')
+  })
 })
+

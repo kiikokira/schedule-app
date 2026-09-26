@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
+import { useCycleRecords } from '../hooks/useCycleRecords'
 import { listAvailability } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, type ScheduledBook } from '../lib/dayplan'
-import { todayStr, formatJaDate, type BookData } from '../lib/progress'
+import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, type BookData } from '../lib/progress'
 import { getNotifySettings, publishSlots } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
 import { useSlotEndReminder } from '../lib/useSlotEndReminder'
@@ -34,6 +35,7 @@ const SLOTS_PUBLISHED_KEY = 'schedule-app-slots-published'
 export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }: Props) {
   const { books, saveBook } = useBooks()
   const { records, addProgress } = useRecords()
+  const { cycleRecords } = useCycleRecords()
   const today = todayProp ?? todayStr()
   const [availability, setAvailability] = useState<Awaited<ReturnType<typeof listAvailability>>>([])
   const [availabilityLoaded, setAvailabilityLoaded] = useState(false)
@@ -46,12 +48,14 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
     })
   }, [])
 
-  const doneByBook = new Map(books.map((b) => [b.id, b.initialDonePages ?? 0]))
+  const pageBooks = books.filter((b) => b.studyMode !== 'cycles')
+  const cycleBooks = books.filter((b) => b.studyMode === 'cycles')
+  const doneByBook = new Map(pageBooks.map((b) => [b.id, b.initialDonePages ?? 0]))
   for (const r of records) {
     const done = doneByBook.get(r.bookId)
     if (done !== undefined) doneByBook.set(r.bookId, done + r.pages)
   }
-  const scheduled = books
+  const scheduled = pageBooks
     .map((b) => ({ ...toScheduledBook(b), donePages: doneByBook.get(b.id) ?? 0 }))
     .map((sb) => sb)
   // スケジュールに含まれていない登録本も対象にする
@@ -187,6 +191,20 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                     <div data-testid="plan-row-pages">予定 {s.pages}ページ</div>
                   </div>
                 </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      {cycleBooks.length > 0 && (
+        <div data-testid="cycle-today-list" style={{ marginTop: 16 }}>
+          {cycleBooks.map((book) => {
+            const mine = cycleRecords.filter((r) => r.bookId === book.id)
+            const done = calcCycleDonePairs(book, mine)
+            const target = calcCycleDailyTarget(book, done, daysBetween(today, book.deadline))
+            return (
+              <div key={book.id}>
+                {book.title} 今日やる区画 {target}区画
               </div>
             )
           })}
