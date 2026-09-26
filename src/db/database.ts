@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { BookData, ProgressRecordData } from '../lib/progress'
+import type { BookData, ProgressRecordData, CycleRecordData } from '../lib/progress'
 import type { AvailabilitySlot, Adjustment } from '../data/dayplanStore'
 
 export type DexieBook = BookData
@@ -10,6 +10,7 @@ class ScheduleDB extends Dexie {
   records!: Table<DexieRecord, string>
   availability!: Table<AvailabilitySlot, string>
   adjustments!: Table<Adjustment, string>
+  cycleRecords!: Table<CycleRecordData, string>
 
   constructor() {
     super('schedule-app')
@@ -22,6 +23,13 @@ class ScheduleDB extends Dexie {
       records: 'id, bookId, [bookId+date]',
       availability: 'id, weekday, date',
       adjustments: 'id, date, bookId',
+    })
+    this.version(3).stores({
+      books: 'id, deadline, startDate',
+      records: 'id, bookId, [bookId+date]',
+      availability: 'id, weekday, date',
+      adjustments: 'id, date, bookId',
+      cycleRecords: 'id, bookId, [bookId+date]',
     })
   }
 }
@@ -80,4 +88,23 @@ export async function updateProgressRecord(
 
 export async function deleteProgressRecord(id: string): Promise<void> {
   await db.records.delete(id)
+}
+
+export async function listCycleRecords(bookId: string): Promise<CycleRecordData[]> {
+  return db.cycleRecords.where('bookId').equals(bookId).toArray()
+}
+
+export async function addCycleRecord(rec: CycleRecordData): Promise<void> {
+  await db.cycleRecords.add(rec)
+}
+
+export async function updateCycleRecord(
+  id: string,
+  patch: { date?: string; unitFrom?: number; unitTo?: number; round?: number },
+): Promise<void> {
+  await db.cycleRecords.update(id, patch)
+}
+
+export async function deleteCycleRecord(id: string): Promise<void> {
+  await db.cycleRecords.delete(id)
 }

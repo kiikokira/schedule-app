@@ -1,5 +1,6 @@
-import { it, expect } from 'vitest'
-import { validateBackup } from './backup'
+import { it, expect, beforeEach } from 'vitest'
+import { validateBackup, importBackup } from './backup'
+import { db } from './database'
 
 const book = {
   id: 'b1',
@@ -11,6 +12,12 @@ const book = {
   updatedAt: '2026-01-01T00:00:00.000Z',
 }
 const record = { id: 'r1', bookId: 'b1', date: '2026-01-05', pages: 10 }
+
+beforeEach(async () => {
+  await db.books.clear()
+  await db.records.clear()
+  await db.cycleRecords.clear()
+})
 
 it('accepts a well-formed backup', () => {
   const data: unknown = { exportedAt: '2026-01-05T00:00:00.000Z', books: [book], records: [record] }
@@ -30,4 +37,23 @@ it('rejects books with invalid page count', () => {
 it('rejects records referencing missing book', () => {
   const data = { exportedAt: '2026-01-05T00:00:00.000Z', books: [], records: [record] }
   expect(validateBackup(data)).toBe(false)
+})
+
+it('cycleRecords を含めて保存・復元できる', async () => {
+  const data = {
+    exportedAt: '2026-01-05T00:00:00.000Z',
+    books: [{ ...book, studyMode: 'cycles', totalUnits: 10, targetRounds: 3 }],
+    records: [],
+    cycleRecords: [
+      { id: 'c1', bookId: 'b1', date: '2026-01-05', unitFrom: 1, unitTo: 4, round: 1 },
+    ],
+  }
+  expect(validateBackup(data)).toBe(true)
+  await importBackup(data as any)
+  expect(await db.cycleRecords.count()).toBe(1)
+})
+
+it('cycleRecords のない古いバックアップも受け付ける', () => {
+  const old = { exportedAt: '2026-01-05T00:00:00.000Z', books: [book], records: [record] }
+  expect(validateBackup(old)).toBe(true)
 })
