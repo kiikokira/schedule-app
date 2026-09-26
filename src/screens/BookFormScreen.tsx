@@ -26,6 +26,16 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
   const [initialDone, setInitialDone] = useState(
     book?.initialDonePages != null ? String(book.initialDonePages) : '',
   )
+  const [studyMode, setStudyMode] = useState<'pages' | 'cycles'>(book?.studyMode ?? 'pages')
+  const [totalUnits, setTotalUnits] = useState(
+    book?.totalUnits != null ? String(book.totalUnits) : '',
+  )
+  const [targetRounds, setTargetRounds] = useState(
+    book?.targetRounds != null ? String(book.targetRounds) : '',
+  )
+  const [initialUnits, setInitialUnits] = useState(
+    book?.initialDoneUnits != null ? String(book.initialDoneUnits) : '',
+  )
   const [tab, setTab] = useState<'catalog' | 'search'>('catalog')
   const [catalogQuery, setCatalogQuery] = useState('')
   const [query, setQuery] = useState('')
@@ -89,6 +99,31 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
       }
       initialDonePages = v > 0 ? v : undefined
     }
+    let totalUnitsNum: number | undefined
+    let targetRoundsNum: number | undefined
+    let initialDoneUnits: number | undefined
+    if (studyMode === 'cycles') {
+      const tu = Number(totalUnits)
+      const tr = Number(targetRounds)
+      if (!Number.isInteger(tu) || tu < 1) {
+        setError('全区画数は1以上の整数で入力してください')
+        return
+      }
+      if (!Number.isInteger(tr) || tr < 1) {
+        setError('目標周回は1以上の整数で入力してください')
+        return
+      }
+      totalUnitsNum = tu
+      targetRoundsNum = tr
+      if (initialUnits.trim() !== '') {
+        const v = Number(initialUnits)
+        if (!Number.isInteger(v) || v < 0 || v > tu * tr) {
+          setError('すでに終わった区画数は0以上かつ総量以下で入力してください')
+          return
+        }
+        initialDoneUnits = v > 0 ? v : undefined
+      }
+    }
     const now = new Date().toISOString()
     const isNew = book === null
     const next: BookData = {
@@ -102,6 +137,10 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
       deadline,
       minutesPerPage: minutes ? Number(minutes) : undefined,
       initialDonePages,
+      studyMode: studyMode === 'cycles' ? 'cycles' : undefined,
+      totalUnits: totalUnitsNum,
+      targetRounds: targetRoundsNum,
+      initialDoneUnits: studyMode === 'cycles' ? initialDoneUnits : book?.initialDoneUnits,
       createdAt: book?.createdAt ?? now,
       updatedAt: now,
     }
@@ -229,6 +268,31 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
         <label htmlFor="book-initial-done">すでに進めたページ数</label>
         <input id="book-initial-done" data-testid="book-initial-done" type="number" inputMode="numeric" min={0} value={initialDone} onChange={(e) => setInitialDone(e.target.value)} placeholder="例: 120" />
       </div>
+      <div>
+        <span>学習方式</span>
+        <button data-testid="book-mode-pages" type="button" aria-pressed={studyMode === 'pages'} onClick={() => setStudyMode('pages')}>
+          通常ページ
+        </button>
+        <button data-testid="book-mode-cycles" type="button" aria-pressed={studyMode === 'cycles'} onClick={() => setStudyMode('cycles')}>
+          反復（区画×周回）
+        </button>
+      </div>
+      {studyMode === 'cycles' && (
+        <>
+          <div>
+            <label htmlFor="book-total-units">全区画数</label>
+            <input id="book-total-units" data-testid="book-total-units" type="number" inputMode="numeric" min={1} value={totalUnits} onChange={(e) => setTotalUnits(e.target.value)} placeholder="例: 20" />
+          </div>
+          <div>
+            <label htmlFor="book-target-rounds">目標周回</label>
+            <input id="book-target-rounds" data-testid="book-target-rounds" type="number" inputMode="numeric" min={1} value={targetRounds} onChange={(e) => setTargetRounds(e.target.value)} placeholder="例: 3" />
+          </div>
+          <div>
+            <label htmlFor="book-initial-units">すでに終わった区画数</label>
+            <input id="book-initial-units" data-testid="book-initial-units" type="number" inputMode="numeric" min={0} value={initialUnits} onChange={(e) => setInitialUnits(e.target.value)} placeholder="例: 20" />
+          </div>
+        </>
+      )}
       <div>
         <label htmlFor="book-start">開始日</label>
         <input id="book-start" data-testid="book-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
