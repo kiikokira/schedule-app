@@ -4,6 +4,10 @@ export type AiSettings = { endpoint: string; apiKey: string; model: string }
 
 export const DEFAULT_ENDPOINT = 'https://api.openai.com/v1/chat/completions'
 
+export const GEMINI_COMPAT_ENDPOINT =
+  'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
+export const GEMINI_EXAMPLE_MODEL = 'gemini-2.0-flash'
+
 const STORAGE_KEY = 'ai-settings'
 
 export function getAiSettings(): AiSettings {

@@ -6,6 +6,7 @@ import {
   chatWithModel,
   buildSystemPrompt,
 } from './ai'
+import { GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL } from './ai'
 import { buildAdvisorReport } from './advisor'
 import type { AvailabilitySlot } from '../data/dayplanStore'
 import type { BookData } from './progress'
@@ -38,6 +39,14 @@ describe('ai settings', () => {
     expect(getAiSettings().apiKey).toBe('')
     expect(isAiConfigured(getAiSettings())).toBe(false)
   })
+})
+
+it('exposes the Gemini OpenAI-compatible endpoint and example model', () => {
+  expect(GEMINI_COMPAT_ENDPOINT).toBe(
+    'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+  )
+  expect(typeof GEMINI_EXAMPLE_MODEL).toBe('string')
+  expect(GEMINI_EXAMPLE_MODEL.length).toBeGreaterThan(0)
 })
 
 describe('chatWithModel', () => {
