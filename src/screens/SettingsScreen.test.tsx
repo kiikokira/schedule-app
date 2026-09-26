@@ -179,6 +179,17 @@ describe('adjustment AI settings', () => {
     )
   })
 
+  it('includes the underlying error detail on network failure', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Load failed')))
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
+    fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'm' } })
+    fireEvent.click(screen.getByTestId('ai-test'))
+    await waitFor(() =>
+      expect(screen.getByTestId('ai-test-result')).toHaveTextContent(/TypeError: Load failed/),
+    )
+  })
+
   it('fills the Gemini free-tier preset on selection', () => {
     localStorage.removeItem('ai-settings')
     render(<SettingsScreen onDone={() => {}} />)

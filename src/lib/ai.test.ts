@@ -84,7 +84,7 @@ describe('chatWithModel', () => {
       'sys',
       [],
     )
-    expect(res).toEqual({ ok: false, reason: 'network' })
+    expect(res).toEqual({ ok: false, reason: 'network', detail: 'Error: down' })
   })
 
   it('returns an http failure for non-ok responses', async () => {
@@ -132,7 +132,7 @@ describe('chatWithModel', () => {
       [],
       { timeoutMs: 20 },
     )
-    expect(res).toEqual({ ok: false, reason: 'timeout' })
+    expect(res).toEqual({ ok: false, reason: 'timeout', detail: 'AbortError: aborted' })
   })
 
   it('sends OpenRouter headers when the endpoint is OpenRouter', async () => {

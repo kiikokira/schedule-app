@@ -124,11 +124,11 @@ export default function SettingsScreen({ onDone }: Props) {
     if (res.ok) {
       setAiTestResult('接続テスト成功：オンラインAIに接続できました')
     } else if (res.reason === 'timeout') {
-      setAiTestResult('接続テスト失敗：タイムアウトしました（高精度モデルは時間がかかります）')
+      setAiTestResult(`接続テスト失敗：タイムアウトしました（高精度モデルは時間がかかります）${res.detail ? `［${res.detail}］` : ''}`)
     } else if (res.reason === 'http') {
       setAiTestResult(`接続テスト失敗：HTTP ${res.status ?? '?'}（APIキー・モデル名を確認してください）`)
     } else {
-      setAiTestResult('接続テスト失敗：ネットワークに届きませんでした（WiFi・モバイル回線を確認してください）')
+      setAiTestResult(`接続テスト失敗：ネットワークに届きませんでした（WiFi・モバイル回線を確認してください）${res.detail ? `［${res.detail}］` : ''}`)
     }
   }
 

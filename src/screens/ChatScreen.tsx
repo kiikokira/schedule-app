@@ -64,7 +64,7 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
       ? navigator.onLine
       : true,
   )
-  const [lastError, setLastError] = useState<{ reason: 'network' | 'http' | 'timeout'; status?: number } | null>(null)
+  const [lastError, setLastError] = useState<{ reason: 'network' | 'http' | 'timeout'; status?: number; detail?: string } | null>(null)
   const [lastFailedInput, setLastFailedInput] = useState('')
 
   useEffect(() => {
@@ -198,7 +198,11 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
       push({ role: 'assistant', text: result.text })
     } else {
       const err = result.ok === false ? result : { reason: 'network' as const }
-      setLastError('status' in err ? { reason: err.reason, status: err.status } : { reason: err.reason })
+      setLastError(
+        'status' in err
+          ? { reason: err.reason, status: err.status, detail: 'detail' in err ? (err.detail as string | undefined) : undefined }
+          : { reason: err.reason, detail: 'detail' in err ? (err.detail as string | undefined) : undefined },
+      )
       setLastFailedInput(text)
     }
   }
@@ -278,6 +282,7 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
           <div style={{ marginTop: 8 }}>
             <p data-testid="chat-error" style={{ color: 'var(--danger)', fontSize: 13 }}>
               {describeAiError(lastError.reason, lastError.status)}
+              {lastError.detail ? `［${lastError.detail}］` : ''}
             </p>
             <button data-testid="chat-retry" type="button" onClick={() => void retry()}>
               再試行

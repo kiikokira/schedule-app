@@ -51,7 +51,12 @@ export function isAiConfigured(s: AiSettings): boolean {
 
 export type ChatResult =
   | { ok: true; text: string }
-  | { ok: false; reason: 'network' | 'http' | 'timeout'; status?: number }
+  | { ok: false; reason: 'network' | 'http' | 'timeout'; status?: number; detail?: string }
+
+function toDetail(e: unknown): string {
+  if (e instanceof Error) return `${e.name}: ${e.message}`.slice(0, 200)
+  return String(e).slice(0, 200)
+}
 
 export async function chatWithModel(
   settings: AiSettings,
@@ -86,9 +91,9 @@ export async function chatWithModel(
   } catch (e) {
     clearTimeout(timer)
     if (e instanceof Error && e.name === 'AbortError') {
-      return { ok: false, reason: 'timeout' }
+      return { ok: false, reason: 'timeout', detail: toDetail(e) }
     }
-    return { ok: false, reason: 'network' }
+    return { ok: false, reason: 'network', detail: toDetail(e) }
   }
   clearTimeout(timer)
   if (!res.ok) {
