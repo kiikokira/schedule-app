@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { searchBooks, getBooksApiKey, type SearchResultItem } from '../api/googleBooks'
 import { useBooks } from '../hooks/useBooks'
 import { todayStr, type BookData } from '../lib/progress'
@@ -42,6 +42,22 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
   const [results, setResults] = useState<SearchResultItem[]>([])
   const [error, setError] = useState('')
   const [searchError, setSearchError] = useState('')
+
+  useEffect(() => {
+    setTitle(book?.title ?? '')
+    setSubject(book?.subject ?? '英語')
+    setTotalPages(book?.totalPages ? String(book.totalPages) : '')
+    setCoverUrl(book?.coverUrl ?? null)
+    setCatalogId(book?.catalogId ?? null)
+    setStartDate(book?.startDate ?? todayStr())
+    setDeadline(book?.deadline ?? '')
+    setMinutes(book?.minutesPerPage ? String(book.minutesPerPage) : '')
+    setInitialDone(book?.initialDonePages != null ? String(book.initialDonePages) : '')
+    setStudyMode(book?.studyMode ?? 'pages')
+    setTotalUnits(book?.totalUnits != null ? String(book.totalUnits) : '')
+    setTargetRounds(book?.targetRounds != null ? String(book.targetRounds) : '')
+    setInitialUnits(book?.initialDoneUnits != null ? String(book.initialDoneUnits) : '')
+  }, [book])
 
   const catalogResults = searchCatalog(catalogQuery)
 

@@ -22,7 +22,7 @@ export function useBooks() {
       if (isNew) {
         await db.books.add(book)
       } else {
-        await db.books.update(book.id, book)
+        await db.books.put(book)
       }
       await refresh()
     },

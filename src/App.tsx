@@ -24,13 +24,19 @@ type Route =
   | { name: 'ai' }
 
 export default function App() {
-  const { books } = useBooks()
+  const { books, refresh } = useBooks()
   const [route, setRoute] = useState<Route>({ name: 'home' })
 
   // 起動時に過去日の「当日上書き」を、ユーザーが画面を見る前にバックグラウンドで削除する
   useEffect(() => {
     void prunePastOverrides(todayStr())
   }, [])
+
+  useEffect(() => {
+    if (route.name === 'edit') {
+      void refresh()
+    }
+  }, [route, refresh])
 
   const editBook = route.name === 'edit' ? books.find((b) => b.id === route.bookId) : undefined
 
@@ -52,6 +58,7 @@ export default function App() {
         )}
         {route.name === 'edit' && editBook && (
           <BookFormScreen
+            key={editBook.id}
             book={editBook}
             onDone={() => setRoute({ name: 'home' })}
             onRebalance={(bookId) => setRoute({ name: 'rebalance', bookId })}

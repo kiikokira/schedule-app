@@ -276,4 +276,71 @@ describe('BookFormScreen', () => {
       expect(got?.initialDoneUnits).toBe(5)
     })
   })
+
+  it('反復本の保存値を編集画面に表示し編集できる', async () => {
+    const now = new Date().toISOString()
+    const existing = {
+      id: 'b1',
+      title: 'LEAP',
+      totalPages: 576,
+      initialDonePages: 120,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      initialDoneUnits: 7,
+      startDate: '2026-09-01',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+    }
+    await db.books.add(existing as any)
+    const saved = (await db.books.get('b1')) as any
+    render(<BookFormScreen book={saved} onDone={() => {}} />)
+    expect((screen.getByTestId('book-initial-done') as HTMLInputElement).value).toBe('120')
+    expect((screen.getByTestId('book-total-units') as HTMLInputElement).value).toBe('20')
+    expect((screen.getByTestId('book-target-rounds') as HTMLInputElement).value).toBe('3')
+    expect((screen.getByTestId('book-initial-units') as HTMLInputElement).value).toBe('7')
+    // 編集できること
+    fireEvent.change(screen.getByTestId('book-total-units'), { target: { value: '25' } })
+    fireEvent.change(screen.getByTestId('book-initial-done'), { target: { value: '130' } })
+    fireEvent.click(screen.getByTestId('book-save'))
+    await waitFor(async () => {
+      const got = await db.books.get('b1')
+      expect(got?.totalUnits).toBe(25)
+      expect(got?.initialDonePages).toBe(130)
+    })
+  })
+
+  it('book propが更新されたら入力に反映される', () => {
+    const now = new Date().toISOString()
+    const before = {
+      id: 'b1',
+      title: '本',
+      totalPages: 100,
+      startDate: '2026-09-01',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+    }
+    const after = {
+      id: 'b1',
+      title: 'LEAP',
+      totalPages: 576,
+      initialDonePages: 120,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      initialDoneUnits: 7,
+      startDate: '2026-09-01',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+    }
+    const { rerender } = render(<BookFormScreen book={before as any} onDone={() => {}} />)
+    rerender(<BookFormScreen book={after as any} onDone={() => {}} />)
+    expect((screen.getByTestId('book-initial-done') as HTMLInputElement).value).toBe('120')
+    expect((screen.getByTestId('book-total-units') as HTMLInputElement).value).toBe('20')
+    expect((screen.getByTestId('book-target-rounds') as HTMLInputElement).value).toBe('3')
+    expect((screen.getByTestId('book-initial-units') as HTMLInputElement).value).toBe('7')
+  })
 })
