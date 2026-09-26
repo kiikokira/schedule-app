@@ -168,6 +168,28 @@ describe('chatWithModel', () => {
   })
 })
 
+describe('ai key sanitize', () => {
+  it('strips whitespace and invisible characters from saved keys', () => {
+    setAiSettings({ endpoint: 'https://example.test', apiKey: 'sk-or-v1-ab c\n12\u200B34', model: 'm' })
+    expect(getAiSettings().apiKey).toBe('sk-or-v1-abc1234')
+  })
+
+  it('sends a header-safe key even when the stored key has spaces', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'hi' } }] }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await chatWithModel(
+      { endpoint: 'https://example.test', apiKey: 'sk-or-v1-ab c', model: 'm' },
+      'sys',
+      [],
+    )
+    const [, init] = fetchMock.mock.calls[0]
+    expect(init.headers.Authorization).toBe('Bearer sk-or-v1-abc')
+  })
+})
+
 describe('pingEndpoint', () => {
   it('reports reachable when any HTTP response arrives (even 401)', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 })

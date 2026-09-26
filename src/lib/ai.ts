@@ -12,6 +12,16 @@ export const OPENROUTER_EXAMPLE_MODEL = 'qwen/qwen3.8-27b:free'
 
 const STORAGE_KEY = 'ai-settings'
 
+/**
+ * APIキーの無害化。コピペ混入の空白・改行・不可視文字・非ASCIIを除去し、
+ * HTTPヘッダに載せられる印字可能ASCIIのみにする。正規キー（英数・記号）は不変。
+ */
+export function sanitizeAiKey(raw: string): string {
+  return raw
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[^\x21-\x7E]/g, '')
+}
+
 export function getAiSettings(): AiSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -31,7 +41,7 @@ export function getAiSettings(): AiSettings {
 
 export function setAiSettings(s: { endpoint: string; apiKey: string; model: string }): void {
   try {
-    const apiKey = s.apiKey.trim()
+    const apiKey = sanitizeAiKey(s.apiKey)
     if (!apiKey) {
       localStorage.removeItem(STORAGE_KEY)
       return
@@ -67,10 +77,11 @@ export async function chatWithModel(
   const timeoutMs = opts?.timeoutMs ?? 60000
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
+  const apiKey = sanitizeAiKey(settings.apiKey)
   let res: Response
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${settings.apiKey}`,
+    Authorization: `Bearer ${apiKey}`,
   }
   if (settings.endpoint.includes('openrouter.ai')) {
     headers['HTTP-Referer'] = 'https://kiikokira.github.io/schedule-app/'
