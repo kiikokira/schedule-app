@@ -159,4 +159,41 @@ describe('BookDetailScreen', () => {
     expect(await screen.findByTestId('done-count')).toHaveTextContent('120')
     expect(screen.getByTestId('today-target')).toHaveTextContent('30')
   })
+
+  it('反復の進捗を表示し範囲＋周回を記録できる', async () => {
+    await db.books.add({
+      ...book,
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    // 総量 60、残り 60 / 6日 = 10区画/日
+    expect(await screen.findByTestId('cycle-summary')).toHaveTextContent('今1周目')
+    expect(screen.getByTestId('today-target')).toHaveTextContent('10')
+    fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '4' } })
+    fireEvent.change(screen.getByTestId('cycle-round'), { target: { value: '1' } })
+    fireEvent.click(screen.getByTestId('cycle-record'))
+    await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('4 / 60'))
+  })
+
+  it('From＞To の範囲は拒否する', async () => {
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.change(await screen.findByTestId('cycle-from'), { target: { value: '5' } })
+    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '2' } })
+    fireEvent.click(screen.getByTestId('cycle-record'))
+    expect(screen.getByTestId('cycle-error')).toHaveTextContent(/範囲/)
+  })
 })
