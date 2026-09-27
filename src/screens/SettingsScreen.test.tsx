@@ -228,6 +228,16 @@ describe('adjustment AI settings', () => {
     expect(screen.getByTestId('ai-model')).toHaveValue('qwen/qwen3.8-27b:free')
   })
 
+  it('fills the Groq free preset on selection', () => {
+    localStorage.removeItem('ai-settings')
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'groq' } })
+    expect(screen.getByTestId('ai-endpoint')).toHaveValue(
+      'https://api.groq.com/openai/v1/chat/completions',
+    )
+    expect(screen.getByTestId('ai-model')).toHaveValue('llama-3.1-8b-instant')
+  })
+
   it('restores the OpenAI preset on selection', () => {
     localStorage.removeItem('ai-settings')
     render(<SettingsScreen onDone={() => {}} />)

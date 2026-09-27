@@ -9,6 +9,8 @@ export const GEMINI_COMPAT_ENDPOINT =
 export const GEMINI_EXAMPLE_MODEL = 'gemini-2.0-flash'
 export const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
 export const OPENROUTER_EXAMPLE_MODEL = 'qwen/qwen3.8-27b:free'
+export const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
+export const GROQ_EXAMPLE_MODEL = 'llama-3.1-8b-instant'
 
 const STORAGE_KEY = 'ai-settings'
 

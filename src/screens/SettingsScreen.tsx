@@ -6,7 +6,7 @@ import {
   setNotifySettings,
   publishPush,
 } from '../lib/notify'
-import { getAiSettings, setAiSettings, chatWithModel, pingEndpoint, GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL, DEFAULT_ENDPOINT } from '../lib/ai'
+import { getAiSettings, setAiSettings, chatWithModel, pingEndpoint, GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL, GROQ_ENDPOINT, GROQ_EXAMPLE_MODEL, DEFAULT_ENDPOINT } from '../lib/ai'
 
 type Props = {
   onDone: () => void
@@ -222,7 +222,7 @@ export default function SettingsScreen({ onDone }: Props) {
         <select
           id="ai-preset"
           data-testid="ai-preset"
-          defaultValue={aiEndpoint === GEMINI_COMPAT_ENDPOINT ? 'gemini' : aiEndpoint === OPENROUTER_ENDPOINT ? 'openrouter' : 'openai'}
+          defaultValue={aiEndpoint === GEMINI_COMPAT_ENDPOINT ? 'gemini' : aiEndpoint === OPENROUTER_ENDPOINT ? 'openrouter' : aiEndpoint === GROQ_ENDPOINT ? 'groq' : 'openai'}
           onChange={(e) => {
             if (e.target.value === 'gemini') {
               setAiEndpoint(GEMINI_COMPAT_ENDPOINT)
@@ -230,6 +230,9 @@ export default function SettingsScreen({ onDone }: Props) {
             } else if (e.target.value === 'openrouter') {
               setAiEndpoint(OPENROUTER_ENDPOINT)
               if (!aiModel.trim()) setAiModel(OPENROUTER_EXAMPLE_MODEL)
+            } else if (e.target.value === 'groq') {
+              setAiEndpoint(GROQ_ENDPOINT)
+              if (!aiModel.trim()) setAiModel(GROQ_EXAMPLE_MODEL)
             } else {
               setAiEndpoint(DEFAULT_ENDPOINT)
             }
@@ -238,6 +241,7 @@ export default function SettingsScreen({ onDone }: Props) {
           <option value="openai">OpenAI本家</option>
           <option value="gemini">Gemini無料枠（OpenAI互換）</option>
           <option value="openrouter">OpenRouter無料モデル（登録のみ）</option>
+          <option value="groq">Groq無料枠（登録のみ・高速）</option>
         </select>
         <p data-testid="ai-description" style={{ fontSize: 13, color: 'var(--text-dim)' }}>
           オンラインでの自由文相談に使う高精度AI接続（OpenAI互換API）。WiFi・モバイル回線どちらでも利用可（GBを消費します。1回数KB〜数十KB程度）。未設定でもオフラインの内蔵AI（定型文＋自動提案）は動きます。期限は変更されません。APIキーはこの端末内だけに保存されます。高精度モデルは応答が遅く料金・GBが増えます（軽量例: gpt-4o-mini／高精度例: gpt-4o）。無料枠はGoogle AI Studioで無料キーを作成し、モデル名は一覧で確認してください。無料枠は回数制限があります。プロジェクト作成でつまずく場合はOpenRouterの無料登録（キー発行のみ・`:free`モデル）が簡単です。

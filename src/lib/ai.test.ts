@@ -6,7 +6,7 @@ import {
   chatWithModel,
   buildSystemPrompt,
 } from './ai'
-import { GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL, pingEndpoint } from './ai'
+import { GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL, GROQ_ENDPOINT, GROQ_EXAMPLE_MODEL, pingEndpoint } from './ai'
 import { buildAdvisorReport } from './advisor'
 import type { AvailabilitySlot } from '../data/dayplanStore'
 import type { BookData } from './progress'
@@ -52,6 +52,12 @@ it('exposes the Gemini OpenAI-compatible endpoint and example model', () => {
 it('exposes the OpenRouter endpoint and a free example model', () => {
   expect(OPENROUTER_ENDPOINT).toBe('https://openrouter.ai/api/v1/chat/completions')
   expect(OPENROUTER_EXAMPLE_MODEL.endsWith(':free')).toBe(true)
+})
+
+it('exposes the Groq endpoint and example model', () => {
+  expect(GROQ_ENDPOINT).toBe('https://api.groq.com/openai/v1/chat/completions')
+  expect(typeof GROQ_EXAMPLE_MODEL).toBe('string')
+  expect(GROQ_EXAMPLE_MODEL.length).toBeGreaterThan(0)
 })
 
 describe('chatWithModel', () => {
