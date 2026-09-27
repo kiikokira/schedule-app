@@ -79,6 +79,14 @@ describe('ChatScreen', () => {
     expect(await screen.findByText('前の回答')).toBeInTheDocument()
   })
 
+  it('shows the history toggle even with a single message', async () => {
+    await fillBook()
+    await addTodaySlot()
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('analysis-summary')
+    expect(screen.getByTestId('history-toggle')).toHaveTextContent('履歴')
+  })
+
   it('collapses older messages behind a history toggle', async () => {
     await fillBook()
     await addTodaySlot()

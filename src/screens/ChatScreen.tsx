@@ -247,7 +247,7 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
         参考書の進捗から配分とペースを提案します。期限は変更されません。
       </p>
       <div data-testid="chat-messages" style={{ marginTop: 12 }}>
-        {messages.length > VISIBLE_COUNT && (
+        {messages.length > 0 && (
           <button
             data-testid="history-toggle"
             type="button"
@@ -256,7 +256,7 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
           >
             {historyExpanded
               ? '履歴を折りたたむ'
-              : `履歴（残り${messages.length - VISIBLE_COUNT}件）をすべて展開`}
+              : '履歴'}
           </button>
         )}
         {visibleMessages.map((m) => (
