@@ -226,13 +226,13 @@ export default function SettingsScreen({ onDone }: Props) {
           onChange={(e) => {
             if (e.target.value === 'gemini') {
               setAiEndpoint(GEMINI_COMPAT_ENDPOINT)
-              if (!aiModel.trim()) setAiModel(GEMINI_EXAMPLE_MODEL)
+              setAiModel(GEMINI_EXAMPLE_MODEL)
             } else if (e.target.value === 'openrouter') {
               setAiEndpoint(OPENROUTER_ENDPOINT)
-              if (!aiModel.trim()) setAiModel(OPENROUTER_EXAMPLE_MODEL)
+              setAiModel(OPENROUTER_EXAMPLE_MODEL)
             } else if (e.target.value === 'groq') {
               setAiEndpoint(GROQ_ENDPOINT)
-              if (!aiModel.trim()) setAiModel(GROQ_EXAMPLE_MODEL)
+              setAiModel(GROQ_EXAMPLE_MODEL)
             } else {
               setAiEndpoint(DEFAULT_ENDPOINT)
             }

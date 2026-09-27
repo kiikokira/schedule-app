@@ -238,6 +238,14 @@ describe('adjustment AI settings', () => {
     expect(screen.getByTestId('ai-model')).toHaveValue('llama-3.1-8b-instant')
   })
 
+  it('overwrites a stale model when switching presets', () => {
+    localStorage.removeItem('ai-settings')
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'google/gemma-4-31b-it:free' } })
+    fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'groq' } })
+    expect(screen.getByTestId('ai-model')).toHaveValue('llama-3.1-8b-instant')
+  })
+
   it('restores the OpenAI preset on selection', () => {
     localStorage.removeItem('ai-settings')
     render(<SettingsScreen onDone={() => {}} />)
