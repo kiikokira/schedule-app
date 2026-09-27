@@ -8,6 +8,8 @@ import {
   publishPush,
   publishState,
   publishSlots,
+  schedulePush,
+  cancelScheduledPush,
 } from './notify'
 
 beforeEach(() => {
@@ -196,6 +198,82 @@ describe('publishSlots', () => {
     const ok = await publishSlots(
       'my-topic',
       { date: '2026-09-21', slots: [], savedAt: '2026-09-21T00:00:00.000Z' },
+      fetchImpl as typeof fetch,
+    )
+    expect(ok).toBe(false)
+  })
+})
+
+describe('schedulePush', () => {
+  it('posts a delayed message with a sequence id using only safelisted headers', async () => {
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        ({ ok: true }) as Response,
+    )
+    const result = await schedulePush(
+      'my-topic',
+      '20:00～21:00 の空き時間が終わりました。今日の学習を記録しましたか？',
+      {
+        title: '学習時間終了 21:00',
+        delay: 1758975600,
+        sequenceId: 'slot-2026-09-27-2100',
+      },
+      fetchImpl as typeof fetch,
+    )
+    expect(result).toEqual({ ok: true })
+    const [url, init] = fetchImpl.mock.calls[0]
+    const parsed = new URL(url as string)
+    expect(parsed.pathname).toBe('/my-topic/slot-2026-09-27-2100')
+    expect(parsed.searchParams.get('delay')).toBe('1758975600')
+    expect(parsed.searchParams.get('title')).toBe('学習時間終了 21:00')
+    const headers = (init as RequestInit).headers as Record<string, string>
+    expect(headers['Content-Type']).toBe('text/plain')
+    expect(Object.keys(headers)).toHaveLength(1)
+    expect((init as RequestInit).body as string).toContain('20:00～21:00')
+  })
+
+  it('returns a network failure when the request throws', async () => {
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        throw new Error('network down')
+      },
+    )
+    const result = await schedulePush(
+      'my-topic',
+      'hi',
+      { delay: 1758975600, sequenceId: 'slot-2026-09-27-2100' },
+      fetchImpl as typeof fetch,
+    )
+    expect(result).toEqual({ ok: false, reason: 'network', status: null })
+  })
+})
+
+describe('cancelScheduledPush', () => {
+  it('deletes the scheduled message by sequence id', async () => {
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        ({ ok: true }) as Response,
+    )
+    const ok = await cancelScheduledPush(
+      'my-topic',
+      'slot-2026-09-27-2200',
+      fetchImpl as typeof fetch,
+    )
+    expect(ok).toBe(true)
+    const [url, init] = fetchImpl.mock.calls[0]
+    expect(url).toBe('https://ntfy.sh/my-topic/slot-2026-09-27-2200')
+    expect((init as RequestInit).method).toBe('DELETE')
+  })
+
+  it('returns false when the request throws', async () => {
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        throw new Error('network down')
+      },
+    )
+    const ok = await cancelScheduledPush(
+      'my-topic',
+      'slot-2026-09-27-2200',
       fetchImpl as typeof fetch,
     )
     expect(ok).toBe(false)

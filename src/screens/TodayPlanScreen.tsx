@@ -7,7 +7,7 @@ import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, type Schedul
 import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
-import { publishSlotsOnce } from '../lib/slotsPublish'
+import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { useSlotEndReminder } from '../lib/useSlotEndReminder'
 import CoverImage from '../components/CoverImage'
 
@@ -76,6 +76,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   useEffect(() => {
     if (!notifyEnabled || !notifyTopic.trim() || !slotsPayload) return
     void publishSlotsOnce(notifyTopic, slotsPayload)
+    // 終了時刻ちょうどに届くよう予約投稿する（アプリが閉じていても配達される）
+    void syncSlotSchedules(notifyTopic, slotsPayload)
   }, [notifyEnabled, notifyTopic, slotsPayload])
 
   // アプリを開いている間は、直近の終了時刻にその場で通知を送る。

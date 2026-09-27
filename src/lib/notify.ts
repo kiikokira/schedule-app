@@ -125,8 +125,69 @@ export async function publishState(
   }
 }
 
+// 指定したUNIX時刻に届くよう予約投稿する（ntfyのscheduled delivery）。
+// 同じsequenceIdへの再送は置換になる。クエリ方式のためプリフライト不要。
+export async function schedulePush(
+  topic: string,
+  message: string,
+  options: { title?: string; delay: number; sequenceId: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<PublishResult> {
+  const title = options.title ?? '参考書スケジュール管理'
+  const url =
+    `${NTFY_BASE}/${encodeTopic(topic)}/${encodeURIComponent(options.sequenceId)}` +
+    `?title=${encodeURIComponent(title)}&delay=${options.delay}`
+  const controller = new AbortController()
+  const timer = withTimeout(controller)
+  try {
+    const res = await fetchImpl(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body: message,
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+    if (res.ok) return { ok: true }
+    return { ok: false, reason: 'http', status: res.status }
+  } catch (err) {
+    console.info('[notify] schedule failed:', err)
+    return { ok: false, reason: 'network', status: null }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// 未配達の予約投稿を取り消す。配達済みのものには触らないよう
+// 呼び出し側で未来分だけに絞ること。
+export async function cancelScheduledPush(
+  topic: string,
+  sequenceId: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  const controller = new AbortController()
+  const timer = withTimeout(controller)
+  try {
+    const res = await fetchImpl(
+      `${NTFY_BASE}/${encodeTopic(topic)}/${encodeURIComponent(sequenceId)}`,
+      {
+        method: 'DELETE',
+        cache: 'no-store',
+        signal: controller.signal,
+      },
+    )
+    return res.ok
+  } catch (err) {
+    console.info('[notify] schedule cancel failed:', err)
+    return false
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 // その日の空き時間帯の終了予定を -slots トピックへ送る。
-// ワークフローが15分ごとに読み、終わった直後の時間帯だけ通知する。
+// ワークフローが数分ごとに読み、終わった時間帯のうち未通知分を通知する。
 export async function publishSlots(
   topic: string,
   payload: SlotsPayload,

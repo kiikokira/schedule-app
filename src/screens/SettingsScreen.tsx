@@ -174,7 +174,7 @@ export default function SettingsScreen({ onDone }: Props) {
       <section style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 16 }}>リマインダー通知（Push）</h2>
         <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
-          空き時間の終了直後に「今日の学習を記録しましたか？」の通知を送ります（数分ごとの確認のため、数分ほど遅れることがあります）。
+          空き時間の終了時刻ちょうどに「今日の学習を記録しましたか？」の通知を送ります（アプリを開いたときにその日の分を予約します。念のため数分ごとの確認でも送ります）。
           届くには次の3つが必要です: (1)リポジトリの Secrets に NTFY_TOPIC を設定する、
           (2)ここに入力するトピックと Secrets の値を同じにする、
           (3)スマホに ntfy の受信アプリを入れて同じトピックを購読する。
