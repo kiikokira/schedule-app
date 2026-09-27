@@ -42,10 +42,29 @@ describe('ChatScreen', () => {
     await addTodaySlot()
     render(<ChatScreen onBack={() => {}} today={TODAY} />)
     expect(await screen.findByTestId('chat-screen')).toBeInTheDocument()
-    expect(await screen.findByTestId('analysis-summary')).toHaveTextContent('英単語1000')
+    expect(await screen.findByTestId('analysis-summary')).toHaveTextContent(/遅れています/)
+    expect(await screen.findByTestId('proposal-book-list')).toHaveTextContent('英単語1000')
     expect(screen.getByTestId('proposal-card')).toBeInTheDocument()
     expect(screen.getByTestId('apply-today')).toBeInTheDocument()
     expect(screen.getByTestId('apply-pace')).toBeInTheDocument()
+  })
+
+  it('lists each book with remaining pages and hides raw ratios', async () => {
+    await fillBook()
+    await addTodaySlot()
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    const list = await screen.findByTestId('proposal-book-list')
+    expect(list).toHaveTextContent(/残\d+ページ/)
+    expect(list).toHaveTextContent(/今日\d+ページ/)
+    expect(screen.getByTestId('proposal-card').textContent).not.toMatch(/\d+\.\d+/)
+  })
+
+  it('groups focus and relax books in plain words', async () => {
+    await fillBook()
+    await addTodaySlot()
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('proposal-book-list')
+    expect(screen.getByTestId('proposal-card')).toHaveTextContent(/優先する本/)
   })
 
   it('answers the behind chip', async () => {

@@ -249,27 +249,51 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
               background: m.role === 'user' ? 'var(--surface-dim)' : undefined,
             }}
           >
-            {m.role === 'assistant' && m.withProposal && (
+            {m.role === 'assistant' && m.withProposal && report && (
               <p data-testid="analysis-summary" style={{ fontWeight: 700, margin: '0 0 4px' }}>
-                {m.text}
+                {report.books.filter((b) => b.status !== 'ok').length === 0
+                  ? `全${report.books.length}冊とも順調です。`
+                  : `全${report.books.length}冊のうち${report.books.filter((b) => b.status !== 'ok').length}冊が遅れています。`}
               </p>
             )}
             {m.role === 'user' || !m.withProposal ? (
               m.text
             ) : (
+              report && (
               <div data-testid="proposal-card" style={{ marginTop: 8 }}>
-                <p style={{ margin: '0 0 8px', fontSize: 13 }}>{m.text.split('\n').slice(1).join('\n')}</p>
-                <p style={{ margin: '0 0 8px' }}>{report?.proposal.todayMessage}</p>
-                <p style={{ margin: '0 0 8px' }}>{report?.proposal.paceMessage}</p>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button data-testid="apply-today" type="button" onClick={() => void applyToday()}>
+                <p style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700 }}>今日の配分案</p>
+                <ul data-testid="proposal-book-list" style={{ margin: '0 0 8px', paddingLeft: 20, lineHeight: 1.8 }}>
+                  {report.books.map((b) => (
+                    <li key={b.bookId}>
+                      {b.title} — 残り{b.daysUntilDeadline}日・残{b.remainingPages}ページ・今日{b.plannedTodayPages}ページ
+                      {b.status === 'critical' ? '（危険）' : b.status === 'behind' ? '（遅れ）' : ''}
+                    </li>
+                  ))}
+                </ul>
+                {report.proposal.focus.length > 0 && (
+                  <p style={{ margin: '0 0 8px' }}>
+                    優先する本：{report.proposal.focus.map((id) => report.books.find((b) => b.bookId === id)!.title).join('、')}
+                  </p>
+                )}
+                {report.proposal.relax.length > 0 && (
+                  <p style={{ margin: '0 0 8px' }}>
+                    控える本：{report.proposal.relax.map((id) => report.books.find((b) => b.bookId === id)!.title).join('、')}
+                  </p>
+                )}
+                <p style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700 }}>ペース案</p>
+                <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-dim)' }}>
+                  期限に間に合う配分に自動調整します。下のボタンで反映できます。
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <button data-testid="apply-today" type="button" style={{ padding: '10px 8px' }} onClick={() => void applyToday()}>
                     今日の配分を反映
                   </button>
-                  <button data-testid="apply-pace" type="button" onClick={() => void applyPace()}>
+                  <button data-testid="apply-pace" type="button" style={{ padding: '10px 8px' }} onClick={() => void applyPace()}>
                     ペース目標を反映
                   </button>
                 </div>
               </div>
+              )
             )}
           </div>
         ))}
