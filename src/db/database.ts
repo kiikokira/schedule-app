@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type { BookData, ProgressRecordData, CycleRecordData } from '../lib/progress'
 import type { AvailabilitySlot, Adjustment } from '../data/dayplanStore'
+import type { ChatHistoryEntry } from '../data/chatHistoryStore'
 
 export type DexieBook = BookData
 export type DexieRecord = ProgressRecordData
@@ -11,6 +12,7 @@ class ScheduleDB extends Dexie {
   availability!: Table<AvailabilitySlot, string>
   adjustments!: Table<Adjustment, string>
   cycleRecords!: Table<CycleRecordData, string>
+  chatMessages!: Table<ChatHistoryEntry, string>
 
   constructor() {
     super('schedule-app')
@@ -30,6 +32,14 @@ class ScheduleDB extends Dexie {
       availability: 'id, weekday, date',
       adjustments: 'id, date, bookId',
       cycleRecords: 'id, bookId, [bookId+date]',
+    })
+    this.version(4).stores({
+      books: 'id, deadline, startDate',
+      records: 'id, bookId, [bookId+date]',
+      availability: 'id, weekday, date',
+      adjustments: 'id, date, bookId',
+      cycleRecords: 'id, bookId, [bookId+date]',
+      chatMessages: 'id, at',
     })
   }
 }

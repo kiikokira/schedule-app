@@ -3,6 +3,7 @@ import { beforeEach, describe, it, expect, vi } from 'vitest'
 import ChatScreen from './ChatScreen'
 import { db } from '../db/database'
 import { saveAvailabilitySlot } from '../data/dayplanStore'
+import { appendChatHistory, listChatHistory } from '../data/chatHistoryStore'
 import { setAiSettings } from '../lib/ai'
 import type { BookData } from '../lib/progress'
 
@@ -13,6 +14,7 @@ beforeEach(async () => {
   await db.records.clear()
   await db.availability.clear()
   await db.adjustments.clear()
+  await db.chatMessages.clear()
   localStorage.clear()
   vi.unstubAllGlobals()
 })
@@ -65,6 +67,53 @@ describe('ChatScreen', () => {
     render(<ChatScreen onBack={() => {}} today={TODAY} />)
     await screen.findByTestId('proposal-book-list')
     expect(screen.getByTestId('proposal-card')).toHaveTextContent(/優先する本/)
+  })
+
+  it('loads persisted history on open', async () => {
+    await fillBook()
+    await addTodaySlot()
+    await appendChatHistory({ role: 'user', text: '前の相談' })
+    await appendChatHistory({ role: 'assistant', text: '前の回答' })
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    expect(await screen.findByText('前の相談')).toBeInTheDocument()
+    expect(await screen.findByText('前の回答')).toBeInTheDocument()
+  })
+
+  it('collapses older messages behind a history toggle', async () => {
+    await fillBook()
+    await addTodaySlot()
+    for (let i = 0; i < 7; i++) {
+      await appendChatHistory({ role: 'user', text: `過去${i}` })
+    }
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('analysis-summary')
+    expect(screen.queryByText('過去0')).not.toBeInTheDocument()
+    expect(screen.getByText('過去6')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('history-toggle'))
+    expect(await screen.findByText('過去0')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('history-toggle'))
+    expect(screen.queryByText('過去0')).not.toBeInTheDocument()
+  })
+
+  it('persists a free-text exchange', async () => {
+    setAiSettings({ endpoint: 'https://example.test', apiKey: 'sk-test', model: 'm' })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: 'AIの回答' } }] }),
+      }),
+    )
+    await fillBook()
+    await addTodaySlot()
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('analysis-summary')
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: '質問です' } })
+    fireEvent.click(screen.getByTestId('chat-send'))
+    await screen.findByText('AIの回答')
+    const saved = await listChatHistory()
+    expect(saved.map((e) => e.text)).toContain('質問です')
+    expect(saved.map((e) => e.text)).toContain('AIの回答')
   })
 
   it('answers the behind chip', async () => {

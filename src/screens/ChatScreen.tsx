@@ -10,6 +10,7 @@ import {
   type AdvisorReport,
 } from '../lib/advisor'
 import { getAiSettings, isAiConfigured, chatWithModel, buildSystemPrompt } from '../lib/ai'
+import { listChatHistory, appendChatHistory } from '../data/chatHistoryStore'
 import { calcTotalDone, todayStr } from '../lib/progress'
 
 type Props = {
@@ -66,6 +67,8 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
   )
   const [lastError, setLastError] = useState<{ reason: 'network' | 'http' | 'timeout'; status?: number; detail?: string } | null>(null)
   const [lastFailedInput, setLastFailedInput] = useState('')
+  const [historyExpanded, setHistoryExpanded] = useState(false)
+  const VISIBLE_COUNT = 5
 
   useEffect(() => {
     const goOnline = () => setOnline(true)
@@ -94,11 +97,12 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      const r = await loadReport()
+      const [saved, r] = await Promise.all([listChatHistory(), loadReport()])
       if (cancelled || !r) return
       setReport(r)
       setMessages([
-        { id: crypto.randomUUID(), role: 'assistant', text: r.summaryText, withProposal: r.books.length > 0 },
+        ...saved.map((s) => ({ id: s.id, role: s.role, text: s.text }) as ChatMessage),
+        { id: crypto.randomUUID(), role: 'assistant', text: r.summaryText, withProposal: r.books.length > 0 } as ChatMessage,
       ])
     })()
     return () => {
@@ -110,6 +114,11 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
 
   const push = (m: Omit<ChatMessage, 'id'>) =>
     setMessages((prev) => [...prev, { ...m, id: crypto.randomUUID() }])
+
+  const pushAndSave = (m: Omit<ChatMessage, 'id'>) => {
+    push(m)
+    void appendChatHistory({ role: m.role, text: m.text })
+  }
 
   const applyToday = async () => {
     if (!report) return
@@ -158,7 +167,7 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
     const r = await loadReport()
     if (r) {
       setReport(r)
-      push({ role: 'assistant', text, withProposal: r.books.length > 0 })
+      pushAndSave({ role: 'assistant', text, withProposal: r.books.length > 0 })
     }
   }
 
@@ -173,12 +182,12 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
   const onChip = (testid: string) => {
     if (!report) return
     const label = CHIPS.find((c) => c.testid === testid)!.label
-    push({ role: 'user', text: label })
+    pushAndSave({ role: 'user', text: label })
     if (testid === 'chip-replan') {
-      push({ role: 'assistant', text: report.summaryText, withProposal: report.books.length > 0 })
+      pushAndSave({ role: 'assistant', text: report.summaryText, withProposal: report.books.length > 0 })
     } else {
       const text = answerOf(testid)
-      if (text) push({ role: 'assistant', text })
+      if (text) pushAndSave({ role: 'assistant', text })
     }
   }
 
@@ -195,7 +204,7 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
     ])
     setLoading(false)
     if (result.ok) {
-      push({ role: 'assistant', text: result.text })
+      pushAndSave({ role: 'assistant', text: result.text })
     } else {
       const err = result.ok === false ? result : { reason: 'network' as const }
       setLastError(
@@ -211,7 +220,7 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
     const text = rawText.trim()
     if (!text || loading) return
     setInput('')
-    push({ role: 'user', text })
+    pushAndSave({ role: 'user', text })
     setLastError(null)
     await requestAi(text)
   }
@@ -225,9 +234,11 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
     setLastError(null)
     const text = lastFailedInput
     setLastFailedInput('')
-    push({ role: 'user', text })
+    pushAndSave({ role: 'user', text })
     await requestAi(text)
   }
+
+  const visibleMessages = historyExpanded ? messages : messages.slice(-VISIBLE_COUNT)
 
   return (
     <div data-testid="chat-screen" style={{ padding: 16 }}>
@@ -236,7 +247,19 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
         参考書の進捗から配分とペースを提案します。期限は変更されません。
       </p>
       <div data-testid="chat-messages" style={{ marginTop: 12 }}>
-        {messages.map((m) => (
+        {messages.length > VISIBLE_COUNT && (
+          <button
+            data-testid="history-toggle"
+            type="button"
+            style={{ marginBottom: 8 }}
+            onClick={() => setHistoryExpanded((v) => !v)}
+          >
+            {historyExpanded
+              ? '履歴を折りたたむ'
+              : `履歴（残り${messages.length - VISIBLE_COUNT}件）をすべて展開`}
+          </button>
+        )}
+        {visibleMessages.map((m) => (
           <div
             key={m.id}
             data-testid={m.role === 'user' ? 'chat-user-msg' : 'chat-assistant-msg'}
