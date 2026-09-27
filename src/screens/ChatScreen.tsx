@@ -15,6 +15,7 @@ import { calcTotalDone, todayStr } from '../lib/progress'
 
 type Props = {
   onBack: () => void
+  onHistory?: () => void
   today?: string
 }
 
@@ -52,7 +53,7 @@ export function describeAiError(reason: 'network' | 'http' | 'timeout', status?:
   return 'オンラインAIに接続できませんでした（ネットワーク未接続の可能性があります。WiFi・モバイル回線を確認してください）。定型文（下のボタン）をご利用ください。'
 }
 
-export default function ChatScreen({ onBack, today: todayProp }: Props) {
+export default function ChatScreen({ onBack, onHistory, today: todayProp }: Props) {
   const today = todayProp ?? todayStr()
   const { saveBook } = useBooks()
   const [report, setReport] = useState<AdvisorReport | null>(null)
@@ -238,6 +239,14 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
     await requestAi(text)
   }
 
+  const onHistoryToggle = () => {
+    if (onHistory) {
+      onHistory()
+      return
+    }
+    setHistoryExpanded((v) => !v)
+  }
+
   const visibleMessages = historyExpanded ? messages : messages.slice(-VISIBLE_COUNT)
 
   return (
@@ -252,7 +261,7 @@ export default function ChatScreen({ onBack, today: todayProp }: Props) {
             data-testid="history-toggle"
             type="button"
             style={{ marginBottom: 8 }}
-            onClick={() => setHistoryExpanded((v) => !v)}
+            onClick={() => onHistoryToggle()}
           >
             {historyExpanded
               ? '履歴を折りたたむ'

@@ -87,6 +87,16 @@ describe('ChatScreen', () => {
     expect(screen.getByTestId('history-toggle')).toHaveTextContent('履歴')
   })
 
+  it('navigates to the history page when onHistory is set', async () => {
+    await fillBook()
+    await addTodaySlot()
+    const onHistory = vi.fn()
+    render(<ChatScreen onBack={() => {}} onHistory={onHistory} today={TODAY} />)
+    await screen.findByTestId('analysis-summary')
+    fireEvent.click(screen.getByTestId('history-toggle'))
+    expect(onHistory).toHaveBeenCalledTimes(1)
+  })
+
   it('collapses older messages behind a history toggle', async () => {
     await fillBook()
     await addTodaySlot()

@@ -7,6 +7,7 @@ import PlanScreen from './screens/PlanScreen'
 import TodayPlanScreen from './screens/TodayPlanScreen'
 import RebalanceScreen from './screens/RebalanceScreen'
 import ChatScreen from './screens/ChatScreen'
+import HistoryScreen from './screens/HistoryScreen'
 import { useBooks } from './hooks/useBooks'
 import { listAvailability, prunePastOverrides } from './data/dayplanStore'
 import { todayStr } from './lib/progress'
@@ -26,6 +27,7 @@ type Route =
   | { name: 'settings' }
   | { name: 'plan' }
   | { name: 'ai' }
+  | { name: 'ai-history' }
 
 export default function App() {
   const { books, refresh } = useBooks()
@@ -94,7 +96,10 @@ export default function App() {
           <BookFormScreen book={null} onDone={() => setRoute({ name: 'home' })} />
         )}
         {route.name === 'settings' && <SettingsScreen onDone={() => setRoute({ name: 'home' })} />}
-        {route.name === 'ai' && <ChatScreen onBack={() => setRoute({ name: 'home' })} />}
+        {route.name === 'ai' && (
+          <ChatScreen onBack={() => setRoute({ name: 'home' })} onHistory={() => setRoute({ name: 'ai-history' })} />
+        )}
+        {route.name === 'ai-history' && <HistoryScreen onBack={() => setRoute({ name: 'ai' })} />}
         {route.name === 'plan' && <PlanScreen onDone={() => setRoute({ name: 'home' })} />}
         {route.name === 'today' && (
           <TodayPlanScreen

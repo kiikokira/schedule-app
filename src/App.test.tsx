@@ -42,3 +42,13 @@ it('navigates to the adjustment AI screen from home', async () => {
   fireEvent.click(screen.getByTestId('nav-ai'))
   expect(await screen.findByTestId('chat-screen')).toBeInTheDocument()
 })
+
+it('navigates between the AI chat and history screens', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByTestId('nav-ai'))
+  await screen.findByTestId('chat-screen')
+  fireEvent.click(await screen.findByTestId('history-toggle'))
+  expect(await screen.findByTestId('history-screen')).toBeInTheDocument()
+  fireEvent.click(screen.getByTestId('history-back'))
+  expect(await screen.findByTestId('chat-screen')).toBeInTheDocument()
+})
