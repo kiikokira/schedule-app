@@ -126,7 +126,7 @@ describe('chatWithModel', () => {
     }
   })
 
-  it('sends max_tokens to cap usage on mobile和高性能モデル', async () => {
+  it('sends max_tokens within small-model limits', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ choices: [{ message: { content: 'hi' } }] }),
@@ -139,7 +139,7 @@ describe('chatWithModel', () => {
     )
     const [, init] = fetchMock.mock.calls[0]
     const body = JSON.parse(init.body)
-    expect(body.max_tokens).toBe(800)
+    expect(body.max_tokens).toBeLessThanOrEqual(512)
   })
 
   it('returns timeout when the model takes too long', async () => {

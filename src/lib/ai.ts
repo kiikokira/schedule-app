@@ -97,7 +97,7 @@ export async function chatWithModel(
         model: settings.model,
         messages: [{ role: 'system', content: systemPrompt }, ...history],
         temperature: 0,
-        max_tokens: 800,
+        max_tokens: 512,
       }),
       signal: controller.signal,
     })
