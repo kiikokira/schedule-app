@@ -155,7 +155,10 @@ export async function pingEndpoint(
   }
 }
 
-export function buildSystemPrompt(report: AdvisorReport): string {
+export function buildSystemPrompt(
+  report: AdvisorReport,
+  opCtx?: { slots: { id: string; weekday: number | null; date: string | null; start: string; end: string }[]; books: { id: string; title: string }[] },
+): string {
   const lines = report.books.map((a) => {
     const judge =
       a.status === 'ok' ? '順調' : a.status === 'behind' ? '遅れ' : '危険（このままだと期限に届かない）'
@@ -166,6 +169,16 @@ export function buildSystemPrompt(report: AdvisorReport): string {
     '【ルール】期限内は絶対に変更してはいけません（期限・開始日は変更しません）。回答は最短・簡潔に。',
     '具体的な配分やページ数の数値提案はせず、アドバイスだけを答えてください（数値はアプリが自動決定します）。',
     '反復モードの本は集計対象外です。',
+    ...(opCtx
+      ? [
+          '【操作案内】時間帯や参考書の変更指示には、アドバイスに加えて操作案JSONを ```json フェンスで1件だけ添えてください。',
+          '使える操作: pin_book（時間帯の学習内容を指定の本に変更）/ unpin_book（固定解除）/ add_availability（時間帯追加）/ remove_availability（時間帯削除）。',
+          '形式: {"op":"pin_book","slotId":"時間帯ID","bookId":"参考書ID"} / {"op":"unpin_book","slotId":"時間帯ID"} / {"op":"add_availability","weekday":1-6またはnull,"date":"YYYY-MM-DDまたはnull","start":"HH:MM","end":"HH:MM","bookId":"任意"} / {"op":"remove_availability","slotId":"時間帯ID"}。',
+          '該当しない指示には操作案を付けず、その旨を一言添えてください。期限・開始日の変更要求には応じず断ってください。',
+          `【時間帯一覧】${opCtx.slots.map((s) => `${s.id}: ${s.date ?? ['日曜', '月曜', '火曜', '水曜', '木曜', '金曜', '土曜'][s.weekday ?? 0] ?? '毎日'} ${s.start}-${s.end}`).join(' / ') || 'なし'}`,
+          `【参考書一覧】${opCtx.books.map((b) => `${b.id}: ${b.title}`).join(' / ') || 'なし'}`,
+        ]
+      : []),
     '【現状分析】',
     report.summaryText,
     ...lines,

@@ -275,4 +275,51 @@ describe('ChatScreen', () => {
     expect(screen.getByTestId('chat-gb-notice')).toHaveTextContent(/モバイル回線/)
     expect(screen.getByTestId('chat-gb-notice')).toHaveTextContent(/無料枠/)
   })
+
+  it('shows an approval card for operation replies and applies on approval', async () => {
+    setAiSettings({ endpoint: 'https://example.test', apiKey: 'sk-test', model: 'm' })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: '了解。\n```json\n{"op":"pin_book","slotId":"s1","bookId":"b1"}\n```' } }],
+        }),
+      }),
+    )
+    await fillBook()
+    await db.availability.add({ id: 's1', weekday: 1, date: null, start: '06:30', end: '07:00' })
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('analysis-summary')
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: '朝は英単語1000にして' } })
+    fireEvent.click(screen.getByTestId('chat-send'))
+    expect(await screen.findByTestId('op-card')).toHaveTextContent(/英単語1000/)
+    fireEvent.click(screen.getByTestId('op-apply'))
+    await waitFor(async () => {
+      expect((await db.availability.get('s1'))?.bookId).toBe('b1')
+    })
+  })
+
+  it('dismisses the approval card on cancel without changing data', async () => {
+    setAiSettings({ endpoint: 'https://example.test', apiKey: 'sk-test', model: 'm' })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: '```json\n{"op":"remove_availability","slotId":"s1"}\n```' } }],
+        }),
+      }),
+    )
+    await fillBook()
+    await db.availability.add({ id: 's1', weekday: 1, date: null, start: '06:30', end: '07:00' })
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('analysis-summary')
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: '消して' } })
+    fireEvent.click(screen.getByTestId('chat-send'))
+    await screen.findByTestId('op-card')
+    fireEvent.click(screen.getByTestId('op-cancel'))
+    await waitFor(() => expect(screen.queryByTestId('op-card')).not.toBeInTheDocument())
+    expect(await db.availability.get('s1')).not.toBeUndefined()
+  })
 })

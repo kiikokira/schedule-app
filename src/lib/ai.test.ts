@@ -290,4 +290,27 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('反復モード')
     expect(prompt).toContain('対象外')
   })
+
+  it('操作案内と時間帯・参考書一覧を含む（操作コンテキスト付き）', () => {
+    const TODAY = '2026-09-23'
+    const slot: AvailabilitySlot = { id: 's1', weekday: 1, date: null, start: '06:30', end: '07:00' }
+    const book = {
+      id: 'b1',
+      title: 'LEAP',
+      totalPages: 100,
+      startDate: '2026-09-01',
+      deadline: '2026-09-28',
+      createdAt: 'x',
+      updatedAt: 'x',
+    } as BookData
+    const report = buildAdvisorReport({ today: TODAY, books: [book], donePagesByBook: { b1: 0 }, availability: [slot] })
+    const prompt = buildSystemPrompt(report, {
+      slots: [slot],
+      books: [{ id: 'b1', title: 'LEAP' }],
+    })
+    expect(prompt).toContain('pin_book')
+    expect(prompt).toContain('s1')
+    expect(prompt).toContain('LEAP')
+    expect(prompt).toContain('```json')
+  })
 })

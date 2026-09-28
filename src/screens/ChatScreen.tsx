@@ -10,6 +10,13 @@ import {
   type AdvisorReport,
 } from '../lib/advisor'
 import { getAiSettings, isAiConfigured, chatWithModel, buildSystemPrompt } from '../lib/ai'
+import {
+  parseOperationReply,
+  describeOperation,
+  applyOperation,
+  buildOpContext,
+  type AiOperation,
+} from '../lib/aiOperations'
 import { listChatHistory, appendChatHistory } from '../data/chatHistoryStore'
 import { calcTotalDone, todayStr } from '../lib/progress'
 
@@ -68,6 +75,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
   )
   const [lastError, setLastError] = useState<{ reason: 'network' | 'http' | 'timeout'; status?: number; detail?: string } | null>(null)
   const [lastFailedInput, setLastFailedInput] = useState('')
+  const [pendingOp, setPendingOp] = useState<{ op: AiOperation; description: string } | null>(null)
   const [historyExpanded, setHistoryExpanded] = useState(false)
   const VISIBLE_COUNT = 5
 
@@ -195,17 +203,31 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
   const requestAi = async (text: string) => {
     if (!report) return
     setLoading(true)
+    setPendingOp(null)
     const settings = getAiSettings()
     const history = messages
       .filter((m) => m.role === 'user' || (m.role === 'assistant' && !m.withProposal))
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.text }))
-    const result = await chatWithModel(settings, buildSystemPrompt(report), [
-      ...history,
-      { role: 'user', content: text },
-    ])
+    const [availability, allBooks] = await Promise.all([listAvailability(), db.books.toArray()])
+    const targetBooks = allBooks.filter((b) => b.studyMode !== 'cycles')
+    const result = await chatWithModel(
+      settings,
+      buildSystemPrompt(report, {
+        slots: availability,
+        books: targetBooks.map((b) => ({ id: b.id, title: b.title })),
+      }),
+      [...history, { role: 'user', content: text }],
+    )
     setLoading(false)
     if (result.ok) {
       pushAndSave({ role: 'assistant', text: result.text })
+      const parsed = parseOperationReply(result.text)
+      if (parsed.ok && parsed.op) {
+        const ctx = await buildOpContext()
+        setPendingOp({ op: parsed.op, description: describeOperation(parsed.op, ctx) })
+      } else if (!parsed.ok) {
+        pushAndSave({ role: 'assistant', text: `操作案を読み取れませんでした（${parsed.error}）。もう一度具体的に指示してください。` })
+      }
     } else {
       const err = result.ok === false ? result : { reason: 'network' as const }
       setLastError(
@@ -238,6 +260,22 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
     pushAndSave({ role: 'user', text })
     await requestAi(text)
   }
+
+  const applyPendingOp = async () => {
+    if (!pendingOp) return
+    const op = pendingOp.op
+    setPendingOp(null)
+    const res = await applyOperation(op)
+    if (res.ok) {
+      pushAndSave({ role: 'assistant', text: `${res.message}。` })
+      const r = await loadReport()
+      if (r) setReport(r)
+    } else {
+      pushAndSave({ role: 'assistant', text: `変更できませんでした（${res.error}）。` })
+    }
+  }
+
+  const cancelPendingOp = () => setPendingOp(null)
 
   const onHistoryToggle = () => {
     if (onHistory) {
@@ -329,6 +367,33 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
             )}
           </div>
         ))}
+        {pendingOp && (
+          <div
+            data-testid="op-card"
+            style={{
+              marginTop: 8,
+              padding: 8,
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+            }}
+          >
+            <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>変更の提案</p>
+            <p data-testid="op-description" style={{ margin: '0 0 4px' }}>
+              {pendingOp.description}
+            </p>
+            <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text-dim)' }}>
+              この内容で変更しますか？
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button data-testid="op-apply" type="button" style={{ padding: '10px 8px' }} onClick={() => void applyPendingOp()}>
+                適用する
+              </button>
+              <button data-testid="op-cancel" type="button" style={{ padding: '10px 8px' }} onClick={cancelPendingOp}>
+                やめる
+              </button>
+            </div>
+          </div>
+        )}
         {loading && (
           <p data-testid="chat-loading" style={{ color: 'var(--text-dim)' }}>
             考え中…（高精度モデルは30秒ほどかかる場合があります）
