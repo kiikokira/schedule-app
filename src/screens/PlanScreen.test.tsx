@@ -38,7 +38,7 @@ describe('PlanScreen', () => {
   it('shows a suggested deadline when adding a book from the catalog', () => {
     render(<PlanScreen onDone={() => {}} />)
     fireEvent.change(screen.getByTestId('catalog-select'), {
-      target: { value: 'leap' },
+      target: { value: 'eibunpo-polaris-1' },
     })
     const start = screen.getByTestId<HTMLInputElement>('add-start')
     if (start.value === '') fireEvent.change(start, {
@@ -52,16 +52,16 @@ describe('PlanScreen', () => {
   it('adds a book from the catalog to the schedule', () => {
     render(<PlanScreen onDone={() => {}} />)
     fireEvent.change(screen.getByTestId('catalog-select'), {
-      target: { value: 'leap' },
+      target: { value: 'eibunpo-polaris-1' },
     })
     fireEvent.change(screen.getByTestId('add-start'), {
       target: { value: '2026-09-01' },
     })
     fireEvent.click(screen.getByTestId('add-entry'))
     expect(
-      screen.getByTestId('entry-start-leap'),
+      screen.getByTestId('entry-start-eibunpo-polaris-1'),
     ).toHaveValue('2026-09-01')
-    expect(screen.getByTestId('entry-deadline-leap')).toHaveValue(
+    expect(screen.getByTestId('entry-deadline-eibunpo-polaris-1')).toHaveValue(
       suggestDeadline('2026-09-01', 90),
     )
   })
@@ -156,7 +156,7 @@ describe('PlanScreen', () => {
     ).toBe('2026-12-15')
     fireEvent.click(screen.getByTestId('reset-schedule'))
     const saved = loadSchedule()
-    expect(saved).toHaveLength(17)
+    expect(saved).toHaveLength(18)
     expect(
       saved.find((e) => e.catalogId === 'eibunpo-polaris-2')?.deadline,
     ).toBe('2026-09-30')
@@ -169,10 +169,10 @@ describe('PlanScreen', () => {
     render(<PlanScreen onDone={() => {}} />)
     fireEvent.click(screen.getByTestId('apply-schedule'))
     expect(await screen.findByTestId('apply-result')).toHaveTextContent(
-      '新規 17 冊',
+      '新規 18 冊',
     )
     const books = await db.books.toArray()
-    expect(books).toHaveLength(17)
+    expect(books).toHaveLength(18)
     const eibunpo = books.find((b) => b.catalogId === 'eibunpo-polaris-2')
     expect(eibunpo?.deadline).toBe('2026-09-30')
     expect(eibunpo?.startDate).toBe('2026-09-21')
@@ -195,7 +195,7 @@ describe('PlanScreen', () => {
     render(<PlanScreen onDone={() => {}} />)
     fireEvent.click(screen.getByTestId('apply-schedule'))
     expect(await screen.findByTestId('apply-result')).toHaveTextContent(
-      '新規 16 冊 / 期限を更新 1 冊',
+      '新規 17 冊 / 期限を更新 1 冊',
     )
     const books = await db.books.toArray()
     const eibunpo = books.find((b) => b.id === 'b1')
@@ -281,10 +281,10 @@ describe('PlanScreen', () => {
     })
     fireEvent.click(screen.getByTestId('apply-schedule'))
     expect(await screen.findByTestId('apply-result')).toHaveTextContent(
-      '新規 17 冊 / 期限を更新 1 冊',
+      '新規 18 冊 / 期限を更新 1 冊',
     )
     const books = await db.books.toArray()
-    expect(books).toHaveLength(18)
+    expect(books).toHaveLength(19)
     const tango = books.find((b) => b.id === 'b1')
     expect(tango?.deadline).toBe('2026-12-20')
     expect(tango?.startDate).toBe('2026-01-01')
@@ -782,5 +782,15 @@ describe('PlanScreen', () => {
       expect(slots).toHaveLength(1)
       expect(slots[0].bookId).toBeUndefined()
     })
+  })
+
+  it('labels start/end pairs in weekday and date rows', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    expect(screen.getAllByLabelText('開始時刻').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByLabelText('終了時刻').length).toBeGreaterThanOrEqual(1)
+    const before = screen.getAllByLabelText('開始時刻').length
+    fireEvent.click(screen.getByTestId('slot-date-row-add'))
+    expect(screen.getAllByLabelText('開始時刻')).toHaveLength(before + 1)
+    expect(screen.getAllByLabelText('終了時刻')).toHaveLength(before + 1)
   })
 })

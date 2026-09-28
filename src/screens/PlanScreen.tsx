@@ -496,14 +496,18 @@ export default function PlanScreen({ onDone }: Props) {
                     const slotLabel = `${slot.start}〜${slot.end}`
                     return (
                       <div key={slot.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, paddingLeft: 8, flexWrap: 'wrap' }}>
+                        <label htmlFor={`slot-edit-start-${slot.id}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>開始時刻</label>
                         <input
+                          id={`slot-edit-start-${slot.id}`}
                           data-testid={`slot-edit-start-${slot.id}`}
                           type="time"
                           value={draft.start}
                           onChange={(e) => updateSlotDraft(slot, { start: e.target.value })}
                         />
                         <span>〜</span>
+                        <label htmlFor={`slot-edit-end-${slot.id}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>終了時刻</label>
                         <input
+                          id={`slot-edit-end-${slot.id}`}
                           data-testid={`slot-edit-end-${slot.id}`}
                           type="time"
                           value={draft.end}
@@ -559,9 +563,15 @@ export default function PlanScreen({ onDone }: Props) {
           </button>
         </div>
         {weekdayRows.map((row, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-            <input data-testid={`slot-start-${i}`} type="time" value={row.start} onChange={(e) => updateWeekdayRow(i, { start: e.target.value })} />
-            <input data-testid={`slot-end-${i}`} type="time" value={row.end} onChange={(e) => updateWeekdayRow(i, { end: e.target.value })} />
+          <div key={i} data-testid={`slot-row-${i}`} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 8, marginTop: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
+              <label htmlFor={`slot-start-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>開始時刻</label>
+              <input id={`slot-start-${i}`} data-testid={`slot-start-${i}`} type="time" value={row.start} onChange={(e) => updateWeekdayRow(i, { start: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
+              <span>〜</span>
+              <label htmlFor={`slot-end-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>終了時刻</label>
+              <input id={`slot-end-${i}`} data-testid={`slot-end-${i}`} type="time" value={row.end} onChange={(e) => updateWeekdayRow(i, { end: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
             <select
               data-testid={`slot-weekday-book-${i}`}
               value={row.bookId ?? ''}
@@ -584,6 +594,7 @@ export default function PlanScreen({ onDone }: Props) {
               />
               汽車
             </label>
+            </div>
           </div>
         ))}
         <button data-testid="slot-add" type="button" disabled={slotWeekday === ''} onClick={() => void addWeekdaySlot()}>
@@ -597,9 +608,15 @@ export default function PlanScreen({ onDone }: Props) {
           </button>
         </div>
         {dateRows.map((row, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-            <input data-testid={`slot-date-start-${i}`} type="time" value={row.start} onChange={(e) => updateDateRow(i, { start: e.target.value })} />
-            <input data-testid={`slot-date-end-${i}`} type="time" value={row.end} onChange={(e) => updateDateRow(i, { end: e.target.value })} />
+          <div key={i} data-testid={`slot-date-row-${i}`} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 8, marginTop: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
+              <label htmlFor={`slot-date-start-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>開始時刻</label>
+              <input id={`slot-date-start-${i}`} data-testid={`slot-date-start-${i}`} type="time" value={row.start} onChange={(e) => updateDateRow(i, { start: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
+              <span>〜</span>
+              <label htmlFor={`slot-date-end-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>終了時刻</label>
+              <input id={`slot-date-end-${i}`} data-testid={`slot-date-end-${i}`} type="time" value={row.end} onChange={(e) => updateDateRow(i, { end: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
             <select
               data-testid={`slot-date-book-${i}`}
               value={row.bookId ?? ''}
@@ -622,6 +639,7 @@ export default function PlanScreen({ onDone }: Props) {
               />
               汽車
             </label>
+            </div>
           </div>
         ))}
         <button data-testid="slot-date-add" type="button" disabled={!slotDate} onClick={() => void addDateSlot()}>
