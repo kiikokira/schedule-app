@@ -175,7 +175,8 @@ describe('HomeScreen', () => {
     expect(screen.getByText('完了済みの参考書')).toBeInTheDocument()
     expect(screen.getByTestId('completed-row-eibunpo-polaris-2')).toBeInTheDocument()
     expect(screen.getAllByText('1周目中')).toHaveLength(5)
-    expect(screen.getByTestId('round-badge-final-mondai-nankan')).toBeInTheDocument()
+    expect(screen.getByTestId('round-badge-leap')).toBeInTheDocument()
+    expect(screen.queryByTestId('round-badge-final-mondai-nankan')).not.toBeInTheDocument()
     expect(screen.queryByTestId('round-badge-the-rules-2')).not.toBeInTheDocument()
     const stored = loadSchedule()
     expect(

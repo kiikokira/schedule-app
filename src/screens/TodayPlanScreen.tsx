@@ -9,7 +9,7 @@ import {
   type AvailabilitySlot,
 } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
-import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, type BookData } from '../lib/progress'
+import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
@@ -44,15 +44,93 @@ function minToHHMM(min: number): string {
   return `${h}:${m}`
 }
 
+type CyclesPin = { startMin: number; endMin: number; bookId: string; onTrain?: boolean }
+
+type DisplayedRow = {
+  slot: PlanSlot
+  planIndex: number | null
+  rangeKey: string | null
+  savedBookId: string | undefined
+}
+
+function rangeKeyOf(startMin: number, endMin: number): string {
+  return `${startMin}-${endMin}`
+}
+
+// 反復本の固定を自動割当に上書き合成する。ページ枠の重なりはくり抜き、
+// 反復枠を挿入する。自動割当ロジック自体は変えない。
+function overlayCyclesPins(
+  slots: PlanSlot[],
+  pins: CyclesPin[],
+  books: BookData[],
+): PlanSlot[] {
+  if (pins.length === 0) return slots
+  const byId = new Map(books.map((b) => [b.id, b]))
+  const sortedPins = [...pins].sort((a, b) => a.startMin - b.startMin)
+  const out: PlanSlot[] = []
+  const slicePages = (s: PlanSlot, from: number, to: number): number => {
+    const minutes = to - from
+    if (minutes <= 0) return 0
+    const book = byId.get(s.bookId)
+    if (book) {
+      return Math.max(Math.floor(minutes / effectiveSpeed(book.minutesPerPage, book.subject)), 0)
+    }
+    const total = s.endMin - s.startMin
+    return total > 0 ? Math.round((s.pages * minutes) / total) : 0
+  }
+  for (const s of slots) {
+    let cur = s.startMin
+    for (const p of sortedPins) {
+      if (p.endMin <= cur || p.startMin >= s.endMin) continue
+      if (p.startMin > cur) {
+        const end = Math.min(p.startMin, s.endMin)
+        out.push({ ...s, startMin: cur, endMin: end, pages: slicePages(s, cur, end) })
+      }
+      cur = Math.max(cur, p.endMin)
+    }
+    if (cur < s.endMin) {
+      out.push({ ...s, startMin: cur, pages: slicePages(s, cur, s.endMin) })
+    }
+  }
+  const covered: { startMin: number; endMin: number }[] = []
+  for (const p of sortedPins) {
+    // 既に別の固定で埋まった部分を除いて挿入する
+    const pieces: { startMin: number; endMin: number }[] = []
+    let cur = p.startMin
+    const blockers = covered
+      .filter((c) => c.endMin > cur && c.startMin < p.endMin)
+      .sort((a, b) => a.startMin - b.startMin)
+    for (const c of blockers) {
+      if (c.startMin > cur) pieces.push({ startMin: cur, endMin: Math.min(c.startMin, p.endMin) })
+      cur = Math.max(cur, c.endMin)
+    }
+    if (cur < p.endMin) pieces.push({ startMin: cur, endMin: p.endMin })
+    const book = byId.get(p.bookId)
+    for (const piece of pieces) {
+      const minutes = piece.endMin - piece.startMin
+      const pages =
+        book && book.studyMode !== 'cycles'
+          ? Math.max(Math.floor(minutes / effectiveSpeed(book.minutesPerPage, book.subject)), 0)
+          : 0
+      out.push({ startMin: piece.startMin, endMin: piece.endMin, bookId: p.bookId, pages, onTrain: p.onTrain })
+      covered.push(piece)
+    }
+  }
+  return out.sort((a, b) => a.startMin - b.startMin)
+}
+
 export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }: Props) {
   const { books, saveBook } = useBooks()
   const { records, addProgress } = useRecords()
-  const { cycleRecords } = useCycleRecords()
+  const { cycleRecords, addCycle } = useCycleRecords()
   const today = todayProp ?? todayStr()
   const [availability, setAvailability] = useState<Awaited<ReturnType<typeof listAvailability>>>([])
   const [availabilityLoaded, setAvailabilityLoaded] = useState(false)
   const [inputs, setInputs] = useState<Record<string, string>>({})
   const [bookOverrides, setBookOverrides] = useState<Record<number, string>>({})
+  const [pinOverrides, setPinOverrides] = useState<Record<string, { bookId: string; onTrain?: boolean }>>({})
+  const [cycleInputs, setCycleInputs] = useState<Record<string, string>>({})
+  const [cycleErrors, setCycleErrors] = useState<Record<string, string>>({})
   const [dayRows, setDayRows] = useState<DayRow[]>([])
   const [dayRowsInit, setDayRowsInit] = useState(false)
   const [dayMessage, setDayMessage] = useState<string | null>(null)
@@ -82,15 +160,64 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   // スケジュールに含まれていない登録本も対象にする
   const planned = generateDayPlan({ availability, books: scheduled, today })
 
-  const displayedSlots: PlanSlot[] = planned.today.slots.map((s, i) => {
+  // ページ本の差し替え（従来通り、planned の index 基準）
+  const pageApplied: PlanSlot[] = planned.today.slots.map((s, i) => {
     const overrideId = bookOverrides[i]
     if (!overrideId || overrideId === s.bookId) return s
     const book = books.find((b) => b.id === overrideId)
-    if (!book) return s
+    if (!book || book.studyMode === 'cycles') return s
     const minutes = s.endMin - s.startMin
     const mpp = effectiveSpeed(book.minutesPerPage, book.subject)
     return { ...s, bookId: overrideId, pages: Math.max(Math.floor(minutes / mpp), 0) }
   })
+
+  // 保存済みの反復固定（空き時間の bookId 指定）
+  const savedPins: CyclesPin[] = useMemo(() => {
+    if (!availabilityLoaded) return []
+    return slotsForDate(availability, today)
+      .filter((s) => s.bookId && cycleBooks.some((b) => b.id === s.bookId))
+      .map((s) => ({ startMin: s.startMin, endMin: s.endMin, bookId: s.bookId as string, onTrain: s.onTrain }))
+  }, [availabilityLoaded, availability, today, cycleBooks])
+
+  // 有効な固定の一覧。セッション指定が保存済みに優先する。
+  const effectivePins: CyclesPin[] = useMemo(() => {
+    const byRange = new Map<string, CyclesPin>()
+    for (const p of savedPins) byRange.set(rangeKeyOf(p.startMin, p.endMin), p)
+    for (const [key, pin] of Object.entries(pinOverrides)) {
+      const [startMin, endMin] = key.split('-').map(Number)
+      if (Number.isFinite(startMin) && Number.isFinite(endMin) && endMin > startMin) {
+        byRange.set(key, { startMin, endMin, bookId: pin.bookId, onTrain: pin.onTrain })
+      }
+    }
+    return [...byRange.values()]
+  }, [savedPins, pinOverrides])
+
+  const displayedRows: DisplayedRow[] = useMemo(() => {
+    const savedByRange = new Map(savedPins.map((p) => [rangeKeyOf(p.startMin, p.endMin), p.bookId]))
+    const merged = overlayCyclesPins(pageApplied, effectivePins, books)
+    return merged.map((slot) => {
+      const key = rangeKeyOf(slot.startMin, slot.endMin)
+      const isPin = effectivePins.some(
+        (p) => p.startMin === slot.startMin && p.endMin === slot.endMin && p.bookId === slot.bookId,
+      )
+      const planIndex = isPin
+        ? null
+        : pageApplied.findIndex(
+            (s) => s.startMin === slot.startMin && s.endMin === slot.endMin && s.bookId === slot.bookId,
+          )
+      return {
+        slot,
+        planIndex: planIndex !== null && planIndex >= 0 ? planIndex : null,
+        rangeKey: isPin ? key : null,
+        savedBookId: isPin ? savedByRange.get(key) : undefined,
+      }
+    })
+  }, [pageApplied, effectivePins, savedPins, books])
+
+  const displayedSlots: PlanSlot[] = useMemo(
+    () => displayedRows.map((r) => r.slot),
+    [displayedRows],
+  )
 
   useEffect(() => {
     if (!availabilityLoaded || dayRowsInit) return
@@ -117,7 +244,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
         ? buildSlotsPayload(today, slotsForDate(availability, today), displayedSlots, books)
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [availabilityLoaded, availability, today, planned, books, bookOverrides],
+    [availabilityLoaded, availability, today, planned, books, bookOverrides, pinOverrides],
   )
 
   useEffect(() => {
@@ -150,6 +277,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
       await saveAvailabilitySlot(slot, true)
     }
     setBookOverrides({})
+    setPinOverrides({})
     setDayRowsInit(false)
     setDayMessage('今日だけの計画に上書きしました')
     await refreshAvailability()
@@ -186,9 +314,52 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
       await saveAvailabilitySlot(slot, true)
     }
     setBookOverrides({})
+    setPinOverrides({})
     setDayRowsInit(false)
     setDayMessage('今日だけの時間と本を上書きしました')
     await refreshAvailability()
+  }
+
+  const handleCycleRecord = async (slotKey: string, book: BookData) => {
+    const totalUnits = book.totalUnits ?? 0
+    const targetRounds = book.targetRounds ?? 0
+    const from = Number(cycleInputs[`${slotKey}-from`] ?? '')
+    const to = Number(cycleInputs[`${slotKey}-to`] ?? '')
+    const roundInput = (cycleInputs[`${slotKey}-round`] ?? '').trim()
+    const mine = cycleRecords.filter((r) => r.bookId === book.id)
+    const round = roundInput === '' ? currentCycleRound(book, mine) : Number(roundInput)
+    if (
+      !Number.isInteger(from) ||
+      !Number.isInteger(to) ||
+      from < 1 ||
+      to < from ||
+      to > totalUnits
+    ) {
+      setCycleErrors((p) => ({ ...p, [slotKey]: '区画の範囲を正しく入力してください' }))
+      return
+    }
+    if (!Number.isInteger(round) || round < 1 || round > targetRounds) {
+      setCycleErrors((p) => ({ ...p, [slotKey]: '周回は1〜目標周回の範囲で入力してください' }))
+      return
+    }
+    try {
+      await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: today, unitFrom: from, unitTo: to, round })
+    } catch {
+      setCycleErrors((p) => ({ ...p, [slotKey]: '記録に失敗しました。もう一度お試しください' }))
+      return
+    }
+    setCycleErrors((p) => {
+      const next = { ...p }
+      delete next[slotKey]
+      return next
+    })
+    setCycleInputs((p) => {
+      const next = { ...p }
+      delete next[`${slotKey}-from`]
+      delete next[`${slotKey}-to`]
+      delete next[`${slotKey}-round`]
+      return next
+    })
   }
 
   const handleRecord = async (slotKey: string, bookId: string) => {
@@ -233,9 +404,63 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
         </p>
       ) : (
         <div data-testid="today-table">
-          {displayedSlots.map((s, i) => {
+          {displayedRows.map((row, i) => {
+            const { slot: s } = row
             const book = books.find((b) => b.id === s.bookId)
+            const isCycles = book?.studyMode === 'cycles'
             const inputKey = `${s.bookId}-${s.startMin}-${i}`
+            const mine = isCycles && book ? cycleRecords.filter((r) => r.bookId === book.id) : []
+            const cycleDone = isCycles && book ? calcCycleDonePairs(book, mine) : 0
+            const cycleTarget =
+              isCycles && book ? calcCycleDailyTarget(book, cycleDone, daysBetween(today, book.deadline)) : 0
+            const cycleRound = isCycles && book ? currentCycleRound(book, mine) : 1
+            const handlePick = (pickedId: string) => {
+              const picked = books.find((b) => b.id === pickedId)
+              if (row.planIndex !== null) {
+                if (picked && picked.studyMode === 'cycles') {
+                  setPinOverrides((p) => ({
+                    ...p,
+                    [rangeKeyOf(s.startMin, s.endMin)]: { bookId: pickedId, onTrain: s.onTrain },
+                  }))
+                  setBookOverrides((p) => {
+                    const next = { ...p }
+                    delete next[row.planIndex as number]
+                    return next
+                  })
+                } else {
+                  setBookOverrides((p) => ({ ...p, [row.planIndex as number]: pickedId }))
+                }
+              } else if (row.rangeKey) {
+                setPinOverrides((p) => ({
+                  ...p,
+                  [row.rangeKey as string]: { bookId: pickedId, onTrain: s.onTrain },
+                }))
+              }
+            }
+            const showReset =
+              row.planIndex !== null
+                ? !!bookOverrides[row.planIndex] &&
+                  bookOverrides[row.planIndex] !== planned.today.slots[row.planIndex]?.bookId
+                : !!(
+                    row.rangeKey &&
+                    pinOverrides[row.rangeKey] &&
+                    pinOverrides[row.rangeKey].bookId !== row.savedBookId
+                  )
+            const handleReset = () => {
+              if (row.planIndex !== null) {
+                setBookOverrides((p) => {
+                  const next = { ...p }
+                  delete next[row.planIndex as number]
+                  return next
+                })
+              } else if (row.rangeKey) {
+                setPinOverrides((p) => {
+                  const next = { ...p }
+                  delete next[row.rangeKey as string]
+                  return next
+                })
+              }
+            }
             return (
               <div
                 key={`${s.startMin}-${s.bookId}-${i}`}
@@ -252,15 +477,13 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                       overflowWrap: 'anywhere',
                     }}
                   >
-                    {s.onTrain ? '【汽車】' : ''}{book?.title ?? s.bookId}
+                    {s.onTrain ? '【汽車】' : ''}{isCycles ? '【反復】' : ''}{book?.title ?? s.bookId}
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <select
                       data-testid={`plan-book-select-${i}`}
                       value={s.bookId}
-                      onChange={(e) =>
-                        setBookOverrides((p) => ({ ...p, [i]: e.target.value }))
-                      }
+                      onChange={(e) => handlePick(e.target.value)}
                       aria-label="この時間にする本を選び直す"
                       style={{ flex: 1, minWidth: 0 }}
                     >
@@ -269,24 +492,23 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                           {b.trainFit === 'train' ? '【汽車】' : b.trainFit === 'home' ? '【自宅】' : ''}{b.title}
                         </option>
                       ))}
+                      {cycleBooks.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          【反復】{b.title}
+                        </option>
+                      ))}
                     </select>
-                    {bookOverrides[i] && bookOverrides[i] !== planned.today.slots[i]?.bookId && (
+                    {showReset && (
                       <button
                         data-testid={`plan-reset-${i}`}
                         type="button"
-                        onClick={() =>
-                          setBookOverrides((p) => {
-                            const next = { ...p }
-                            delete next[i]
-                            return next
-                          })
-                        }
+                        onClick={handleReset}
                       >
                         元に戻す
                       </button>
                     )}
                   </div>
-                  {book && (
+                  {book && !isCycles && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <input
                         data-testid={`plan-input-${s.bookId}`}
@@ -309,17 +531,71 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                       </button>
                     </div>
                   )}
+                  {book && isCycles && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <input
+                        data-testid={`plan-cycle-from-${s.bookId}`}
+                        type="number"
+                        inputMode="numeric"
+                        value={cycleInputs[`${inputKey}-from`] ?? ''}
+                        onChange={(e) =>
+                          setCycleInputs((p) => ({ ...p, [`${inputKey}-from`]: e.target.value }))
+                        }
+                        placeholder="開始区画"
+                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0 }}
+                      />
+                      <input
+                        data-testid={`plan-cycle-to-${s.bookId}`}
+                        type="number"
+                        inputMode="numeric"
+                        value={cycleInputs[`${inputKey}-to`] ?? ''}
+                        onChange={(e) =>
+                          setCycleInputs((p) => ({ ...p, [`${inputKey}-to`]: e.target.value }))
+                        }
+                        placeholder="終了区画"
+                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0 }}
+                      />
+                      <input
+                        data-testid={`plan-cycle-round-${s.bookId}`}
+                        type="number"
+                        inputMode="numeric"
+                        value={cycleInputs[`${inputKey}-round`] ?? ''}
+                        onChange={(e) =>
+                          setCycleInputs((p) => ({ ...p, [`${inputKey}-round`]: e.target.value }))
+                        }
+                        placeholder={`周回（今${cycleRound}周目）`}
+                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0 }}
+                      />
+                      <button
+                        data-testid={`plan-cycle-record-${s.bookId}`}
+                        type="button"
+                        style={{ flexShrink: 0 }}
+                        onClick={() => void handleCycleRecord(inputKey, book)}
+                      >
+                        記録
+                      </button>
+                    </div>
+                  )}
+                  {book && isCycles && cycleErrors[inputKey] && (
+                    <div data-testid={`plan-cycle-error-${s.bookId}`} style={{ color: 'var(--danger)', fontSize: 13 }}>
+                      {cycleErrors[inputKey]}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 12, color: 'var(--text-dim)' }}>
                     <div data-testid="plan-row-hours">
                       {fmt(s.startMin)}-{fmt(s.endMin)}
                     </div>
-                    <div data-testid="plan-row-pages">予定 {s.pages}ページ</div>
+                    {isCycles ? (
+                      <div data-testid="plan-row-units">今日やる区画 {cycleTarget}区画</div>
+                    ) : (
+                      <div data-testid="plan-row-pages">予定 {s.pages}ページ</div>
+                    )}
                   </div>
                 </div>
               </div>
             )
           })}
-          {Object.keys(bookOverrides).length > 0 && (
+          {(Object.keys(bookOverrides).length > 0 || Object.keys(pinOverrides).length > 0) && (
             <div style={{ marginTop: 8 }}>
               <button
                 data-testid="save-today-override"
@@ -380,6 +656,11 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
               {pageBooks.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.title}
+                </option>
+              ))}
+              {cycleBooks.map((b) => (
+                <option key={b.id} value={b.id}>
+                  【反復】{b.title}
                 </option>
               ))}
             </select>

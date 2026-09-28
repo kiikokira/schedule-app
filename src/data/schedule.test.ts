@@ -11,8 +11,8 @@ import {
 import { CATALOG } from './catalog'
 
 describe('schedule', () => {
-  it('contains 17 per-book entries with start and deadline dates', () => {
-    expect(SCHEDULE).toHaveLength(17)
+  it('contains 18 per-book entries with start and deadline dates', () => {
+    expect(SCHEDULE).toHaveLength(18)
     for (const entry of SCHEDULE) {
       expect(entry.catalogId).toBeTruthy()
       expect(entry.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
@@ -26,6 +26,14 @@ describe('schedule', () => {
     for (const entry of SCHEDULE) {
       expect(ids.has(entry.catalogId as string)).toBe(true)
     }
+  })
+
+  it('schedules LEAP from Sep 26 to Oct 15', () => {
+    expect(scheduleEntryOf('leap')).toEqual({
+      catalogId: 'leap',
+      startDate: '2026-09-26',
+      deadline: '2026-10-15',
+    })
   })
 
   it('starts 英文法ポラリス2 on 2026-09-21 and finishes by Sep 2026', () => {
@@ -101,7 +109,7 @@ describe('schedule', () => {
     const now = new Date(2026, 8, 20, 10, 0, 0)
     const { newBooks, updatedBooks } = buildApplyResult([], now)
     expect(updatedBooks).toHaveLength(0)
-    expect(newBooks).toHaveLength(17)
+    expect(newBooks).toHaveLength(18)
     const polaris2 = newBooks.find((b) => b.catalogId === 'eibunpo-polaris-2')
     expect(polaris2?.startDate).toBe('2026-09-21')
     expect(polaris2?.deadline).toBe('2026-09-30')
@@ -126,7 +134,7 @@ describe('schedule', () => {
       },
     ]
     const { newBooks, updatedBooks } = buildApplyResult(existing, now)
-    expect(newBooks).toHaveLength(16)
+    expect(newBooks).toHaveLength(17)
     expect(updatedBooks).toHaveLength(1)
     expect(updatedBooks[0].id).toBe('b1')
     expect(updatedBooks[0].deadline).toBe('2026-09-30')
@@ -147,7 +155,7 @@ describe('schedule', () => {
       },
     ]
     const { newBooks, updatedBooks } = buildApplyResult(existing, now)
-    expect(newBooks).toHaveLength(16)
+    expect(newBooks).toHaveLength(17)
     expect(updatedBooks).toHaveLength(1)
     expect(updatedBooks[0].catalogId).toBe('porepore')
     expect(updatedBooks[0].deadline).toBe('2027-07-31')
@@ -220,10 +228,10 @@ describe('selectNowAndNext', () => {
   })
 
   it('moves now to the next book once the first one is past its deadline', () => {
-    // eibunpo grad 2026-09-30 で終了後、2026-10-01 は解釈編が最優先
+    // eibunpo grad 2026-09-30 で終了後、2026-10-01 は残り最短の LEAP が最優先
     expect(selectNowAndNext(SCHEDULE, '2026-10-01')).toEqual({
-      now: expect.objectContaining({ catalogId: 'nyumon-kaishaku-70' }),
-      next: expect.objectContaining({ catalogId: 'sokudoku-eijukugo' }),
+      now: expect.objectContaining({ catalogId: 'leap' }),
+      next: expect.objectContaining({ catalogId: 'final-enshu-polaris-2' }),
     })
   })
 

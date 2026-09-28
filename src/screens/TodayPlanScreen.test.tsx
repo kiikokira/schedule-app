@@ -263,6 +263,76 @@ describe('TodayPlanScreen', () => {
     expect(await screen.findByTestId('cycle-today-list')).toHaveTextContent('反復本')
   })
 
+  it('lists cycles books in the reselect dropdown without changing their mode', async () => {
+    await fillBook('b1')
+    await fillBook('cycle-1', {
+      title: '反復本',
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+    })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const select = (await screen.findByTestId('plan-book-select-0')) as HTMLSelectElement
+    const options = Array.from(select.options).map((o) => o.text)
+    expect(options.some((t) => t.includes('反復本'))).toBe(true)
+    fireEvent.change(select, { target: { value: 'cycle-1' } })
+    expect(await screen.findByTestId('plan-row-units')).toHaveTextContent('区画')
+    const book = await db.books.get('cycle-1')
+    expect(book?.studyMode).toBe('cycles')
+  })
+
+  it('records cycle units from a cycles slot chosen in the dropdown', async () => {
+    await fillBook('b1')
+    await fillBook('cycle-1', {
+      title: '反復本',
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+    })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const select = (await screen.findByTestId('plan-book-select-0')) as HTMLSelectElement
+    fireEvent.change(select, { target: { value: 'cycle-1' } })
+    fireEvent.change(await screen.findByTestId('plan-cycle-from-cycle-1'), {
+      target: { value: '1' },
+    })
+    fireEvent.change(await screen.findByTestId('plan-cycle-to-cycle-1'), {
+      target: { value: '5' },
+    })
+    fireEvent.click(screen.getByTestId('plan-cycle-record-cycle-1'))
+    await waitFor(async () => {
+      const recs = await db.cycleRecords.toArray()
+      expect(recs).toHaveLength(1)
+      expect(recs[0].unitFrom).toBe(1)
+      expect(recs[0].unitTo).toBe(5)
+    })
+  })
+
+  it('keeps a saved cycles pin as a 反復枠 on reload', async () => {
+    await fillBook('b1')
+    await fillBook('cycle-1', {
+      title: '反復本',
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+    })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'cycle-1' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('today-table')).toBeInTheDocument()
+    expect(await screen.findByTestId('plan-row-units')).toHaveTextContent('区画')
+    expect(screen.getByTestId('plan-row-book')).toHaveTextContent('反復本')
+  })
+
   it('今日だけ上書きは初期は折りたたまれ開閉できる', async () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
     await screen.findByTestId('today-override-section')

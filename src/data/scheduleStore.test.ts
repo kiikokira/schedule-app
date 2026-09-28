@@ -26,7 +26,7 @@ beforeEach(() => {
 describe('scheduleStore', () => {
   it('loads the default schedule when nothing is stored', () => {
     const entries = loadSchedule()
-    expect(entries).toHaveLength(17)
+    expect(entries).toHaveLength(18)
   })
 
   it('saves and loads a customized schedule', () => {
@@ -36,7 +36,7 @@ describe('scheduleStore', () => {
 
   it('falls back to default when stored data is invalid', () => {
     localStorage.setItem('schedule-app-schedule', '{broken')
-    expect(loadSchedule()).toHaveLength(17)
+    expect(loadSchedule()).toHaveLength(18)
   })
 
   it('adds a new entry to the schedule', () => {
@@ -128,6 +128,6 @@ describe('scheduleStore', () => {
   it('resets to the default schedule', () => {
     saveSchedule(THE_SCHEDULE)
     resetSchedule()
-    expect(loadSchedule()).toHaveLength(17)
+    expect(loadSchedule()).toHaveLength(18)
   })
 })

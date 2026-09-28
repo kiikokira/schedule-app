@@ -19,6 +19,7 @@ export const SCHEDULE: ScheduleEntry[] = [
   { catalogId: 'eibunpo-polaris-2', startDate: '2026-09-21', deadline: '2026-09-30' },
   { catalogId: 'nyumon-kaishaku-70', startDate: '2026-09-21', deadline: '2026-11-20' },
   { catalogId: 'sokudoku-eijukugo', startDate: '2026-09-21', deadline: '2027-01-31' },
+  { catalogId: 'leap', startDate: '2026-09-26', deadline: '2026-10-15' },
   { catalogId: 'final-enshu-polaris-2', startDate: '2026-10-01', deadline: '2026-12-31' },
   { catalogId: 'the-rules-1', startDate: '2026-11-01', deadline: '2027-01-31' },
   { catalogId: 'eiken-jun1-tanjukugo', startDate: '2026-11-01', deadline: '2027-04-30' },
