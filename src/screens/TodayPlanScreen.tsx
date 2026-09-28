@@ -2,8 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
-import { listAvailability } from '../data/dayplanStore'
-import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, type ScheduledBook } from '../lib/dayplan'
+import {
+  listAvailability,
+  saveAvailabilitySlot,
+  deleteAvailabilitySlot,
+  type AvailabilitySlot,
+} from '../data/dayplanStore'
+import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
 import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
@@ -27,7 +32,16 @@ function toScheduledBook(b: BookData): ScheduledBook {
     allottedRatio: b.allottedRatio,
     startDate: b.startDate,
     deadline: b.deadline,
+    trainFit: b.trainFit,
   }
+}
+
+type DayRow = { start: string; end: string; bookId?: string; onTrain?: boolean }
+
+function minToHHMM(min: number): string {
+  const h = String(Math.floor(min / 60)).padStart(2, '0')
+  const m = String(min % 60).padStart(2, '0')
+  return `${h}:${m}`
 }
 
 export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }: Props) {
@@ -38,12 +52,20 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   const [availability, setAvailability] = useState<Awaited<ReturnType<typeof listAvailability>>>([])
   const [availabilityLoaded, setAvailabilityLoaded] = useState(false)
   const [inputs, setInputs] = useState<Record<string, string>>({})
+  const [bookOverrides, setBookOverrides] = useState<Record<number, string>>({})
+  const [dayRows, setDayRows] = useState<DayRow[]>([])
+  const [dayRowsInit, setDayRowsInit] = useState(false)
+  const [dayMessage, setDayMessage] = useState<string | null>(null)
+
+  const refreshAvailability = async () => {
+    const a = await listAvailability()
+    setAvailability(a)
+    setAvailabilityLoaded(true)
+    return a
+  }
 
   useEffect(() => {
-    void listAvailability().then((a) => {
-      setAvailability(a)
-      setAvailabilityLoaded(true)
-    })
+    void refreshAvailability()
   }, [])
 
   const pageBooks = books.filter((b) => b.studyMode !== 'cycles')
@@ -59,6 +81,30 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   // スケジュールに含まれていない登録本も対象にする
   const planned = generateDayPlan({ availability, books: scheduled, today })
 
+  const displayedSlots: PlanSlot[] = planned.today.slots.map((s, i) => {
+    const overrideId = bookOverrides[i]
+    if (!overrideId || overrideId === s.bookId) return s
+    const book = books.find((b) => b.id === overrideId)
+    if (!book) return s
+    const minutes = s.endMin - s.startMin
+    const mpp = effectiveSpeed(book.minutesPerPage, book.subject)
+    return { ...s, bookId: overrideId, pages: Math.max(Math.floor(minutes / mpp), 0) }
+  })
+
+  useEffect(() => {
+    if (!availabilityLoaded || dayRowsInit) return
+    const base = slotsForDate(availability, today)
+    setDayRows(
+      base.map((s) => ({
+        start: minToHHMM(s.startMin),
+        end: minToHHMM(s.endMin),
+        bookId: s.bookId,
+        onTrain: s.onTrain,
+      })),
+    )
+    setDayRowsInit(true)
+  }, [availabilityLoaded, availability, today, dayRowsInit])
+
   // リマインダー用: その日の空き時間帯と終了予定をntfyへ送る。
   // ワークフローが15分ごとに読み、終わった直後の時間帯だけ通知する。
   const notify = getNotifySettings()
@@ -67,10 +113,10 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   const slotsPayload = useMemo(
     () =>
       availabilityLoaded
-        ? buildSlotsPayload(today, slotsForDate(availability, today), planned.today.slots, books)
+        ? buildSlotsPayload(today, slotsForDate(availability, today), displayedSlots, books)
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [availabilityLoaded, availability, today, planned, books],
+    [availabilityLoaded, availability, today, planned, books, bookOverrides],
   )
 
   useEffect(() => {
@@ -85,6 +131,65 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   // 統一しているため、サーバー側の二重送信防止にもかかる。
   useSlotEndReminder(notifyEnabled, notifyTopic, slotsPayload)
 
+  const saveTodayOverrides = async (slotsToSave: PlanSlot[]) => {
+    const existing = await listAvailability()
+    for (const s of existing.filter((a) => a.date === today)) {
+      await deleteAvailabilitySlot(s.id)
+    }
+    for (const s of slotsToSave) {
+      const slot: AvailabilitySlot = {
+        id: crypto.randomUUID(),
+        weekday: null,
+        date: today,
+        start: minToHHMM(s.startMin),
+        end: minToHHMM(s.endMin),
+        bookId: s.bookId,
+        onTrain: s.onTrain || undefined,
+      }
+      await saveAvailabilitySlot(slot, true)
+    }
+    setBookOverrides({})
+    setDayRowsInit(false)
+    setDayMessage('今日だけの計画に上書きしました')
+    await refreshAvailability()
+  }
+
+  const saveDayRows = async () => {
+    const rows = dayRows.filter((r) => r.start && r.end)
+    for (const r of rows) {
+      const [sh, sm] = r.start.split(':').map(Number)
+      const [eh, em] = r.end.split(':').map(Number)
+      if (!Number.isFinite(sh) || !Number.isFinite(eh)) {
+        setDayMessage('開始と終了を入力してください')
+        return
+      }
+      if (eh * 60 + em <= sh * 60 + sm) {
+        setDayMessage('終了時刻は開始時刻より後にしてください')
+        return
+      }
+    }
+    const existing = await listAvailability()
+    for (const s of existing.filter((a) => a.date === today)) {
+      await deleteAvailabilitySlot(s.id)
+    }
+    for (const r of rows) {
+      const slot: AvailabilitySlot = {
+        id: crypto.randomUUID(),
+        weekday: null,
+        date: today,
+        start: r.start,
+        end: r.end,
+        bookId: r.bookId || undefined,
+        onTrain: r.onTrain || undefined,
+      }
+      await saveAvailabilitySlot(slot, true)
+    }
+    setBookOverrides({})
+    setDayRowsInit(false)
+    setDayMessage('今日だけの時間と本を上書きしました')
+    await refreshAvailability()
+  }
+
   const handleRecord = async (slotKey: string, bookId: string) => {
     const raw = inputs[slotKey] ?? ''
     const pages = Number(raw)
@@ -92,7 +197,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
     await addProgress(bookId, today, pages)
     setInputs((p) => ({ ...p, [slotKey]: '' }))
     // 速度学習: その日に割り当てられた時間の合計
-    const todayMin = planned.today.slots
+    const todayMin = displayedSlots
       .filter((s) => s.bookId === bookId)
       .reduce((sum, s) => sum + (s.endMin - s.startMin), 0)
     if (todayMin > 0) {
@@ -118,7 +223,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
           {planned.notice}
         </p>
       )}
-      {planned.today.slots.length === 0 ? (
+      {displayedSlots.length === 0 ? (
         <p data-testid="empty-availability-notice" style={{ color: 'var(--text-dim)' }}>
           今日の割り当てはありません。
           <button data-testid="go-settings" type="button" onClick={onSettings}>
@@ -127,7 +232,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
         </p>
       ) : (
         <div data-testid="today-table">
-          {planned.today.slots.map((s, i) => {
+          {displayedSlots.map((s, i) => {
             const book = books.find((b) => b.id === s.bookId)
             const inputKey = `${s.bookId}-${s.startMin}-${i}`
             return (
@@ -146,7 +251,39 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                       overflowWrap: 'anywhere',
                     }}
                   >
-                    {book?.title ?? s.bookId}
+                    {s.onTrain ? '【汽車】' : ''}{book?.title ?? s.bookId}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <select
+                      data-testid={`plan-book-select-${i}`}
+                      value={s.bookId}
+                      onChange={(e) =>
+                        setBookOverrides((p) => ({ ...p, [i]: e.target.value }))
+                      }
+                      aria-label="この時間にする本を選び直す"
+                      style={{ flex: 1, minWidth: 0 }}
+                    >
+                      {pageBooks.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.trainFit === 'train' ? '【汽車】' : b.trainFit === 'home' ? '【自宅】' : ''}{b.title}
+                        </option>
+                      ))}
+                    </select>
+                    {bookOverrides[i] && bookOverrides[i] !== planned.today.slots[i]?.bookId && (
+                      <button
+                        data-testid={`plan-reset-${i}`}
+                        type="button"
+                        onClick={() =>
+                          setBookOverrides((p) => {
+                            const next = { ...p }
+                            delete next[i]
+                            return next
+                          })
+                        }
+                      >
+                        元に戻す
+                      </button>
+                    )}
                   </div>
                   {book && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -181,8 +318,98 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
               </div>
             )
           })}
+          {Object.keys(bookOverrides).length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <button
+                data-testid="save-today-override"
+                type="button"
+                onClick={() => void saveTodayOverrides(displayedSlots)}
+              >
+                選び直しを今日だけ固定する
+              </button>
+            </div>
+          )}
         </div>
       )}
+      <div data-testid="today-override-section" style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
+        <h2 style={{ fontSize: 16 }}>今日だけ上書き（時間も本も）</h2>
+        <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+          急な予定が入ったときは、ここで今日の時間と本を変えられます。曜日ごとの設定には影響しません。
+        </p>
+        {dayRows.map((r, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+            <input
+              data-testid={`today-override-start-${i}`}
+              type="time"
+              value={r.start}
+              onChange={(e) =>
+                setDayRows((rows) => rows.map((row, ri) => (ri === i ? { ...row, start: e.target.value } : row)))
+              }
+            />
+            <span>〜</span>
+            <input
+              data-testid={`today-override-end-${i}`}
+              type="time"
+              value={r.end}
+              onChange={(e) =>
+                setDayRows((rows) => rows.map((row, ri) => (ri === i ? { ...row, end: e.target.value } : row)))
+              }
+            />
+            <select
+              data-testid={`today-override-book-${i}`}
+              value={r.bookId ?? ''}
+              onChange={(e) =>
+                setDayRows((rows) =>
+                  rows.map((row, ri) => (ri === i ? { ...row, bookId: e.target.value || undefined } : row)),
+                )
+              }
+              aria-label="この時間にする本"
+            >
+              <option value="">おまかせ</option>
+              {pageBooks.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.title}
+                </option>
+              ))}
+            </select>
+            <label style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 13 }}>
+              <input
+                data-testid={`today-override-train-${i}`}
+                type="checkbox"
+                checked={!!r.onTrain}
+                onChange={(e) =>
+                  setDayRows((rows) => rows.map((row, ri) => (ri === i ? { ...row, onTrain: e.target.checked } : row)))
+                }
+              />
+              汽車
+            </label>
+            <button
+              data-testid={`today-override-delete-${i}`}
+              type="button"
+              onClick={() => setDayRows((rows) => rows.filter((_, ri) => ri !== i))}
+            >
+              削除
+            </button>
+          </div>
+        ))}
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <button
+            data-testid="today-override-add"
+            type="button"
+            onClick={() => setDayRows((rows) => [...rows, { start: '', end: '' }])}
+          >
+            時間帯を追加
+          </button>
+          <button data-testid="today-override-save" type="button" onClick={() => void saveDayRows()}>
+            今日だけ上書き保存
+          </button>
+        </div>
+        {dayMessage && (
+          <p data-testid="today-override-message" style={{ color: 'var(--accent-strong)' }}>
+            {dayMessage}
+          </p>
+        )}
+      </div>
       {cycleBooks.length > 0 && (
         <div data-testid="cycle-today-list" style={{ marginTop: 16 }}>
           {cycleBooks.map((book) => {

@@ -1,5 +1,5 @@
 import type { AvailabilitySlot } from '../data/dayplanStore'
-import { daysBetween, parseDate } from './progress'
+import { daysBetween, parseDate, type TrainFit } from './progress'
 
 export const DEFAULT_MINUTES_PER_PAGE = 2
 
@@ -26,7 +26,7 @@ export function minutesPerPageFor(
   return DEFAULT_MINUTES_PER_PAGE
 }
 
-export type TimeSlot = { startMin: number; endMin: number; bookId?: string }
+export type TimeSlot = { startMin: number; endMin: number; bookId?: string; onTrain?: boolean }
 
 export function parseTimeToMin(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number)
@@ -46,6 +46,7 @@ export function slotsForDate(
         startMin: parseTimeToMin(a.start),
         endMin: parseTimeToMin(a.end),
         bookId: a.bookId,
+        onTrain: a.onTrain,
       }))
       .filter((s) => s.endMin > s.startMin && s.endMin <= 1440)
   }
@@ -58,6 +59,7 @@ export function slotsForDate(
       startMin: parseTimeToMin(a.start),
       endMin: parseTimeToMin(a.end),
       bookId: a.bookId,
+      onTrain: a.onTrain,
     }))
     .filter((s) => s.endMin > s.startMin && s.endMin <= 1440)
 }
@@ -71,9 +73,14 @@ export type ScheduledBook = {
   allottedRatio?: number
   startDate: string
   deadline: string
+  trainFit?: TrainFit
 }
 
-export type PlanSlot = { startMin: number; endMin: number; bookId: string; pages: number }
+export function isTrainSuitable(trainFit: TrainFit | undefined): boolean {
+  return trainFit !== 'home'
+}
+
+export type PlanSlot = { startMin: number; endMin: number; bookId: string; pages: number; onTrain?: boolean }
 
 export type DayPlan = {
   date: string
@@ -144,7 +151,12 @@ export function improvePlan(slots: PlanSlot[], maxIterations = 200): PlanSlot[] 
     const merged: PlanSlot[] = []
     for (const s of current) {
       const last = merged[merged.length - 1]
-      if (last && last.bookId === s.bookId && last.endMin === s.startMin) {
+      if (
+        last &&
+        last.bookId === s.bookId &&
+        last.endMin === s.startMin &&
+        (last.onTrain ?? false) === (s.onTrain ?? false)
+      ) {
         last.endMin = s.endMin
         last.pages += s.pages
       } else {
@@ -184,6 +196,7 @@ function buildDayPlan(
     Math.min(t.need * t.book.minutesPerPage, capOf(t.book, totalMin))
 
   // 固定指定の予約を先に確保する(その本のその日の上限まで)。残りは従来通り。
+  // 明示的な固定は汽車向きより優先する（ユーザーが選んだ指定を尊重）。
   const pinned: PlanSlot[] = []
   const openSegs: TimeSlot[] = []
   const reserved = new Map<string, number>()
@@ -204,13 +217,14 @@ function buildDayPlan(
           endMin: c + take,
           bookId: target.book.bookId,
           pages: Math.max(Math.floor(take / target.book.minutesPerPage), 0),
+          onTrain: s.onTrain,
         })
         reserved.set(target.book.bookId, (reserved.get(target.book.bookId) ?? 0) + take)
         c += take
         left -= take
       }
     }
-    if (left > 0) openSegs.push({ startMin: c, endMin: s.endMin })
+    if (left > 0) openSegs.push({ startMin: c, endMin: s.endMin, onTrain: s.onTrain })
   }
 
   // 15分スロット単位で優先度順に詰め込む(1回あたりの割当=15分)
@@ -227,7 +241,7 @@ function buildDayPlan(
     remaining -= take
   }
 
-  const result = distributeMinutes(openSegs, targets, assigned)
+  const result = distributeMinutesTrainAware(openSegs, targets, assigned)
   const improved = improvePlan(
     [...pinned, ...result].sort((a, b) => a.startMin - b.startMin),
   )
@@ -260,6 +274,7 @@ function distributeMinutes(
           endMin: c + take,
           bookId,
           pages: Math.max(Math.floor(take / mpp), 0),
+          onTrain: s.onTrain,
         })
         c += take
         left -= take
@@ -278,6 +293,61 @@ function distributeMinutes(
   return result
 }
 
+function distributeMinutesTrainAware(
+  slots: TimeSlot[],
+  targets: { book: ScheduledBook; need: number }[],
+  assigned: Map<string, number>,
+): PlanSlot[] {
+  const hasTrain = slots.some((s) => s.onTrain)
+  const hasHomeOnly = targets.some((t) => t.book.trainFit === 'home')
+  if (!hasTrain || !hasHomeOnly) {
+    return distributeMinutes(slots, targets, assigned)
+  }
+  const remaining = new Map<string, number>(assigned)
+  const result: PlanSlot[] = []
+  const byId = new Map(targets.map((t) => [t.book.bookId, t.book]))
+
+  const fillSlots = (
+    list: TimeSlot[],
+    allowed: (bookId: string) => boolean,
+    orderedTargets: { book: ScheduledBook; need: number }[],
+  ) => {
+    for (const s of list) {
+      let left = s.endMin - s.startMin
+      let c = s.startMin
+      while (left > 0) {
+        const next = orderedTargets.find(
+          (t) => allowed(t.book.bookId) && (remaining.get(t.book.bookId) ?? 0) > 0,
+        )
+        if (!next) break
+        const avail = remaining.get(next.book.bookId) ?? 0
+        const take = Math.min(left, avail)
+        if (take <= 0) break
+        result.push({
+          startMin: c,
+          endMin: c + take,
+          bookId: next.book.bookId,
+          pages: Math.max(Math.floor(take / next.book.minutesPerPage), 0),
+          onTrain: s.onTrain,
+        })
+        c += take
+        left -= take
+        remaining.set(next.book.bookId, avail - take)
+      }
+    }
+  }
+
+  const trainTargets = targets.filter((t) => isTrainSuitable(t.book.trainFit))
+  const trainSlots = slots.filter((s) => s.onTrain)
+  const homeSlots = slots.filter((s) => !s.onTrain)
+  // 汽車時間は汽車向きだけ。voidのチェックで未使用変数を避ける
+  void byId
+  fillSlots(trainSlots, (id) => isTrainSuitable(byId.get(id)?.trainFit), trainTargets)
+  fillSlots(homeSlots, () => true, targets)
+  result.sort((a, b) => a.startMin - b.startMin)
+  return result
+}
+
 export function generateDayPlan(params: {
   availability: AvailabilitySlot[]
   books: ScheduledBook[]
@@ -290,11 +360,20 @@ export function generateDayPlan(params: {
 
   const anyDeficit = active.some((b) => deficitOf(b, today) > 0)
   const noAvailability = slotsForDate(availability, today).length === 0
-  const notice = noAvailability
+  const todaySlots = slotsForDate(availability, today)
+  const trainFiltered =
+    todaySlots.some((s) => s.onTrain) &&
+    active.some((b) => b.trainFit === 'home')
+  const trainNotice = trainFiltered ? '汽車時間は汽車向きの本に絞りました' : null
+  const baseNotice = noAvailability
     ? '今日の空き時間がありません'
     : anyDeficit
       ? '前日までの不足分を今日の空き時間に再配置しました'
       : null
+  const notice =
+    baseNotice && trainNotice
+      ? `${baseNotice} / ${trainNotice}`
+      : (trainNotice ?? baseNotice)
 
   const upcoming: DaySummary[] = []
   for (let i = 1; i <= horizonDays; i++) {

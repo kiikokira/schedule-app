@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { searchBooks, getBooksApiKey, type SearchResultItem } from '../api/googleBooks'
 import { useBooks } from '../hooks/useBooks'
-import { todayStr, type BookData } from '../lib/progress'
+import { todayStr, type BookData, type TrainFit } from '../lib/progress'
 import CoverImage from '../components/CoverImage'
 import { searchCatalog, type CatalogBook } from '../data/catalog'
 
@@ -36,6 +36,7 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
   const [initialUnits, setInitialUnits] = useState(
     book?.initialDoneUnits != null ? String(book.initialDoneUnits) : '',
   )
+  const [trainFit, setTrainFit] = useState<TrainFit>(book?.trainFit ?? 'either')
   const [tab, setTab] = useState<'catalog' | 'search'>('catalog')
   const [catalogQuery, setCatalogQuery] = useState('')
   const [query, setQuery] = useState('')
@@ -57,6 +58,7 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
     setTotalUnits(book?.totalUnits != null ? String(book.totalUnits) : '')
     setTargetRounds(book?.targetRounds != null ? String(book.targetRounds) : '')
     setInitialUnits(book?.initialDoneUnits != null ? String(book.initialDoneUnits) : '')
+    setTrainFit(book?.trainFit ?? 'either')
   }, [book])
 
   const catalogResults = searchCatalog(catalogQuery)
@@ -157,6 +159,7 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
       totalUnits: totalUnitsNum ?? book?.totalUnits,
       targetRounds: targetRoundsNum ?? book?.targetRounds,
       initialDoneUnits: studyMode === 'cycles' ? initialDoneUnits : book?.initialDoneUnits,
+      trainFit,
       createdAt: book?.createdAt ?? now,
       updatedAt: now,
     }
@@ -320,6 +323,19 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
       <div>
         <label htmlFor="book-minutes">1ページあたりの所要時間（分）</label>
         <input id="book-minutes" data-testid="book-minutes" type="number" inputMode="numeric" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+      </div>
+      <div>
+        <label htmlFor="book-train-fit">汽車向き</label>
+        <select
+          id="book-train-fit"
+          data-testid="book-train-fit"
+          value={trainFit}
+          onChange={(e) => setTrainFit(e.target.value as TrainFit)}
+        >
+          <option value="train">汽車向き</option>
+          <option value="either">どちらでも</option>
+          <option value="home">自宅向き</option>
+        </select>
       </div>
       {error && <p data-testid="book-error" style={{ color: 'var(--danger)' }}>{error}</p>}
       <button data-testid="book-save" type="button" onClick={() => void handleSave()}>

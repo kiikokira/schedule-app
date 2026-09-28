@@ -1,3 +1,5 @@
+export type TrainFit = 'train' | 'either' | 'home'
+
 export type BookData = {
   id: string
   title: string
@@ -17,6 +19,7 @@ export type BookData = {
   totalUnits?: number
   targetRounds?: number
   initialDoneUnits?: number
+  trainFit?: TrainFit
 }
 
 export type ProgressRecordData = {

@@ -301,6 +301,82 @@ describe('generateDayPlan', () => {
     expect(out.upcoming[0].date).toBe('2026-09-22')
     expect(out.upcoming[0].items.length).toBeGreaterThan(0)
   })
+
+  it('excludes home-only books from train slots', () => {
+    const trainSlot: AvailabilitySlot = {
+      id: 'w1-train',
+      weekday: 1,
+      date: null,
+      start: '07:30',
+      end: '08:30',
+      onTrain: true,
+    }
+    const out = generateDayPlan({
+      availability: [trainSlot],
+      books: [
+        book({ bookId: 'bHome', totalPages: 100, minutesPerPage: 2, priority: 0, trainFit: 'home' }),
+        book({ bookId: 'bTrain', totalPages: 100, minutesPerPage: 2, priority: 1, trainFit: 'train' }),
+      ],
+      today: '2026-09-21',
+    })
+    expect(out.today.slots.length).toBeGreaterThan(0)
+    for (const s of out.today.slots) {
+      expect(s.bookId).toBe('bTrain')
+    }
+    expect(out.notice).toContain('汽車時間は汽車向きの本に絞りました')
+  })
+
+  it('keeps an explicit pin even if the pinned book is home-only on a train slot', () => {
+    const pinnedTrain: AvailabilitySlot = {
+      id: 'w1-pinned-train',
+      weekday: 1,
+      date: null,
+      start: '07:30',
+      end: '08:30',
+      bookId: 'bHome',
+      onTrain: true,
+    }
+    const out = generateDayPlan({
+      availability: [pinnedTrain],
+      books: [
+        book({ bookId: 'bHome', totalPages: 100, minutesPerPage: 2, priority: 1, trainFit: 'home' }),
+        book({ bookId: 'bTrain', totalPages: 100, minutesPerPage: 2, priority: 0, trainFit: 'train' }),
+      ],
+      today: '2026-09-21',
+    })
+    expect(out.today.slots[0].bookId).toBe('bHome')
+  })
+
+  it('uses home slots for home-only books when train and home times are mixed', () => {
+    const trainSlot: AvailabilitySlot = {
+      id: 'w1-train',
+      weekday: 1,
+      date: null,
+      start: '07:30',
+      end: '08:30',
+      onTrain: true,
+    }
+    const homeSlot: AvailabilitySlot = {
+      id: 'w1-home',
+      weekday: 1,
+      date: null,
+      start: '21:00',
+      end: '22:00',
+    }
+    const out = generateDayPlan({
+      availability: [trainSlot, homeSlot],
+      books: [
+        book({ bookId: 'bHome', totalPages: 500, minutesPerPage: 2, priority: 0, trainFit: 'home' }),
+        book({ bookId: 'bTrain', totalPages: 500, minutesPerPage: 2, priority: 1, trainFit: 'train' }),
+      ],
+      today: '2026-09-21',
+    })
+    const trainPart = out.today.slots.filter((s) => s.startMin < 12 * 60)
+    const homePart = out.today.slots.filter((s) => s.startMin >= 12 * 60)
+    expect(trainPart.length).toBeGreaterThan(0)
+    for (const s of trainPart) expect(s.bookId).toBe('bTrain')
+    expect(homePart.length).toBeGreaterThan(0)
+  })
 })
 
 it('planScore prefers fewer switches', () => {

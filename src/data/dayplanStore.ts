@@ -8,6 +8,8 @@ export type AvailabilitySlot = {
   end: string
   // その時間はこの本を優先する指定。未設定なら自動割り当て。
   bookId?: string
+  // 汽車で移動中の時間帯。trueなら汽車向きの本だけ自動割当する。
+  onTrain?: boolean
 }
 
 export type Adjustment = {

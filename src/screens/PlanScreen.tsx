@@ -30,9 +30,9 @@ type Props = {
   onDone: () => void
 }
 
-type SlotRow = { start: string; end: string; bookId?: string }
+type SlotRow = { start: string; end: string; bookId?: string; onTrain?: boolean }
 
-const emptyRow = (): SlotRow => ({ start: '', end: '' })
+const emptyRow = (): SlotRow => ({ start: '', end: '', onTrain: false })
 
 type RowsResult = { ok: true; rows: SlotRow[] } | { ok: false; message: string }
 
@@ -71,7 +71,7 @@ export default function PlanScreen({ onDone }: Props) {
 
   const updateSlotDraft = (slot: AvailabilitySlot, patch: Partial<SlotRow>) =>
     setSlotDrafts((prev) => {
-      const base: SlotRow = { start: slot.start, end: slot.end, bookId: slot.bookId }
+      const base: SlotRow = { start: slot.start, end: slot.end, bookId: slot.bookId, onTrain: slot.onTrain }
       const next: SlotRow = Object.assign({}, base, prev[slot.id] ?? {}, patch)
       return { ...prev, [slot.id]: next }
     })
@@ -112,7 +112,15 @@ export default function PlanScreen({ onDone }: Props) {
     if (res.rows.length === 0) return
     for (const row of res.rows) {
       await saveAvailabilitySlot(
-        { id: crypto.randomUUID(), weekday: Number(slotWeekday), date: null, start: row.start, end: row.end },
+        {
+          id: crypto.randomUUID(),
+          weekday: Number(slotWeekday),
+          date: null,
+          start: row.start,
+          end: row.end,
+          bookId: row.bookId || undefined,
+          onTrain: row.onTrain || undefined,
+        },
         true,
       )
     }
@@ -131,7 +139,15 @@ export default function PlanScreen({ onDone }: Props) {
     if (res.rows.length === 0) return
     for (const row of res.rows) {
       await saveAvailabilitySlot(
-        { id: crypto.randomUUID(), weekday: null, date: slotDate, start: row.start, end: row.end },
+        {
+          id: crypto.randomUUID(),
+          weekday: null,
+          date: slotDate,
+          start: row.start,
+          end: row.end,
+          bookId: row.bookId || undefined,
+          onTrain: row.onTrain || undefined,
+        },
         true,
       )
     }
@@ -151,6 +167,7 @@ export default function PlanScreen({ onDone }: Props) {
       start: slot.start,
       end: slot.end,
       bookId: slot.bookId,
+      onTrain: slot.onTrain,
     }
     if (parseTimeToMin(draft.end) <= parseTimeToMin(draft.start)) {
       window.alert('終了時刻は開始時刻より後にしてください')
@@ -159,6 +176,8 @@ export default function PlanScreen({ onDone }: Props) {
     const next: AvailabilitySlot = { ...slot, start: draft.start, end: draft.end }
     if (draft.bookId) next.bookId = draft.bookId
     else delete next.bookId
+    if (draft.onTrain) next.onTrain = true
+    else delete next.onTrain
     await saveAvailabilitySlot(next, false)
     setSlotDrafts((prev) => {
       const next = { ...prev }
@@ -171,7 +190,7 @@ export default function PlanScreen({ onDone }: Props) {
   const copyWeekdaySlots = (w: number) => {
     const slots = availability.filter((s) => s.weekday === w).sort(byStart)
     setSlotWeekday(String(w))
-    setWeekdayRows(slots.map((s) => ({ start: s.start, end: s.end })))
+    setWeekdayRows(slots.map((s) => ({ start: s.start, end: s.end, bookId: s.bookId, onTrain: s.onTrain })))
   }
 
   const [selectedCatalogId, setSelectedCatalogId] = useState('')
@@ -223,7 +242,8 @@ export default function PlanScreen({ onDone }: Props) {
   const weekdayNames = ['日', '月', '火', '水', '木', '金', '土']
 
   const slotLabelWithPin = (s: AvailabilitySlot) => {
-    const base = `${s.start}〜${s.end}`
+    const trainMark = s.onTrain ? '【汽車】' : ''
+    const base = `${trainMark}${s.start}〜${s.end}`
     if (!s.bookId) return base
     const pinned = books.find((b) => b.id === s.bookId)
     return pinned ? `${base}（${pinned.title}）` : base
@@ -471,6 +491,7 @@ export default function PlanScreen({ onDone }: Props) {
                       start: slot.start,
                       end: slot.end,
                       bookId: slot.bookId,
+                      onTrain: slot.onTrain,
                     }
                     const slotLabel = `${slot.start}〜${slot.end}`
                     return (
@@ -503,6 +524,15 @@ export default function PlanScreen({ onDone }: Props) {
                             </option>
                           ))}
                         </select>
+                        <label style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 13 }}>
+                          <input
+                            data-testid={`slot-train-${slot.id}`}
+                            type="checkbox"
+                            checked={!!draft.onTrain}
+                            onChange={(e) => updateSlotDraft(slot, { onTrain: e.target.checked })}
+                          />
+                          汽車
+                        </label>
                         <button data-testid={`slot-save-${slot.id}`} type="button" onClick={() => void saveSlotTimes(slot)}>
                           保存
                         </button>
@@ -529,9 +559,31 @@ export default function PlanScreen({ onDone }: Props) {
           </button>
         </div>
         {weekdayRows.map((row, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
             <input data-testid={`slot-start-${i}`} type="time" value={row.start} onChange={(e) => updateWeekdayRow(i, { start: e.target.value })} />
             <input data-testid={`slot-end-${i}`} type="time" value={row.end} onChange={(e) => updateWeekdayRow(i, { end: e.target.value })} />
+            <select
+              data-testid={`slot-weekday-book-${i}`}
+              value={row.bookId ?? ''}
+              onChange={(e) => updateWeekdayRow(i, { bookId: e.target.value || undefined })}
+              aria-label="この時間にする本"
+            >
+              <option value="">おまかせ</option>
+              {books.map((book) => (
+                <option key={book.id} value={book.id}>
+                  {book.title}
+                </option>
+              ))}
+            </select>
+            <label style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 13 }}>
+              <input
+                data-testid={`slot-weekday-train-${i}`}
+                type="checkbox"
+                checked={!!row.onTrain}
+                onChange={(e) => updateWeekdayRow(i, { onTrain: e.target.checked })}
+              />
+              汽車
+            </label>
           </div>
         ))}
         <button data-testid="slot-add" type="button" disabled={slotWeekday === ''} onClick={() => void addWeekdaySlot()}>
@@ -545,9 +597,31 @@ export default function PlanScreen({ onDone }: Props) {
           </button>
         </div>
         {dateRows.map((row, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
             <input data-testid={`slot-date-start-${i}`} type="time" value={row.start} onChange={(e) => updateDateRow(i, { start: e.target.value })} />
             <input data-testid={`slot-date-end-${i}`} type="time" value={row.end} onChange={(e) => updateDateRow(i, { end: e.target.value })} />
+            <select
+              data-testid={`slot-date-book-${i}`}
+              value={row.bookId ?? ''}
+              onChange={(e) => updateDateRow(i, { bookId: e.target.value || undefined })}
+              aria-label="この時間にする本"
+            >
+              <option value="">おまかせ</option>
+              {books.map((book) => (
+                <option key={book.id} value={book.id}>
+                  {book.title}
+                </option>
+              ))}
+            </select>
+            <label style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 13 }}>
+              <input
+                data-testid={`slot-date-train-${i}`}
+                type="checkbox"
+                checked={!!row.onTrain}
+                onChange={(e) => updateDateRow(i, { onTrain: e.target.checked })}
+              />
+              汽車
+            </label>
           </div>
         ))}
         <button data-testid="slot-date-add" type="button" disabled={!slotDate} onClick={() => void addDateSlot()}>
