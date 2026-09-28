@@ -44,8 +44,8 @@ describe('RebalanceScreen', () => {
     render(<RebalanceScreen bookId="b2" onBack={() => {}} onSchedule={() => {}} />)
     expect(await screen.findByTestId('rebalance-before')).toBeInTheDocument()
     expect(await screen.findByTestId('rebalance-after')).toBeInTheDocument()
-    expect(await screen.findByText('b1')).toBeInTheDocument()
-    expect(await screen.findByText('b2')).toBeInTheDocument()
+    expect(await screen.findByTestId('rebalance-before-row-b1')).toBeInTheDocument()
+    expect(await screen.findByTestId('rebalance-after-row-b2')).toBeInTheDocument()
   })
 
   it('maps priority options per the design intent (優先=0, 公平均分=1, 軽視=2, スキップ=3)', async () => {
@@ -61,16 +61,14 @@ describe('RebalanceScreen', () => {
     expect(screen.getByRole('option', { name: 'スキップ' })).toHaveValue('3')
   })
 
-  it('allocates an unset book ahead of a 軽視 book in the 修正前 panel', async () => {
+  it('shows no-change when the added book gets no time today', async () => {
     await addBook('b1', { priority: 2, deadline: todayStr() })
     await addBook('b2', { deadline: addDays(todayStr(), 1) })
     await addBook('b3')
     await seedDaySlot()
     render(<RebalanceScreen bookId="b3" onBack={() => {}} onSchedule={() => {}} />)
-    await screen.findByText('b1')
-    const before = within(await screen.findByTestId('rebalance-before'))
-    expect(before.getByTestId('rebalance-before-row-b2')).toHaveTextContent('60ページ')
-    expect(before.queryByTestId('rebalance-before-row-b1')).not.toBeInTheDocument()
+    expect(await screen.findByTestId('rebalance-no-change')).toBeInTheDocument()
+    expect(screen.getByTestId('rebalance-summary')).toHaveTextContent('0分')
   })
 
   it('favors 優先(0) over 未設定 and places 公平均分(1) below 未設定', async () => {
@@ -89,9 +87,7 @@ describe('RebalanceScreen', () => {
     fireEvent.change(await screen.findByTestId('priority-select-b1'), {
       target: { value: '1' },
     })
-    fireEvent.click(screen.getByTestId('rebalance-apply'))
-    expect(after.getByTestId('rebalance-after-row-b2')).toHaveTextContent('60ページ')
-    expect(after.queryByTestId('rebalance-after-row-b1')).not.toBeInTheDocument()
+    expect(await screen.findByTestId('rebalance-no-change')).toBeInTheDocument()
   })
 
   it('frees time for another book when the target book is skipped', async () => {
@@ -99,16 +95,13 @@ describe('RebalanceScreen', () => {
     await addBook('b2', { totalPages: 30, deadline: todayStr() })
     await seedDaySlot()
     render(<RebalanceScreen bookId="b2" onBack={() => {}} onSchedule={() => {}} />)
-    await screen.findByText('b1')
-    const after = within(screen.getByTestId('rebalance-after'))
-    expect(after.getByTestId('rebalance-after-row-b2')).toHaveTextContent('30ページ')
+    const after = within(await screen.findByTestId('rebalance-after'))
+    expect(await after.findByTestId('rebalance-after-row-b2')).toHaveTextContent('30ページ')
     expect(after.getByTestId('rebalance-after-row-b1')).toHaveTextContent('30ページ')
     fireEvent.change(await screen.findByTestId('priority-select-b2'), {
       target: { value: '3' },
     })
-    fireEvent.click(screen.getByTestId('rebalance-apply'))
-    expect(after.queryByTestId('rebalance-after-row-b2')).not.toBeInTheDocument()
-    expect(after.getByTestId('rebalance-after-row-b1')).toHaveTextContent('60ページ')
+    expect(await screen.findByTestId('rebalance-no-change')).toBeInTheDocument()
   })
 
   it('applies the new ratio and recomputes the plan', async () => {

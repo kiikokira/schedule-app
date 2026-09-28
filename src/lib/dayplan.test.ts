@@ -148,6 +148,19 @@ describe('generateDayPlan', () => {
     expect(out.today.totalMinutes).toBe(90)
   })
 
+  it('allocates an unset book ahead of a 軽視 book', () => {
+    const out = generateDayPlan({
+      availability: [weekSlot(1, '21:00', '23:00')],
+      books: [
+        book({ bookId: 'b1', totalPages: 200, priority: 2, deadline: '2026-09-21' }),
+        book({ bookId: 'b2', totalPages: 200, deadline: '2026-09-22' }),
+      ],
+      today: '2026-09-21',
+    })
+    expect(out.today.slots[0].bookId).toBe('b2')
+    expect(out.today.slots.every((s) => s.bookId === 'b2')).toBe(true)
+  })
+
   it('prefers the pinned book over a higher-priority book in a pinned slot', () => {
     const out = generateDayPlan({
       availability: [pinnedWeekSlot(1, '21:00', '22:00', 'bPin')],

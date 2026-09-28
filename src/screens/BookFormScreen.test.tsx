@@ -155,9 +155,34 @@ describe('BookFormScreen', () => {
     render(
       <BookFormScreen book={existing as any} onDone={() => {}} onRebalance={cb} />,
     )
-    fireEvent.change(screen.getByTestId('book-title'), { target: { value: '更新した本' } })
+    fireEvent.change(screen.getByTestId('book-pages'), { target: { value: '150' } })
     fireEvent.click(screen.getByTestId('book-save'))
     await waitFor(() => expect(cb).toHaveBeenCalledWith('b1'))
+  })
+
+  it('does not call onRebalance when only the title changed', async () => {
+    const now = new Date().toISOString()
+    const existing = {
+      id: 'b1',
+      title: '本',
+      totalPages: 100,
+      startDate: '2026-09-01',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+    }
+    await db.books.add(existing as any)
+    const cb = vi.fn()
+    render(
+      <BookFormScreen book={existing as any} onDone={() => {}} onRebalance={cb} />,
+    )
+    fireEvent.change(screen.getByTestId('book-title'), { target: { value: '更新した本' } })
+    fireEvent.click(screen.getByTestId('book-save'))
+    await waitFor(async () => {
+      const books = await db.books.toArray()
+      expect(books.find((b) => b.id === 'b1')?.title).toBe('更新した本')
+    })
+    expect(cb).not.toHaveBeenCalled()
   })
 
   it('stores catalogId when saving a catalog book', async () => {

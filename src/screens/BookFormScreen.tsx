@@ -173,8 +173,21 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
       onDone()
       return
     }
+    const allocationChanged =
+      book.totalPages !== next.totalPages ||
+      book.startDate !== next.startDate ||
+      book.deadline !== next.deadline ||
+      (book.minutesPerPage ?? undefined) !== (next.minutesPerPage ?? undefined) ||
+      (book.initialDonePages ?? undefined) !== (next.initialDonePages ?? undefined) ||
+      (book.studyMode ?? undefined) !== (next.studyMode ?? undefined) ||
+      (book.totalUnits ?? undefined) !== (next.totalUnits ?? undefined) ||
+      (book.targetRounds ?? undefined) !== (next.targetRounds ?? undefined) ||
+      (book.initialDoneUnits ?? undefined) !== (next.initialDoneUnits ?? undefined) ||
+      (book.trainFit ?? 'either') !== (next.trainFit ?? 'either')
     onDone()
-    onRebalance?.(book.id)
+    if (allocationChanged) {
+      onRebalance?.(book.id)
+    }
   }
 
   return (
