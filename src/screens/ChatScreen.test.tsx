@@ -322,4 +322,31 @@ describe('ChatScreen', () => {
     await waitFor(() => expect(screen.queryByTestId('op-card')).not.toBeInTheDocument())
     expect(await db.availability.get('s1')).not.toBeUndefined()
   })
+
+  it('hides apply notices from view but keeps them saved', async () => {
+    await fillBook()
+    await addTodaySlot()
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('proposal-card')
+    fireEvent.click(screen.getByTestId('apply-today'))
+    await waitFor(async () => {
+      expect((await db.books.get('b1'))?.priority).toBe(0)
+    })
+    expect(screen.queryByText(/反映しました/)).not.toBeInTheDocument()
+    const saved = await listChatHistory()
+    expect(saved.map((e) => e.text).join('\n')).toContain('反映しました')
+  })
+
+  it('truncates long messages with an expander', async () => {
+    await fillBook()
+    await addTodaySlot()
+    const longText = `結論${'あ'.repeat(200)}`
+    await appendChatHistory({ role: 'assistant', text: longText })
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    await screen.findByTestId('analysis-summary')
+    expect(screen.queryByText(longText)).not.toBeInTheDocument()
+    expect(screen.getAllByTestId('msg-expand')[0]).toHaveTextContent('開く')
+    fireEvent.click(screen.getAllByTestId('msg-expand')[0])
+    expect(await screen.findByText(longText)).toBeInTheDocument()
+  })
 })

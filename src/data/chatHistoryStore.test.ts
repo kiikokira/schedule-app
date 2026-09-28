@@ -38,4 +38,12 @@ describe('chatHistoryStore', () => {
     await clearChatHistory()
     expect(await listChatHistory()).toEqual([])
   })
+
+  it('saves notices with a kind', async () => {
+    await appendChatHistory({ role: 'assistant', text: '反映しました', kind: 'notice' })
+    await appendChatHistory({ role: 'user', text: '質問' })
+    const all = await listChatHistory()
+    expect(all[0].kind).toBe('notice')
+    expect(all[1].kind ?? 'chat').toBe('chat')
+  })
 })

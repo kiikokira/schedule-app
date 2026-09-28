@@ -18,6 +18,7 @@ import {
   type AiOperation,
 } from '../lib/aiOperations'
 import { listChatHistory, appendChatHistory } from '../data/chatHistoryStore'
+import LongText from '../components/LongText'
 import { calcTotalDone, todayStr } from '../lib/progress'
 
 type Props = {
@@ -31,6 +32,7 @@ type ChatMessage = {
   role: 'assistant' | 'user'
   text: string
   withProposal?: boolean
+  kind?: 'chat' | 'notice'
 }
 
 const CHIPS: { testid: string; label: string }[] = [
@@ -110,7 +112,9 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
       if (cancelled || !r) return
       setReport(r)
       setMessages([
-        ...saved.map((s) => ({ id: s.id, role: s.role, text: s.text }) as ChatMessage),
+        ...saved.map(
+          (s) => ({ id: s.id, role: s.role, text: s.text, kind: s.kind ?? 'chat' }) as ChatMessage,
+        ),
         { id: crypto.randomUUID(), role: 'assistant', text: r.summaryText, withProposal: r.books.length > 0 } as ChatMessage,
       ])
     })()
@@ -124,9 +128,9 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
   const push = (m: Omit<ChatMessage, 'id'>) =>
     setMessages((prev) => [...prev, { ...m, id: crypto.randomUUID() }])
 
-  const pushAndSave = (m: Omit<ChatMessage, 'id'>) => {
-    push(m)
-    void appendChatHistory({ role: m.role, text: m.text })
+  const pushAndSave = (m: Omit<ChatMessage, 'id'>, kind: 'chat' | 'notice' = 'chat') => {
+    push({ ...m, kind })
+    void appendChatHistory({ role: m.role, text: m.text, kind }).catch(() => {})
   }
 
   const applyToday = async () => {
@@ -176,7 +180,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
     const r = await loadReport()
     if (r) {
       setReport(r)
-      pushAndSave({ role: 'assistant', text, withProposal: r.books.length > 0 })
+      pushAndSave({ role: 'assistant', text, withProposal: r.books.length > 0 }, 'notice')
     }
   }
 
@@ -267,11 +271,11 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
     setPendingOp(null)
     const res = await applyOperation(op)
     if (res.ok) {
-      pushAndSave({ role: 'assistant', text: `${res.message}。` })
+      pushAndSave({ role: 'assistant', text: `${res.message}。` }, 'notice')
       const r = await loadReport()
       if (r) setReport(r)
     } else {
-      pushAndSave({ role: 'assistant', text: `変更できませんでした（${res.error}）。` })
+      pushAndSave({ role: 'assistant', text: `変更できませんでした（${res.error}）。` }, 'notice')
     }
   }
 
@@ -285,7 +289,8 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
     setHistoryExpanded((v) => !v)
   }
 
-  const visibleMessages = historyExpanded ? messages : messages.slice(-VISIBLE_COUNT)
+  const chattedMessages = messages.filter((m) => m.kind !== 'notice')
+  const visibleMessages = historyExpanded ? chattedMessages : chattedMessages.slice(-VISIBLE_COUNT)
 
   return (
     <div data-testid="chat-screen" style={{ padding: 16 }}>
@@ -327,7 +332,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
               </p>
             )}
             {m.role === 'user' || !m.withProposal ? (
-              m.text
+              <LongText text={m.text} />
             ) : (
               report && (
               <div data-testid="proposal-card" style={{ marginTop: 8 }}>

@@ -5,9 +5,12 @@ export type ChatHistoryEntry = {
   at: string
   role: 'assistant' | 'user'
   text: string
+  kind?: 'chat' | 'notice'
 }
 
 export const CHAT_HISTORY_LIMIT = 50
+
+let seq = 0
 
 export async function listChatHistory(): Promise<ChatHistoryEntry[]> {
   return db.chatMessages.orderBy('at').toArray()
@@ -16,10 +19,11 @@ export async function listChatHistory(): Promise<ChatHistoryEntry[]> {
 export async function appendChatHistory(entry: {
   role: 'assistant' | 'user'
   text: string
+  kind?: 'chat' | 'notice'
 }): Promise<void> {
   await db.chatMessages.add({
     id: crypto.randomUUID(),
-    at: new Date().toISOString(),
+    at: `${new Date().toISOString()}#${String(seq++).padStart(10, '0')}`,
     ...entry,
   })
   const count = await db.chatMessages.count()

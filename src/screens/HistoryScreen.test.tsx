@@ -23,6 +23,18 @@ describe('HistoryScreen', () => {
     expect(await screen.findByTestId('history-empty')).toBeInTheDocument()
   })
 
+  it('hides notices but truncates long texts with an expander', async () => {
+    await appendChatHistory({ role: 'assistant', text: 'ペース目標を反映しました', kind: 'notice' })
+    const longText = `回答${'い'.repeat(200)}`
+    await appendChatHistory({ role: 'assistant', text: longText })
+    render(<HistoryScreen onBack={() => {}} />)
+    await screen.findByText(/回答い+/)
+    expect(screen.queryByText(/反映しました/)).not.toBeInTheDocument()
+    expect(screen.queryByText(longText)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('msg-expand'))
+    expect(await screen.findByText(longText)).toBeInTheDocument()
+  })
+
   it('returns via the fold button', async () => {
     const onBack = vi.fn()
     render(<HistoryScreen onBack={onBack} />)
