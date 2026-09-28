@@ -56,6 +56,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   const [dayRows, setDayRows] = useState<DayRow[]>([])
   const [dayRowsInit, setDayRowsInit] = useState(false)
   const [dayMessage, setDayMessage] = useState<string | null>(null)
+  const [overrideOpen, setOverrideOpen] = useState(false)
 
   const refreshAvailability = async () => {
     const a = await listAvailability()
@@ -333,10 +334,20 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
       )}
       <div data-testid="today-override-section" style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
         <h2 style={{ fontSize: 16 }}>今日だけ上書き（時間も本も）</h2>
-        <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
-          急な予定が入ったときは、ここで今日の時間と本を変えられます。曜日ごとの設定には影響しません。
-        </p>
-        {dayRows.map((r, i) => (
+        <button
+          data-testid="today-override-toggle"
+          type="button"
+          style={{ marginBottom: 8 }}
+          onClick={() => setOverrideOpen((v) => !v)}
+        >
+          {overrideOpen ? '閉じる' : '開く'}
+        </button>
+        {overrideOpen && (
+          <>
+            <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+              急な予定が入ったときは、ここで今日の時間と本を変えられます。曜日ごとの設定には影響しません。
+            </p>
+            {dayRows.map((r, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
             <input
               data-testid={`today-override-start-${i}`}
@@ -408,6 +419,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
           <p data-testid="today-override-message" style={{ color: 'var(--accent-strong)' }}>
             {dayMessage}
           </p>
+        )}
+          </>
         )}
       </div>
       {cycleBooks.length > 0 && (

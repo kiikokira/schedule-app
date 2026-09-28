@@ -262,5 +262,15 @@ describe('TodayPlanScreen', () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
     expect(await screen.findByTestId('cycle-today-list')).toHaveTextContent('反復本')
   })
+
+  it('今日だけ上書きは初期は折りたたまれ開閉できる', async () => {
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    await screen.findByTestId('today-override-section')
+    expect(screen.queryByTestId('today-override-add')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('today-override-toggle'))
+    expect(await screen.findByTestId('today-override-add')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('today-override-toggle'))
+    expect(screen.queryByTestId('today-override-add')).not.toBeInTheDocument()
+  })
 })
 
