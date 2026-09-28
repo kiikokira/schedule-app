@@ -182,6 +182,24 @@ describe('BookDetailScreen', () => {
     await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('4 / 60'))
   })
 
+  it('反復の記録フォームに入力欄の説明を表示する', async () => {
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    await screen.findByTestId('cycle-record')
+    expect(screen.getByText('開始区画')).toBeInTheDocument()
+    expect(screen.getByText('終了区画')).toBeInTheDocument()
+    expect(screen.getByText('周回')).toBeInTheDocument()
+    expect(screen.getByText('日付')).toBeInTheDocument()
+    expect(screen.getByTestId('cycle-from')).toHaveAttribute('placeholder', '例: 1')
+  })
+
   it('From＞To の範囲は拒否する', async () => {
     await db.books.add({
       ...book,

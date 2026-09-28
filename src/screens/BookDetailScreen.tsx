@@ -190,31 +190,42 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
         </p>
         <div style={{ margin: '16px 0' }}>
           <p>反復の記録</p>
+          <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px' }}>
+            やった範囲の開始区画・終了区画・周回・日付（空なら今日）を入力してください
+          </p>
+          <label htmlFor="cycle-from">開始区画</label>
           <input
+            id="cycle-from"
             data-testid="cycle-from"
             type="number"
             inputMode="numeric"
             value={cycleFrom}
             onChange={(e) => setCycleFrom(e.target.value)}
-            placeholder="From"
+            placeholder="例: 1"
           />
+          <label htmlFor="cycle-to">終了区画</label>
           <input
+            id="cycle-to"
             data-testid="cycle-to"
             type="number"
             inputMode="numeric"
             value={cycleTo}
             onChange={(e) => setCycleTo(e.target.value)}
-            placeholder="To"
+            placeholder="例: 12"
           />
+          <label htmlFor="cycle-round">周回</label>
           <input
+            id="cycle-round"
             data-testid="cycle-round"
             type="number"
             inputMode="numeric"
             value={cycleRoundInput}
             onChange={(e) => setCycleRoundInput(e.target.value)}
-            placeholder="周回"
+            placeholder="例: 1"
           />
+          <label htmlFor="cycle-date">日付</label>
           <input
+            id="cycle-date"
             data-testid="cycle-date"
             type="date"
             value={cycleDate}
@@ -249,34 +260,42 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
               >
                 {cycleEditingId === record.id ? (
                   <>
+                    <label htmlFor={`cycle-edit-from-${record.id}`}>開始区画</label>
                     <input
+                      id={`cycle-edit-from-${record.id}`}
                       data-testid={`cycle-edit-from-${record.id}`}
                       type="number"
                       inputMode="numeric"
                       value={cycleEditFrom}
                       onChange={(e) => setCycleEditFrom(e.target.value)}
-                      placeholder="From"
+                      placeholder="例: 1"
                       style={{ width: 64 }}
                     />
+                    <label htmlFor={`cycle-edit-to-${record.id}`}>終了区画</label>
                     <input
+                      id={`cycle-edit-to-${record.id}`}
                       data-testid={`cycle-edit-to-${record.id}`}
                       type="number"
                       inputMode="numeric"
                       value={cycleEditTo}
                       onChange={(e) => setCycleEditTo(e.target.value)}
-                      placeholder="To"
+                      placeholder="例: 12"
                       style={{ width: 64 }}
                     />
+                    <label htmlFor={`cycle-edit-round-${record.id}`}>周回</label>
                     <input
+                      id={`cycle-edit-round-${record.id}`}
                       data-testid={`cycle-edit-round-${record.id}`}
                       type="number"
                       inputMode="numeric"
                       value={cycleEditRound}
                       onChange={(e) => setCycleEditRound(e.target.value)}
-                      placeholder="周回"
+                      placeholder="例: 1"
                       style={{ width: 64 }}
                     />
+                    <label htmlFor={`cycle-edit-date-${record.id}`}>日付</label>
                     <input
+                      id={`cycle-edit-date-${record.id}`}
                       data-testid={`cycle-edit-date-${record.id}`}
                       type="date"
                       value={cycleEditDate}
