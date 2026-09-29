@@ -352,6 +352,36 @@ describe('TodayPlanScreen', () => {
     expect(screen.getByTestId('plan-cycle-to-leap-1')).toHaveAttribute('placeholder', '終了語')
   })
 
+  it('割当が付かない設定時間も未割当枠として表示し本を選べる', async () => {
+    await fillBook('b1', { trainFit: 'home' })
+    await fillBook('leap-1', {
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+    })
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '16:45', end: '17:15' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'w2', weekday: 2, date: null, start: '17:45', end: '19:00', onTrain: true },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('today-table')
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const target = rows.find((r) => r.textContent?.includes('未割当'))
+    expect(target?.textContent).toContain('17:45-19:00')
+    const { within } = await import('@testing-library/react')
+    fireEvent.change(within(target as HTMLElement).getByRole('combobox'), {
+      target: { value: 'leap-1' },
+    })
+    await waitFor(() => expect(screen.queryByText(/未割当/)).not.toBeInTheDocument())
+    expect(screen.getByTestId('today-table')).toHaveTextContent('反復')
+  })
+
   it('上書きで欠けた曜日設定の時間を通知し追加できる', async () => {
     await saveAvailabilitySlot(
       { id: 'w1', weekday: 2, date: null, start: '06:30', end: '07:00' },

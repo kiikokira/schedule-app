@@ -227,7 +227,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   const displayedRows: DisplayedRow[] = useMemo(() => {
     const savedByRange = new Map(savedPins.map((p) => [rangeKeyOf(p.startMin, p.endMin), p.bookId]))
     const merged = overlayCyclesPins(pageApplied, effectivePins, books)
-    return merged.map((slot) => {
+    const rows: DisplayedRow[] = merged.map((slot) => {
       const key = rangeKeyOf(slot.startMin, slot.endMin)
       const isPin = effectivePins.some(
         (p) => p.startMin === slot.startMin && p.endMin === slot.endMin && p.bookId === slot.bookId,
@@ -244,7 +244,32 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
         savedBookId: isPin ? savedByRange.get(key) : undefined,
       }
     })
-  }, [pageApplied, effectivePins, savedPins, books])
+    // 設定にあるのに割当が付かなかった時間帯は未割当枠として並べる（欠落防止）。
+    // 汽車しぼり等で割当先が無い時間もここに現れ、本を選び直せる。
+    const covered = merged.map((s) => ({ startMin: s.startMin, endMin: s.endMin }))
+    for (const s of slotsForDate(availability, today)) {
+      let cur = s.startMin
+      const blockers = covered
+        .filter((c) => c.endMin > cur && c.startMin < s.endMin)
+        .sort((a, b) => a.startMin - b.startMin)
+      const gaps: { startMin: number; endMin: number }[] = []
+      for (const c of blockers) {
+        if (c.startMin > cur) gaps.push({ startMin: cur, endMin: Math.min(c.startMin, s.endMin) })
+        cur = Math.max(cur, c.endMin)
+      }
+      if (cur < s.endMin) gaps.push({ startMin: cur, endMin: s.endMin })
+      for (const g of gaps) {
+        rows.push({
+          slot: { startMin: g.startMin, endMin: g.endMin, bookId: '', pages: 0, onTrain: s.onTrain },
+          planIndex: null,
+          rangeKey: rangeKeyOf(g.startMin, g.endMin),
+          savedBookId: undefined,
+        })
+      }
+    }
+    rows.sort((a, b) => a.slot.startMin - b.slot.startMin || a.slot.endMin - b.slot.endMin)
+    return rows
+  }, [pageApplied, effectivePins, savedPins, books, availability, today])
 
   const displayedSlots: PlanSlot[] = useMemo(
     () => displayedRows.map((r) => r.slot),
@@ -531,7 +556,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                       overflowWrap: 'anywhere',
                     }}
                   >
-                    {s.onTrain ? '【汽車】' : ''}{isCycles ? '【反復】' : ''}{book?.title ?? s.bookId}
+                    {s.onTrain ? '【汽車】' : ''}{isCycles ? '【反復】' : ''}{book?.title ?? (s.bookId === '' ? '未割当' : s.bookId)}
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <select
