@@ -15,3 +15,12 @@ export function isLeapBook(book: { catalogId?: string; title?: string }): boolea
   if (book.catalogId === 'leap') return true
   return book.title?.includes('LEAP') ?? false
 }
+
+export function normalizeLeapBook<T extends { catalogId?: string; title?: string; studyMode?: string; totalUnits?: number }>(
+  book: T,
+): T | null {
+  if (book.studyMode !== 'cycles') return null
+  if (!isLeapBook(book)) return null
+  if (book.totalUnits === LEAP_TOTAL_WORDS) return null
+  return { ...book, totalUnits: LEAP_TOTAL_WORDS }
+}

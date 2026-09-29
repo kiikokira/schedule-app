@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { db, deleteBookCascade } from '../db/database'
+import { normalizeLeapBook } from '../lib/leap'
 import { removeBookEntries } from '../data/scheduleStore'
 import { unpinBook } from '../data/dayplanStore'
 import type { BookData } from '../lib/progress'
@@ -9,7 +10,12 @@ export function useBooks() {
   const [loaded, setLoaded] = useState(false)
 
   const refresh = useCallback(async () => {
-    setBooks(await db.books.orderBy('deadline').toArray())
+    const loaded = await db.books.orderBy('deadline').toArray()
+    const fixed = loaded.map((b) => normalizeLeapBook(b) ?? b)
+    if (fixed.some((b, i) => b !== loaded[i])) {
+      await db.books.bulkPut(fixed)
+    }
+    setBooks(fixed)
     setLoaded(true)
   }, [])
 

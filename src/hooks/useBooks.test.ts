@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { db } from '../db/database'
 import { useBooks } from './useBooks'
@@ -61,5 +61,26 @@ describe('useBooks removeBook', () => {
     const all = await listAvailability()
     expect(all).toHaveLength(1)
     expect(all[0].bookId).toBeUndefined()
+  })
+
+  it('normalizes a LEAP book with wrong totalUnits to 2300 words on load', async () => {
+    await db.books.add({
+      id: 'leap-1',
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 23,
+      targetRounds: 4,
+      startDate: '2026-09-26',
+      deadline: '2026-10-15',
+      createdAt: now,
+      updatedAt: now,
+    } as any)
+    const { result } = renderHook(() => useBooks())
+    await waitFor(() => expect(result.current.loaded).toBe(true))
+    expect(result.current.books[0].totalUnits).toBe(2300)
+    expect(result.current.books[0].targetRounds).toBe(4)
+    expect((await db.books.get('leap-1'))?.totalUnits).toBe(2300)
   })
 })

@@ -77,13 +77,14 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     const round = currentCycleRound(book, mine)
     const remainingDays = daysBetween(today, book.deadline)
     const target = calcCycleDailyTarget(book, done, remainingDays)
-    const effectiveDate = cycleDate || today
-    const dateOutOfRange = effectiveDate < book.startDate || effectiveDate > book.deadline
     const cyclePairs = expandCyclePairs(mine)
     const cycleTotalUnits = book.totalUnits ?? 0
     const cycleTargetRounds = book.targetRounds ?? 0
     const isLeap = isLeapBook(book)
     const unit = isLeap ? '語' : '区画'
+    const roundFieldValue = cycleRoundInput !== '' ? cycleRoundInput : isLeap ? String(round) : ''
+    const effectiveDate = isLeap ? today : cycleDate || today
+    const dateOutOfRange = effectiveDate < book.startDate || effectiveDate > book.deadline
     const cycleRoundCoverage = Array.from({ length: cycleTargetRounds }, (_, i) => {
       const r = i + 1
       let covered = 0
@@ -96,7 +97,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     const handleCycleRecord = async () => {
       const from = Number(cycleFrom)
       const to = Number(cycleTo)
-      const roundNum = Number(cycleRoundInput)
+      const roundNum = Number(roundFieldValue)
       if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from || to > (book.totalUnits ?? 0)) {
         setCycleError(`${unit}の範囲を正しく入力してください`)
         return
@@ -109,12 +110,12 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
         }
       }
       if (!Number.isInteger(roundNum) || roundNum < 1 || roundNum > (book.targetRounds ?? 0)) {
-        setCycleError('周回は1〜目標周回の範囲で入力してください')
+        setCycleError(isLeap ? `目標周回は1〜${book.targetRounds}の範囲で入力してください` : '周回は1〜目標周回の範囲で入力してください')
         return
       }
       setCycleError(null)
       try {
-        await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: cycleDate || today, unitFrom: from, unitTo: to, round: roundNum })
+        await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: effectiveDate, unitFrom: from, unitTo: to, round: roundNum })
       } catch {
         setCycleError('記録に失敗しました。もう一度お試しください')
         return
@@ -186,23 +187,28 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           {book.title}
         </h1>
         <CoverImage src={book.coverUrl ?? null} width={96} height={136} />
+        <p data-testid="cycle-round-badge" style={{ fontSize: 22, fontWeight: 800, color: 'var(--accent)', margin: '8px 0' }}>
+          今{round}周目
+        </p>
         <p data-testid="cycle-summary">
-          完了パス {done} / {total}（全{book.totalUnits}{unit}×{book.targetRounds}周）・今{round}周目
+          完了パス <strong style={{ fontSize: 18 }}>{done} / {total}</strong>（全{book.totalUnits}{unit}×{book.targetRounds}周）・今{round}周目
         </p>
         <p data-testid="cycle-round-coverage">
           {cycleRoundCoverage.map(({ round: r, covered }) => `${r}周目: ${covered}/${cycleTotalUnits}${unit}`).join(' ')}
         </p>
         <p>
-          今日の目標: <strong data-testid="today-target">{target}</strong> {unit}
+          今日の目標: <strong data-testid="today-target" style={{ fontSize: 24 }}>{target}</strong> {unit}
         </p>
         <p>
-          残り {Math.max(total - done, 0)} {unit} / 期限まで{' '}
-          {Math.max(remainingDays, 0)} 日
+          残り <strong style={{ fontSize: 18 }}>{Math.max(total - done, 0)} {unit}</strong> / 期限まで{' '}
+          <strong>{Math.max(remainingDays, 0)} 日</strong>
         </p>
         <div style={{ margin: '16px 0' }}>
           <p>反復の記録</p>
           <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px' }}>
-            やった範囲の開始{unit}・終了{unit}・周回・日付（空なら今日）を入力してください
+            {isLeap
+              ? 'やった範囲の開始語・終了語を入力してください（今日・今の周回で記録）'
+              : `やった範囲の開始${unit}・終了${unit}・周回・日付（空なら今日）を入力してください`}
           </p>
           {isLeap && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -212,14 +218,9 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                   data-testid={`leap-preset-${from}-${to}`}
                   type="button"
                   aria-pressed={leapBlock === i}
+                  style={leapBlock === i ? { borderWidth: 2, borderColor: 'var(--accent)', fontWeight: 700 } : undefined}
                   onClick={() => {
-                    if (leapBlock === i) {
-                      setLeapBlock(null)
-                    } else {
-                      setLeapBlock(i)
-                      setCycleFrom(String(from))
-                      setCycleTo(String(to))
-                    }
+                    setLeapBlock(leapBlock === i ? null : i)
                   }}
                 >
                   {from}-{to}
@@ -252,24 +253,33 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
             onChange={(e) => setCycleTo(e.target.value)}
             placeholder="例: 12"
           />
-          <label htmlFor="cycle-round">周回</label>
+          <label htmlFor="cycle-round">{isLeap ? '目標周回' : '周回'}</label>
           <input
             id="cycle-round"
             data-testid="cycle-round"
             type="number"
             inputMode="numeric"
-            value={cycleRoundInput}
+            value={roundFieldValue}
             onChange={(e) => setCycleRoundInput(e.target.value)}
-            placeholder="例: 1"
+            placeholder={isLeap ? `例: ${round}` : '例: 1'}
           />
-          <label htmlFor="cycle-date">日付</label>
-          <input
-            id="cycle-date"
-            data-testid="cycle-date"
-            type="date"
-            value={cycleDate}
-            onChange={(e) => setCycleDate(e.target.value)}
-          />
+          {isLeap && (
+            <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px' }}>
+              目標{book.targetRounds}周中の今{round}周目に記録
+            </p>
+          )}
+          {!isLeap && (
+            <>
+              <label htmlFor="cycle-date">日付</label>
+              <input
+                id="cycle-date"
+                data-testid="cycle-date"
+                type="date"
+                value={cycleDate}
+                onChange={(e) => setCycleDate(e.target.value)}
+              />
+            </>
+          )}
           <button data-testid="cycle-record" type="button" onClick={() => void handleCycleRecord()}>
             範囲を記録
           </button>

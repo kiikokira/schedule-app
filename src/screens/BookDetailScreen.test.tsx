@@ -298,7 +298,7 @@ describe('BookDetailScreen', () => {
     expect(screen.getByTestId('leap-preset-2001-2300')).toBeInTheDocument()
   })
 
-  it('LEAPプリセット押下で開始語・終了語が入力される', async () => {
+  it('LEAPブロック選択は入力を空のまま選択だけ表示する', async () => {
     await db.books.add({
       ...book,
       title: '改訂版 必携 英単語 LEAP',
@@ -312,8 +312,10 @@ describe('BookDetailScreen', () => {
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     fireEvent.click(await screen.findByTestId('leap-preset-401-1000'))
-    expect(screen.getByTestId('cycle-from')).toHaveValue(401)
-    expect(screen.getByTestId('cycle-to')).toHaveValue(1000)
+    expect((screen.getByTestId('cycle-from') as HTMLInputElement).value).toBe('')
+    expect((screen.getByTestId('cycle-to') as HTMLInputElement).value).toBe('')
+    expect(screen.getByTestId('leap-preset-401-1000')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText(/選択中：401〜1000語/)).toBeInTheDocument()
   })
 
   it('LEAPは選択ブロック内の部分範囲を記録できる', async () => {
@@ -330,8 +332,8 @@ describe('BookDetailScreen', () => {
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     fireEvent.click(await screen.findByTestId('leap-preset-401-1000'))
+    fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '401' } })
     fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '500' } })
-    fireEvent.change(screen.getByTestId('cycle-round'), { target: { value: '1' } })
     fireEvent.click(screen.getByTestId('cycle-record'))
     await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('100 / 6900'))
   })
@@ -352,8 +354,50 @@ describe('BookDetailScreen', () => {
     fireEvent.click(await screen.findByTestId('leap-preset-1-400'))
     fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '401' } })
     fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '500' } })
-    fireEvent.change(screen.getByTestId('cycle-round'), { target: { value: '1' } })
     fireEvent.click(screen.getByTestId('cycle-record'))
     expect(screen.getByTestId('cycle-error')).toHaveTextContent(/選択中の範囲/)
+  })
+
+  it('LEAPは日付欄なし・目標周回に今の周回が入った状態で記録できる', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByTestId('cycle-record')).toBeInTheDocument()
+    expect(screen.queryByTestId('cycle-date')).not.toBeInTheDocument()
+    expect(screen.getByTestId('cycle-round')).toHaveValue(1)
+    fireEvent.click(screen.getByTestId('leap-preset-1-400'))
+    fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '12' } })
+    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '13' } })
+    fireEvent.click(screen.getByTestId('cycle-record'))
+    await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('2 / 6900'))
+    const recs = await db.cycleRecords.toArray()
+    expect(recs).toHaveLength(1)
+    expect(recs[0].round).toBe(1)
+    expect(recs[0].date).toBe(localDateStr(new Date()))
+  })
+
+  it('LEAPは今の周回を見やすいバッジで表示する', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByTestId('cycle-round-badge')).toHaveTextContent('今1周目')
   })
 })
