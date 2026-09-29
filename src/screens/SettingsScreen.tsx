@@ -67,16 +67,6 @@ export default function SettingsScreen({ onDone }: Props) {
     setResult('Google Books APIキーを保存しました')
   }
 
-  const handleDeleteAll = async () => {
-    if (!window.confirm('すべてのデータを削除しますか？この操作は戻せません。')) return
-    const { db } = await import('../db/database')
-    await db.transaction('rw', db.books, db.records, async () => {
-      await db.books.clear()
-      await db.records.clear()
-    })
-    setResult('すべてのデータを削除しました')
-  }
-
   const handleSaveNtfy = () => {
     setNotifySettings({ enabled: ntfyEnabled, topic: ntfyTopic })
     setNtfyTestResult(null)
@@ -309,14 +299,6 @@ export default function SettingsScreen({ onDone }: Props) {
           onChange={(e) => void handleImportFile(e.target.files?.[0])}
         />
       </div>
-      <button
-        data-testid="delete-all"
-        type="button"
-        onClick={() => void handleDeleteAll()}
-        style={{ color: 'var(--danger)' }}
-      >
-        すべてのデータを削除
-      </button>
       <p>
         <button onClick={onDone}>戻る</button>
       </p>
