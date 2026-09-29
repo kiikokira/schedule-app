@@ -276,4 +276,43 @@ describe('BookDetailScreen', () => {
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     expect(await screen.findByText('同じ区画・同じ周回の再記録は進捗に二重計上されません')).toBeInTheDocument()
   })
+
+  it('LEAPは語単位で表示し5つの範囲プリセットを出す', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByTestId('cycle-summary')).toHaveTextContent('全2300語×3周')
+    expect(screen.getByTestId('leap-preset-1-400')).toBeInTheDocument()
+    expect(screen.getByTestId('leap-preset-401-1000')).toBeInTheDocument()
+    expect(screen.getByTestId('leap-preset-1001-1400')).toBeInTheDocument()
+    expect(screen.getByTestId('leap-preset-1401-2000')).toBeInTheDocument()
+    expect(screen.getByTestId('leap-preset-2001-2300')).toBeInTheDocument()
+  })
+
+  it('LEAPプリセット押下で開始語・終了語が入力される', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('leap-preset-401-1000'))
+    expect(screen.getByTestId('cycle-from')).toHaveValue(401)
+    expect(screen.getByTestId('cycle-to')).toHaveValue(1000)
+  })
 })

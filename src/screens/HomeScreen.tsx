@@ -22,6 +22,7 @@ import {
 } from '../lib/progress'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { CATALOG, type CatalogBook } from '../data/catalog'
+import { isLeapBook } from '../lib/leap'
 import { quoteOf } from '../data/quotes'
 import { loadSchedule, saveSchedule } from '../data/scheduleStore'
 import {
@@ -230,7 +231,11 @@ function ScheduleRow({
         previewTodayPages,
         remainingDays,
       )
-  const requiredUnit = isCycle ? '区画' : 'ページ'
+  const requiredUnit = isCycle
+    ? registered && isLeapBook(registered)
+      ? '語'
+      : '区画'
+    : 'ページ'
 
   const handleRecord = () => {
     const pages = Number(pagesInput)

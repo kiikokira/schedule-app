@@ -27,6 +27,16 @@ describe('BookFormScreen', () => {
     expect((screen.getByTestId('book-subject') as HTMLInputElement).value).toBe('文法')
   })
 
+  it('LEAP選択で単語数2300・3周・反復モードが自動セットされる', () => {
+    render(<BookFormScreen book={null} onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('catalog-search-input'), { target: { value: 'LEAP' } })
+    fireEvent.click(screen.getByTestId('catalog-item-leap').querySelector('button')!)
+    expect((screen.getByTestId('book-title') as HTMLInputElement).value).toContain('LEAP')
+    expect((screen.getByTestId('book-total-units') as HTMLInputElement).value).toBe('2300')
+    expect((screen.getByTestId('book-target-rounds') as HTMLInputElement).value).toBe('3')
+    expect(screen.getByTestId('book-mode-cycles')).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('filters catalog by query', () => {
     render(<BookFormScreen book={null} onDone={() => {}} />)
     fireEvent.change(screen.getByTestId('catalog-search-input'), { target: { value: 'ポラリス' } })

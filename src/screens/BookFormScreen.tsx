@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { searchBooks, getBooksApiKey, type SearchResultItem } from '../api/googleBooks'
 import { useBooks } from '../hooks/useBooks'
 import { todayStr, type BookData, type TrainFit } from '../lib/progress'
+import { LEAP_TARGET_ROUNDS, LEAP_TOTAL_WORDS } from '../lib/leap'
 import CoverImage from '../components/CoverImage'
 import { searchCatalog, type CatalogBook } from '../data/catalog'
 
@@ -87,6 +88,11 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
     setTotalPages(String(item.totalPages))
     setCoverUrl(item.coverSrc ?? null)
     setCatalogId(item.id)
+    if (item.id === 'leap') {
+      setStudyMode('cycles')
+      setTotalUnits(String(LEAP_TOTAL_WORDS))
+      setTargetRounds(String(LEAP_TARGET_ROUNDS))
+    }
   }
 
   const handleSave = async () => {

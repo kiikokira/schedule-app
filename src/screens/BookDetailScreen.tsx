@@ -20,6 +20,7 @@ import {
   type ProgressRecordData,
   type CycleRecordData,
 } from '../lib/progress'
+import { LEAP_WORD_RANGES, isLeapBook } from '../lib/leap'
 
 type Props = {
   bookId: string
@@ -80,6 +81,8 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     const cyclePairs = expandCyclePairs(mine)
     const cycleTotalUnits = book.totalUnits ?? 0
     const cycleTargetRounds = book.targetRounds ?? 0
+    const isLeap = isLeapBook(book)
+    const unit = isLeap ? '語' : '区画'
     const cycleRoundCoverage = Array.from({ length: cycleTargetRounds }, (_, i) => {
       const r = i + 1
       let covered = 0
@@ -94,7 +97,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       const to = Number(cycleTo)
       const roundNum = Number(cycleRoundInput)
       if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from || to > (book.totalUnits ?? 0)) {
-        setCycleError('区画の範囲を正しく入力してください')
+        setCycleError(`${unit}の範囲を正しく入力してください`)
         return
       }
       if (!Number.isInteger(roundNum) || roundNum < 1 || roundNum > (book.targetRounds ?? 0)) {
@@ -138,7 +141,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       const to = Number(cycleEditTo)
       const roundNum = Number(cycleEditRound)
       if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from || to > (book.totalUnits ?? 0)) {
-        setCycleEditError('区画の範囲を正しく入力してください')
+        setCycleEditError(`${unit}の範囲を正しく入力してください`)
         return
       }
       if (!Number.isInteger(roundNum) || roundNum < 1 || roundNum > (book.targetRounds ?? 0)) {
@@ -176,24 +179,41 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
         </h1>
         <CoverImage src={book.coverUrl ?? null} width={96} height={136} />
         <p data-testid="cycle-summary">
-          完了パス {done} / {total}（全{book.totalUnits}区画×{book.targetRounds}周）・今{round}周目
+          完了パス {done} / {total}（全{book.totalUnits}{unit}×{book.targetRounds}周）・今{round}周目
         </p>
         <p data-testid="cycle-round-coverage">
-          {cycleRoundCoverage.map(({ round: r, covered }) => `${r}周目: ${covered}/${cycleTotalUnits}区画`).join(' ')}
+          {cycleRoundCoverage.map(({ round: r, covered }) => `${r}周目: ${covered}/${cycleTotalUnits}${unit}`).join(' ')}
         </p>
         <p>
-          今日の目標: <strong data-testid="today-target">{target}</strong> 区画
+          今日の目標: <strong data-testid="today-target">{target}</strong> {unit}
         </p>
         <p>
-          残り {Math.max(total - done, 0)} 区画 / 期限まで{' '}
+          残り {Math.max(total - done, 0)} {unit} / 期限まで{' '}
           {Math.max(remainingDays, 0)} 日
         </p>
         <div style={{ margin: '16px 0' }}>
           <p>反復の記録</p>
           <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px' }}>
-            やった範囲の開始区画・終了区画・周回・日付（空なら今日）を入力してください
+            やった範囲の開始{unit}・終了{unit}・周回・日付（空なら今日）を入力してください
           </p>
-          <label htmlFor="cycle-from">開始区画</label>
+          {isLeap && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+              {LEAP_WORD_RANGES.map(({ from, to }) => (
+                <button
+                  key={`${from}-${to}`}
+                  data-testid={`leap-preset-${from}-${to}`}
+                  type="button"
+                  onClick={() => {
+                    setCycleFrom(String(from))
+                    setCycleTo(String(to))
+                  }}
+                >
+                  {from}-{to}
+                </button>
+              ))}
+            </div>
+          )}
+          <label htmlFor="cycle-from">開始{unit}</label>
           <input
             id="cycle-from"
             data-testid="cycle-from"
@@ -203,7 +223,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
             onChange={(e) => setCycleFrom(e.target.value)}
             placeholder="例: 1"
           />
-          <label htmlFor="cycle-to">終了区画</label>
+          <label htmlFor="cycle-to">終了{unit}</label>
           <input
             id="cycle-to"
             data-testid="cycle-to"
@@ -234,7 +254,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           <button data-testid="cycle-record" type="button" onClick={() => void handleCycleRecord()}>
             範囲を記録
           </button>
-          <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>同じ区画・同じ周回の再記録は進捗に二重計上されません</p>
+          <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>同じ{unit}・同じ周回の再記録は進捗に二重計上されません</p>
           {cycleError && (
             <p data-testid="cycle-error" style={{ color: 'var(--danger)' }}>
               {cycleError}
@@ -260,7 +280,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
               >
                 {cycleEditingId === record.id ? (
                   <>
-                    <label htmlFor={`cycle-edit-from-${record.id}`}>開始区画</label>
+                    <label htmlFor={`cycle-edit-from-${record.id}`}>開始{unit}</label>
                     <input
                       id={`cycle-edit-from-${record.id}`}
                       data-testid={`cycle-edit-from-${record.id}`}
@@ -271,7 +291,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                       placeholder="例: 1"
                       style={{ width: 64 }}
                     />
-                    <label htmlFor={`cycle-edit-to-${record.id}`}>終了区画</label>
+                    <label htmlFor={`cycle-edit-to-${record.id}`}>終了{unit}</label>
                     <input
                       id={`cycle-edit-to-${record.id}`}
                       data-testid={`cycle-edit-to-${record.id}`}
@@ -329,7 +349,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                   <>
                     <span style={{ flex: 1 }}>{formatJaDate(record.date)}</span>
                     <span>
-                      {record.unitFrom}-{record.unitTo}区画 {record.round}周目
+                      {record.unitFrom}-{record.unitTo}{unit} {record.round}周目
                     </span>
                     <button
                       data-testid={`cycle-edit-${record.id}`}
