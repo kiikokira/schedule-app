@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import TodayPlanScreen from './TodayPlanScreen'
 import { db } from '../db/database'
-import { saveAvailabilitySlot } from '../data/dayplanStore'
+import { saveAvailabilitySlot, listAvailability } from '../data/dayplanStore'
 import { resetSchedule } from '../data/scheduleStore'
 
 beforeEach(async () => {
@@ -350,6 +350,42 @@ describe('TodayPlanScreen', () => {
     expect(await screen.findByTestId('plan-row-units')).toHaveTextContent('語')
     expect(screen.getByTestId('plan-cycle-from-leap-1')).toHaveAttribute('placeholder', '開始語')
     expect(screen.getByTestId('plan-cycle-to-leap-1')).toHaveAttribute('placeholder', '終了語')
+  })
+
+  it('上書きで欠けた曜日設定の時間を通知し追加できる', async () => {
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '06:30', end: '07:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'w2', weekday: 2, date: null, start: '17:45', end: '19:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'd1', weekday: null, date: '2026-09-29', start: '07:00', end: '07:30' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    expect(await screen.findByTestId('override-shadow-notice')).toHaveTextContent('17:45〜19:00')
+    fireEvent.click(screen.getByTestId('override-shadow-merge'))
+    await waitFor(async () => {
+      const all = await listAvailability()
+      expect(all.filter((a) => a.date === '2026-09-29')).toHaveLength(2)
+    })
+  })
+
+  it('上書きが曜日設定をすべて含む場合は通知しない', async () => {
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '17:45', end: '19:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'd1', weekday: null, date: '2026-09-29', start: '17:45', end: '19:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('today-plan-screen')
+    expect(screen.queryByTestId('override-shadow-notice')).not.toBeInTheDocument()
   })
 
   it('今日だけ上書きは初期は折りたたまれ開閉できる', async () => {

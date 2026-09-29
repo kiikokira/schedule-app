@@ -191,7 +191,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           今{round}周目
         </p>
         <p data-testid="cycle-summary">
-          完了パス <strong style={{ fontSize: 18 }}>{done} / {total}</strong>（全{book.totalUnits}{unit}×{book.targetRounds}周）・今{round}周目
+          完了パス <strong style={{ fontSize: 18 }}>{done} / {total}</strong>（全{book.totalUnits}{unit}×{book.targetRounds}周）
         </p>
         <p data-testid="cycle-round-coverage">
           {cycleRoundCoverage.map(({ round: r, covered }) => `${r}周目: ${covered}/${cycleTotalUnits}${unit}`).join(' ')}

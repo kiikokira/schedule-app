@@ -173,7 +173,8 @@ describe('BookDetailScreen', () => {
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     // 総量 60、残り 60 / 6日 = 10区画/日
-    expect(await screen.findByTestId('cycle-summary')).toHaveTextContent('今1周目')
+    expect(await screen.findByTestId('cycle-round-badge')).toHaveTextContent('今1周目')
+    expect(screen.getByTestId('cycle-summary')).not.toHaveTextContent('今1周目')
     expect(screen.getByTestId('today-target')).toHaveTextContent('10')
     fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '1' } })
     fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '4' } })
