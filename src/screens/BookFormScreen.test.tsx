@@ -37,6 +37,14 @@ describe('BookFormScreen', () => {
     expect(screen.getByTestId('book-mode-cycles')).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('LEAP選択時は反復の単位を語で表示する', () => {
+    render(<BookFormScreen book={null} onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('catalog-search-input'), { target: { value: 'LEAP' } })
+    fireEvent.click(screen.getByTestId('catalog-item-leap').querySelector('button')!)
+    expect(screen.getByText('全語数')).toBeInTheDocument()
+    expect(screen.getByText('すでに終わった語数')).toBeInTheDocument()
+  })
+
   it('filters catalog by query', () => {
     render(<BookFormScreen book={null} onDone={() => {}} />)
     fireEvent.change(screen.getByTestId('catalog-search-input'), { target: { value: 'ポラリス' } })
@@ -273,7 +281,7 @@ describe('BookFormScreen', () => {
 
   it('総量を超える初期完了分は拒否する', () => {
     render(<BookFormScreen book={null} onDone={() => {}} />)
-    fireEvent.change(screen.getByTestId('book-title'), { target: { value: 'LEAP' } })
+    fireEvent.change(screen.getByTestId('book-title'), { target: { value: '反復本' } })
     fireEvent.change(screen.getByTestId('book-pages'), { target: { value: '576' } })
     fireEvent.click(screen.getByTestId('book-mode-cycles'))
     fireEvent.change(screen.getByTestId('book-total-units'), { target: { value: '20' } })

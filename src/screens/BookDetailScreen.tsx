@@ -49,6 +49,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const [cycleEditRound, setCycleEditRound] = useState('')
   const [cycleEditDate, setCycleEditDate] = useState('')
   const [cycleEditError, setCycleEditError] = useState<string | null>(null)
+  const [leapBlock, setLeapBlock] = useState<number | null>(null)
 
   const book: BookData | undefined = books.find((b) => b.id === bookId)
   const today = todayStr()
@@ -99,6 +100,13 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from || to > (book.totalUnits ?? 0)) {
         setCycleError(`${unit}の範囲を正しく入力してください`)
         return
+      }
+      if (isLeap && leapBlock != null) {
+        const block = LEAP_WORD_RANGES[leapBlock]
+        if (from < block.from || to > block.to) {
+          setCycleError(`選択中の範囲（${block.from}-${block.to}語）の中で入力してください`)
+          return
+        }
       }
       if (!Number.isInteger(roundNum) || roundNum < 1 || roundNum > (book.targetRounds ?? 0)) {
         setCycleError('周回は1〜目標周回の範囲で入力してください')
@@ -198,20 +206,31 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           </p>
           {isLeap && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-              {LEAP_WORD_RANGES.map(({ from, to }) => (
+              {LEAP_WORD_RANGES.map(({ from, to }, i) => (
                 <button
                   key={`${from}-${to}`}
                   data-testid={`leap-preset-${from}-${to}`}
                   type="button"
+                  aria-pressed={leapBlock === i}
                   onClick={() => {
-                    setCycleFrom(String(from))
-                    setCycleTo(String(to))
+                    if (leapBlock === i) {
+                      setLeapBlock(null)
+                    } else {
+                      setLeapBlock(i)
+                      setCycleFrom(String(from))
+                      setCycleTo(String(to))
+                    }
                   }}
                 >
                   {from}-{to}
                 </button>
               ))}
             </div>
+          )}
+          {isLeap && leapBlock != null && (
+            <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px' }}>
+              選択中：{LEAP_WORD_RANGES[leapBlock].from}〜{LEAP_WORD_RANGES[leapBlock].to}語の中で開始語・終了語を入力
+            </p>
           )}
           <label htmlFor="cycle-from">開始{unit}</label>
           <input

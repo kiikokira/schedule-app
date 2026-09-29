@@ -14,6 +14,7 @@ import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { useSlotEndReminder } from '../lib/useSlotEndReminder'
+import { isLeapBook } from '../lib/leap'
 import CoverImage from '../components/CoverImage'
 
 type Props = {
@@ -323,6 +324,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   const handleCycleRecord = async (slotKey: string, book: BookData) => {
     const totalUnits = book.totalUnits ?? 0
     const targetRounds = book.targetRounds ?? 0
+    const unit = isLeapBook(book) ? '語' : '区画'
     const from = Number(cycleInputs[`${slotKey}-from`] ?? '')
     const to = Number(cycleInputs[`${slotKey}-to`] ?? '')
     const roundInput = (cycleInputs[`${slotKey}-round`] ?? '').trim()
@@ -335,7 +337,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
       to < from ||
       to > totalUnits
     ) {
-      setCycleErrors((p) => ({ ...p, [slotKey]: '区画の範囲を正しく入力してください' }))
+      setCycleErrors((p) => ({ ...p, [slotKey]: `${unit}の範囲を正しく入力してください` }))
       return
     }
     if (!Number.isInteger(round) || round < 1 || round > targetRounds) {
@@ -541,7 +543,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                         onChange={(e) =>
                           setCycleInputs((p) => ({ ...p, [`${inputKey}-from`]: e.target.value }))
                         }
-                        placeholder="開始区画"
+                        placeholder={isLeapBook(book) ? '開始語' : '開始区画'}
                         style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0 }}
                       />
                       <input
@@ -552,7 +554,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                         onChange={(e) =>
                           setCycleInputs((p) => ({ ...p, [`${inputKey}-to`]: e.target.value }))
                         }
-                        placeholder="終了区画"
+                        placeholder={isLeapBook(book) ? '終了語' : '終了区画'}
                         style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0 }}
                       />
                       <input
@@ -586,7 +588,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                       {fmt(s.startMin)}-{fmt(s.endMin)}
                     </div>
                     {isCycles ? (
-                      <div data-testid="plan-row-units">今日やる区画 {cycleTarget}区画</div>
+                      <div data-testid="plan-row-units">今日やる{book && isLeapBook(book) ? '語' : '区画'} {cycleTarget}{book && isLeapBook(book) ? '語' : '区画'}</div>
                     ) : (
                       <div data-testid="plan-row-pages">予定 {s.pages}ページ</div>
                     )}
@@ -710,9 +712,10 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
             const mine = cycleRecords.filter((r) => r.bookId === book.id)
             const done = calcCycleDonePairs(book, mine)
             const target = calcCycleDailyTarget(book, done, daysBetween(today, book.deadline))
+            const unit = isLeapBook(book) ? '語' : '区画'
             return (
               <div key={book.id}>
-                {book.title} 今日やる区画 {target}区画
+                {book.title} 今日やる{unit} {target}{unit}
               </div>
             )
           })}

@@ -333,6 +333,25 @@ describe('TodayPlanScreen', () => {
     expect(screen.getByTestId('plan-row-book')).toHaveTextContent('反復本')
   })
 
+  it('LEAPは語単位で表示する', async () => {
+    await fillBook('leap-1', {
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+    })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'leap-1' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('today-table')).toBeInTheDocument()
+    expect(await screen.findByTestId('plan-row-units')).toHaveTextContent('語')
+    expect(screen.getByTestId('plan-cycle-from-leap-1')).toHaveAttribute('placeholder', '開始語')
+    expect(screen.getByTestId('plan-cycle-to-leap-1')).toHaveAttribute('placeholder', '終了語')
+  })
+
   it('今日だけ上書きは初期は折りたたまれ開閉できる', async () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
     await screen.findByTestId('today-override-section')

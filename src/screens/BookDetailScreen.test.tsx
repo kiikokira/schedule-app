@@ -315,4 +315,45 @@ describe('BookDetailScreen', () => {
     expect(screen.getByTestId('cycle-from')).toHaveValue(401)
     expect(screen.getByTestId('cycle-to')).toHaveValue(1000)
   })
+
+  it('LEAPは選択ブロック内の部分範囲を記録できる', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('leap-preset-401-1000'))
+    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '500' } })
+    fireEvent.change(screen.getByTestId('cycle-round'), { target: { value: '1' } })
+    fireEvent.click(screen.getByTestId('cycle-record'))
+    await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('100 / 6900'))
+  })
+
+  it('LEAPは選択ブロック外の範囲を拒否する', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('leap-preset-1-400'))
+    fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '401' } })
+    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '500' } })
+    fireEvent.change(screen.getByTestId('cycle-round'), { target: { value: '1' } })
+    fireEvent.click(screen.getByTestId('cycle-record'))
+    expect(screen.getByTestId('cycle-error')).toHaveTextContent(/選択中の範囲/)
+  })
 })
