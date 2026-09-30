@@ -12,7 +12,7 @@ import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, parseTimeToM
 import { todayStr, formatJaDate, daysBetween, parseDate, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
-import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
+import { publishSlotsOnce } from '../lib/slotsPublish'
 import { useSlotStartReminder } from '../lib/useSlotStartReminder'
 import { isLeapBook } from '../lib/leap'
 import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
@@ -323,8 +323,6 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   useEffect(() => {
     if (!notifyEnabled || !notifyTopic.trim() || !slotsPayload) return
     void publishSlotsOnce(notifyTopic, slotsPayload)
-    // 開始10分前に届くよう予約投稿する（アプリが閉じていても配達される）
-    void syncSlotSchedules(notifyTopic, slotsPayload)
   }, [notifyEnabled, notifyTopic, slotsPayload])
 
   // アプリを開いている間は、直近の開始10分前にその場で通知を送る。

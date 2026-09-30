@@ -14,7 +14,7 @@ import { listAvailability, prunePastOverrides } from './data/dayplanStore'
 import { todayStr } from './lib/progress'
 import { getNotifySettings } from './lib/notify'
 import { buildSlotsPayload } from './lib/slotNotify'
-import { publishSlotsOnce, syncSlotSchedules } from './lib/slotsPublish'
+import { publishSlotsOnce } from './lib/slotsPublish'
 import { slotsForDate } from './lib/dayplan'
 import { takeAutoSnapshotIfNeeded } from './data/autoBackup'
 import './styles.css'
@@ -56,7 +56,6 @@ export default function App() {
     void listAvailability().then((availability) => {
       const payload = buildSlotsPayload(today, slotsForDate(availability, today), [], books)
       void publishSlotsOnce(notify.topic, payload)
-      void syncSlotSchedules(notify.topic, payload)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

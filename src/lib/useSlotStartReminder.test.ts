@@ -96,4 +96,16 @@ describe('useSlotStartReminder', () => {
     await vi.advanceTimersByTimeAsync(60 * 60 * 1000)
     expect(fetchImpl).not.toHaveBeenCalled()
   })
+
+  it('skips a reminder that fires more than 2 minutes late', async () => {
+    const fetchImpl = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => ({ ok: true }) as Response,
+    )
+    vi.stubGlobal('fetch', fetchImpl)
+    renderHook(() => useSlotStartReminder(true, 'my-topic', payload))
+    // 通知予定20:50を過ぎた21:30に時計を進めて発火させる（抑制されたタイマー想定）
+    vi.setSystemTime(new Date(2026, 8, 21, 21, 30, 0))
+    await vi.advanceTimersByTimeAsync(60 * 60 * 1000)
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
 })

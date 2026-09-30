@@ -266,7 +266,7 @@ export default function SettingsScreen({ onDone }: Props) {
       <section style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 16 }}>リマインダー通知（Push）</h2>
         <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
-          空き時間の開始10分前に「学習が10分後に始まります」の通知を送ります（アプリを開いたときにその日の分を予約します。念のため数分ごとの確認でも送ります）。
+          空き時間の開始10分前に「学習が10分後に始まります」の通知を送ります。アプリを開いたときにその日の時間帯を登録し、開いている間は開始10分前に、閉じていても定期実行でお知らせします。
           届くには次の3つが必要です: (1)リポジトリの Secrets に NTFY_TOPIC を設定する、
           (2)ここに入力するトピックと Secrets の値を同じにする、
           (3)スマホに ntfy の受信アプリを入れて同じトピックを購読する。

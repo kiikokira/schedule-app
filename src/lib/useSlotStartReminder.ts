@@ -9,6 +9,10 @@ import {
   type SlotsPayload,
 } from './slotNotify'
 
+// 発火予定よりこの時間以上遅れたタイマーは送らない（定期実行が代わりに送る）。
+// ブラウザのタイマー抑制で遅れて発火した分が二重送信になるのを防ぐ。
+const LATE_SKIP_MS = 2 * 60_000
+
 // アプリを開いている間、その日の残りすべての空き時間の開始10分前にその場で通知を送る。
 // 発火のたびに次の通知枠を予約し直す（連鎖タイマー）。
 // サーバー側の定期実行より早く届く。タイトルを
@@ -27,7 +31,12 @@ export function useSlotStartReminder(
       if (!next) return
       const delay = msUntilNextReminder([next], new Date())
       if (delay === null) return
+      const fireAt = Date.now() + delay
       timer = setTimeout(() => {
+        if (Date.now() - fireAt > LATE_SKIP_MS) {
+          schedule()
+          return
+        }
         void publishPush(topic, slotStartMessage(next), {
           title: slotStartTitle(next.start),
         })
