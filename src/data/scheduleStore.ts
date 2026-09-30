@@ -74,3 +74,20 @@ export function updateEntry(
     entryKey(e) === key ? { ...e, ...patch } : e,
   )
 }
+
+// 参考書の開始日・期限日の編集をスケジュール側に反映する。
+// bookIdのエントリがあればそれを、なければ同じcatalogIdのエントリを更新する。
+export function syncEntryDatesForBook(
+  entries: ScheduleEntry[],
+  book: { id: string; catalogId?: string; startDate: string; deadline: string },
+): ScheduleEntry[] {
+  return entries.map((e) => {
+    if (e.bookId === book.id) {
+      return { ...e, startDate: book.startDate, deadline: book.deadline }
+    }
+    if (!e.bookId && book.catalogId !== undefined && e.catalogId === book.catalogId) {
+      return { ...e, startDate: book.startDate, deadline: book.deadline }
+    }
+    return e
+  })
+}

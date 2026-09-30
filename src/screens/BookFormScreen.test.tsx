@@ -2,11 +2,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import BookFormScreen from './BookFormScreen'
 import { db } from '../db/database'
+import { loadSchedule, saveSchedule } from '../data/scheduleStore'
 
 beforeEach(async () => {
   vi.restoreAllMocks()
   await db.books.clear()
   await db.records.clear()
+  saveSchedule([])
 })
 
 describe('BookFormScreen', () => {
@@ -43,6 +45,28 @@ describe('BookFormScreen', () => {
     fireEvent.click(screen.getByTestId('catalog-item-leap').querySelector('button')!)
     expect(screen.getByText('全語数')).toBeInTheDocument()
     expect(screen.getByText('すでに終わった語数')).toBeInTheDocument()
+  })
+
+  it('編集保存で対応するスケジュールの期限も更新される', async () => {
+    const now = new Date().toISOString()
+    const existing = {
+      id: 'b1',
+      title: '文法書',
+      totalPages: 100,
+      startDate: '2026-09-01',
+      deadline: '2026-09-30',
+      createdAt: now,
+      updatedAt: now,
+    }
+    await db.books.add(existing as any)
+    saveSchedule([{ bookId: 'b1', startDate: '2026-09-01', deadline: '2026-09-30' }])
+    const saved = (await db.books.get('b1')) as any
+    render(<BookFormScreen book={saved} onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('book-deadline'), { target: { value: '2026-10-02' } })
+    fireEvent.click(screen.getByTestId('book-save'))
+    await waitFor(() => {
+      expect(loadSchedule().find((e) => e.bookId === 'b1')?.deadline).toBe('2026-10-02')
+    })
   })
 
   it('filters catalog by query', () => {

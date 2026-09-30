@@ -5,6 +5,7 @@ import { todayStr, type BookData, type TrainFit } from '../lib/progress'
 import { LEAP_TARGET_ROUNDS, LEAP_TOTAL_WORDS } from '../lib/leap'
 import CoverImage from '../components/CoverImage'
 import { searchCatalog, type CatalogBook } from '../data/catalog'
+import { loadSchedule, saveSchedule, syncEntryDatesForBook } from '../data/scheduleStore'
 
 type Props = {
   book: BookData | null
@@ -178,6 +179,15 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
       setError('保存に失敗しました。もう一度お試しください')
       return
     }
+    // ホーム等はスケジュール側の日付を表示するため、本の保存に合わせて連動させる
+    saveSchedule(
+      syncEntryDatesForBook(loadSchedule(), {
+        id: next.id,
+        catalogId: next.catalogId,
+        startDate: next.startDate,
+        deadline: next.deadline,
+      }),
+    )
     if (book === null) {
       onDone()
       return
