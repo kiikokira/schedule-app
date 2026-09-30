@@ -14,6 +14,15 @@ type Props = {
   onDone: () => void
 }
 
+const presetOf = (endpoint: string) =>
+  endpoint === GEMINI_COMPAT_ENDPOINT
+    ? 'gemini'
+    : endpoint === OPENROUTER_ENDPOINT
+      ? 'openrouter'
+      : endpoint === GROQ_ENDPOINT
+        ? 'groq'
+        : 'openai'
+
 export default function SettingsScreen({ onDone }: Props) {
   const [result, setResult] = useState<string | null>(null)
   const [apiKey, setApiKey] = useState(getBooksApiKey())
@@ -27,6 +36,10 @@ export default function SettingsScreen({ onDone }: Props) {
   const [aiTesting, setAiTesting] = useState(false)
   const [aiPingResult, setAiPingResult] = useState<string | null>(null)
   const [aiPinging, setAiPinging] = useState(false)
+  const [editingGoogle, setEditingGoogle] = useState(false)
+  const [editingNtfy, setEditingNtfy] = useState(false)
+  const [editingAi, setEditingAi] = useState(false)
+  const [aiPreset, setAiPreset] = useState(() => presetOf(getAiSettings().endpoint))
   const [autoSnapshot, setAutoSnapshot] = useState<AutoSnapshot | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -79,12 +92,27 @@ export default function SettingsScreen({ onDone }: Props) {
   const handleSaveApiKey = () => {
     setBooksApiKey(apiKey)
     setResult('Google Books APIキーを保存しました')
+    setEditingGoogle(false)
+  }
+
+  const handleCancelGoogle = () => {
+    setApiKey(getBooksApiKey())
+    setEditingGoogle(false)
   }
 
   const handleSaveNtfy = () => {
     setNotifySettings({ enabled: ntfyEnabled, topic: ntfyTopic })
     setNtfyTestResult(null)
     setResult('リマインダー通知の設定を保存しました')
+    setEditingNtfy(false)
+  }
+
+  const handleCancelNtfy = () => {
+    const saved = getNotifySettings()
+    setNtfyTopic(saved.topic)
+    setNtfyEnabled(saved.enabled)
+    setNtfyTestResult(null)
+    setEditingNtfy(false)
   }
 
   const handleTestNtfy = async () => {
@@ -142,6 +170,18 @@ export default function SettingsScreen({ onDone }: Props) {
   const handleSaveAi = () => {
     setAiSettings({ endpoint: aiEndpoint, apiKey: aiApiKey, model: aiModel })
     setResult('調整AIの設定を保存しました')
+    setEditingAi(false)
+  }
+
+  const handleCancelAi = () => {
+    const saved = getAiSettings()
+    setAiEndpoint(saved.endpoint)
+    setAiApiKey(saved.apiKey)
+    setAiModel(saved.model)
+    setAiPreset(presetOf(saved.endpoint))
+    setAiTestResult(null)
+    setAiPingResult(null)
+    setEditingAi(false)
   }
 
   const handleTestAi = async () => {
@@ -203,13 +243,25 @@ export default function SettingsScreen({ onDone }: Props) {
           data-testid="google-books-api-key"
           type="text"
           value={apiKey}
+          disabled={!editingGoogle}
           onChange={(e) => setApiKey(e.target.value)}
           placeholder="AIza...（未設定なら空のまま）"
           autoComplete="off"
         />
-        <button data-testid="save-google-books-api-key" type="button" onClick={handleSaveApiKey}>
-          APIキーを保存
-        </button>
+        {!editingGoogle ? (
+          <button data-testid="edit-google-books" type="button" onClick={() => setEditingGoogle(true)}>
+            編集
+          </button>
+        ) : (
+          <>
+            <button data-testid="save-google-books-api-key" type="button" onClick={handleSaveApiKey}>
+              APIキーを保存
+            </button>
+            <button data-testid="cancel-google-books" type="button" onClick={handleCancelGoogle}>
+              キャンセル
+            </button>
+          </>
+        )}
       </section>
       <section style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 16 }}>リマインダー通知（Push）</h2>
@@ -230,6 +282,7 @@ export default function SettingsScreen({ onDone }: Props) {
           data-testid="ntfy-topic"
           type="text"
           value={ntfyTopic}
+          disabled={!editingNtfy}
           onChange={(e) => setNtfyTopic(e.target.value)}
           placeholder="例: my-study-reminder"
           autoComplete="off"
@@ -241,12 +294,24 @@ export default function SettingsScreen({ onDone }: Props) {
             data-testid="ntfy-enabled"
             type="checkbox"
             checked={ntfyEnabled}
+            disabled={!editingNtfy}
             onChange={(e) => setNtfyEnabled(e.target.checked)}
           />
         </div>
-        <button data-testid="ntfy-save" type="button" onClick={handleSaveNtfy}>
-          設定を保存
-        </button>
+        {!editingNtfy ? (
+          <button data-testid="edit-ntfy" type="button" onClick={() => setEditingNtfy(true)}>
+            編集
+          </button>
+        ) : (
+          <>
+            <button data-testid="ntfy-save" type="button" onClick={handleSaveNtfy}>
+              設定を保存
+            </button>
+            <button data-testid="cancel-ntfy" type="button" onClick={handleCancelNtfy}>
+              キャンセル
+            </button>
+          </>
+        )}
         <button data-testid="ntfy-test" type="button" onClick={() => void handleTestNtfy()}>
           テスト通知を送る
         </button>
@@ -262,15 +327,18 @@ export default function SettingsScreen({ onDone }: Props) {
         <select
           id="ai-preset"
           data-testid="ai-preset"
-          defaultValue={aiEndpoint === GEMINI_COMPAT_ENDPOINT ? 'gemini' : aiEndpoint === OPENROUTER_ENDPOINT ? 'openrouter' : aiEndpoint === GROQ_ENDPOINT ? 'groq' : 'openai'}
+          value={aiPreset}
+          disabled={!editingAi}
           onChange={(e) => {
-            if (e.target.value === 'gemini') {
+            const value = e.target.value
+            setAiPreset(value)
+            if (value === 'gemini') {
               setAiEndpoint(GEMINI_COMPAT_ENDPOINT)
               setAiModel(GEMINI_EXAMPLE_MODEL)
-            } else if (e.target.value === 'openrouter') {
+            } else if (value === 'openrouter') {
               setAiEndpoint(OPENROUTER_ENDPOINT)
               setAiModel(OPENROUTER_EXAMPLE_MODEL)
-            } else if (e.target.value === 'groq') {
+            } else if (value === 'groq') {
               setAiEndpoint(GROQ_ENDPOINT)
               setAiModel(GROQ_EXAMPLE_MODEL)
             } else {
@@ -292,6 +360,7 @@ export default function SettingsScreen({ onDone }: Props) {
           data-testid="ai-endpoint"
           type="text"
           value={aiEndpoint}
+          disabled={!editingAi}
           onChange={(e) => setAiEndpoint(e.target.value)}
           autoComplete="off"
         />
@@ -301,6 +370,7 @@ export default function SettingsScreen({ onDone }: Props) {
           data-testid="ai-api-key"
           type="password"
           value={aiApiKey}
+          disabled={!editingAi}
           onChange={(e) => setAiApiKey(e.target.value)}
           placeholder="sk-... / AIza...（無料枠はAIzaから始まるキー）"
           autoComplete="off"
@@ -311,13 +381,25 @@ export default function SettingsScreen({ onDone }: Props) {
           data-testid="ai-model"
           type="text"
           value={aiModel}
+          disabled={!editingAi}
           onChange={(e) => setAiModel(e.target.value)}
           placeholder="例: gpt-4o-mini（軽量）/ gpt-4o（高精度）"
           autoComplete="off"
         />
-        <button data-testid="ai-save" type="button" onClick={handleSaveAi}>
-          設定を保存
-        </button>
+        {!editingAi ? (
+          <button data-testid="edit-ai" type="button" onClick={() => setEditingAi(true)}>
+            編集
+          </button>
+        ) : (
+          <>
+            <button data-testid="ai-save" type="button" onClick={handleSaveAi}>
+              設定を保存
+            </button>
+            <button data-testid="cancel-ai" type="button" onClick={handleCancelAi}>
+              キャンセル
+            </button>
+          </>
+        )}
         <button data-testid="ai-test" type="button" onClick={() => void handleTestAi()} disabled={aiTesting}>
           接続テスト
         </button>

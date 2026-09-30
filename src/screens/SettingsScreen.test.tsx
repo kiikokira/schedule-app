@@ -40,6 +40,37 @@ it('shows the auto backup and restores it', async () => {
   expect(screen.getByTestId('backup-result')).toHaveTextContent('復元しました')
 })
 
+it('locks settings fields until edit is pressed', () => {
+  render(<SettingsScreen onDone={() => {}} />)
+  expect(screen.getByTestId('google-books-api-key')).toBeDisabled()
+  expect(screen.getByTestId('ntfy-topic')).toBeDisabled()
+  expect(screen.getByTestId('ai-api-key')).toBeDisabled()
+  expect(screen.queryByTestId('save-google-books-api-key')).not.toBeInTheDocument()
+  expect(screen.queryByTestId('ntfy-save')).not.toBeInTheDocument()
+  expect(screen.queryByTestId('ai-save')).not.toBeInTheDocument()
+})
+
+it('cancel restores the stored values', () => {
+  localStorage.setItem('google-books-api-key', 'AIza-keep')
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.click(screen.getByTestId('edit-google-books'))
+  fireEvent.change(screen.getByTestId('google-books-api-key'), { target: { value: 'JUNK' } })
+  fireEvent.click(screen.getByTestId('cancel-google-books'))
+  expect(screen.getByTestId('google-books-api-key')).toHaveValue('AIza-keep')
+  expect(screen.getByTestId('google-books-api-key')).toBeDisabled()
+  expect(localStorage.getItem('google-books-api-key')).toBe('AIza-keep')
+})
+
+it('locks again after saving', () => {
+  localStorage.removeItem('schedule-app-ntfy')
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.click(screen.getByTestId('edit-ntfy'))
+  fireEvent.change(screen.getByTestId('ntfy-topic'), { target: { value: 'my-topic' } })
+  fireEvent.click(screen.getByTestId('ntfy-save'))
+  expect(screen.queryByTestId('ntfy-save')).not.toBeInTheDocument()
+  expect(screen.getByTestId('ntfy-topic')).toBeDisabled()
+})
+
 it('exports a JSON file on export click', async () => {
   const createSpy = vi.fn(() => 'blob:test')
   vi.stubGlobal('URL', { createObjectURL: createSpy, revokeObjectURL: vi.fn() })
@@ -63,18 +94,20 @@ it('shows result message after import', async () => {
   await waitFor(() => expect(screen.getByTestId('backup-result')).toHaveTextContent(/読み込みました/))
 })
 
-it('saves the Google Books api key to localStorage', () => {
-  localStorage.removeItem('google-books-api-key')
-  render(<SettingsScreen onDone={() => {}} />)
-  fireEvent.change(screen.getByTestId('google-books-api-key'), { target: { value: 'AIza-test' } })
+  it('saves the Google Books api key to localStorage', () => {
+    localStorage.removeItem('google-books-api-key')
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-google-books'))
+    fireEvent.change(screen.getByTestId('google-books-api-key'), { target: { value: 'AIza-test' } })
   fireEvent.click(screen.getByTestId('save-google-books-api-key'))
   expect(localStorage.getItem('google-books-api-key')).toBe('AIza-test')
 })
 
-it('saves the ntfy topic and enabled flag to localStorage', () => {
-  localStorage.removeItem('schedule-app-ntfy')
-  render(<SettingsScreen onDone={() => {}} />)
-  fireEvent.change(screen.getByTestId('ntfy-topic'), { target: { value: 'my-topic' } })
+  it('saves the ntfy topic and enabled flag to localStorage', () => {
+    localStorage.removeItem('schedule-app-ntfy')
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ntfy'))
+    fireEvent.change(screen.getByTestId('ntfy-topic'), { target: { value: 'my-topic' } })
   fireEvent.click(screen.getByTestId('ntfy-enabled'))
   fireEvent.click(screen.getByTestId('ntfy-save'))
   expect(localStorage.getItem('schedule-app-ntfy')).toBe(
@@ -82,10 +115,11 @@ it('saves the ntfy topic and enabled flag to localStorage', () => {
   )
 })
 
-it('normalizes a pasted ntfy URL before saving', () => {
-  localStorage.removeItem('schedule-app-ntfy')
-  render(<SettingsScreen onDone={() => {}} />)
-  fireEvent.change(screen.getByTestId('ntfy-topic'), {
+  it('normalizes a pasted ntfy URL before saving', () => {
+    localStorage.removeItem('schedule-app-ntfy')
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ntfy'))
+    fireEvent.change(screen.getByTestId('ntfy-topic'), {
     target: { value: 'https://ntfy.sh/my-topic' },
   })
   fireEvent.click(screen.getByTestId('ntfy-save'))
@@ -115,11 +149,12 @@ it('sends a test notification to the ntfy topic', async () => {
 it('sends a test notification to the normalized URL when a full address is pasted', async () => {
   const fetchImpl = vi.fn(async () => ({ ok: true } as Response))
   vi.stubGlobal('fetch', fetchImpl)
-  render(<SettingsScreen onDone={() => {}} />)
-  fireEvent.change(screen.getByTestId('ntfy-topic'), {
-    target: { value: 'https://ntfy.sh/my-topic' },
-  })
-  fireEvent.click(screen.getByTestId('ntfy-test'))
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ntfy'))
+    fireEvent.change(screen.getByTestId('ntfy-topic'), {
+      target: { value: 'https://ntfy.sh/my-topic' },
+    })
+    fireEvent.click(screen.getByTestId('ntfy-test'))
   await waitFor(() =>
     expect(screen.getByTestId('ntfy-result')).toHaveTextContent('テスト通知を送信しました'),
   )
@@ -148,9 +183,10 @@ it('reports a network failure when the request throws', async () => {
 it('reports an http failure with the status', async () => {
   const fetchImpl = vi.fn(async () => ({ ok: false, status: 404 }) as Response)
   vi.stubGlobal('fetch', fetchImpl)
-  render(<SettingsScreen onDone={() => {}} />)
-  fireEvent.change(screen.getByTestId('ntfy-topic'), { target: { value: 'wrong/topic' } })
-  fireEvent.click(screen.getByTestId('ntfy-test'))
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ntfy'))
+    fireEvent.change(screen.getByTestId('ntfy-topic'), { target: { value: 'wrong/topic' } })
+    fireEvent.click(screen.getByTestId('ntfy-test'))
   await waitFor(() =>
     expect(screen.getByTestId('ntfy-result')).toHaveTextContent(/HTTP 404/),
   )
@@ -165,6 +201,7 @@ describe('adjustment AI settings', () => {
 
   it('saves AI settings', () => {
     render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
     fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
     fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'gpt-5-mini' } })
     fireEvent.click(screen.getByTestId('ai-save'))
@@ -189,6 +226,7 @@ describe('adjustment AI settings', () => {
       }),
     )
     render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
     fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
     fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'gpt-4o' } })
     fireEvent.click(screen.getByTestId('ai-test'))
@@ -200,6 +238,7 @@ describe('adjustment AI settings', () => {
   it('reports an AI connection failure with status', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }))
     render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
     fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
     fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'gpt-4o' } })
     fireEvent.click(screen.getByTestId('ai-test'))
@@ -218,6 +257,7 @@ describe('adjustment AI settings', () => {
       }),
     )
     render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
     fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
     fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'm' } })
     fireEvent.click(screen.getByTestId('ai-test'))
@@ -229,6 +269,7 @@ describe('adjustment AI settings', () => {
   it('includes the underlying error detail on network failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Load failed')))
     render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
     fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
     fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'm' } })
     fireEvent.click(screen.getByTestId('ai-test'))
@@ -240,6 +281,7 @@ describe('adjustment AI settings', () => {
   it('fills the Gemini free-tier preset on selection', () => {
     localStorage.removeItem('ai-settings')
     render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
     fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'gemini' } })
     expect(screen.getByTestId('ai-endpoint')).toHaveValue(
       'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
@@ -250,6 +292,7 @@ describe('adjustment AI settings', () => {
   it('fills the OpenRouter free preset on selection', () => {
     localStorage.removeItem('ai-settings')
     render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
     fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'openrouter' } })
     expect(screen.getByTestId('ai-endpoint')).toHaveValue(
       'https://openrouter.ai/api/v1/chat/completions',
@@ -260,6 +303,7 @@ describe('adjustment AI settings', () => {
   it('fills the Groq free preset on selection', () => {
     localStorage.removeItem('ai-settings')
     render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
     fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'groq' } })
     expect(screen.getByTestId('ai-endpoint')).toHaveValue(
       'https://api.groq.com/openai/v1/chat/completions',
@@ -270,6 +314,7 @@ describe('adjustment AI settings', () => {
   it('overwrites a stale model when switching presets', () => {
     localStorage.removeItem('ai-settings')
     render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
     fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'google/gemma-4-31b-it:free' } })
     fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'groq' } })
     expect(screen.getByTestId('ai-model')).toHaveValue('llama-3.1-8b-instant')
@@ -278,6 +323,7 @@ describe('adjustment AI settings', () => {
   it('restores the OpenAI preset on selection', () => {
     localStorage.removeItem('ai-settings')
     render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
     fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'gemini' } })
     fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'openai' } })
     expect(screen.getByTestId('ai-endpoint')).toHaveValue(
