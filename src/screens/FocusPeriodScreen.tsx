@@ -18,7 +18,16 @@ export default function FocusPeriodScreen({ onBack }: Props) {
   const [startDate, setStartDate] = useState(() => todayStr())
   const [endDate, setEndDate] = useState('')
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const resetForm = () => {
+    setTitle('')
+    setStartDate(todayStr())
+    setEndDate('')
+    setSelected(new Set())
+    setEditingId(null)
+  }
 
   const toggleBook = (id: string) =>
     setSelected((prev) => {
@@ -28,24 +37,21 @@ export default function FocusPeriodScreen({ onBack }: Props) {
       return next
     })
 
+  const validate = (): string | null => {
+    if (!title.trim()) return '名前を入力してください'
+    if (!startDate || !endDate) return '開始日と終了日を入力してください'
+    if (endDate < startDate) return '終了日は開始日以降を指定してください'
+    if (selected.size === 0) return '学習する参考書を1冊以上選んでください'
+    return null
+  }
+
   const handleAdd = () => {
+    const message = validate()
+    if (message) {
+      setError(message)
+      return
+    }
     setError(null)
-    if (!title.trim()) {
-      setError('名前を入力してください')
-      return
-    }
-    if (!startDate || !endDate) {
-      setError('開始日と終了日を入力してください')
-      return
-    }
-    if (endDate < startDate) {
-      setError('終了日は開始日以降を指定してください')
-      return
-    }
-    if (selected.size === 0) {
-      setError('学習する参考書を1冊以上選んでください')
-      return
-    }
     const next: FocusPeriod[] = [
       ...periods,
       {
@@ -58,8 +64,38 @@ export default function FocusPeriodScreen({ onBack }: Props) {
     ]
     saveFocusPeriods(next)
     setPeriods(next)
-    setTitle('')
-    setSelected(new Set())
+    resetForm()
+  }
+
+  const handleEditStart = (p: FocusPeriod) => {
+    setError(null)
+    setEditingId(p.id)
+    setTitle(p.title)
+    setStartDate(p.startDate)
+    setEndDate(p.endDate)
+    setSelected(new Set(p.bookIds))
+  }
+
+  const handleSave = () => {
+    const message = validate()
+    if (message) {
+      setError(message)
+      return
+    }
+    setError(null)
+    const next = periods.map((p) =>
+      p.id === editingId
+        ? { ...p, title: title.trim(), startDate, endDate, bookIds: [...selected] }
+        : p,
+    )
+    saveFocusPeriods(next)
+    setPeriods(next)
+    resetForm()
+  }
+
+  const handleCancel = () => {
+    setError(null)
+    resetForm()
   }
 
   const handleDelete = (id: string, label: string) => {
@@ -93,6 +129,13 @@ export default function FocusPeriodScreen({ onBack }: Props) {
                   {p.startDate}〜{p.endDate}・{p.bookIds.length}冊
                 </div>
               </div>
+              <button
+                data-testid={`focus-edit-${p.id}`}
+                type="button"
+                onClick={() => handleEditStart(p)}
+              >
+                編集
+              </button>
               <button
                 data-testid={`focus-delete-${p.id}`}
                 type="button"
@@ -156,9 +199,20 @@ export default function FocusPeriodScreen({ onBack }: Props) {
             {error}
           </p>
         )}
-        <button data-testid="focus-add" type="button" onClick={handleAdd}>
-          追加
-        </button>
+        {editingId === null ? (
+          <button data-testid="focus-add" type="button" onClick={handleAdd}>
+            追加
+          </button>
+        ) : (
+          <>
+            <button data-testid="focus-save" type="button" onClick={handleSave}>
+              保存
+            </button>
+            <button data-testid="focus-cancel" type="button" onClick={handleCancel}>
+              キャンセル
+            </button>
+          </>
+        )}
       </section>
       <p>
         <button data-testid="focus-back" type="button" onClick={onBack}>

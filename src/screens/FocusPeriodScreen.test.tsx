@@ -73,4 +73,41 @@ describe('FocusPeriodScreen', () => {
     fireEvent.click(screen.getByTestId('focus-delete-f1'))
     await waitFor(() => expect(loadFocusPeriods()).toHaveLength(0))
   })
+
+  it('loads a period into the form for editing and saves changes', async () => {
+    await seedBooks()
+    saveFocusPeriods([
+      { id: 'f1', title: '中間テスト', startDate: '2026-10-01', endDate: '2026-10-14', bookIds: ['leap-1'] },
+    ])
+    render(<FocusPeriodScreen onBack={() => {}} />)
+    expect(await screen.findByTestId('focus-row-f1')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('focus-edit-f1'))
+    expect(screen.getByTestId('focus-title')).toHaveValue('中間テスト')
+    expect(screen.getByTestId('focus-start')).toHaveValue('2026-10-01')
+    expect(screen.getByTestId('focus-end')).toHaveValue('2026-10-14')
+    expect(screen.getByTestId('focus-book-leap-1')).toBeChecked()
+    fireEvent.change(screen.getByTestId('focus-title'), { target: { value: '期末テスト' } })
+    fireEvent.change(screen.getByTestId('focus-end'), { target: { value: '2026-10-20' } })
+    fireEvent.click(screen.getByTestId('focus-book-b1'))
+    fireEvent.click(screen.getByTestId('focus-save'))
+    await waitFor(() => expect(loadFocusPeriods()[0].title).toBe('期末テスト'))
+    const [saved] = loadFocusPeriods()
+    expect(saved.id).toBe('f1')
+    expect(saved.endDate).toBe('2026-10-20')
+    expect(saved.bookIds).toEqual(['leap-1', 'b1'])
+  })
+
+  it('cancels editing without changing the period', async () => {
+    await seedBooks()
+    saveFocusPeriods([
+      { id: 'f1', title: '中間テスト', startDate: '2026-10-01', endDate: '2026-10-14', bookIds: ['leap-1'] },
+    ])
+    render(<FocusPeriodScreen onBack={() => {}} />)
+    expect(await screen.findByTestId('focus-row-f1')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('focus-edit-f1'))
+    fireEvent.change(screen.getByTestId('focus-title'), { target: { value: '書きかけ' } })
+    fireEvent.click(screen.getByTestId('focus-cancel'))
+    expect(loadFocusPeriods()[0].title).toBe('中間テスト')
+    expect(screen.getByTestId('focus-title')).toHaveValue('')
+  })
 })
