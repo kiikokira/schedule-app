@@ -8,12 +8,19 @@ import {
   prunePastOverrides,
   listAdjustments,
   addAdjustment,
+  applyBulkPin,
+  restoreBulkPin,
+  savePinBackup,
+  loadPinBackup,
+  clearPinBackup,
   type AvailabilitySlot,
 } from './dayplanStore'
 
 beforeEach(async () => {
   await db.availability.clear()
   await db.adjustments.clear()
+  clearPinBackup()
+  localStorage.clear()
 })
 
 describe('availability store', () => {
@@ -120,6 +127,38 @@ describe('prune past overrides', () => {
   it('does not delete when today has no past overrides', async () => {
     await prunePastOverrides('2026-09-22')
     expect(await listAvailability()).toEqual([])
+  })
+})
+
+describe('bulk pin', () => {
+  const slot = (over: Partial<AvailabilitySlot> = {}): AvailabilitySlot => ({
+    id: 's1',
+    weekday: 2,
+    date: null,
+    start: '16:45',
+    end: '17:15',
+    ...over,
+  })
+
+  it('pins all given slots and keeps the previous pins for restore', () => {
+    const slots = [slot({ id: 's1', bookId: 'b-old' }), slot({ id: 's2' })]
+    const { slots: fixed, backup } = applyBulkPin(slots, 'leap-1')
+    expect(fixed.every((s) => s.bookId === 'leap-1')).toBe(true)
+    expect(backup).toEqual([
+      { id: 's1', bookId: 'b-old' },
+      { id: 's2', bookId: undefined },
+    ])
+    const restored = restoreBulkPin(fixed, backup)
+    expect(restored.find((s) => s.id === 's1')?.bookId).toBe('b-old')
+    expect(restored.find((s) => s.id === 's2')?.bookId).toBeUndefined()
+  })
+
+  it('saves and loads the pin backup for revert', () => {
+    expect(loadPinBackup()).toBeNull()
+    savePinBackup([{ id: 's1', bookId: 'b-old' }])
+    expect(loadPinBackup()).toEqual([{ id: 's1', bookId: 'b-old' }])
+    clearPinBackup()
+    expect(loadPinBackup()).toBeNull()
   })
 })
 

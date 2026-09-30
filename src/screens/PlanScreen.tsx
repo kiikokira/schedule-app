@@ -23,8 +23,14 @@ import {
   listAvailability,
   saveAvailabilitySlot,
   deleteAvailabilitySlot,
+  applyBulkPin,
+  restoreBulkPin,
+  savePinBackup,
+  loadPinBackup,
+  clearPinBackup,
   type AvailabilitySlot,
 } from '../data/dayplanStore'
+import { isLeapBook } from '../lib/leap'
 
 type Props = {
   onDone: () => void
@@ -233,6 +239,38 @@ export default function PlanScreen({ onDone }: Props) {
     if (!window.confirm('学習スケジュールを最新の内容に更新しますか？変更内容は置き換わります。')) return
     setEntries([...SCHEDULE])
     saveSchedule([...SCHEDULE])
+  }
+
+  // テスト期間などの集中学習用：曜日の空き時間すべてを指定本（LEAP）に固定する。
+  // 固定前の状態を残すので「元に戻す」で完全に復旧できる。
+  const fixAllToLeap = async () => {
+    const leap = books.find((b) => isLeapBook(b))
+    if (!leap) {
+      setResult('LEAPが登録されていません')
+      return
+    }
+    const targets = availability.filter((s) => s.weekday !== null)
+    const { slots: fixed, backup } = applyBulkPin(targets, leap.id)
+    savePinBackup(backup)
+    for (const s of fixed) {
+      await saveAvailabilitySlot(s, false)
+    }
+    setResult(`すべての曜日枠（${fixed.length}件）をLEAPに固定しました`)
+    await refreshAvailability()
+  }
+
+  const restorePins = async () => {
+    const backup = loadPinBackup()
+    if (!backup) {
+      setResult('戻せる固定がありません')
+      return
+    }
+    for (const s of restoreBulkPin(availability, backup)) {
+      await saveAvailabilitySlot(s, false)
+    }
+    clearPinBackup()
+    setResult('固定を元に戻しました')
+    await refreshAvailability()
   }
 
   const byStart = (a: AvailabilitySlot, b: AvailabilitySlot) =>
@@ -457,6 +495,17 @@ export default function PlanScreen({ onDone }: Props) {
 
       <section data-testid="availability-section" style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
         <h2 style={{ fontSize: 16 }}>空き時間の設定</h2>
+        <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+          テスト期間などは全ての曜日枠をLEAPに固定できます（固定前の状態に戻せます）。
+        </p>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <button data-testid="leap-focus-all" type="button" onClick={() => void fixAllToLeap()}>
+            全ての曜日枠をLEAPに固定
+          </button>
+          <button data-testid="leap-focus-restore" type="button" onClick={() => void restorePins()}>
+            固定を元に戻す
+          </button>
+        </div>
         <div data-testid="availability-list">
           {[...weekdayGroups, ...dateGroups].map((group) => {
             const label =

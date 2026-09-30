@@ -51,6 +51,68 @@ export async function unpinBook(bookId: string): Promise<void> {
   }
 }
 
+export type PinBackup = { id: string; bookId?: string }
+
+// 渡された枠すべてを指定本に固定し、元の固定を復元用に返す。
+export function applyBulkPin(
+  slots: AvailabilitySlot[],
+  bookId: string,
+): { slots: AvailabilitySlot[]; backup: PinBackup[] } {
+  return {
+    slots: slots.map((s) => ({ ...s, bookId })),
+    backup: slots.map((s) => ({ id: s.id, bookId: s.bookId })),
+  }
+}
+
+// 一括固定前の状態に戻す。無くなった枠・増えた枠はそのままにする。
+export function restoreBulkPin(
+  slots: AvailabilitySlot[],
+  backup: PinBackup[],
+): AvailabilitySlot[] {
+  const prev = new Map(backup.map((b) => [b.id, b.bookId]))
+  return slots.map((s) => {
+    if (!prev.has(s.id)) return s
+    const next = { ...s }
+    const bookId = prev.get(s.id)
+    if (bookId === undefined) delete next.bookId
+    else next.bookId = bookId
+    return next
+  })
+}
+
+const PIN_BACKUP_KEY = 'schedule-app-pin-backup'
+
+export function savePinBackup(backup: PinBackup[]): void {
+  try {
+    localStorage.setItem(PIN_BACKUP_KEY, JSON.stringify(backup))
+  } catch {
+    // localStorage が利用できない環境では保存しない
+  }
+}
+
+export function loadPinBackup(): PinBackup[] | null {
+  try {
+    const raw = localStorage.getItem(PIN_BACKUP_KEY)
+    if (!raw) return null
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return null
+    if (!parsed.every((b) => typeof b === 'object' && b !== null && typeof (b as PinBackup).id === 'string')) {
+      return null
+    }
+    return parsed as PinBackup[]
+  } catch {
+    return null
+  }
+}
+
+export function clearPinBackup(): void {
+  try {
+    localStorage.removeItem(PIN_BACKUP_KEY)
+  } catch {
+    // 何もしない
+  }
+}
+
 // アプリ起動時に過去日の「当日上書き」だけを自動削除する。
 // 曜日ごと(weekday)や date が null のエントリには一切影響しない。
 export async function prunePastOverrides(today: string): Promise<number> {

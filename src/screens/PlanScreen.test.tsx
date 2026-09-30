@@ -79,6 +79,45 @@ describe('PlanScreen', () => {
     expect(entry?.deadline).toBe('2026-12-15')
   })
 
+  it('pins all weekday slots to LEAP and restores the previous pins', async () => {
+    const now = new Date().toISOString()
+    await db.books.add({
+      id: 'leap-1',
+      title: 'LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      startDate: '2026-09-26',
+      deadline: '2026-10-15',
+      createdAt: now,
+      updatedAt: now,
+    } as any)
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '16:45', end: '17:15' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'w2', weekday: 2, date: null, start: '17:45', end: '19:00', bookId: 'b-old' },
+      true,
+    )
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-group-weekday-2'))
+    await waitFor(() => {
+      const sel = screen.getByTestId('slot-book-w2') as HTMLSelectElement
+      expect(Array.from(sel.options).some((o) => o.text.includes('LEAP'))).toBe(true)
+    })
+    fireEvent.click(screen.getByTestId('leap-focus-all'))
+    await waitFor(async () => {
+      const all = await listAvailability()
+      expect(all.every((s) => s.bookId === 'leap-1')).toBe(true)
+    })
+    fireEvent.click(screen.getByTestId('leap-focus-restore'))
+    await waitFor(async () => {
+      const all = await listAvailability()
+      expect(all.find((s) => s.id === 'w1')?.bookId).toBeUndefined()
+      expect(all.find((s) => s.id === 'w2')?.bookId).toBe('b-old')
+    })
+  })
+
   it('removes a book from the schedule and saves after confirmation', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     render(<PlanScreen onDone={() => {}} />)
