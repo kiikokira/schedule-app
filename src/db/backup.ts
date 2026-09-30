@@ -68,31 +68,25 @@ export async function importBackup(
     chatMessages: ChatHistoryEntry[]
     schedule: ScheduleEntry[]
   }>
-  await db.transaction(
-    'rw',
-    db.books,
-    db.records,
-    db.cycleRecords,
-    db.availability,
-    db.adjustments,
-    db.chatMessages,
-    async () => {
-      await db.books.clear()
-      await db.records.clear()
-      await db.cycleRecords.clear()
-      await db.books.bulkAdd(data.books)
-      await db.records.bulkAdd(data.records)
-      await db.cycleRecords.bulkAdd(cycleRecords)
-      if (ext.availability || ext.adjustments || ext.chatMessages) {
-        await db.availability.clear()
-        await db.adjustments.clear()
-        await db.chatMessages.clear()
-        await db.availability.bulkAdd(ext.availability ?? [])
-        await db.adjustments.bulkAdd(ext.adjustments ?? [])
-        await db.chatMessages.bulkAdd(ext.chatMessages ?? [])
-      }
-    },
-  )
+  // Dexieの型付けは1トランザクション5テーブルまでのため2回に分ける
+  await db.transaction('rw', db.books, db.records, db.cycleRecords, async () => {
+    await db.books.clear()
+    await db.records.clear()
+    await db.cycleRecords.clear()
+    await db.books.bulkAdd(data.books)
+    await db.records.bulkAdd(data.records)
+    await db.cycleRecords.bulkAdd(cycleRecords)
+  })
+  if (ext.availability || ext.adjustments || ext.chatMessages) {
+    await db.transaction('rw', db.availability, db.adjustments, db.chatMessages, async () => {
+      await db.availability.clear()
+      await db.adjustments.clear()
+      await db.chatMessages.clear()
+      await db.availability.bulkAdd(ext.availability ?? [])
+      await db.adjustments.bulkAdd(ext.adjustments ?? [])
+      await db.chatMessages.bulkAdd(ext.chatMessages ?? [])
+    })
+  }
   if (ext.schedule) saveSchedule(ext.schedule)
   return { books: data.books.length, records: data.records.length }
 }

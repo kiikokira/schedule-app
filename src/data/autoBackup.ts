@@ -61,29 +61,23 @@ export async function loadAutoSnapshot(): Promise<AutoSnapshot | undefined> {
 export async function restoreAutoSnapshot(): Promise<boolean> {
   const snap = await loadAutoSnapshot()
   if (!snap) return false
-  await db.transaction(
-    'rw',
-    db.books,
-    db.records,
-    db.cycleRecords,
-    db.availability,
-    db.adjustments,
-    db.chatMessages,
-    async () => {
-      await db.books.clear()
-      await db.records.clear()
-      await db.cycleRecords.clear()
-      await db.availability.clear()
-      await db.adjustments.clear()
-      await db.chatMessages.clear()
-      await db.books.bulkAdd(snap.books)
-      await db.records.bulkAdd(snap.records)
-      await db.cycleRecords.bulkAdd(snap.cycleRecords)
-      await db.availability.bulkAdd(snap.availability)
-      await db.adjustments.bulkAdd(snap.adjustments)
-      await db.chatMessages.bulkAdd(snap.chatMessages)
-    },
-  )
+  // Dexieの型付けは1トランザクション5テーブルまでのため2回に分ける
+  await db.transaction('rw', db.books, db.records, db.cycleRecords, async () => {
+    await db.books.clear()
+    await db.records.clear()
+    await db.cycleRecords.clear()
+    await db.books.bulkAdd(snap.books)
+    await db.records.bulkAdd(snap.records)
+    await db.cycleRecords.bulkAdd(snap.cycleRecords)
+  })
+  await db.transaction('rw', db.availability, db.adjustments, db.chatMessages, async () => {
+    await db.availability.clear()
+    await db.adjustments.clear()
+    await db.chatMessages.clear()
+    await db.availability.bulkAdd(snap.availability)
+    await db.adjustments.bulkAdd(snap.adjustments)
+    await db.chatMessages.bulkAdd(snap.chatMessages)
+  })
   saveSchedule(snap.schedule)
   return true
 }
