@@ -3,6 +3,7 @@ import { beforeEach, describe, it, expect, vi } from 'vitest'
 import TodayPlanScreen from './TodayPlanScreen'
 import { db } from '../db/database'
 import { saveAvailabilitySlot, listAvailability } from '../data/dayplanStore'
+import { saveFocusPeriods } from '../data/focusPeriods'
 import { resetSchedule } from '../data/scheduleStore'
 
 beforeEach(async () => {
@@ -11,6 +12,7 @@ beforeEach(async () => {
   await db.cycleRecords.clear()
   await db.availability.clear()
   resetSchedule()
+  saveFocusPeriods([])
 })
 
 const fillBook = (id: string, over: Record<string, unknown> = {}) => {
@@ -442,6 +444,27 @@ describe('TodayPlanScreen', () => {
     expect(await screen.findByTestId('today-override-add')).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('today-override-toggle'))
     expect(screen.queryByTestId('today-override-add')).not.toBeInTheDocument()
+  })
+
+  it('テスト期間中は選択本だけを今日の計画に表示する', async () => {
+    await fillBook('b1')
+    await fillBook('leap-1', {
+      title: 'LEAP',
+      catalogId: 'leap',
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+    })
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    saveFocusPeriods([
+      { id: 'f1', title: '中間テスト', startDate: '2026-10-01', endDate: '2026-10-14', bookIds: ['leap-1'] },
+    ])
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
+    expect(await screen.findByTestId('focus-period-notice')).toHaveTextContent('中間テスト')
+    expect(screen.queryByText('英文法ポラリス2（応用レベル）')).not.toBeInTheDocument()
   })
 })
 

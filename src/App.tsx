@@ -8,6 +8,7 @@ import TodayPlanScreen from './screens/TodayPlanScreen'
 import RebalanceScreen from './screens/RebalanceScreen'
 import ChatScreen from './screens/ChatScreen'
 import HistoryScreen from './screens/HistoryScreen'
+import FocusPeriodScreen from './screens/FocusPeriodScreen'
 import { useBooks } from './hooks/useBooks'
 import { listAvailability, prunePastOverrides } from './data/dayplanStore'
 import { todayStr } from './lib/progress'
@@ -29,6 +30,7 @@ type Route =
   | { name: 'plan' }
   | { name: 'ai' }
   | { name: 'ai-history' }
+  | { name: 'focus' }
 
 export default function App() {
   const { books, refresh } = useBooks()
@@ -106,6 +108,7 @@ export default function App() {
           <ChatScreen onBack={() => setRoute({ name: 'home' })} onHistory={() => setRoute({ name: 'ai-history' })} />
         )}
         {route.name === 'ai-history' && <HistoryScreen onBack={() => setRoute({ name: 'ai' })} />}
+        {route.name === 'focus' && <FocusPeriodScreen onBack={() => setRoute({ name: 'home' })} />}
         {route.name === 'plan' && <PlanScreen onDone={() => setRoute({ name: 'home' })} />}
         {route.name === 'today' && (
           <TodayPlanScreen
@@ -125,6 +128,9 @@ export default function App() {
             </button>
             <button data-testid="nav-ai" onClick={() => setRoute({ name: 'ai' })}>
               調整AI
+            </button>
+            <button data-testid="nav-focus" onClick={() => setRoute({ name: 'focus' })}>
+              テスト期間
             </button>
             <button data-testid="nav-add" onClick={() => setRoute({ name: 'add' })}>
               ＋ 参考書を追加

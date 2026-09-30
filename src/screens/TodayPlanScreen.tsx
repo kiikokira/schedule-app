@@ -15,6 +15,7 @@ import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { useSlotStartReminder } from '../lib/useSlotStartReminder'
 import { isLeapBook } from '../lib/leap'
+import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
 import CoverImage from '../components/CoverImage'
 
 type Props = {
@@ -121,10 +122,17 @@ function overlayCyclesPins(
 }
 
 export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }: Props) {
-  const { books, saveBook } = useBooks()
+  const { books: allBooks, saveBook } = useBooks()
   const { records, addProgress } = useRecords()
   const { cycleRecords, addCycle } = useCycleRecords()
   const today = todayProp ?? todayStr()
+  // テスト期間中は選択本だけを対象にする（選択外は計画に出さない）
+  const [focusPeriods] = useState(loadFocusPeriods)
+  const focusIds = selectedBookIds(focusPeriods, today)
+  const books = focusIds === null ? allBooks : allBooks.filter((b) => focusIds.includes(b.id))
+  const focusTitles = focusPeriods
+    .filter((p) => p.startDate <= today && today <= p.endDate)
+    .map((p) => p.title)
   const [availability, setAvailability] = useState<Awaited<ReturnType<typeof listAvailability>>>([])
   const [availabilityLoaded, setAvailabilityLoaded] = useState(false)
   const [inputs, setInputs] = useState<Record<string, string>>({})
@@ -456,6 +464,11 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   return (
     <div data-testid="today-plan-screen" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>今日の計画</h1>
+      {focusIds !== null && (
+        <p data-testid="focus-period-notice" style={{ fontWeight: 700 }}>
+          テスト期間中のため{focusTitles.join('・')}の選択本だけ表示しています
+        </p>
+      )}
       {planned.notice && (
         <p data-testid="plan-notice" style={{ color: 'var(--text-dim)' }}>
           {planned.notice}
