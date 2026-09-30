@@ -3,6 +3,7 @@ import { beforeEach, describe, it, expect, vi } from 'vitest'
 import HistoryScreen from './HistoryScreen'
 import { db } from '../db/database'
 import { appendChatHistory } from '../data/chatHistoryStore'
+import { formatDate, formatJaDate } from '../lib/progress'
 
 beforeEach(async () => {
   await db.chatMessages.clear()
@@ -33,6 +34,27 @@ describe('HistoryScreen', () => {
     expect(screen.queryByText(longText)).not.toBeInTheDocument()
     fireEvent.click(screen.getByTestId('msg-expand'))
     expect(await screen.findByText(longText)).toBeInTheDocument()
+  })
+
+  it('shows the date of each conversation', async () => {
+    await db.chatMessages.add({
+      id: 'h1',
+      at: '2026-09-28T12:00:00.000Z#0000000000',
+      role: 'user',
+      text: '昨日の相談',
+    })
+    await db.chatMessages.add({
+      id: 'h2',
+      at: '2026-09-29T12:00:00.000Z#0000000000',
+      role: 'assistant',
+      text: '今日の回答',
+    })
+    render(<HistoryScreen onBack={() => {}} />)
+    await screen.findByText('昨日の相談')
+    const day1 = formatDate(new Date('2026-09-28T12:00:00.000Z'))
+    const day2 = formatDate(new Date('2026-09-29T12:00:00.000Z'))
+    expect(screen.getByTestId(`history-date-${day1}`)).toHaveTextContent(formatJaDate(day1))
+    expect(screen.getByTestId(`history-date-${day2}`)).toHaveTextContent(formatJaDate(day2))
   })
 
   it('returns via the fold button', async () => {
