@@ -1,20 +1,19 @@
 import { useEffect } from 'react'
-import { parseTimeToMin } from './dayplan'
-import { publishPush } from './notify'
 import { todayStr } from './progress'
+import { publishPush } from './notify'
 import {
-  msUntilNextSlotEnd,
-  nextEndingSlot,
-  slotEndMessage,
-  slotEndTitle,
+  msUntilNextReminder,
+  nextReminderSlot,
+  slotStartMessage,
+  slotStartTitle,
   type SlotsPayload,
 } from './slotNotify'
 
-// アプリを開いている間、その日の残りすべての空き時間の終了時刻にその場で通知を送る。
-// 発火のたびに次の終了枠を予約し直す（連鎖タイマー）。
+// アプリを開いている間、その日の残りすべての空き時間の開始10分前にその場で通知を送る。
+// 発火のたびに次の通知枠を予約し直す（連鎖タイマー）。
 // サーバー側の定期実行より早く届く。タイトルを
 // 統一しているため、サーバー側の二重送信防止にもかかる。
-export function useSlotEndReminder(
+export function useSlotStartReminder(
   enabled: boolean,
   topic: string,
   payload: SlotsPayload | null,
@@ -24,13 +23,13 @@ export function useSlotEndReminder(
     if (payload.date !== todayStr()) return
     let timer: ReturnType<typeof setTimeout> | undefined
     const schedule = () => {
-      const next = nextEndingSlot(payload.slots, new Date())
+      const next = nextReminderSlot(payload.slots, new Date())
       if (!next) return
-      const delay = msUntilNextSlotEnd([parseTimeToMin(next.end)], new Date())
+      const delay = msUntilNextReminder([next], new Date())
       if (delay === null) return
       timer = setTimeout(() => {
-        void publishPush(topic, slotEndMessage(next), {
-          title: slotEndTitle(next.end),
+        void publishPush(topic, slotStartMessage(next), {
+          title: slotStartTitle(next.start),
         })
         schedule()
       }, delay)

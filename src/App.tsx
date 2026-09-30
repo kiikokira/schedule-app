@@ -44,7 +44,7 @@ export default function App() {
     void takeAutoSnapshotIfNeeded().catch(() => {})
   }, [])
 
-  // 起動時にその日の終了予定を登録する。「今日の計画」を開かなくても
+  // 起動時にその日の開始予定を登録する。「今日の計画」を開かなくても
   // リマインダーのワークフローが時間帯を拾えるようにする。
   // 同内容の再送は publishSlotsOnce 側で抑止される。
   useEffect(() => {

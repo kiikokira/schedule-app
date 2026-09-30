@@ -13,7 +13,7 @@ import { todayStr, formatJaDate, daysBetween, parseDate, calcCycleDonePairs, cal
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
-import { useSlotEndReminder } from '../lib/useSlotEndReminder'
+import { useSlotStartReminder } from '../lib/useSlotStartReminder'
 import { isLeapBook } from '../lib/leap'
 import CoverImage from '../components/CoverImage'
 
@@ -315,14 +315,14 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   useEffect(() => {
     if (!notifyEnabled || !notifyTopic.trim() || !slotsPayload) return
     void publishSlotsOnce(notifyTopic, slotsPayload)
-    // 終了時刻ちょうどに届くよう予約投稿する（アプリが閉じていても配達される）
+    // 開始10分前に届くよう予約投稿する（アプリが閉じていても配達される）
     void syncSlotSchedules(notifyTopic, slotsPayload)
   }, [notifyEnabled, notifyTopic, slotsPayload])
 
-  // アプリを開いている間は、直近の終了時刻にその場で通知を送る。
+  // アプリを開いている間は、直近の開始10分前にその場で通知を送る。
   // サーバー側の定期実行（最大15分遅れ）より早く届く。タイトルを
   // 統一しているため、サーバー側の二重送信防止にもかかる。
-  useSlotEndReminder(notifyEnabled, notifyTopic, slotsPayload)
+  useSlotStartReminder(notifyEnabled, notifyTopic, slotsPayload)
 
   const saveTodayOverrides = async (slotsToSave: PlanSlot[]) => {
     const existing = await listAvailability()

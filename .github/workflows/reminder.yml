@@ -1,4 +1,4 @@
-name: Study slot-end reminders
+name: Study slot-start reminders
 on:
   schedule:
     - cron: '*/5 * * * *'
@@ -9,7 +9,7 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Send slot-end reminders
+      - name: Send slot-start reminders
         env:
           TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: |
@@ -22,8 +22,7 @@ jobs:
           TODAY_JST=$(TZ=Asia/Tokyo date +%F)
           NOW_MIN=$(( 10#$(TZ=Asia/Tokyo date +%H) * 60 + 10#$(TZ=Asia/Tokyo date +%M) ))
           TODAY_START=$(TZ=Asia/Tokyo date -d "$TODAY_JST 00:00" +%s)
-          # 確実化: 終了済みの枠はその日のうちなら何時間前でも拾う。
-          # cronの遅延・スキップで15分窓を逃しても次回実行で通知される。
+          # 開始10分前の枠を拾う。cronの遅延・スキップに備えて15分窓で判定し、
           # 二重送信は下のタイトル照合(ALREADY)で防ぐため、窓を広げても重複しない。
 
           # 注意: /json は poll=1 なしだとストリームが閉じず curl が永遠に
@@ -48,12 +47,12 @@ jobs:
             if [ -z "$START" ] || [ -z "$END" ]; then
               continue
             fi
-            END_MIN=$(( 10#${END%%:*} * 60 + 10#${END##*:} ))
-            ELAPSED=$(( NOW_MIN - END_MIN ))
-            if [ "$ELAPSED" -lt 0 ]; then
+            START_MIN=$(( 10#${START%%:*} * 60 + 10#${START##*:} ))
+            EARLY=$(( NOW_MIN - (START_MIN - 10) ))
+            if [ "$EARLY" -lt 0 ] || [ "$EARLY" -ge 15 ]; then
               continue
             fi
-            TITLE="学習時間終了 ${END}"
+            TITLE="学習開始10分前 ${START}"
             # 二重送信防止: 今日すでに同じタイトルで送っていたら送らない
             # (アプリを開いていた場合の即時通知と重複するため)
             ALREADY=$(curl -sf "https://ntfy.sh/${TOPIC}/json?poll=1&since=${TODAY_START}" 2>/dev/null \
@@ -65,9 +64,9 @@ jobs:
             fi
             BOOKS=$(printf '%s' "$slot" | jq -r '[.books[]?] | join("、")')
             if [ -n "$BOOKS" ]; then
-              BODY="${START}～${END} の空き時間が終わりました。今日の学習を記録しましたか？（${BOOKS}）"
+              BODY="${START}～${END} の学習が10分後に始まります。準備しましょう（${BOOKS}）"
             else
-              BODY="${START}～${END} の空き時間が終わりました。今日の学習を記録しましたか？"
+              BODY="${START}～${END} の学習が10分後に始まります。準備しましょう"
             fi
             if curl -sf -X POST "https://ntfy.sh/${TOPIC}" \
               -H "Title: ${TITLE}" \
@@ -83,5 +82,5 @@ jobs:
           EOF
 
           if [ "$SENT" = "0" ]; then
-            echo "今日まだ終わった時間帯はありませんでした（または送信済みです）。" >> "$GITHUB_STEP_SUMMARY"
+            echo "まもなく始まる時間帯はありませんでした（または送信済みです）。" >> "$GITHUB_STEP_SUMMARY"
           fi
