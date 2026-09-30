@@ -3,12 +3,41 @@ import { it, expect, vi, beforeEach } from 'vitest'
 import SettingsScreen from './SettingsScreen'
 import { db } from '../db/database'
 import { getAiSettings } from '../lib/ai'
+import { takeAutoSnapshot } from '../data/autoBackup'
 
 beforeEach(async () => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
   await db.books.clear()
   await db.records.clear()
+  await db.snapshots.clear()
+  localStorage.clear()
+})
+
+it('shows the auto backup and restores it', async () => {
+  const now = new Date().toISOString()
+  await db.books.add({
+    id: 'b1',
+    title: '本',
+    totalPages: 100,
+    startDate: '2026-09-01',
+    deadline: '2026-11-30',
+    createdAt: now,
+    updatedAt: now,
+  } as any)
+  await takeAutoSnapshot()
+  expect(await db.snapshots.count()).toBe(1)
+  await db.books.clear()
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
+  render(<SettingsScreen onDone={() => {}} />)
+  await waitFor(() => {
+    expect(screen.getByTestId('auto-backup-info')).toHaveTextContent('参考書 1 冊')
+  })
+  fireEvent.click(screen.getByTestId('auto-backup-restore'))
+  await waitFor(async () => {
+    expect((await db.books.get('b1'))?.title).toBe('本')
+  })
+  expect(screen.getByTestId('backup-result')).toHaveTextContent('復元しました')
 })
 
 it('exports a JSON file on export click', async () => {

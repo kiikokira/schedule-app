@@ -15,6 +15,7 @@ import { getNotifySettings } from './lib/notify'
 import { buildSlotsPayload } from './lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from './lib/slotsPublish'
 import { slotsForDate } from './lib/dayplan'
+import { takeAutoSnapshotIfNeeded } from './data/autoBackup'
 import './styles.css'
 
 type Route =
@@ -36,6 +37,11 @@ export default function App() {
   // 起動時に過去日の「当日上書き」を、ユーザーが画面を見る前にバックグラウンドで削除する
   useEffect(() => {
     void prunePastOverrides(todayStr())
+  }, [])
+
+  // 起動時に1日1回だけ自動バックアップを取る（ボタン操作なし）
+  useEffect(() => {
+    void takeAutoSnapshotIfNeeded().catch(() => {})
   }, [])
 
   // 起動時にその日の終了予定を登録する。「今日の計画」を開かなくても

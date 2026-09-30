@@ -1,5 +1,9 @@
 import { db } from './database'
+import { saveSchedule } from '../data/scheduleStore'
 import type { BookData, ProgressRecordData, CycleRecordData } from '../lib/progress'
+import type { AvailabilitySlot, Adjustment } from '../data/dayplanStore'
+import type { ChatHistoryEntry } from '../data/chatHistoryStore'
+import type { ScheduleEntry } from '../data/schedule'
 
 export type BackupData = {
   exportedAt: string
@@ -46,6 +50,11 @@ export function validateBackup(data: unknown): data is BackupData {
     if (c.unitFrom > c.unitTo) return false
     if (c.round < 1) return false
   }
+  // 自動バックアップ由来の拡張項目は任意（旧形式ファイルも読める）
+  for (const key of ['availability', 'adjustments', 'chatMessages', 'schedule'] as const) {
+    const v = (d as Record<string, unknown>)[key]
+    if (v !== undefined && !Array.isArray(v)) return false
+  }
   return true
 }
 
@@ -53,13 +62,37 @@ export async function importBackup(
   data: BackupData,
 ): Promise<{ books: number; records: number }> {
   const cycleRecords = (data as Partial<BackupData>).cycleRecords ?? []
-  await db.transaction('rw', db.books, db.records, db.cycleRecords, async () => {
-    await db.books.clear()
-    await db.records.clear()
-    await db.cycleRecords.clear()
-    await db.books.bulkAdd(data.books)
-    await db.records.bulkAdd(data.records)
-    await db.cycleRecords.bulkAdd(cycleRecords)
-  })
+  const ext = data as Partial<{
+    availability: AvailabilitySlot[]
+    adjustments: Adjustment[]
+    chatMessages: ChatHistoryEntry[]
+    schedule: ScheduleEntry[]
+  }>
+  await db.transaction(
+    'rw',
+    db.books,
+    db.records,
+    db.cycleRecords,
+    db.availability,
+    db.adjustments,
+    db.chatMessages,
+    async () => {
+      await db.books.clear()
+      await db.records.clear()
+      await db.cycleRecords.clear()
+      await db.books.bulkAdd(data.books)
+      await db.records.bulkAdd(data.records)
+      await db.cycleRecords.bulkAdd(cycleRecords)
+      if (ext.availability || ext.adjustments || ext.chatMessages) {
+        await db.availability.clear()
+        await db.adjustments.clear()
+        await db.chatMessages.clear()
+        await db.availability.bulkAdd(ext.availability ?? [])
+        await db.adjustments.bulkAdd(ext.adjustments ?? [])
+        await db.chatMessages.bulkAdd(ext.chatMessages ?? [])
+      }
+    },
+  )
+  if (ext.schedule) saveSchedule(ext.schedule)
   return { books: data.books.length, records: data.records.length }
 }

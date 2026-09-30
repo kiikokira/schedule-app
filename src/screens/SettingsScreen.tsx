@@ -1,5 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { exportBackup, importBackup, validateBackup } from '../db/backup'
+import { loadAutoSnapshot, restoreAutoSnapshot, type AutoSnapshot } from '../data/autoBackup'
+import { formatDate, formatJaDate } from '../lib/progress'
 import { getBooksApiKey, setBooksApiKey } from '../api/googleBooks'
 import {
   getNotifySettings,
@@ -25,7 +27,19 @@ export default function SettingsScreen({ onDone }: Props) {
   const [aiTesting, setAiTesting] = useState(false)
   const [aiPingResult, setAiPingResult] = useState<string | null>(null)
   const [aiPinging, setAiPinging] = useState(false)
+  const [autoSnapshot, setAutoSnapshot] = useState<AutoSnapshot | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const snap = await loadAutoSnapshot()
+      if (!cancelled) setAutoSnapshot(snap ?? null)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleExport = async () => {
     const data = await exportBackup()
@@ -87,6 +101,42 @@ export default function SettingsScreen({ onDone }: Props) {
           ? '送信に失敗しました（ネットワークでntfy.shに届きませんでした。インターネット接続を確認してください）'
           : `送信に失敗しました（ntfy.sh が HTTP ${result.status ?? '?'} を返しました。トピック名を確認してください）`,
     )
+  }
+
+  const handleRestoreAuto = async () => {
+    if (!window.confirm('自動バックアップの内容に戻しますか？現在のデータは上書きされます。')) return
+    const ok = await restoreAutoSnapshot()
+    if (ok) {
+      setAutoSnapshot((await loadAutoSnapshot()) ?? null)
+      setResult('自動バックアップから復元しました')
+    } else {
+      setResult('復元できるバックアップがありません')
+    }
+  }
+
+  const handleExportAuto = async () => {
+    const snap = await loadAutoSnapshot()
+    if (!snap) {
+      setResult('書き出せるバックアップがありません')
+      return
+    }
+    const blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `schedule-backup-${snap.exportedAt.slice(0, 10)}.json`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    setResult('書き出しました')
+  }
+
+  const autoBackupDate = (iso: string) => {
+    const d = new Date(iso)
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mm = String(d.getMinutes()).padStart(2, '0')
+    return `${formatJaDate(formatDate(d))} ${hh}:${mm}`
   }
 
   const handleSaveAi = () => {
@@ -284,6 +334,27 @@ export default function SettingsScreen({ onDone }: Props) {
             {aiPingResult}
           </p>
         )}
+      </section>
+      <section style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 16 }}>自動バックアップ</h2>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+          起動時に1日1回だけ自動で保存します（常に1件だけ保持）。
+        </p>
+        {autoSnapshot ? (
+          <p data-testid="auto-backup-info">
+            {autoBackupDate(autoSnapshot.exportedAt)}・参考書 {autoSnapshot.books.length} 冊
+          </p>
+        ) : (
+          <p data-testid="auto-backup-info" style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+            まだありません（次回起動時に保存されます）。
+          </p>
+        )}
+        <button data-testid="auto-backup-restore" type="button" onClick={() => void handleRestoreAuto()} disabled={!autoSnapshot}>
+          自動バックアップから復元
+        </button>
+        <button data-testid="auto-backup-export" type="button" onClick={() => void handleExportAuto()} disabled={!autoSnapshot}>
+          ファイルに書き出す
+        </button>
       </section>
       <button data-testid="backup-export" type="button" onClick={() => void handleExport()}>
         バックアップを書き出す
