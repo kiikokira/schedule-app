@@ -17,7 +17,7 @@ import {
   buildOpContext,
   type AiOperation,
 } from '../lib/aiOperations'
-import { listChatHistory, appendChatHistory } from '../data/chatHistoryStore'
+import { appendChatHistory } from '../data/chatHistoryStore'
 import LongText from '../components/LongText'
 import { calcTotalDone, todayStr } from '../lib/progress'
 
@@ -108,13 +108,11 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      const [saved, r] = await Promise.all([listChatHistory(), loadReport()])
+      // 過去の会話は履歴画面にだけ残し、ここでは当日の提案から始める
+      const r = await loadReport()
       if (cancelled || !r) return
       setReport(r)
       setMessages([
-        ...saved.map(
-          (s) => ({ id: s.id, role: s.role, text: s.text, kind: s.kind ?? 'chat' }) as ChatMessage,
-        ),
         { id: crypto.randomUUID(), role: 'assistant', text: r.summaryText, withProposal: r.books.length > 0 } as ChatMessage,
       ])
     })()

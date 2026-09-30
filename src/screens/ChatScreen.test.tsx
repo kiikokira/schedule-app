@@ -69,14 +69,15 @@ describe('ChatScreen', () => {
     expect(screen.getByTestId('proposal-card')).toHaveTextContent(/優先する本/)
   })
 
-  it('loads persisted history on open', async () => {
+  it('does not show persisted history inline', async () => {
     await fillBook()
     await addTodaySlot()
     await appendChatHistory({ role: 'user', text: '前の相談' })
     await appendChatHistory({ role: 'assistant', text: '前の回答' })
     render(<ChatScreen onBack={() => {}} today={TODAY} />)
-    expect(await screen.findByText('前の相談')).toBeInTheDocument()
-    expect(await screen.findByText('前の回答')).toBeInTheDocument()
+    await screen.findByTestId('analysis-summary')
+    expect(screen.queryByText('前の相談')).not.toBeInTheDocument()
+    expect(screen.queryByText('前の回答')).not.toBeInTheDocument()
   })
 
   it('shows the history toggle even with a single message', async () => {
@@ -97,20 +98,20 @@ describe('ChatScreen', () => {
     expect(onHistory).toHaveBeenCalledTimes(1)
   })
 
-  it('collapses older messages behind a history toggle', async () => {
+  it('collapses older session messages behind a history toggle', async () => {
     await fillBook()
     await addTodaySlot()
-    for (let i = 0; i < 7; i++) {
-      await appendChatHistory({ role: 'user', text: `過去${i}` })
-    }
     render(<ChatScreen onBack={() => {}} today={TODAY} />)
     await screen.findByTestId('analysis-summary')
-    expect(screen.queryByText('過去0')).not.toBeInTheDocument()
-    expect(screen.getByText('過去6')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('chip-behind'))
+    fireEvent.click(screen.getByTestId('chip-priority'))
+    fireEvent.click(screen.getByTestId('chip-pace'))
+    // 報告1 + 3往復 = 7件中、直近5件だけ表示（ユーザー発言は2件）
+    expect(screen.getAllByTestId('chat-user-msg')).toHaveLength(2)
     fireEvent.click(screen.getByTestId('history-toggle'))
-    expect(await screen.findByText('過去0')).toBeInTheDocument()
+    expect(screen.getAllByTestId('chat-user-msg')).toHaveLength(3)
     fireEvent.click(screen.getByTestId('history-toggle'))
-    expect(screen.queryByText('過去0')).not.toBeInTheDocument()
+    expect(screen.getAllByTestId('chat-user-msg')).toHaveLength(2)
   })
 
   it('persists a free-text exchange', async () => {
@@ -337,15 +338,24 @@ describe('ChatScreen', () => {
     expect(saved.map((e) => e.text).join('\n')).toContain('反映しました')
   })
 
-  it('truncates long messages with an expander', async () => {
+  it('truncates long session messages with an expander', async () => {
+    const longText = `結論${'あ'.repeat(200)}`
+    setAiSettings({ endpoint: 'https://example.test', apiKey: 'sk-test', model: 'm' })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: longText } }] }),
+      }),
+    )
     await fillBook()
     await addTodaySlot()
-    const longText = `結論${'あ'.repeat(200)}`
-    await appendChatHistory({ role: 'assistant', text: longText })
     render(<ChatScreen onBack={() => {}} today={TODAY} />)
     await screen.findByTestId('analysis-summary')
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: '詳しく教えて' } })
+    fireEvent.click(screen.getByTestId('chat-send'))
+    await screen.findByTestId('msg-expand')
     expect(screen.queryByText(longText)).not.toBeInTheDocument()
-    expect(screen.getAllByTestId('msg-expand')[0]).toHaveTextContent('開く')
     fireEvent.click(screen.getAllByTestId('msg-expand')[0])
     expect(await screen.findByText(longText)).toBeInTheDocument()
   })
