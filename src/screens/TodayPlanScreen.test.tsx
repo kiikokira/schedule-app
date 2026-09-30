@@ -382,6 +382,22 @@ describe('TodayPlanScreen', () => {
     expect(screen.getByTestId('today-table')).toHaveTextContent('反復')
   })
 
+  it('上書き時も曜日設定の時間は未割当で必ず並ぶ', async () => {
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '17:45', end: '19:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'd1', weekday: null, date: '2026-09-29', start: '07:00', end: '07:30' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('today-table')
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const target = rows.find((r) => r.textContent?.includes('17:45-19:00'))
+    expect(target?.textContent).toContain('未割当')
+  })
+
   it('上書きで欠けた曜日設定の時間を通知し追加できる', async () => {
     await saveAvailabilitySlot(
       { id: 'w1', weekday: 2, date: null, start: '06:30', end: '07:00' },

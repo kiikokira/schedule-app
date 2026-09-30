@@ -8,7 +8,7 @@ import {
   deleteAvailabilitySlot,
   type AvailabilitySlot,
 } from '../data/dayplanStore'
-import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
+import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, parseTimeToMin, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
 import { todayStr, formatJaDate, daysBetween, parseDate, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
@@ -246,8 +246,16 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
     })
     // 設定にあるのに割当が付かなかった時間帯は未割当枠として並べる（欠落防止）。
     // 汽車しぼり等で割当先が無い時間もここに現れ、本を選び直せる。
+    // 表示上は上書きと曜日設定を統合する（計画分配自体は上書き優先のまま）。
     const covered = merged.map((s) => ({ startMin: s.startMin, endMin: s.endMin }))
-    for (const s of slotsForDate(availability, today)) {
+    const displayBase = slotsForDate(availability, today)
+    for (const a of shadowedSlots) {
+      const startMin = parseTimeToMin(a.start)
+      const endMin = parseTimeToMin(a.end)
+      if (displayBase.some((b) => b.startMin === startMin && b.endMin === endMin)) continue
+      displayBase.push({ startMin, endMin, onTrain: a.onTrain })
+    }
+    for (const s of displayBase) {
       let cur = s.startMin
       const blockers = covered
         .filter((c) => c.endMin > cur && c.startMin < s.endMin)
@@ -269,7 +277,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
     }
     rows.sort((a, b) => a.slot.startMin - b.slot.startMin || a.slot.endMin - b.slot.endMin)
     return rows
-  }, [pageApplied, effectivePins, savedPins, books, availability, today])
+  }, [pageApplied, effectivePins, savedPins, books, availability, today, shadowedSlots])
 
   const displayedSlots: PlanSlot[] = useMemo(
     () => displayedRows.map((r) => r.slot),
