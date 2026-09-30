@@ -34,6 +34,7 @@ import { isLeapBook } from '../lib/leap'
 
 type Props = {
   onDone: () => void
+  onFocus?: () => void
 }
 
 type SlotRow = { start: string; end: string; bookId?: string; onTrain?: boolean }
@@ -63,7 +64,7 @@ function collectRows(rows: SlotRow[]): RowsResult {
   return { ok: true, rows: filled }
 }
 
-export default function PlanScreen({ onDone }: Props) {
+export default function PlanScreen({ onDone, onFocus }: Props) {
   const { books, saveBook } = useBooks()
   const [entries, setEntries] = useState<ScheduleEntry[]>(() => loadSchedule())
   const [result, setResult] = useState<string | null>(null)
@@ -695,6 +696,14 @@ export default function PlanScreen({ onDone }: Props) {
           まとめて追加
         </button>
       </section>
+
+      {onFocus && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <button data-testid="plan-focus" type="button" onClick={onFocus}>
+            テスト期間
+          </button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
         <button data-testid="save-schedule" type="button" onClick={save}>

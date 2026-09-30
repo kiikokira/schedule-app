@@ -79,6 +79,18 @@ describe('PlanScreen', () => {
     expect(entry?.deadline).toBe('2026-12-15')
   })
 
+  it('opens the focus page from the test period button', () => {
+    const onFocus = vi.fn()
+    render(<PlanScreen onDone={() => {}} onFocus={onFocus} />)
+    fireEvent.click(screen.getByTestId('plan-focus'))
+    expect(onFocus).toHaveBeenCalledTimes(1)
+  })
+
+  it('hides the test period button without a handler', () => {
+    render(<PlanScreen onDone={() => {}} />)
+    expect(screen.queryByTestId('plan-focus')).not.toBeInTheDocument()
+  })
+
   it('pins all weekday slots to LEAP and restores the previous pins', async () => {
     const now = new Date().toISOString()
     await db.books.add({

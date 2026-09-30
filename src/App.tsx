@@ -109,7 +109,7 @@ export default function App() {
         )}
         {route.name === 'ai-history' && <HistoryScreen onBack={() => setRoute({ name: 'ai' })} />}
         {route.name === 'focus' && <FocusPeriodScreen onBack={() => setRoute({ name: 'home' })} />}
-        {route.name === 'plan' && <PlanScreen onDone={() => setRoute({ name: 'home' })} />}
+        {route.name === 'plan' && <PlanScreen onDone={() => setRoute({ name: 'home' })} onFocus={() => setRoute({ name: 'focus' })} />}
         {route.name === 'today' && (
           <TodayPlanScreen
             onBack={() => setRoute({ name: 'home' })}
@@ -128,9 +128,6 @@ export default function App() {
             </button>
             <button data-testid="nav-ai" onClick={() => setRoute({ name: 'ai' })}>
               調整AI
-            </button>
-            <button data-testid="nav-focus" onClick={() => setRoute({ name: 'focus' })}>
-              テスト期間
             </button>
             <button data-testid="nav-add" onClick={() => setRoute({ name: 'add' })}>
               ＋ 参考書を追加
