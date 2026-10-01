@@ -362,6 +362,12 @@ function ScheduleRow({
           }}
         />
       </div>
+      <p
+        data-testid={`row-progress-pct-${key}`}
+        style={{ fontSize: 12, textAlign: 'right', margin: '2px 0 0', color: 'var(--text-dim)' }}
+      >
+        {Math.round(progress)}%
+      </p>
       <div
         style={{
           display: 'flex',

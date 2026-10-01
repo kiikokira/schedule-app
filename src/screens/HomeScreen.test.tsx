@@ -582,6 +582,7 @@ describe('HomeScreen', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     const bar = await screen.findByTestId('row-progressbar-eibunpo-polaris-2')
     expect(bar).toHaveAttribute('aria-valuenow', '40')
+    expect(screen.getByTestId('row-progress-pct-eibunpo-polaris-2')).toHaveTextContent('40%')
   })
 
   it('shows a 0% progress bar on an unregistered schedule row', () => {
