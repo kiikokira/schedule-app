@@ -50,6 +50,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const [cycleEditDate, setCycleEditDate] = useState('')
   const [cycleEditError, setCycleEditError] = useState<string | null>(null)
   const [leapBlock, setLeapBlock] = useState<number | null>(null)
+  const [showCycleList, setShowCycleList] = useState(false)
 
   const book: BookData | undefined = books.find((b) => b.id === bookId)
   const today = todayStr()
@@ -293,112 +294,136 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
         </div>
         {mine.length > 0 && (
           <section style={{ marginTop: 16 }}>
-            <h2 style={{ fontSize: 16 }}>記録一覧</h2>
-            {mine.map((record) => (
-              <div
-                key={record.id}
-                data-testid={`cycle-row-${record.id}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 0',
-                  borderBottom: '1px solid var(--border)',
-                  fontSize: 13,
-                }}
-              >
-                {cycleEditingId === record.id ? (
-                  <>
-                    <label htmlFor={`cycle-edit-from-${record.id}`}>開始{unit}</label>
-                    <input
-                      id={`cycle-edit-from-${record.id}`}
-                      data-testid={`cycle-edit-from-${record.id}`}
-                      type="number"
-                      inputMode="numeric"
-                      value={cycleEditFrom}
-                      onChange={(e) => setCycleEditFrom(e.target.value)}
-                      placeholder="例: 1"
-                      style={{ width: 64 }}
-                    />
-                    <label htmlFor={`cycle-edit-to-${record.id}`}>終了{unit}</label>
-                    <input
-                      id={`cycle-edit-to-${record.id}`}
-                      data-testid={`cycle-edit-to-${record.id}`}
-                      type="number"
-                      inputMode="numeric"
-                      value={cycleEditTo}
-                      onChange={(e) => setCycleEditTo(e.target.value)}
-                      placeholder="例: 12"
-                      style={{ width: 64 }}
-                    />
-                    <label htmlFor={`cycle-edit-round-${record.id}`}>周回</label>
-                    <input
-                      id={`cycle-edit-round-${record.id}`}
-                      data-testid={`cycle-edit-round-${record.id}`}
-                      type="number"
-                      inputMode="numeric"
-                      value={cycleEditRound}
-                      onChange={(e) => setCycleEditRound(e.target.value)}
-                      placeholder="例: 1"
-                      style={{ width: 64 }}
-                    />
-                    <label htmlFor={`cycle-edit-date-${record.id}`}>日付</label>
-                    <input
-                      id={`cycle-edit-date-${record.id}`}
-                      data-testid={`cycle-edit-date-${record.id}`}
-                      type="date"
-                      value={cycleEditDate}
-                      onChange={(e) => setCycleEditDate(e.target.value)}
-                      style={{ flex: 1, minWidth: 120 }}
-                    />
-                    <button
-                      data-testid={`cycle-save-${record.id}`}
-                      type="button"
-                      onClick={() => void handleCycleSaveEdit(record)}
-                    >
-                      保存
-                    </button>
-                    <button
-                      data-testid={`cycle-cancel-${record.id}`}
-                      type="button"
-                      onClick={() => setCycleEditingId(null)}
-                    >
-                      キャンセル
-                    </button>
-                    {cycleEditError && (
-                      <p
-                        data-testid={`cycle-edit-error-${record.id}`}
-                        style={{ color: 'var(--danger)', fontSize: 12 }}
+            <button
+              data-testid="cycle-list-toggle"
+              type="button"
+              aria-expanded={showCycleList}
+              onClick={() => setShowCycleList((v) => !v)}
+              style={{ fontSize: 16, fontWeight: 700 }}
+            >
+              記録一覧（{mine.length}件） {showCycleList ? '▼' : '▶'}
+            </button>
+            {showCycleList &&
+              (() => {
+                const groups = new Map<string, typeof mine>()
+                for (const r of mine) {
+                  const list = groups.get(r.date)
+                  if (list) list.push(r)
+                  else groups.set(r.date, [r])
+                }
+                return [...groups.entries()].map(([date, recs]) => (
+                  <div key={date}>
+                    <div data-testid={`cycle-date-${date}`} style={{ fontWeight: 700, marginTop: 8 }}>
+                      {formatJaDate(date)}
+                    </div>
+                    {recs.map((record) => (
+                      <div
+                        key={record.id}
+                        data-testid={`cycle-row-${record.id}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '8px 0',
+                          borderBottom: '1px solid var(--border)',
+                          fontSize: 13,
+                        }}
                       >
-                        {cycleEditError}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <span style={{ flex: 1 }}>{formatJaDate(record.date)}</span>
-                    <span>
-                      {record.unitFrom}-{record.unitTo}{unit} {record.round}周目
-                    </span>
-                    <button
-                      data-testid={`cycle-edit-${record.id}`}
-                      type="button"
-                      onClick={() => handleCycleStartEdit(record)}
-                    >
-                      編集
-                    </button>
-                    <button
-                      data-testid={`cycle-delete-${record.id}`}
-                      type="button"
-                      onClick={() => void handleCycleRecordDelete(record)}
-                      style={{ color: 'var(--danger)' }}
-                    >
-                      削除
-                    </button>
-                  </>
-                )}
-              </div>
-            ))}
+                        {cycleEditingId === record.id ? (
+                          <>
+                            <label htmlFor={`cycle-edit-from-${record.id}`}>開始{unit}</label>
+                            <input
+                              id={`cycle-edit-from-${record.id}`}
+                              data-testid={`cycle-edit-from-${record.id}`}
+                              type="number"
+                              inputMode="numeric"
+                              value={cycleEditFrom}
+                              onChange={(e) => setCycleEditFrom(e.target.value)}
+                              placeholder="例: 1"
+                              style={{ width: 64 }}
+                            />
+                            <label htmlFor={`cycle-edit-to-${record.id}`}>終了{unit}</label>
+                            <input
+                              id={`cycle-edit-to-${record.id}`}
+                              data-testid={`cycle-edit-to-${record.id}`}
+                              type="number"
+                              inputMode="numeric"
+                              value={cycleEditTo}
+                              onChange={(e) => setCycleEditTo(e.target.value)}
+                              placeholder="例: 12"
+                              style={{ width: 64 }}
+                            />
+                            <label htmlFor={`cycle-edit-round-${record.id}`}>周回</label>
+                            <input
+                              id={`cycle-edit-round-${record.id}`}
+                              data-testid={`cycle-edit-round-${record.id}`}
+                              type="number"
+                              inputMode="numeric"
+                              value={cycleEditRound}
+                              onChange={(e) => setCycleEditRound(e.target.value)}
+                              placeholder="例: 1"
+                              style={{ width: 64 }}
+                            />
+                            <label htmlFor={`cycle-edit-date-${record.id}`}>日付</label>
+                            <input
+                              id={`cycle-edit-date-${record.id}`}
+                              data-testid={`cycle-edit-date-${record.id}`}
+                              type="date"
+                              value={cycleEditDate}
+                              onChange={(e) => setCycleEditDate(e.target.value)}
+                              style={{ flex: 1, minWidth: 120 }}
+                            />
+                            <button
+                              data-testid={`cycle-save-${record.id}`}
+                              type="button"
+                              onClick={() => void handleCycleSaveEdit(record)}
+                            >
+                              保存
+                            </button>
+                            <button
+                              data-testid={`cycle-cancel-${record.id}`}
+                              type="button"
+                              onClick={() => setCycleEditingId(null)}
+                            >
+                              キャンセル
+                            </button>
+                            {cycleEditError && (
+                              <p
+                                data-testid={`cycle-edit-error-${record.id}`}
+                                style={{ color: 'var(--danger)', fontSize: 12 }}
+                              >
+                                {cycleEditError}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ flex: 1 }}>
+                              {record.unitFrom}-{record.unitTo}
+                              {unit} {record.round}周目
+                            </span>
+                            <button
+                              data-testid={`cycle-edit-${record.id}`}
+                              type="button"
+                              onClick={() => handleCycleStartEdit(record)}
+                            >
+                              編集
+                            </button>
+                            <button
+                              data-testid={`cycle-delete-${record.id}`}
+                              type="button"
+                              onClick={() => void handleCycleRecordDelete(record)}
+                              style={{ color: 'var(--danger)' }}
+                            >
+                              削除
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))
+              })()}
           </section>
         )}
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>

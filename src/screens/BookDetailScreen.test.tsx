@@ -246,6 +246,7 @@ describe('BookDetailScreen', () => {
     })
     await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: daysFromNow(0), unitFrom: 1, unitTo: 2, round: 1 })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('cycle-list-toggle'))
     fireEvent.click(await screen.findByTestId('cycle-delete-c1'))
     expect(await screen.findByTestId('cycle-error')).toHaveTextContent(/削除に失敗/)
   })
@@ -400,5 +401,89 @@ describe('BookDetailScreen', () => {
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     expect(await screen.findByTestId('cycle-round-badge')).toHaveTextContent('今1周目')
+  })
+
+  it('反復の今日の目標は当日分を差し引いて表示する', async () => {
+    await db.books.add({
+      ...book,
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: localDateStr(new Date()), unitFrom: 1, unitTo: 100, round: 1 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    // 日割り 1150 - 当日 100 = 1050
+    expect(await screen.findByTestId('today-target')).toHaveTextContent('1050')
+  })
+
+  it('反復の今日の目標はやり過ぎるとマイナスになる', async () => {
+    await db.books.add({
+      ...book,
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: localDateStr(new Date()), unitFrom: 1, unitTo: 1200, round: 1 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    // 日割り 1150 - 当日 1200 = -50
+    expect(await screen.findByTestId('today-target')).toHaveTextContent('-50')
+  })
+
+  it('通常ページの今日の目標も当日分を差し引いて表示する', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(0), deadline: daysFromNow(6) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: localDateStr(new Date()), pages: 40 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    // 日割り 17 - 当日 40 = -23
+    expect(await screen.findByTestId('today-target')).toHaveTextContent('-23')
+  })
+})
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByTestId('cycle-round-badge')).toHaveTextContent('今1周目')
+  })
+
+  it('周回記録一覧はボタンで展開するまでは表示されない', async () => {
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: daysFromNow(0), unitFrom: 1, unitTo: 2, round: 1 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    const toggle = await screen.findByTestId('cycle-list-toggle')
+    expect(toggle).toHaveTextContent(/記録一覧/)
+    expect(screen.queryByTestId('cycle-row-c1')).not.toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(await screen.findByTestId('cycle-row-c1')).toBeInTheDocument()
+  })
+
+  it('同じ日付の記録は日付を重複表示しない', async () => {
+    const sameDate = daysFromNow(0)
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(-1),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: sameDate, unitFrom: 1, unitTo: 2, round: 1 })
+    await db.cycleRecords.add({ id: 'c2', bookId: 'b1', date: sameDate, unitFrom: 3, unitTo: 4, round: 1 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('cycle-list-toggle'))
+    await screen.findByTestId('cycle-row-c1')
+    await screen.findByTestId('cycle-row-c2')
+    const { formatJaDate } = await import('../lib/progress')
+    const dateText = formatJaDate(sameDate)
+    const matches = screen.getAllByText(dateText)
+    expect(matches).toHaveLength(1)
   })
 })
