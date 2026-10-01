@@ -265,7 +265,7 @@ describe('BookDetailScreen', () => {
     expect(await screen.findByTestId('cycle-date-warning')).toHaveTextContent(/範囲外/)
   })
 
-  it('反復記録フォーム付近に二重計上の注記を表示する', async () => {
+  it('反復記録フォーム付近に加算の注記を表示する', async () => {
     await db.books.add({
       ...book,
       totalPages: 576,
@@ -276,7 +276,22 @@ describe('BookDetailScreen', () => {
       deadline: daysFromNow(6),
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
-    expect(await screen.findByText('同じ区画・同じ周回の再記録は進捗に二重計上されません')).toBeInTheDocument()
+    expect(await screen.findByText('記録するごとに進捗に加算されます（同じ範囲の繰り返しも含む）')).toBeInTheDocument()
+  })
+
+  it('同じ範囲の再記録でも完了パスが増える', async () => {
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: daysFromNow(0), unitFrom: 1, unitTo: 2, round: 1 })
+    await db.cycleRecords.add({ id: 'c2', bookId: 'b1', date: daysFromNow(0), unitFrom: 1, unitTo: 2, round: 1 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByTestId('cycle-summary')).toHaveTextContent('4 / 60')
   })
 
   it('LEAPは語単位で表示し5つの範囲プリセットを出す', async () => {

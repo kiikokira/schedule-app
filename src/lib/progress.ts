@@ -199,7 +199,14 @@ export function calcCycleDonePairs(
   book: { initialDoneUnits?: number },
   records: CycleRecordData[],
 ): number {
-  return (book.initialDoneUnits ?? 0) + expandCyclePairs(records).size
+  let done = book.initialDoneUnits ?? 0
+  for (const r of records) {
+    if (!Number.isInteger(r.unitFrom) || !Number.isInteger(r.unitTo)) continue
+    if (!Number.isInteger(r.round) || r.round < 1) continue
+    if (r.unitFrom < 1 || r.unitTo < r.unitFrom) continue
+    done += r.unitTo - r.unitFrom + 1
+  }
+  return done
 }
 
 export function cycleGrandTotal(book: {

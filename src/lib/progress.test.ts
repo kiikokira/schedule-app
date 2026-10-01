@@ -291,10 +291,15 @@ describe('cycle progress', () => {
     id, bookId: 'b1', date: '2026-01-05', unitFrom, unitTo, round,
   })
 
-  it('重なった範囲を二重計上せず distinct で数える', () => {
+  it('重なった範囲も記録ごとに加算する', () => {
     const records = [rec('r1', 1, 5, 1), rec('r2', 4, 8, 1)]
     expect(expandCyclePairs(records).size).toBe(8)
-    expect(calcCycleDonePairs({}, records)).toBe(8)
+    expect(calcCycleDonePairs({}, records)).toBe(10)
+  })
+
+  it('同じ語・同じ周回の再記録も加算する', () => {
+    const records = [rec('r1', 1, 5, 1), rec('r2', 1, 5, 1)]
+    expect(calcCycleDonePairs({}, records)).toBe(10)
   })
 
   it('初期完了分を加算し総量と毎日の目標を計算する', () => {

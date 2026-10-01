@@ -290,7 +290,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           <button data-testid="cycle-record" type="button" onClick={() => void handleCycleRecord()}>
             範囲を記録
           </button>
-          <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>同じ{unit}・同じ周回の再記録は進捗に二重計上されません</p>
+          <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>記録するごとに進捗に加算されます（同じ範囲の繰り返しも含む）</p>
           {cycleError && (
             <p data-testid="cycle-error" style={{ color: 'var(--danger)' }}>
               {cycleError}
