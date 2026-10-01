@@ -77,7 +77,13 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     const done = calcCycleDonePairs(book, mine)
     const round = currentCycleRound(book, mine)
     const remainingDays = daysBetween(today, book.deadline)
-    const target = calcCycleDailyTarget(book, done, remainingDays)
+    // 今日の目標は日割りノルマから当日分を差し引く（やり過ぎはマイナス表示）。
+    // 翌日以降は増えた完了分で割り直されるため均等に均される。
+    const doneBeforeToday = calcCycleDonePairs(
+      book,
+      mine.filter((r) => r.date !== today),
+    )
+    const target = calcCycleDailyTarget(book, doneBeforeToday, remainingDays) - (done - doneBeforeToday)
     const cyclePairs = expandCyclePairs(mine)
     const cycleTotalUnits = book.totalUnits ?? 0
     const cycleTargetRounds = book.targetRounds ?? 0
@@ -440,9 +446,9 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
 
   const done = calcTotalDone(book, records)
   const remainingDays = daysBetween(today, book.deadline)
-  const target = calcDailyTarget(book, done, remainingDays)
-
   const doneBeforeToday = done - (todayRecord?.pages ?? 0)
+  const target = calcDailyTarget(book, doneBeforeToday, remainingDays) - (todayRecord?.pages ?? 0)
+
   const todayPages = (() => {
     const p = Number(pagesInput)
     if (Number.isInteger(p) && p >= 1) return p

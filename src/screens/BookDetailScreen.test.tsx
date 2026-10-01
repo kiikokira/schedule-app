@@ -442,10 +442,6 @@ describe('BookDetailScreen', () => {
     // 日割り 17 - 当日 40 = -23
     expect(await screen.findByTestId('today-target')).toHaveTextContent('-23')
   })
-})
-    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
-    expect(await screen.findByTestId('cycle-round-badge')).toHaveTextContent('今1周目')
-  })
 
   it('周回記録一覧はボタンで展開するまでは表示されない', async () => {
     await db.books.add({
