@@ -12,8 +12,7 @@ import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, parseTimeToM
 import { todayStr, formatJaDate, daysBetween, parseDate, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
-import { publishSlotsOnce } from '../lib/slotsPublish'
-import { useSlotStartReminder } from '../lib/useSlotStartReminder'
+import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { isLeapBook } from '../lib/leap'
 import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
 import CoverImage from '../components/CoverImage'
@@ -308,8 +307,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
     setDayRowsInit(true)
   }, [availabilityLoaded, availability, today, dayRowsInit])
 
-  // リマインダー用: その日の空き時間帯と終了予定をntfyへ送る。
-  // ワークフローが15分ごとに読み、終わった直後の時間帯だけ通知する。
+  // リマインダー用: その日の空き時間帯と終了予定をntfyへ送り、
+  // 各枠の開始10分前に届くよう予約投稿する。
   const notify = getNotifySettings()
   const notifyEnabled = notify.enabled
   const notifyTopic = notify.topic
@@ -325,12 +324,10 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   useEffect(() => {
     if (!notifyEnabled || !notifyTopic.trim() || !slotsPayload) return
     void publishSlotsOnce(notifyTopic, slotsPayload)
+    // 開始10分前に届くよう予約投稿する。同じ予約IDの再送は置換になるため、
+    // 開くたび・複数端末でも二重送信しない。直近に過ぎた分はその場で送る。
+    void syncSlotSchedules(notifyTopic, slotsPayload)
   }, [notifyEnabled, notifyTopic, slotsPayload])
-
-  // アプリを開いている間は、直近の開始10分前にその場で通知を送る。
-  // サーバー側の定期実行（最大15分遅れ）より早く届く。タイトルを
-  // 統一しているため、サーバー側の二重送信防止にもかかる。
-  useSlotStartReminder(notifyEnabled, notifyTopic, slotsPayload)
 
   const saveTodayOverrides = async (slotsToSave: PlanSlot[]) => {
     const existing = await listAvailability()

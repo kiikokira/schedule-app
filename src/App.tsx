@@ -14,7 +14,7 @@ import { listAvailability, prunePastOverrides } from './data/dayplanStore'
 import { todayStr } from './lib/progress'
 import { getNotifySettings } from './lib/notify'
 import { buildSlotsPayload } from './lib/slotNotify'
-import { publishSlotsOnce } from './lib/slotsPublish'
+import { publishSlotsOnce, syncSlotSchedules } from './lib/slotsPublish'
 import { slotsForDate } from './lib/dayplan'
 import { takeAutoSnapshotIfNeeded } from './data/autoBackup'
 import './styles.css'
@@ -46,9 +46,9 @@ export default function App() {
     void takeAutoSnapshotIfNeeded().catch(() => {})
   }, [])
 
-  // 起動時にその日の開始予定を登録する。「今日の計画」を開かなくても
-  // リマインダーのワークフローが時間帯を拾えるようにする。
-  // 同内容の再送は publishSlotsOnce 側で抑止される。
+  // 起動時にその日の開始予定を登録・予約投稿する。「今日の計画」を開かなくても
+  // 開始10分前の通知が届くようにする。同じ予約IDの再送は置換になるため、
+  // アプリを開くたび・複数端末でも二重送信しない。
   useEffect(() => {
     const notify = getNotifySettings()
     if (!notify.enabled || !notify.topic.trim()) return
@@ -56,6 +56,7 @@ export default function App() {
     void listAvailability().then((availability) => {
       const payload = buildSlotsPayload(today, slotsForDate(availability, today), [], books)
       void publishSlotsOnce(notify.topic, payload)
+      void syncSlotSchedules(notify.topic, payload)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
