@@ -294,6 +294,40 @@ describe('BookDetailScreen', () => {
     expect(await screen.findByTestId('cycle-summary')).toHaveTextContent('4 / 60')
   })
 
+  it('記録行に周目の横に記録時刻を表示する', async () => {
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: daysFromNow(0), unitFrom: 1, unitTo: 2, round: 1, recordedAt: new Date(2026, 9, 2, 14, 32).toISOString() })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('cycle-list-toggle'))
+    expect(await screen.findByTestId('cycle-row-c1')).toHaveTextContent('1周目 14:32')
+  })
+
+  it('同じ日付内は新しい記録が上に来る', async () => {
+    const date = daysFromNow(0)
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(-1),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date, unitFrom: 1, unitTo: 2, round: 1, recordedAt: new Date(2026, 9, 2, 9, 5).toISOString() })
+    await db.cycleRecords.add({ id: 'c2', bookId: 'b1', date, unitFrom: 3, unitTo: 4, round: 1, recordedAt: new Date(2026, 9, 2, 18, 20).toISOString() })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('cycle-list-toggle'))
+    await screen.findByTestId('cycle-row-c1')
+    const rows = screen.getAllByTestId(/^cycle-row-/)
+    expect(rows.map((r) => r.getAttribute('data-testid'))).toEqual(['cycle-row-c2', 'cycle-row-c1'])
+  })
+
   it('LEAPは語単位で表示し5つの範囲プリセットを出す', async () => {
     await db.books.add({
       ...book,

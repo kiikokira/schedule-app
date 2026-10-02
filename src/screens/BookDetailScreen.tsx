@@ -10,6 +10,7 @@ import {
   calcRequiredPerDay,
   daysBetween,
   formatJaDate,
+  formatJaTime,
   todayStr,
   calcCycleDonePairs,
   calcCycleDailyTarget,
@@ -72,7 +73,13 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   if (book.studyMode === 'cycles') {
     const mine = cycleRecords
       .filter((r) => r.bookId === book.id)
-      .sort((a, b) => (a.date > b.date ? -1 : 1))
+      .sort((a, b) => {
+        if (a.date !== b.date) return a.date > b.date ? -1 : 1
+        const at = a.recordedAt ?? ''
+        const bt = b.recordedAt ?? ''
+        if (at === bt) return 0
+        return at > bt ? -1 : 1
+      })
     const total = cycleGrandTotal(book)
     const done = calcCycleDonePairs(book, mine)
     const round = currentCycleRound(book, mine)
@@ -122,7 +129,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       }
       setCycleError(null)
       try {
-        await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: effectiveDate, unitFrom: from, unitTo: to, round: roundNum })
+        await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: effectiveDate, unitFrom: from, unitTo: to, round: roundNum, recordedAt: new Date().toISOString() })
       } catch {
         setCycleError('記録に失敗しました。もう一度お試しください')
         return
@@ -406,7 +413,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                           <>
                             <span style={{ flex: 1 }}>
                               {record.unitFrom}-{record.unitTo}
-                              {unit} {record.round}周目
+                              {unit} {record.round}周目{record.recordedAt ? ` ${formatJaTime(record.recordedAt)}` : ''}
                             </span>
                             <button
                               data-testid={`cycle-edit-${record.id}`}

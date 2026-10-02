@@ -52,6 +52,11 @@ export function formatJaDate(iso: string): string {
   return `${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS[d.getDay()]}）`
 }
 
+export function formatJaTime(iso: string): string {
+  const d = new Date(iso)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
 export function daysBetween(from: string, to: string): number {
   const a = parseDate(from)
   const b = parseDate(to)
@@ -182,6 +187,7 @@ export type CycleRecordData = {
   unitFrom: number
   unitTo: number
   round: number
+  recordedAt?: string
 }
 
 export function expandCyclePairs(records: CycleRecordData[]): Set<string> {

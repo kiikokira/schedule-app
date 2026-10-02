@@ -11,6 +11,7 @@ import {
   calcTotalDone,
   currentRound,
   formatJaDate,
+  formatJaTime,
   recentAvgPagesPerDay,
   overallDiagnosis,
   expandCyclePairs,
@@ -39,6 +40,13 @@ describe('formatJaDate', () => {
     expect(formatJaDate('2026-09-21')).toBe('9月21日（月）')
     expect(formatJaDate('2026-01-03')).toBe('1月3日（土）')
     expect(formatJaDate('2026-12-31')).toBe('12月31日（木）')
+  })
+})
+
+describe('formatJaTime', () => {
+  it('formats an ISO timestamp as local 時:分', () => {
+    expect(formatJaTime(new Date(2026, 9, 2, 14, 32).toISOString())).toBe('14:32')
+    expect(formatJaTime(new Date(2026, 9, 2, 9, 5).toISOString())).toBe('09:05')
   })
 })
 

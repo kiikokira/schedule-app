@@ -415,7 +415,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
       return
     }
     try {
-      await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: today, unitFrom: from, unitTo: to, round })
+      await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: today, unitFrom: from, unitTo: to, round, recordedAt: new Date().toISOString() })
     } catch {
       setCycleErrors((p) => ({ ...p, [slotKey]: '記録に失敗しました。もう一度お試しください' }))
       return
