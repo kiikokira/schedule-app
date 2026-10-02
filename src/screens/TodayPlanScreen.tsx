@@ -585,6 +585,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                       aria-label="この時間にする本を選び直す"
                       style={{ flex: 1, minWidth: 0 }}
                     >
+                      <option value="" disabled>
+                        本を選ぶ
+                      </option>
                       {pageBooks.map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.trainFit === 'train' ? '【汽車】' : b.trainFit === 'home' ? '【自宅】' : ''}{b.title}

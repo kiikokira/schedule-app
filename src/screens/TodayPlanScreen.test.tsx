@@ -466,5 +466,60 @@ describe('TodayPlanScreen', () => {
     expect(await screen.findByTestId('focus-period-notice')).toHaveTextContent('中間テスト')
     expect(screen.queryByText('英文法ポラリス2（応用レベル）')).not.toBeInTheDocument()
   })
+
+  it('未割当行の本選択は未選択状態を明示する', async () => {
+    await fillBook('leap-1', {
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+    })
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '20:30', end: '21:45' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('today-table')
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const target = rows.find((r) => r.textContent?.includes('未割当'))
+    expect(target?.textContent).toContain('20:30-21:45')
+    const { within } = await import('@testing-library/react')
+    const select = within(target as HTMLElement).getByRole('combobox') as HTMLSelectElement
+    expect(select.value).toBe('')
+    expect(select.options[select.selectedIndex]?.value).toBe('')
+  })
+
+  it('テスト期間中の未割当枠で本を選ぶと表紙とタイトルが付く', async () => {
+    await fillBook('leap-1', {
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      coverUrl: 'https://example.com/leap-cover.jpg',
+    })
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 1, date: null, start: '20:30', end: '21:45' },
+      true,
+    )
+    saveFocusPeriods([
+      { id: 'f1', title: '中間テスト', startDate: '2026-10-01', endDate: '2026-10-14', bookIds: ['leap-1'] },
+    ])
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
+    await screen.findByTestId('today-table')
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const target = rows.find((r) => r.textContent?.includes('未割当'))
+    expect(target?.textContent).toContain('20:30-21:45')
+    const { within } = await import('@testing-library/react')
+    fireEvent.change(within(target as HTMLElement).getByRole('combobox'), {
+      target: { value: 'leap-1' },
+    })
+    await waitFor(() => expect(screen.queryByText(/未割当/)).not.toBeInTheDocument())
+    const rowsAfter = screen.getAllByTestId(/plan-row-\d+/)
+    const updated = rowsAfter.find((r) => r.textContent?.includes('20:30-21:45'))
+    expect(updated?.textContent).toContain('改訂版 必携 英単語 LEAP')
+    expect(updated?.querySelector('img[src="https://example.com/leap-cover.jpg"]')).not.toBeNull()
+  })
 })
 
