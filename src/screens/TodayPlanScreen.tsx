@@ -158,6 +158,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
 
   const pageBooks = books.filter((b) => b.studyMode !== 'cycles')
   const cycleBooks = books.filter((b) => b.studyMode === 'cycles')
+  const allPageBooks = allBooks.filter((b) => b.studyMode !== 'cycles')
+  const allCycleBooks = allBooks.filter((b) => b.studyMode === 'cycles')
   const doneByBook = new Map(pageBooks.map((b) => [b.id, b.initialDonePages ?? 0]))
   for (const r of records) {
     const done = doneByBook.get(r.bookId)
@@ -504,8 +506,10 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
         <div data-testid="today-table">
           {displayedRows.map((row, i) => {
             const { slot: s } = row
-            const book = books.find((b) => b.id === s.bookId)
+            const book = books.find((b) => b.id === s.bookId) ?? allBooks.find((b) => b.id === s.bookId)
             const isCycles = book?.studyMode === 'cycles'
+            // 未割当行と対象外の本が付いた行では全参考書から選べる
+            const showAllBooks = s.bookId === '' || !books.some((b) => b.id === s.bookId)
             const inputKey = `${s.bookId}-${s.startMin}-${i}`
             const mine = isCycles && book ? cycleRecords.filter((r) => r.bookId === book.id) : []
             const cycleDone = isCycles && book ? calcCycleDonePairs(book, mine) : 0
@@ -588,12 +592,12 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
                       <option value="" disabled>
                         本を選ぶ
                       </option>
-                      {pageBooks.map((b) => (
+                      {(showAllBooks ? allPageBooks : pageBooks).map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.trainFit === 'train' ? '【汽車】' : b.trainFit === 'home' ? '【自宅】' : ''}{b.title}
                         </option>
                       ))}
-                      {cycleBooks.map((b) => (
+                      {(showAllBooks ? allCycleBooks : cycleBooks).map((b) => (
                         <option key={b.id} value={b.id}>
                           【反復】{b.title}
                         </option>

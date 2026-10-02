@@ -464,7 +464,9 @@ describe('TodayPlanScreen', () => {
     ])
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
     expect(await screen.findByTestId('focus-period-notice')).toHaveTextContent('中間テスト')
-    expect(screen.queryByText('英文法ポラリス2（応用レベル）')).not.toBeInTheDocument()
+    // 割当済みの行タイトルには出ない（未割当行の選択肢には出る）
+    const titles = screen.queryAllByTestId('plan-row-book')
+    expect(titles.some((t) => t.textContent?.includes('英文法ポラリス2（応用レベル）'))).toBe(false)
   })
 
   it('未割当行の本選択は未選択状態を明示する', async () => {
@@ -488,6 +490,37 @@ describe('TodayPlanScreen', () => {
     const select = within(target as HTMLElement).getByRole('combobox') as HTMLSelectElement
     expect(select.value).toBe('')
     expect(select.options[select.selectedIndex]?.value).toBe('')
+  })
+
+  it('テスト期間中の未割当枠では対象外の本も選べる', async () => {
+    await fillBook('b1', { trainFit: 'home', coverUrl: 'https://example.com/polaris-cover.jpg' })
+    await fillBook('leap-1', {
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+    })
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 1, date: null, start: '20:30', end: '21:45' },
+      true,
+    )
+    saveFocusPeriods([
+      { id: 'f1', title: '中間テスト', startDate: '2026-10-01', endDate: '2026-10-14', bookIds: ['leap-1'] },
+    ])
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
+    await screen.findByTestId('today-table')
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const target = rows.find((r) => r.textContent?.includes('未割当'))
+    expect(target?.textContent).toContain('20:30-21:45')
+    const { within } = await import('@testing-library/react')
+    const select = within(target as HTMLElement).getByRole('combobox') as HTMLSelectElement
+    expect(Array.from(select.options).map((o) => o.value)).toContain('b1')
+    fireEvent.change(select, { target: { value: 'b1' } })
+    await waitFor(() => expect(screen.queryByText(/未割当/)).not.toBeInTheDocument())
+    const updated = screen.getAllByTestId(/plan-row-\d+/).find((r) => r.textContent?.includes('20:30-21:45'))
+    expect(updated?.textContent).toContain('英文法ポラリス2（応用レベル）')
+    expect(updated?.querySelector('img[src="https://example.com/polaris-cover.jpg"]')).not.toBeNull()
   })
 
   it('テスト期間中の未割当枠で本を選ぶと表紙とタイトルが付く', async () => {
