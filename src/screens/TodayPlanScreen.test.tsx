@@ -7,6 +7,7 @@ import { saveFocusPeriods } from '../data/focusPeriods'
 import { resetSchedule } from '../data/scheduleStore'
 
 beforeEach(async () => {
+  localStorage.clear()
   await db.books.clear()
   await db.records.clear()
   await db.cycleRecords.clear()
@@ -553,6 +554,59 @@ describe('TodayPlanScreen', () => {
     const updated = rowsAfter.find((r) => r.textContent?.includes('20:30-21:45'))
     expect(updated?.textContent).toContain('改訂版 必携 英単語 LEAP')
     expect(updated?.querySelector('img[src="https://example.com/leap-cover.jpg"]')).not.toBeNull()
+  })
+
+  it('上書き内容に名前を付けてプリセット保存できる', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '20:30', end: '21:45' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    fireEvent.click(await screen.findByTestId('today-override-toggle'))
+    fireEvent.change(screen.getByTestId('today-override-preset-name'), { target: { value: '夜勉' } })
+    fireEvent.click(screen.getByTestId('today-override-preset-save'))
+    await waitFor(() => {
+      const sel = screen.getByTestId('today-override-preset-select') as HTMLSelectElement
+      expect(Array.from(sel.options).map((o) => o.text)).toContain('夜勉')
+    })
+  })
+
+  it('名前なしではプリセット保存されない', async () => {
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    fireEvent.click(await screen.findByTestId('today-override-toggle'))
+    fireEvent.click(screen.getByTestId('today-override-preset-save'))
+    const sel = screen.getByTestId('today-override-preset-select') as HTMLSelectElement
+    expect(sel.options).toHaveLength(1)
+  })
+
+  it('プリセット適用で上書きフォームに入る', async () => {
+    const { saveOverridePresets } = await import('../data/overridePresets')
+    saveOverridePresets([
+      { id: 'p1', name: '夜勉', rows: [{ start: '09:00', end: '10:00', bookId: 'b1' }] },
+    ])
+    await fillBook('b1')
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    fireEvent.click(await screen.findByTestId('today-override-toggle'))
+    fireEvent.change(screen.getByTestId('today-override-preset-select'), { target: { value: 'p1' } })
+    fireEvent.click(screen.getByTestId('today-override-preset-apply'))
+    expect(screen.getByTestId('today-override-start-0')).toHaveValue('09:00')
+    expect(screen.getByTestId('today-override-end-0')).toHaveValue('10:00')
+  })
+
+  it('プリセットを削除できる', async () => {
+    const { saveOverridePresets } = await import('../data/overridePresets')
+    saveOverridePresets([
+      { id: 'p1', name: '夜勉', rows: [{ start: '09:00', end: '10:00' }] },
+    ])
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    fireEvent.click(await screen.findByTestId('today-override-toggle'))
+    fireEvent.change(screen.getByTestId('today-override-preset-select'), { target: { value: 'p1' } })
+    fireEvent.click(screen.getByTestId('today-override-preset-delete'))
+    await waitFor(() => {
+      const sel = screen.getByTestId('today-override-preset-select') as HTMLSelectElement
+      expect(Array.from(sel.options).map((o) => o.text)).not.toContain('夜勉')
+    })
   })
 })
 

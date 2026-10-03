@@ -15,6 +15,7 @@ import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { isLeapBook } from '../lib/leap'
 import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
+import { loadOverridePresets, saveOverridePresets, type OverridePreset } from '../data/overridePresets'
 import CoverImage from '../components/CoverImage'
 
 type Props = {
@@ -143,6 +144,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   const [dayRowsInit, setDayRowsInit] = useState(false)
   const [dayMessage, setDayMessage] = useState<string | null>(null)
   const [overrideOpen, setOverrideOpen] = useState(false)
+  const [presets, setPresets] = useState<OverridePreset[]>(() => loadOverridePresets())
+  const [presetName, setPresetName] = useState('')
+  const [presetId, setPresetId] = useState('')
 
   const refreshAvailability = async () => {
     const a = await listAvailability()
@@ -388,6 +392,39 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
     setDayRowsInit(false)
     setDayMessage('今日だけの時間と本を上書きしました')
     await refreshAvailability()
+  }
+
+  const savePreset = () => {
+    const name = presetName.trim()
+    if (!name) {
+      setDayMessage('プリセット名を入力してください')
+      return
+    }
+    const rows = dayRows
+      .filter((r) => r.start && r.end)
+      .map((r) => ({ start: r.start, end: r.end, bookId: r.bookId, onTrain: r.onTrain }))
+    const preset: OverridePreset = { id: crypto.randomUUID(), name, rows }
+    const next = [...presets, preset]
+    saveOverridePresets(next)
+    setPresets(next)
+    setPresetName('')
+    setPresetId(preset.id)
+    setDayMessage(`プリセット「${name}」を保存しました`)
+  }
+
+  const applyPreset = () => {
+    const preset = presets.find((p) => p.id === presetId)
+    if (!preset) return
+    setDayRows(preset.rows.map((r) => ({ ...r })))
+    setDayMessage(`プリセット「${preset.name}」を入力しました`)
+  }
+
+  const deletePreset = () => {
+    if (!presetId) return
+    const next = presets.filter((p) => p.id !== presetId)
+    saveOverridePresets(next)
+    setPresets(next)
+    setPresetId('')
   }
 
   const handleCycleRecord = async (slotKey: string, book: BookData) => {
@@ -725,6 +762,39 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
             <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
               急な予定が入ったときは、ここで今日の時間と本を変えられます。曜日ごとの設定には影響しません。
             </p>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+              <select
+                data-testid="today-override-preset-select"
+                value={presetId}
+                onChange={(e) => setPresetId(e.target.value)}
+                aria-label="プリセット"
+              >
+                <option value="">プリセットを選ぶ</option>
+                {presets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <button data-testid="today-override-preset-apply" type="button" onClick={applyPreset}>
+                適用
+              </button>
+              <button data-testid="today-override-preset-delete" type="button" onClick={deletePreset}>
+                プリセット削除
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+              <input
+                data-testid="today-override-preset-name"
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                placeholder="プリセット名"
+                aria-label="プリセット名"
+              />
+              <button data-testid="today-override-preset-save" type="button" onClick={savePreset}>
+                名前を付けて保存
+              </button>
+            </div>
             {dayRows.map((r, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
             <input
