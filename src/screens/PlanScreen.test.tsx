@@ -9,6 +9,7 @@ import {
   saveAvailabilitySlot,
   listAvailability,
 } from '../data/dayplanStore'
+import { saveOverridePresets, loadOverridePresets } from '../data/overridePresets'
 
 beforeEach(async () => {
   await db.books.clear()
@@ -875,5 +876,77 @@ describe('PlanScreen', () => {
     await screen.findByTestId('slot-weekday-select')
     fireEvent.click(screen.getByTestId('slot-weekly-toggle'))
     expect(screen.queryByTestId('slot-weekday-select')).not.toBeInTheDocument()
+  })
+
+  it('プリセット制作は初期は畳まれボタンで展開できる', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    expect(screen.getByTestId('slot-preset-toggle')).toBeInTheDocument()
+    expect(screen.queryByTestId('plan-preset-select')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('slot-preset-toggle'))
+    expect(await screen.findByTestId('plan-preset-select')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('slot-preset-toggle'))
+    expect(screen.queryByTestId('plan-preset-select')).not.toBeInTheDocument()
+  })
+
+  it('プリセットを新規作成して保存できる', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
+    fireEvent.change(screen.getByTestId('plan-preset-name'), { target: { value: '夜勉' } })
+    fireEvent.click(screen.getByTestId('plan-preset-row-add'))
+    fireEvent.change(screen.getByTestId('plan-preset-start-0'), { target: { value: '09:00' } })
+    fireEvent.change(screen.getByTestId('plan-preset-end-0'), { target: { value: '10:00' } })
+    fireEvent.click(screen.getByTestId('plan-preset-save'))
+    await waitFor(() => {
+      const sel = screen.getByTestId('plan-preset-select') as HTMLSelectElement
+      expect(Array.from(sel.options).map((o) => o.text)).toContain('夜勉')
+    })
+    expect(loadOverridePresets()).toHaveLength(1)
+  })
+
+  it('名前なしではプリセット保存されない', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
+    fireEvent.click(screen.getByTestId('plan-preset-save'))
+    expect(loadOverridePresets()).toEqual([])
+  })
+
+  it('プリセットを選ぶと編集欄に入る', async () => {
+    saveOverridePresets([
+      { id: 'p1', name: '夜勉', rows: [{ start: '09:00', end: '10:00' }] },
+    ])
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
+    fireEvent.change(screen.getByTestId('plan-preset-select'), { target: { value: 'p1' } })
+    expect(screen.getByTestId('plan-preset-name')).toHaveValue('夜勉')
+    expect(screen.getByTestId('plan-preset-start-0')).toHaveValue('09:00')
+  })
+
+  it('プリセットを編集して上書き保存できる', async () => {
+    saveOverridePresets([
+      { id: 'p1', name: '夜勉', rows: [{ start: '09:00', end: '10:00' }] },
+    ])
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
+    fireEvent.change(screen.getByTestId('plan-preset-select'), { target: { value: 'p1' } })
+    fireEvent.change(screen.getByTestId('plan-preset-start-0'), { target: { value: '10:00' } })
+    fireEvent.click(screen.getByTestId('plan-preset-save'))
+    await waitFor(() => {
+      const stored = loadOverridePresets()
+      expect(stored).toHaveLength(1)
+      expect(stored[0].rows[0].start).toBe('10:00')
+    })
+  })
+
+  it('プリセットを削除できる', async () => {
+    saveOverridePresets([
+      { id: 'p1', name: '夜勉', rows: [{ start: '09:00', end: '10:00' }] },
+    ])
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
+    fireEvent.change(screen.getByTestId('plan-preset-select'), { target: { value: 'p1' } })
+    fireEvent.click(screen.getByTestId('plan-preset-delete'))
+    await waitFor(() => {
+      expect(loadOverridePresets()).toEqual([])
+    })
   })
 })
