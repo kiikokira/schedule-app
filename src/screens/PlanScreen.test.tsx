@@ -938,6 +938,7 @@ describe('PlanScreen', () => {
   })
 
   it('プリセットを削除できる', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     saveOverridePresets([
       { id: 'p1', name: '夜勉', rows: [{ start: '09:00', end: '10:00' }] },
     ])
@@ -945,8 +946,21 @@ describe('PlanScreen', () => {
     fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
     fireEvent.change(screen.getByTestId('plan-preset-select'), { target: { value: 'p1' } })
     fireEvent.click(screen.getByTestId('plan-preset-delete'))
+    expect(confirmSpy).toHaveBeenCalled()
     await waitFor(() => {
       expect(loadOverridePresets()).toEqual([])
     })
+  })
+
+  it('プリセット削除の確認でキャンセルすると削除されない', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    saveOverridePresets([
+      { id: 'p1', name: '夜勉', rows: [{ start: '09:00', end: '10:00' }] },
+    ])
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
+    fireEvent.change(screen.getByTestId('plan-preset-select'), { target: { value: 'p1' } })
+    fireEvent.click(screen.getByTestId('plan-preset-delete'))
+    expect(loadOverridePresets()).toHaveLength(1)
   })
 })

@@ -164,6 +164,8 @@ export default function PlanScreen({ onDone, onFocus }: Props) {
 
   const deletePreset = () => {
     if (!presetId) return
+    const target = presets.find((p) => p.id === presetId)
+    if (!window.confirm(`プリセット「${target?.name ?? ''}」を削除しますか？`)) return
     const next = presets.filter((p) => p.id !== presetId)
     saveOverridePresets(next)
     setPresets(next)
