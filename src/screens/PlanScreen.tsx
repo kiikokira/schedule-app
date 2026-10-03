@@ -73,6 +73,8 @@ export default function PlanScreen({ onDone, onFocus }: Props) {
   const [weekdayRows, setWeekdayRows] = useState<SlotRow[]>(() => [emptyRow()])
   const [slotDate, setSlotDate] = useState('')
   const [dateRows, setDateRows] = useState<SlotRow[]>(() => [emptyRow()])
+  const [showWeeklyForm, setShowWeeklyForm] = useState(false)
+  const [showDateForm, setShowDateForm] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set())
   const [slotDrafts, setSlotDrafts] = useState<Record<string, SlotRow>>({})
 
@@ -600,101 +602,125 @@ export default function PlanScreen({ onDone, onFocus }: Props) {
             )
           })}
         </div>
-        <h3 style={{ fontSize: 14 }}>曜日ごと</h3>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-          <select data-testid="slot-weekday-select" value={slotWeekday} onChange={(e) => setSlotWeekday(e.target.value)}>
-            <option value="">曜日を選択</option>
-            {['日','月','火','水','木','金','土'].map((w, i) => (
-              <option key={i} value={i}>{w}</option>
+        <button
+          data-testid="slot-weekly-toggle"
+          type="button"
+          aria-expanded={showWeeklyForm}
+          onClick={() => setShowWeeklyForm((v) => !v)}
+          style={{ fontSize: 14, fontWeight: 700, marginTop: 8 }}
+        >
+          曜日ごと {showWeeklyForm ? '▼' : '▶'}
+        </button>
+        {showWeeklyForm && (
+          <>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+              <select data-testid="slot-weekday-select" value={slotWeekday} onChange={(e) => setSlotWeekday(e.target.value)}>
+                <option value="">曜日を選択</option>
+                {['日','月','火','水','木','金','土'].map((w, i) => (
+                  <option key={i} value={i}>{w}</option>
+                ))}
+              </select>
+              <button data-testid="slot-row-add" type="button" onClick={() => setWeekdayRows((rows) => [...rows, emptyRow()])}>
+                時間帯を追加
+              </button>
+            </div>
+            {weekdayRows.map((row, i) => (
+              <div key={i} data-testid={`slot-row-${i}`} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 8, marginTop: 8 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
+                  <label htmlFor={`slot-start-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>開始時刻</label>
+                  <input id={`slot-start-${i}`} data-testid={`slot-start-${i}`} type="time" value={row.start} onChange={(e) => updateWeekdayRow(i, { start: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
+                  <span>〜</span>
+                  <label htmlFor={`slot-end-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>終了時刻</label>
+                  <input id={`slot-end-${i}`} data-testid={`slot-end-${i}`} type="time" value={row.end} onChange={(e) => updateWeekdayRow(i, { end: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                <select
+                  data-testid={`slot-weekday-book-${i}`}
+                  value={row.bookId ?? ''}
+                  onChange={(e) => updateWeekdayRow(i, { bookId: e.target.value || undefined })}
+                  aria-label="この時間にする本"
+                >
+                  <option value="">おまかせ</option>
+                  {books.map((book) => (
+                    <option key={book.id} value={book.id}>
+                      {book.title}
+                    </option>
+                  ))}
+                </select>
+                <label style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 13 }}>
+                  <input
+                    data-testid={`slot-weekday-train-${i}`}
+                    type="checkbox"
+                    checked={!!row.onTrain}
+                    onChange={(e) => updateWeekdayRow(i, { onTrain: e.target.checked })}
+                  />
+                  汽車
+                </label>
+                </div>
+              </div>
             ))}
-          </select>
-          <button data-testid="slot-row-add" type="button" onClick={() => setWeekdayRows((rows) => [...rows, emptyRow()])}>
-            時間帯を追加
-          </button>
-        </div>
-        {weekdayRows.map((row, i) => (
-          <div key={i} data-testid={`slot-row-${i}`} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 8, marginTop: 8 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
-              <label htmlFor={`slot-start-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>開始時刻</label>
-              <input id={`slot-start-${i}`} data-testid={`slot-start-${i}`} type="time" value={row.start} onChange={(e) => updateWeekdayRow(i, { start: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
-              <span>〜</span>
-              <label htmlFor={`slot-end-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>終了時刻</label>
-              <input id={`slot-end-${i}`} data-testid={`slot-end-${i}`} type="time" value={row.end} onChange={(e) => updateWeekdayRow(i, { end: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-            <select
-              data-testid={`slot-weekday-book-${i}`}
-              value={row.bookId ?? ''}
-              onChange={(e) => updateWeekdayRow(i, { bookId: e.target.value || undefined })}
-              aria-label="この時間にする本"
-            >
-              <option value="">おまかせ</option>
-              {books.map((book) => (
-                <option key={book.id} value={book.id}>
-                  {book.title}
-                </option>
-              ))}
-            </select>
-            <label style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 13 }}>
-              <input
-                data-testid={`slot-weekday-train-${i}`}
-                type="checkbox"
-                checked={!!row.onTrain}
-                onChange={(e) => updateWeekdayRow(i, { onTrain: e.target.checked })}
-              />
-              汽車
-            </label>
-            </div>
-          </div>
-        ))}
-        <button data-testid="slot-add" type="button" disabled={slotWeekday === ''} onClick={() => void addWeekdaySlot()}>
-          まとめて追加
+            <button data-testid="slot-add" type="button" disabled={slotWeekday === ''} onClick={() => void addWeekdaySlot()}>
+              まとめて追加
+            </button>
+          </>
+        )}
+        <button
+          data-testid="slot-date-toggle"
+          type="button"
+          aria-expanded={showDateForm}
+          onClick={() => setShowDateForm((v) => !v)}
+          style={{ fontSize: 14, fontWeight: 700, marginTop: 12 }}
+        >
+          当日上書き {showDateForm ? '▼' : '▶'}
         </button>
-        <h3 style={{ fontSize: 14, marginTop: 12 }}>当日上書き</h3>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-          <input data-testid="slot-date" type="date" value={slotDate} onChange={(e) => setSlotDate(e.target.value)} />
-          <button data-testid="slot-date-row-add" type="button" onClick={() => setDateRows((rows) => [...rows, emptyRow()])}>
-            時間帯を追加
-          </button>
-        </div>
-        {dateRows.map((row, i) => (
-          <div key={i} data-testid={`slot-date-row-${i}`} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 8, marginTop: 8 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
-              <label htmlFor={`slot-date-start-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>開始時刻</label>
-              <input id={`slot-date-start-${i}`} data-testid={`slot-date-start-${i}`} type="time" value={row.start} onChange={(e) => updateDateRow(i, { start: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
-              <span>〜</span>
-              <label htmlFor={`slot-date-end-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>終了時刻</label>
-              <input id={`slot-date-end-${i}`} data-testid={`slot-date-end-${i}`} type="time" value={row.end} onChange={(e) => updateDateRow(i, { end: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
+        {showDateForm && (
+          <>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+              <input data-testid="slot-date" type="date" value={slotDate} onChange={(e) => setSlotDate(e.target.value)} />
+              <button data-testid="slot-date-row-add" type="button" onClick={() => setDateRows((rows) => [...rows, emptyRow()])}>
+                時間帯を追加
+              </button>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-            <select
-              data-testid={`slot-date-book-${i}`}
-              value={row.bookId ?? ''}
-              onChange={(e) => updateDateRow(i, { bookId: e.target.value || undefined })}
-              aria-label="この時間にする本"
-            >
-              <option value="">おまかせ</option>
-              {books.map((book) => (
-                <option key={book.id} value={book.id}>
-                  {book.title}
-                </option>
-              ))}
-            </select>
-            <label style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 13 }}>
-              <input
-                data-testid={`slot-date-train-${i}`}
-                type="checkbox"
-                checked={!!row.onTrain}
-                onChange={(e) => updateDateRow(i, { onTrain: e.target.checked })}
-              />
-              汽車
-            </label>
-            </div>
-          </div>
-        ))}
-        <button data-testid="slot-date-add" type="button" disabled={!slotDate} onClick={() => void addDateSlot()}>
-          まとめて追加
-        </button>
+            {dateRows.map((row, i) => (
+              <div key={i} data-testid={`slot-date-row-${i}`} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 8, marginTop: 8 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap' }}>
+                  <label htmlFor={`slot-date-start-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>開始時刻</label>
+                  <input id={`slot-date-start-${i}`} data-testid={`slot-date-start-${i}`} type="time" value={row.start} onChange={(e) => updateDateRow(i, { start: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
+                  <span>〜</span>
+                  <label htmlFor={`slot-date-end-${i}`} style={{ fontSize: 13, whiteSpace: 'nowrap' }}>終了時刻</label>
+                  <input id={`slot-date-end-${i}`} data-testid={`slot-date-end-${i}`} type="time" value={row.end} onChange={(e) => updateDateRow(i, { end: e.target.value })} style={{ minWidth: 0, flex: 1 }} />
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                <select
+                  data-testid={`slot-date-book-${i}`}
+                  value={row.bookId ?? ''}
+                  onChange={(e) => updateDateRow(i, { bookId: e.target.value || undefined })}
+                  aria-label="この時間にする本"
+                >
+                  <option value="">おまかせ</option>
+                  {books.map((book) => (
+                    <option key={book.id} value={book.id}>
+                      {book.title}
+                    </option>
+                  ))}
+                </select>
+                <label style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 13 }}>
+                  <input
+                    data-testid={`slot-date-train-${i}`}
+                    type="checkbox"
+                    checked={!!row.onTrain}
+                    onChange={(e) => updateDateRow(i, { onTrain: e.target.checked })}
+                  />
+                  汽車
+                </label>
+                </div>
+              </div>
+            ))}
+            <button data-testid="slot-date-add" type="button" disabled={!slotDate} onClick={() => void addDateSlot()}>
+              まとめて追加
+            </button>
+          </>
+        )}
       </section>
 
       {onFocus && (

@@ -344,6 +344,7 @@ describe('PlanScreen', () => {
 
   it('adds a weekday availability slot', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '1' },
     })
@@ -363,6 +364,7 @@ describe('PlanScreen', () => {
 
   it('adds multiple weekday slots at once', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '0' },
     })
@@ -392,6 +394,7 @@ describe('PlanScreen', () => {
 
   it('ignores fully empty trailing rows and saves only filled rows', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '1' },
     })
@@ -413,6 +416,7 @@ describe('PlanScreen', () => {
   it('rejects a partial row and saves nothing', async () => {
     vi.spyOn(window, 'alert').mockImplementation(() => {})
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '1' },
     })
@@ -429,6 +433,7 @@ describe('PlanScreen', () => {
   it('rejects a row whose end is not after start', async () => {
     vi.spyOn(window, 'alert').mockImplementation(() => {})
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '1' },
     })
@@ -448,6 +453,7 @@ describe('PlanScreen', () => {
   it('rejects overlapping rows within the same weekday', async () => {
     vi.spyOn(window, 'alert').mockImplementation(() => {})
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '0' },
     })
@@ -478,6 +484,7 @@ describe('PlanScreen', () => {
     )
     render(<PlanScreen onDone={() => {}} />)
     fireEvent.click(await screen.findByTestId('slot-copy-weekday-1'))
+    fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     expect((screen.getByTestId('slot-weekday-select') as HTMLSelectElement).value).toBe('1')
     expect((screen.getByTestId('slot-start-0') as HTMLInputElement).value).toBe('21:00')
     expect((screen.getByTestId('slot-end-0') as HTMLInputElement).value).toBe('23:00')
@@ -490,6 +497,7 @@ describe('PlanScreen', () => {
     )
     render(<PlanScreen onDone={() => {}} />)
     fireEvent.click(await screen.findByTestId('slot-copy-weekday-1'))
+    fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '2' },
     })
@@ -646,6 +654,7 @@ describe('PlanScreen', () => {
 
   it('adds a date-override slot and stores the date', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-date-toggle'))
     fireEvent.change(screen.getByTestId('slot-date'), {
       target: { value: '2026-09-22' },
     })
@@ -666,6 +675,7 @@ describe('PlanScreen', () => {
 
   it('adds multiple date-override slots at once', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-date-toggle'))
     fireEvent.change(screen.getByTestId('slot-date'), {
       target: { value: '2026-09-22' },
     })
@@ -837,11 +847,33 @@ describe('PlanScreen', () => {
 
   it('labels start/end pairs in weekday and date rows', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
+    fireEvent.click(await screen.findByTestId('slot-date-toggle'))
     expect(screen.getAllByLabelText('開始時刻').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByLabelText('終了時刻').length).toBeGreaterThanOrEqual(1)
     const before = screen.getAllByLabelText('開始時刻').length
     fireEvent.click(screen.getByTestId('slot-date-row-add'))
     expect(screen.getAllByLabelText('開始時刻')).toHaveLength(before + 1)
     expect(screen.getAllByLabelText('終了時刻')).toHaveLength(before + 1)
+  })
+
+  it('曜日ごと・当日上書きは初期は畳まれボタンで展開できる', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    expect(screen.getByTestId('slot-weekly-toggle')).toBeInTheDocument()
+    expect(screen.getByTestId('slot-date-toggle')).toBeInTheDocument()
+    expect(screen.queryByTestId('slot-weekday-select')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('slot-date')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('slot-weekly-toggle'))
+    expect(await screen.findByTestId('slot-weekday-select')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('slot-date-toggle'))
+    expect(await screen.findByTestId('slot-date')).toBeInTheDocument()
+  })
+
+  it('開閉ボタンで畳み直せる', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
+    await screen.findByTestId('slot-weekday-select')
+    fireEvent.click(screen.getByTestId('slot-weekly-toggle'))
+    expect(screen.queryByTestId('slot-weekday-select')).not.toBeInTheDocument()
   })
 })
