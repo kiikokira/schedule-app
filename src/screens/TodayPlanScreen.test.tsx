@@ -593,5 +593,21 @@ describe('TodayPlanScreen', () => {
     expect(screen.getByTestId('today-override-start-0')).toHaveValue('11:00')
     expect(loadOverridePresets()[0].rows[0].start).toBe('09:00')
   })
+
+  it('学校の日程は初期は畳まれ展開すると今月の行事が見える', async () => {
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
+    expect(screen.getByTestId('school-events-toggle')).toBeInTheDocument()
+    expect(screen.queryByTestId('school-events-list')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('school-events-toggle'))
+    expect(await screen.findByTestId('school-events-list')).toBeInTheDocument()
+    expect(screen.getByText('中間試験発表')).toBeInTheDocument()
+  })
+
+  it('学校の日程は他の月の行事を表示しない', async () => {
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
+    fireEvent.click(screen.getByTestId('school-events-toggle'))
+    expect(await screen.findByTestId('school-events-list')).toBeInTheDocument()
+    expect(screen.queryByText('期末試験①')).not.toBeInTheDocument()
+  })
 })
 

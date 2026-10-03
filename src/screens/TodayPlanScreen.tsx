@@ -16,6 +16,7 @@ import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { isLeapBook } from '../lib/leap'
 import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
 import { loadOverridePresets, type OverridePreset } from '../data/overridePresets'
+import { schoolEventsForMonth } from '../data/schoolEvents'
 import CoverImage from '../components/CoverImage'
 
 type Props = {
@@ -146,6 +147,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
   const [overrideOpen, setOverrideOpen] = useState(false)
   const [presets, setPresets] = useState<OverridePreset[]>(() => loadOverridePresets())
   const [presetId, setPresetId] = useState('')
+  const [schoolOpen, setSchoolOpen] = useState(false)
+  const schoolMonth = Number(today.slice(5, 7))
+  const schoolEvents = schoolEventsForMonth(schoolMonth)
 
   const refreshAvailability = async () => {
     const a = await listAvailability()
@@ -888,6 +892,30 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
             })}
           </div>
         ))}
+      </div>
+      <div data-testid="school-events-section" style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
+        <h2 style={{ fontSize: 16 }}>学校の日程（{schoolMonth}月）</h2>
+        <button
+          data-testid="school-events-toggle"
+          type="button"
+          style={{ marginBottom: 8 }}
+          onClick={() => setSchoolOpen((v) => !v)}
+        >
+          {schoolOpen ? '閉じる' : '開く'}
+        </button>
+        {schoolOpen && (
+          <div data-testid="school-events-list">
+            {schoolEvents.length === 0 && (
+              <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>今月の学校行事はありません</p>
+            )}
+            {schoolEvents.map((e, i) => (
+              <div key={`${e.month}-${e.day}-${i}`} style={{ marginBottom: 8 }}>
+                <div style={{ fontWeight: 700 }}>{e.month}月{e.day}日</div>
+                <div>{e.text}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <button data-testid="today-back" type="button" onClick={onBack}>
         戻る
