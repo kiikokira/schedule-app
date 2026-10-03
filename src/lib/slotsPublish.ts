@@ -39,17 +39,44 @@ function parseSequenceId(id: string): { date: string; fireUnix: number } | null 
   return parseLegacySequenceId(id)
 }
 
-type ScheduledState = { date: string; hash: string; ids: string[] }
+type DayState = { hash: string; ids: string[] }
+type ScheduledState = { days: Record<string, DayState> }
 
-function readScheduledState(): ScheduledState | null {
+function isDayState(v: unknown): v is DayState {
+  if (!v || typeof v !== 'object') return false
+  const dv = v as Partial<DayState>
+  return typeof dv.hash === 'string' && Array.isArray(dv.ids) && dv.ids.every((x) => typeof x === 'string')
+}
+
+function readScheduledState(): ScheduledState {
   try {
     const raw = localStorage.getItem(SCHEDULED_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<ScheduledState>
-    if (typeof parsed.date !== 'string' || !Array.isArray(parsed.ids)) return null
-    return { date: parsed.date, hash: typeof parsed.hash === 'string' ? parsed.hash : '', ids: parsed.ids }
+    if (!raw) return { days: {} }
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { days: {} }
+    const daysRaw = parsed.days
+    if (daysRaw && typeof daysRaw === 'object' && !Array.isArray(daysRaw)) {
+      const days: Record<string, DayState> = {}
+      for (const [date, v] of Object.entries(daysRaw as Record<string, unknown>)) {
+        if (isDayState(v)) days[date] = { hash: v.hash, ids: [...v.ids] }
+      }
+      return { days }
+    }
+    // 移行前の単日形式はその日の分として引き継ぐ（再送は置換になるため安全）
+    const legacyDate = parsed.date
+    const legacyHash = parsed.hash
+    const legacyIds = parsed.ids
+    if (
+      typeof legacyDate === 'string' &&
+      typeof legacyHash === 'string' &&
+      Array.isArray(legacyIds) &&
+      legacyIds.every((x) => typeof x === 'string')
+    ) {
+      return { days: { [legacyDate]: { hash: legacyHash, ids: [...legacyIds] } } }
+    }
+    return { days: {} }
   } catch {
-    return null
+    return { days: {} }
   }
 }
 
@@ -95,12 +122,14 @@ export async function syncSlotSchedules(
   now: Date = new Date(),
 ): Promise<{ scheduled: number; salvaged: number; cancelled: number }> {
   const none = { scheduled: 0, salvaged: 0, cancelled: 0 }
-  if (payload.date !== formatDate(now)) return none
+  const today = formatDate(now)
+  if (payload.date < today) return none
   const hash = `${payload.date}|${JSON.stringify(payload.slots)}`
-  const stored = readScheduledState()
-  if (stored && stored.date === payload.date && stored.hash === hash) return none
+  const state = readScheduledState()
+  const prev = state.days[payload.date]
+  if (prev && prev.hash === hash) return none
   const nowMs = now.getTime()
-  const storedIds = new Set(stored && stored.date === payload.date ? stored.ids : [])
+  const storedIds = new Set(prev ? prev.ids : [])
   const future = payload.slots.filter(
     (s) => slotStartUnix(payload.date, s.start) * 1000 - nowMs >= SCHEDULE_AHEAD_MS,
   )
@@ -112,9 +141,9 @@ export async function syncSlotSchedules(
   })
   const ids = future.map((s) => slotSequenceId(payload.date, s.start))
   let cancelled = 0
-  if (stored && stored.date === payload.date) {
+  if (prev) {
     const current = new Set(ids)
-    for (const id of stored.ids) {
+    for (const id of prev.ids) {
       if (current.has(id)) continue
       const parsed = parseSequenceId(id)
       if (!parsed) continue
@@ -143,12 +172,16 @@ export async function syncSlotSchedules(
     else failed = true
   }
   if (failed) return { scheduled, salvaged, cancelled }
+  const days: Record<string, DayState> = { ...state.days }
+  for (const d of Object.keys(days)) {
+    if (d < today) delete days[d]
+  }
+  days[payload.date] = {
+    hash,
+    ids: [...ids, ...salvage.map((s) => slotSequenceId(payload.date, s.start))],
+  }
   try {
-    localStorage.setItem(SCHEDULED_KEY, JSON.stringify({
-      date: payload.date,
-      hash,
-      ids: [...ids, ...salvage.map((s) => slotSequenceId(payload.date, s.start))],
-    }))
+    localStorage.setItem(SCHEDULED_KEY, JSON.stringify({ days }))
   } catch {
     // localStorage が利用できない環境では保存しない
   }

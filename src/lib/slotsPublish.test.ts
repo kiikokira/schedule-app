@@ -118,9 +118,12 @@ describe('syncSlotSchedules', () => {
     localStorage.setItem(
       SCHEDULED_KEY,
       JSON.stringify({
-        date: '2026-09-27',
-        hash: 'old-hash',
-        ids: ['slot-start-2026-09-27-2030', 'slot-start-2026-09-27-2130'],
+        days: {
+          '2026-09-27': {
+            hash: 'old-hash',
+            ids: ['slot-start-2026-09-27-2030', 'slot-start-2026-09-27-2130'],
+          },
+        },
       }),
     )
     const changed: SlotsPayload = { ...futurePayload, slots: [futurePayload.slots[0]] }
@@ -137,9 +140,9 @@ describe('syncSlotSchedules', () => {
     localStorage.setItem(
       SCHEDULED_KEY,
       JSON.stringify({
-        date: '2026-09-27',
-        hash: 'old-hash',
-        ids: ['slot-2026-09-27-2100'],
+        days: {
+          '2026-09-27': { hash: 'old-hash', ids: ['slot-2026-09-27-2100'] },
+        },
       }),
     )
     // 21:00終了の旧予約は未来（現在20:00）のため取り消し対象
@@ -175,9 +178,9 @@ describe('syncSlotSchedules', () => {
     localStorage.setItem(
       SCHEDULED_KEY,
       JSON.stringify({
-        date: '2026-09-27',
-        hash: 'old-hash',
-        ids: ['slot-start-2026-09-27-2005'],
+        days: {
+          '2026-09-27': { hash: 'old-hash', ids: ['slot-start-2026-09-27-2005'] },
+        },
       }),
     )
     const late: SlotsPayload = {
@@ -199,5 +202,55 @@ describe('syncSlotSchedules', () => {
     const res = await syncSlotSchedules('my-topic', futurePayload, failFetch as typeof fetch)
     expect(res.scheduled).toBe(0)
     expect(localStorage.getItem(SCHEDULED_KEY)).toBeNull()
+  })
+
+  it('migrates the previous single-day state shape', async () => {
+    localStorage.setItem(
+      SCHEDULED_KEY,
+      JSON.stringify({
+        date: '2026-09-27',
+        hash: 'old-hash',
+        ids: ['slot-start-2026-09-27-2130'],
+      }),
+    )
+    const changed: SlotsPayload = { ...futurePayload, slots: [futurePayload.slots[0]] }
+    const res = await syncSlotSchedules('my-topic', changed, okFetch as typeof fetch)
+    expect(res.cancelled).toBe(1)
+    const deletes = okFetch.mock.calls.filter(
+      ([, init]) => (init as RequestInit).method === 'DELETE',
+    )
+    expect(deletes).toHaveLength(1)
+    expect(deletes[0][0]).toBe('https://ntfy.sh/my-topic/slot-start-2026-09-27-2130')
+  })
+
+  it('schedules future-date payloads so unopened days are covered', async () => {
+    // 現在2026-09-27 20:00。翌28日06:30開始→06:20通知は未来のため予約する
+    const tomorrow: SlotsPayload = {
+      date: '2026-09-28',
+      savedAt: '2026-09-27T00:00:00.000Z',
+      slots: [{ start: '06:30', end: '07:00', books: ['A'] }],
+    }
+    const res = await syncSlotSchedules('my-topic', tomorrow, okFetch as typeof fetch)
+    expect(res).toEqual({ scheduled: 1, salvaged: 0, cancelled: 0 })
+    const posts = okFetch.mock.calls.filter(
+      ([, init]) => (init as RequestInit).method === 'POST',
+    )
+    expect(posts).toHaveLength(1)
+    const url = new URL(posts[0][0] as string)
+    expect(url.pathname).toBe('/my-topic/slot-start-2026-09-28-0630')
+    expect(url.searchParams.get('delay')).toBe(
+      String(Math.floor(new Date('2026-09-28T06:20:00+09:00').getTime() / 1000)),
+    )
+  })
+
+  it('skips past-date payloads', async () => {
+    const yesterday: SlotsPayload = {
+      date: '2026-09-26',
+      savedAt: '2026-09-26T00:00:00.000Z',
+      slots: [{ start: '06:30', end: '07:00', books: ['A'] }],
+    }
+    const res = await syncSlotSchedules('my-topic', yesterday, okFetch as typeof fetch)
+    expect(res).toEqual({ scheduled: 0, salvaged: 0, cancelled: 0 })
+    expect(okFetch).not.toHaveBeenCalled()
   })
 })

@@ -11,7 +11,7 @@ import HistoryScreen from './screens/HistoryScreen'
 import FocusPeriodScreen from './screens/FocusPeriodScreen'
 import { useBooks } from './hooks/useBooks'
 import { listAvailability, prunePastOverrides } from './data/dayplanStore'
-import { todayStr } from './lib/progress'
+import { todayStr, formatDate } from './lib/progress'
 import { getNotifySettings } from './lib/notify'
 import { buildSlotsPayload } from './lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from './lib/slotsPublish'
@@ -46,17 +46,22 @@ export default function App() {
     void takeAutoSnapshotIfNeeded().catch(() => {})
   }, [])
 
-  // 起動時にその日の開始予定を登録・予約投稿する。「今日の計画」を開かなくても
+  // 起動時にその日から3日分の開始予定を登録・予約投稿する。「今日の計画」を開かなくても
   // 開始10分前の通知が届くようにする。同じ予約IDの再送は置換になるため、
-  // アプリを開くたび・複数端末でも二重送信しない。
+  // アプリを開くたび・複数端末でも二重送信しない。ntfyの予約上限が3日のため3日分。
   useEffect(() => {
     const notify = getNotifySettings()
     if (!notify.enabled || !notify.topic.trim()) return
-    const today = todayStr()
     void listAvailability().then((availability) => {
-      const payload = buildSlotsPayload(today, slotsForDate(availability, today), [], books)
-      void publishSlotsOnce(notify.topic, payload)
-      void syncSlotSchedules(notify.topic, payload)
+      const base = new Date()
+      for (let offset = 0; offset < 3; offset++) {
+        const d = new Date(base)
+        d.setDate(d.getDate() + offset)
+        const date = formatDate(d)
+        const payload = buildSlotsPayload(date, slotsForDate(availability, date), [], books)
+        if (offset === 0) void publishSlotsOnce(notify.topic, payload)
+        void syncSlotSchedules(notify.topic, payload)
+      }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
