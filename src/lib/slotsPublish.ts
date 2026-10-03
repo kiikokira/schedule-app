@@ -1,4 +1,4 @@
-import { cancelScheduledPush, publishPush, publishSlots, schedulePush } from './notify'
+import { cancelScheduledPush, publishSlots, schedulePush } from './notify'
 import { formatDate } from './progress'
 import { slotStartMessage, slotStartTitle, REMINDER_LEAD_MIN, type SlotsPayload } from './slotNotify'
 
@@ -85,6 +85,10 @@ function readScheduledState(): ScheduledState {
 const SALVAGE_WINDOW_MIN = 15
 // この先のミリ秒以内の通知は予約投稿する。直近すぎる分は即時送信に回す。
 const SCHEDULE_AHEAD_MS = 60_000
+// 猶予分の予約投稿の遅延（秒）。即時送信ではなく同じ予約IDで予約するため、
+// 重なった同期・複数端末・開き直しでも置換になり二重送信しない。
+// ntfyの遅延はUNIX秒で渡す（10秒未満の数値は400になるため使わない）。
+const SALVAGE_DELAY_SEC = 15
 
 // その日の時間帯データをntfyへ一度だけ送る。内容が変わった場合は再送する。
 // 送信に失敗した場合は記録を残さず、次回に再試行できるようにする。
@@ -189,8 +193,10 @@ async function runSyncSlotSchedules(
   }
   let salvaged = 0
   for (const slot of salvage) {
-    const result = await publishPush(topic, slotStartMessage(slot), {
+    const result = await schedulePush(topic, slotStartMessage(slot), {
       title: slotStartTitle(slot.start),
+      delay: Math.floor(now.getTime() / 1000) + SALVAGE_DELAY_SEC,
+      sequenceId: slotSequenceId(payload.date, slot.start),
     }, fetchImpl)
     if (result.ok) salvaged++
     else failed = true

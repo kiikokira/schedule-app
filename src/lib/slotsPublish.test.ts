@@ -155,8 +155,9 @@ describe('syncSlotSchedules', () => {
     expect(deletes[0][0]).toBe('https://ntfy.sh/my-topic/slot-2026-09-27-2100')
   })
 
-  it('sends recent-past reminders immediately instead of dropping them', async () => {
-    // 20:05開始→19:55通知は5分過ぎ。予約対象外だが即時送信する
+  it('schedules recent-past reminders with a short delay instead of dropping them', async () => {
+    // 20:05開始→19:55通知は5分過ぎ。予約対象外だが15秒後の予約投稿で送る。
+    // 同じ予約IDのため重なっても置換になり二重送信しない
     const late: SlotsPayload = {
       ...futurePayload,
       date: '2026-09-27',
@@ -169,8 +170,10 @@ describe('syncSlotSchedules', () => {
     )
     expect(posts).toHaveLength(1)
     const url = new URL(posts[0][0] as string)
-    expect(url.pathname).toBe('/my-topic')
-    expect(url.searchParams.get('delay')).toBeNull()
+    expect(url.pathname).toBe('/my-topic/slot-start-2026-09-27-2005')
+    expect(url.searchParams.get('delay')).toBe(
+      String(Math.floor(new Date(2026, 8, 27, 20, 0, 0).getTime() / 1000) + 15),
+    )
     expect(url.searchParams.get('title')).toBe('学習開始10分前 20:05')
   })
 
