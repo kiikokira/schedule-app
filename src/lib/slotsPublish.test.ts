@@ -204,8 +204,7 @@ describe('syncSlotSchedules', () => {
     expect(localStorage.getItem(SCHEDULED_KEY)).toBeNull()
   })
 
-  it('migrates the previous single-day state shape', async () => {
-    localStorage.setItem(
+  it('migrates the previous single-day state shape', async () => {    localStorage.setItem(
       SCHEDULED_KEY,
       JSON.stringify({
         date: '2026-09-27',
@@ -252,5 +251,23 @@ describe('syncSlotSchedules', () => {
     const res = await syncSlotSchedules('my-topic', yesterday, okFetch as typeof fetch)
     expect(res).toEqual({ scheduled: 0, salvaged: 0, cancelled: 0 })
     expect(okFetch).not.toHaveBeenCalled()
+  })
+
+  it('sends a salvage reminder only once when syncs overlap', async () => {
+    // アプリ起動時と今日の計画表示時の2回の同期が重なっても二重送信しない
+    const late: SlotsPayload = {
+      date: '2026-09-27',
+      savedAt: '2026-09-27T00:00:00.000Z',
+      slots: [{ start: '20:05', end: '20:30', books: ['A'] }],
+    }
+    const [first, second] = await Promise.all([
+      syncSlotSchedules('my-topic', late, okFetch as typeof fetch),
+      syncSlotSchedules('my-topic', late, okFetch as typeof fetch),
+    ])
+    const posts = okFetch.mock.calls.filter(
+      ([, init]) => (init as RequestInit).method === 'POST',
+    )
+    expect(posts).toHaveLength(1)
+    expect(first.salvaged + second.salvaged).toBe(1)
   })
 })

@@ -121,6 +121,30 @@ export async function syncSlotSchedules(
   fetchImpl: typeof fetch = fetch,
   now: Date = new Date(),
 ): Promise<{ scheduled: number; salvaged: number; cancelled: number }> {
+  // 同期同士を直列化する。起動時と今日の計画表示時の2回の同期が重なると、
+  // どちらも書き込み前の状態を読んでサルベージを二重送信してしまうため、
+  // 後発は先発の完了（状態書き込み後）まで待ってから判定し直す。
+  const previous = syncQueue
+  let release!: () => void
+  syncQueue = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await previous
+  try {
+    return await runSyncSlotSchedules(topic, payload, fetchImpl, now)
+  } finally {
+    release()
+  }
+}
+
+let syncQueue: Promise<void> = Promise.resolve()
+
+async function runSyncSlotSchedules(
+  topic: string,
+  payload: SlotsPayload,
+  fetchImpl: typeof fetch = fetch,
+  now: Date = new Date(),
+): Promise<{ scheduled: number; salvaged: number; cancelled: number }> {
   const none = { scheduled: 0, salvaged: 0, cancelled: 0 }
   const today = formatDate(now)
   if (payload.date < today) return none
