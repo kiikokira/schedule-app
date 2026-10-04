@@ -79,4 +79,27 @@ describe('SchoolScreen', () => {
     expect(screen.getByTestId('school-today-line')).toHaveTextContent('7月1日')
     expect(screen.queryByText('今月')).not.toBeInTheDocument()
   })
+
+  it('jump button scrolls to today event row', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-10-08" />)
+    const row = screen.getByTestId('school-event-10-8-0') as HTMLElement
+    const spy = vi.fn()
+    row.scrollIntoView = spy
+    fireEvent.click(screen.getByTestId('school-jump-today'))
+    expect(spy).toHaveBeenCalled()
+  })
+
+  it('jump button scrolls to the month section when today has no events', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-10-04" />)
+    const month = screen.getByTestId('school-month-10')
+    const spy = vi.fn()
+    ;(month as HTMLElement).scrollIntoView = spy
+    fireEvent.click(screen.getByTestId('school-jump-today'))
+    expect(spy).toHaveBeenCalled()
+  })
+
+  it('jump button is hidden outside the covered months', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-07-01" />)
+    expect(screen.queryByTestId('school-jump-today')).not.toBeInTheDocument()
+  })
 })

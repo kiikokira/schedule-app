@@ -21,6 +21,15 @@ export default function SchoolScreen({ onBack, today: todayProp }: Props) {
   const today = todayProp ?? todayStr()
   const todayMonth = Number(today.slice(5, 7))
   const todayDay = Number(today.slice(8, 10))
+  const hasTodayMonth = MONTHS.includes(todayMonth)
+  // 自動スクロールはしない（先頭表示の要求を維持）。押したときだけ今日へ移動する。
+  const jumpToToday = () => {
+    const row = document.querySelector(
+      `[data-testid="school-event-${todayMonth}-${todayDay}-0"]`,
+    )
+    const month = document.querySelector(`[data-testid="school-month-${todayMonth}"]`)
+    ;(row ?? month)?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
+  }
   // 別ページ遷移時に前画面のスクロール位置が残り途中から表示されるため、先頭から表示する
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -31,6 +40,16 @@ export default function SchoolScreen({ onBack, today: todayProp }: Props) {
       <p data-testid="school-today-line" style={{ fontWeight: 700 }}>
         今日：
         {formatSchoolEventDate(schoolYearOfMonth(today, todayMonth), todayMonth, todayDay)}
+        {hasTodayMonth && (
+          <button
+            data-testid="school-jump-today"
+            type="button"
+            style={{ marginLeft: 8 }}
+            onClick={jumpToToday}
+          >
+            ▼ 今日へ移動
+          </button>
+        )}
       </p>
       {MONTHS.map((m) => {
         const events = schoolEventsForMonth(m)
