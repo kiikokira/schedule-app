@@ -52,3 +52,13 @@ it('navigates between the AI chat and history screens', async () => {
   fireEvent.click(screen.getByTestId('history-back'))
   expect(await screen.findByTestId('chat-screen')).toBeInTheDocument()
 })
+
+it('navigates to the school page from the today plan screen and back', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByTestId('nav-today'))
+  await screen.findByTestId('today-plan-screen')
+  fireEvent.click(await screen.findByTestId('school-events-open'))
+  expect(await screen.findByTestId('school-page')).toBeInTheDocument()
+  fireEvent.click(screen.getByTestId('school-back'))
+  expect(await screen.findByTestId('today-plan-screen')).toBeInTheDocument()
+})

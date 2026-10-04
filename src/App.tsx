@@ -9,6 +9,7 @@ import RebalanceScreen from './screens/RebalanceScreen'
 import ChatScreen from './screens/ChatScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import FocusPeriodScreen from './screens/FocusPeriodScreen'
+import SchoolScreen from './screens/SchoolScreen'
 import { useBooks } from './hooks/useBooks'
 import { listAvailability, prunePastOverrides } from './data/dayplanStore'
 import { todayStr, formatDate } from './lib/progress'
@@ -31,6 +32,7 @@ type Route =
   | { name: 'ai' }
   | { name: 'ai-history' }
   | { name: 'focus' }
+  | { name: 'school' }
 
 export default function App() {
   const { books, refresh } = useBooks()
@@ -119,7 +121,11 @@ export default function App() {
           <TodayPlanScreen
             onBack={() => setRoute({ name: 'home' })}
             onSettings={() => setRoute({ name: 'plan' })}
+            onSchool={() => setRoute({ name: 'school' })}
           />
+        )}
+        {route.name === 'school' && (
+          <SchoolScreen onBack={() => setRoute({ name: 'today' })} />
         )}
       </main>
       <footer className="app-footer">

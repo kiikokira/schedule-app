@@ -641,5 +641,18 @@ describe('TodayPlanScreen', () => {
     expect(await screen.findByTestId('school-events-list')).toBeInTheDocument()
     expect(screen.queryByText('期末試験①')).not.toBeInTheDocument()
   })
+
+  it('別ページで見るを押すとonSchoolが呼ばれる', async () => {
+    const onSchool = vi.fn()
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" onSchool={onSchool} />)
+    fireEvent.click(await screen.findByTestId('school-events-open'))
+    expect(onSchool).toHaveBeenCalled()
+  })
+
+  it('onSchool未指定時は別ページで見るボタンを出さない', async () => {
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
+    await screen.findByTestId('school-events-section')
+    expect(screen.queryByTestId('school-events-open')).not.toBeInTheDocument()
+  })
 })
 
