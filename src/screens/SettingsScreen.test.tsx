@@ -386,3 +386,58 @@ describe('adjustment AI settings', () => {
     )
   })
 })
+
+describe('settings UI hardening (task6)', () => {
+  it('masks the Google Books api key input', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    expect(screen.getByTestId('google-books-api-key')).toHaveAttribute('type', 'password')
+  })
+
+  it('warns about plaintext storage and ntfy visibility', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    expect(screen.getByText(/平文で保存されます/)).toBeInTheDocument()
+    expect(screen.getByTestId('ai-description')).toHaveTextContent(
+      /選択したAI事業者のエンドポイントに送信されます/,
+    )
+    expect(screen.getByTestId('ai-description')).toHaveTextContent(/httpのエンドポイントには送信しません/)
+    expect(screen.getByText(/誰でも購読/)).toBeInTheDocument()
+  })
+
+  it('generates a random ntfy topic', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ntfy'))
+    fireEvent.click(screen.getByTestId('ntfy-generate'))
+    expect((screen.getByTestId('ntfy-topic') as HTMLInputElement).value).toMatch(
+      /^my-study-[0-9a-f]{32}$/,
+    )
+  })
+
+  it('asks confirmation before saving unsafe AI endpoint and aborts on cancel', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
+    fireEvent.change(screen.getByTestId('ai-endpoint'), {
+      target: { value: 'http://evil.example.com/v1/chat/completions' },
+    })
+    fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    fireEvent.click(screen.getByTestId('ai-save'))
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'httpなど安全でないエンドポイントにはAPIキーを送信しません。保存しますか？（送信時にブロックされます）',
+    )
+    expect(screen.getByTestId('ai-save')).toBeInTheDocument()
+  })
+
+  it('saves a custom https endpoint without confirmation', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
+    fireEvent.change(screen.getByTestId('ai-endpoint'), {
+      target: { value: 'https://custom.example.com/v1/chat/completions' },
+    })
+    fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
+    fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'm' } })
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    fireEvent.click(screen.getByTestId('ai-save'))
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(getAiSettings().endpoint).toBe('https://custom.example.com/v1/chat/completions')
+  })
+})
