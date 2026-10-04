@@ -150,7 +150,7 @@ export async function chatWithModel(
     let detail: string | undefined
     try {
       const text = await res.text()
-      if (text) detail = text.slice(0, 300)
+      if (text) detail = text.slice(0, 200)
     } catch {
       detail = undefined
     }

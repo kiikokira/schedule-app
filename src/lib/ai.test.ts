@@ -221,7 +221,8 @@ describe('ai key sanitize', () => {
 })
 
 describe('pingEndpoint', () => {
-  it('reports reachable when any HTTP response arrives (even 401)', async () => {    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 })
+  it('reports reachable when any HTTP response arrives (even 401)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 })
     vi.stubGlobal('fetch', fetchMock)
     const res = await pingEndpoint('https://openrouter.ai/api/v1/chat/completions', { timeoutMs: 50 })
     expect(res).toEqual({ ok: true, reachable: true })
