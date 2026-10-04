@@ -8,7 +8,7 @@ import {
   deleteAvailabilitySlot,
   type AvailabilitySlot,
 } from '../data/dayplanStore'
-import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, parseTimeToMin, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
+import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, parseTimeToMin, findAtRiskBooks, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
 import { todayStr, formatJaDate, daysBetween, parseDate, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
@@ -23,6 +23,7 @@ type Props = {
   onSettings: () => void
   today?: string
   onSchool?: () => void
+  onRebalance?: (bookId: string) => void
 }
 
 function toScheduledBook(b: BookData): ScheduledBook {
@@ -122,7 +123,7 @@ function overlayCyclesPins(
   return out.sort((a, b) => a.startMin - b.startMin)
 }
 
-export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, onSchool }: Props) {
+export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, onSchool, onRebalance }: Props) {
   const { books: allBooks, saveBook } = useBooks()
   const { records, addProgress } = useRecords()
   const { cycleRecords, addCycle } = useCycleRecords()
@@ -173,6 +174,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     .map((sb) => sb)
   // スケジュールに含まれていない登録本も対象にする
   const planned = generateDayPlan({ availability, books: scheduled, today })
+  // 期限に間に合わない本の警告用。開始前の本も含めて将来の期限と調整する。
+  // 期限自体は変えず、不足分の再配分は見直し先の再調整画面に任せる。
+  const risks = findAtRiskBooks({ books: scheduled, availability, today })
 
   // ページ本の差し替え（従来通り、planned の index 基準）
   const pageApplied: PlanSlot[] = planned.today.slots.map((s, i) => {
@@ -495,6 +499,44 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   return (
     <div data-testid="today-plan-screen" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>今日の計画</h1>
+      {availability.length > 0 && risks.length > 0 && (
+        <div
+          data-testid="deadline-risk-section"
+          style={{
+            marginBottom: 16,
+            padding: '10px 12px',
+            borderRadius: 8,
+            background: '#fef2f2',
+            border: '1px solid #f0a0a0',
+            fontSize: 14,
+          }}
+        >
+          <p style={{ margin: '0 0 8px', fontWeight: 700 }}>期限に間に合わない本があります</p>
+          {risks.map((r) => {
+            const book = books.find((b) => b.id === r.bookId) ?? allBooks.find((b) => b.id === r.bookId)
+            return (
+              <div
+                key={r.bookId}
+                data-testid={`deadline-risk-${r.bookId}`}
+                style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}
+              >
+                <span>
+                  {book?.title ?? r.bookId} あと{r.remainingPages}ページ（{r.shortfallPages}ページ不足）
+                </span>
+                {onRebalance && (
+                  <button
+                    data-testid={`deadline-risk-rebalance-${r.bookId}`}
+                    type="button"
+                    onClick={() => onRebalance(r.bookId)}
+                  >
+                    見直す
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
       {focusIds !== null && (
         <p data-testid="focus-period-notice" style={{ fontWeight: 700 }}>
           テスト期間中のため{focusTitles.join('・')}の選択本だけ表示しています

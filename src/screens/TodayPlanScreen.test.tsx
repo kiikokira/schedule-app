@@ -653,6 +653,42 @@ describe('TodayPlanScreen', () => {
     expect(screen.queryByTestId('school-events-open')).not.toBeInTheDocument()
   })
 
+  it('期限に間に合わない本があると警告を出して見直しに進める', async () => {
+    await fillBook('b1', { totalPages: 500, deadline: '2026-09-22' })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '22:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'a2', weekday: 2, date: null, start: '21:00', end: '22:00' },
+      true,
+    )
+    const onRebalance = vi.fn()
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" onRebalance={onRebalance} />)
+    const section = await screen.findByTestId('deadline-risk-section')
+    expect(section).toHaveTextContent('英文法ポラリス2（応用レベル）')
+    fireEvent.click(screen.getByTestId('deadline-risk-rebalance-b1'))
+    expect(onRebalance).toHaveBeenCalledWith('b1')
+  })
+
+  it('期限に余裕があれば警告を出さない', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    await screen.findByTestId('today-table')
+    expect(screen.queryByTestId('deadline-risk-section')).not.toBeInTheDocument()
+  })
+
+  it('空き時間がなければ期限警告を出さない', async () => {
+    await fillBook('b1', { totalPages: 500, deadline: '2026-09-22' })
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    await screen.findByTestId('empty-availability-notice')
+    expect(screen.queryByTestId('deadline-risk-section')).not.toBeInTheDocument()
+  })
+
   it('今日だけ上書きは重なる時間帯を保存しない', async () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
     fireEvent.click(await screen.findByTestId('today-override-toggle'))

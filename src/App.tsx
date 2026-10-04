@@ -127,6 +127,7 @@ export default function App() {
             onBack={() => setRoute({ name: 'home' })}
             onSettings={() => setRoute({ name: 'plan' })}
             onSchool={() => setRoute({ name: 'school' })}
+            onRebalance={(bookId) => setRoute({ name: 'rebalance', bookId })}
           />
         )}
         {route.name === 'school' && (

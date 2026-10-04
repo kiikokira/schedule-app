@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   DEFAULT_MINUTES_PER_PAGE,
   effectiveSpeed,
+  findAtRiskBooks,
   generateDayPlan,
   improvePlan,
   learnSpeed,
@@ -58,6 +59,65 @@ const slot = (startMin: number, endMin: number, bookId: string, pages: number) =
   endMin,
   bookId,
   pages,
+})
+
+describe('findAtRiskBooks', () => {
+  // 2026-09-21 is a Monday. 10 pages left x 2 min = 20 min fits in a 60 min Monday slot.
+  it('returns empty when the book fits in the remaining time', () => {
+    const risks = findAtRiskBooks({
+      books: [book({ donePages: 90 })],
+      availability: [weekSlot(1, '21:00', '22:00')],
+      today: '2026-09-21',
+    })
+    expect(risks).toEqual([])
+  })
+
+  it('flags a book whose remaining pages exceed capacity with shortfall', () => {
+    // 100 pages left x 2 min = 200 min, only 60 min today. shortfall = 100 - 30 = 70.
+    const risks = findAtRiskBooks({
+      books: [book({ deadline: '2026-09-21' })],
+      availability: [weekSlot(1, '21:00', '22:00')],
+      today: '2026-09-21',
+    })
+    expect(risks).toEqual([{ bookId: 'b1', remainingPages: 100, shortfallPages: 70 }])
+  })
+
+  it('includes books that have not started yet', () => {
+    // A book starting 09-28 is included so future deadlines take part in planning.
+    const risks = findAtRiskBooks({
+      books: [book({ startDate: '2026-09-28', deadline: '2026-09-28' })],
+      availability: [weekSlot(1, '21:00', '22:00')],
+      today: '2026-09-21',
+    })
+    expect(risks).toEqual([{ bookId: 'b1', remainingPages: 100, shortfallPages: 70 }])
+  })
+
+  it('skips finished books', () => {
+    const risks = findAtRiskBooks({
+      books: [book({ donePages: 100 })],
+      availability: [],
+      today: '2026-09-21',
+    })
+    expect(risks).toEqual([])
+  })
+
+  it('flags books with invalid speed conservatively', () => {
+    const risks = findAtRiskBooks({
+      books: [book({ minutesPerPage: 0 })],
+      availability: [weekSlot(1, '21:00', '22:00')],
+      today: '2026-09-21',
+    })
+    expect(risks).toEqual([{ bookId: 'b1', remainingPages: 100, shortfallPages: 100 }])
+  })
+
+  it('flags overdue unfinished books with full remaining as shortfall', () => {
+    const risks = findAtRiskBooks({
+      books: [book({ donePages: 60, deadline: '2026-09-20' })],
+      availability: [weekSlot(1, '21:00', '22:00')],
+      today: '2026-09-21',
+    })
+    expect(risks).toEqual([{ bookId: 'b1', remainingPages: 40, shortfallPages: 40 }])
+  })
 })
 
 describe('parseTimeToMin', () => {

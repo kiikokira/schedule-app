@@ -399,6 +399,52 @@ export function generateDayPlan(params: {
   return { today: todayPlan, upcoming, notice }
 }
 
+export type BookRisk = {
+  bookId: string
+  remainingPages: number
+  shortfallPages: number
+}
+
+// Books that cannot finish by their deadline at the current pace,
+// including books that have not started yet so future deadlines take
+// part in replanning. Deadlines are never changed here; callers only
+// read the shortfall and propose redistribution within all deadlines.
+export function findAtRiskBooks(params: {
+  books: ScheduledBook[]
+  availability: AvailabilitySlot[]
+  today: string
+}): BookRisk[] {
+  const { books, availability, today } = params
+  const risks: BookRisk[] = []
+  for (const b of books) {
+    if (b.totalPages <= 0) continue
+    const remaining = b.totalPages - b.donePages
+    if (remaining <= 0) continue
+    const from = b.startDate > today ? b.startDate : today
+    let capacityMin = 0
+    if (from <= b.deadline) {
+      for (let d = from; d <= b.deadline; d = addDays(d, 1)) {
+        for (const s of slotsForDate(availability, d)) {
+          capacityMin += s.endMin - s.startMin
+        }
+      }
+    }
+    if (!(b.minutesPerPage > 0)) {
+      risks.push({ bookId: b.bookId, remainingPages: remaining, shortfallPages: remaining })
+      continue
+    }
+    const requiredMin = remaining * b.minutesPerPage
+    if (requiredMin > capacityMin) {
+      risks.push({
+        bookId: b.bookId,
+        remainingPages: remaining,
+        shortfallPages: remaining - Math.floor(capacityMin / b.minutesPerPage),
+      })
+    }
+  }
+  return risks
+}
+
 export function effectiveSpeed(
   saved: number | undefined,
   subject: string | undefined,
