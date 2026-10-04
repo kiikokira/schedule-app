@@ -28,12 +28,33 @@ export default function SchoolScreen({ onBack, today: todayProp }: Props) {
   return (
     <div data-testid="school-page" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>学校の日程</h1>
+      <p data-testid="school-today-line" style={{ fontWeight: 700 }}>
+        今日：
+        {formatSchoolEventDate(schoolYearOfMonth(today, todayMonth), todayMonth, todayDay)}
+      </p>
       {MONTHS.map((m) => {
         const events = schoolEventsForMonth(m)
         const year = schoolYearOfMonth(today, m)
         return (
           <div key={m} data-testid={`school-month-${m}`} style={{ marginTop: 16 }}>
-            <h2 style={{ fontSize: 16, backgroundColor: '#1e3a8a', color: '#fff', padding: '4px 8px' }}>{m}月</h2>
+            <h2 style={{ fontSize: 16, backgroundColor: '#1e3a8a', color: '#fff', padding: '4px 8px' }}>
+              {m}月
+              {m === todayMonth && (
+                <span
+                  style={{
+                    marginLeft: 8,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    backgroundColor: '#eab308',
+                    color: '#fff',
+                    borderRadius: 4,
+                    padding: '2px 6px',
+                  }}
+                >
+                  今月
+                </span>
+              )}
+            </h2>
             {events.map((e, idx) => {
               const i = events.slice(0, idx).filter((x) => x.day === e.day).length
               const isToday = e.month === todayMonth && e.day === todayDay

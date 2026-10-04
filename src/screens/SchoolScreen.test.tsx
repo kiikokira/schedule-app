@@ -62,4 +62,21 @@ describe('SchoolScreen', () => {
     render(<SchoolScreen onBack={() => {}} today="2026-10-02" />)
     expect(screen.queryByText('今日')).not.toBeInTheDocument()
   })
+
+  it('shows today date line under the title', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-10-04" />)
+    expect(screen.getByTestId('school-today-line')).toHaveTextContent('10月4日')
+  })
+
+  it('marks the current month section', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-10-04" />)
+    expect(within(screen.getByTestId('school-month-10')).getByText('今月')).toBeInTheDocument()
+    expect(within(screen.getByTestId('school-month-11')).queryByText('今月')).not.toBeInTheDocument()
+  })
+
+  it('shows the today line even outside the covered months', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-07-01" />)
+    expect(screen.getByTestId('school-today-line')).toHaveTextContent('7月1日')
+    expect(screen.queryByText('今月')).not.toBeInTheDocument()
+  })
 })
