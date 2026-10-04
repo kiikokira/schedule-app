@@ -635,21 +635,23 @@ describe('TodayPlanScreen', () => {
     expect(screen.getByText('中間試験発表')).toBeInTheDocument()
   })
 
-  it('学校の日程は他の月の行事を表示しない', async () => {
+  it('開くと別ページ相当の全月の行事が表示される', async () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
     fireEvent.click(screen.getByTestId('school-events-toggle'))
     expect(await screen.findByTestId('school-events-list')).toBeInTheDocument()
-    expect(screen.queryByText('期末試験①')).not.toBeInTheDocument()
+    expect(screen.getByText('中間試験発表')).toBeInTheDocument()
+    expect(screen.getByText('期末試験①')).toBeInTheDocument()
+    expect(screen.getAllByText('家庭学習').length).toBeGreaterThan(0)
   })
 
-  it('別ページで見るを押すとonSchoolが呼ばれる', async () => {
+  it('別ページで見るボタンは表示しない（onSchool指定時も）', async () => {
     const onSchool = vi.fn()
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" onSchool={onSchool} />)
-    fireEvent.click(await screen.findByTestId('school-events-open'))
-    expect(onSchool).toHaveBeenCalled()
+    await screen.findByTestId('school-events-section')
+    expect(screen.queryByTestId('school-events-open')).not.toBeInTheDocument()
   })
 
-  it('onSchool未指定時は別ページで見るボタンを出さない', async () => {
+  it('onSchool未指定時も別ページで見るボタンを出さない', async () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
     await screen.findByTestId('school-events-section')
     expect(screen.queryByTestId('school-events-open')).not.toBeInTheDocument()

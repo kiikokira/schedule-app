@@ -74,6 +74,11 @@ export default function App() {
     }
   }, [route, refresh])
 
+  // SPAでは画面遷移してもスクロール位置が残るため、遷移時は先頭から表示する
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [route.name])
+
   const editBook = route.name === 'edit' ? books.find((b) => b.id === route.bookId) : undefined
 
   return (

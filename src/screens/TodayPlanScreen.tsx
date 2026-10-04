@@ -16,8 +16,18 @@ import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { isLeapBook } from '../lib/leap'
 import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
 import { loadOverridePresets, type OverridePreset } from '../data/overridePresets'
-import { schoolEventsForMonth, formatSchoolEventDate, schoolYearOfMonth } from '../data/schoolEvents'
+import { schoolEventsForMonth, formatSchoolEventDate, schoolYearOfMonth, type SchoolEvent } from '../data/schoolEvents'
 import CoverImage from '../components/CoverImage'
+
+const SCHOOL_MONTHS = [10, 11, 12, 1, 2, 3]
+
+// 別ページ（SchoolScreen）と対応する tone→color 対応表（plain は既定文字色）。
+const SCHOOL_TONE_COLOR: Record<SchoolEvent['tone'], string | undefined> = {
+  exam: '#c02727',
+  info: '#1d4ed8',
+  green: '#15803d',
+  plain: undefined,
+}
 
 type Props = {
   onBack: () => void
@@ -123,7 +133,7 @@ function overlayCyclesPins(
   return out.sort((a, b) => a.startMin - b.startMin)
 }
 
-export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, onSchool }: Props) {
+export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }: Props) {
   const { books: allBooks, saveBook } = useBooks()
   const { records, addProgress } = useRecords()
   const { cycleRecords, addCycle } = useCycleRecords()
@@ -149,8 +159,6 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const [presets, setPresets] = useState<OverridePreset[]>(() => loadOverridePresets())
   const [presetId, setPresetId] = useState('')
   const [schoolOpen, setSchoolOpen] = useState(false)
-  const schoolMonth = Number(today.slice(5, 7))
-  const schoolEvents = schoolEventsForMonth(schoolMonth)
 
   const refreshAvailability = async () => {
     const a = await listAvailability()
@@ -905,7 +913,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
         ))}
       </div>
       <div data-testid="school-events-section" style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
-        <h2 style={{ fontSize: 16 }}>学校の日程（{schoolMonth}月）</h2>
+        <h2 style={{ fontSize: 16 }}>学校の日程</h2>
         <button
           data-testid="school-events-toggle"
           type="button"
@@ -914,27 +922,30 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
         >
           {schoolOpen ? '閉じる' : '開く'}
         </button>
-        {onSchool && (
-          <button
-            data-testid="school-events-open"
-            type="button"
-            style={{ marginBottom: 8, marginLeft: 8 }}
-            onClick={onSchool}
-          >
-            別ページで見る
-          </button>
-        )}
         {schoolOpen && (
           <div data-testid="school-events-list">
-            {schoolEvents.length === 0 && (
-              <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>今月の学校行事はありません</p>
-            )}
-            {schoolEvents.map((e, i) => (
-              <div key={`${e.month}-${e.day}-${i}`} style={{ marginBottom: 8 }}>
-                <div style={{ fontWeight: 700 }}>{formatSchoolEventDate(schoolYearOfMonth(today, schoolMonth), e.month, e.day)}</div>
-                <div>{e.text}</div>
-              </div>
-            ))}
+            {SCHOOL_MONTHS.map((m) => {
+              const events = schoolEventsForMonth(m)
+              const year = schoolYearOfMonth(today, m)
+              return (
+                <div key={m} data-testid={`school-month-${m}`} style={{ marginTop: 16 }}>
+                  <h3 style={{ fontSize: 16, backgroundColor: '#1e3a8a', color: '#fff', padding: '4px 8px' }}>{m}月</h3>
+                  {events.map((e, idx) => {
+                    const i = events.slice(0, idx).filter((x) => x.day === e.day).length
+                    return (
+                      <div
+                        key={`${e.month}-${e.day}-${idx}`}
+                        data-testid={`school-event-${e.month}-${e.day}-${i}`}
+                        style={{ marginBottom: 8, color: SCHOOL_TONE_COLOR[e.tone] }}
+                      >
+                        <div style={{ fontWeight: 700 }}>{formatSchoolEventDate(year, e.month, e.day)}</div>
+                        <div>{e.text}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

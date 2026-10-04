@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { schoolEventsForMonth, formatSchoolEventDate, schoolYearOfMonth, type SchoolEvent } from '../data/schoolEvents'
 import { todayStr } from '../lib/progress'
 
@@ -18,6 +19,10 @@ const TONE_COLOR: Record<SchoolEvent['tone'], string | undefined> = {
 
 export default function SchoolScreen({ onBack, today: todayProp }: Props) {
   const today = todayProp ?? todayStr()
+  // 別ページ遷移時に前画面のスクロール位置が残り途中から表示されるため、先頭から表示する
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
   return (
     <div data-testid="school-page" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>学校の日程</h1>

@@ -1,8 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import SchoolScreen from './SchoolScreen'
 
 describe('SchoolScreen', () => {
+  beforeEach(() => {
+    window.scrollTo = vi.fn() as unknown as typeof window.scrollTo
+  })
   it('shows the October and March month sections', () => {
     render(<SchoolScreen onBack={() => {}} />)
     expect(screen.getByTestId('school-page')).toBeInTheDocument()
@@ -34,5 +37,12 @@ describe('SchoolScreen', () => {
     render(<SchoolScreen onBack={() => {}} today="2026-10-05" />)
     expect(screen.getByText('10月1日（木）')).toBeInTheDocument()
     expect(screen.getByText('2月10日（水）')).toBeInTheDocument()
+  })
+
+  it('mounts scrolled to top so the list starts from the top', () => {
+    const scrollTo = vi.fn()
+    window.scrollTo = scrollTo as unknown as typeof window.scrollTo
+    render(<SchoolScreen onBack={() => {}} today="2026-10-05" />)
+    expect(scrollTo).toHaveBeenCalledWith(0, 0)
   })
 })
