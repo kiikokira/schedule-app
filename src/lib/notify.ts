@@ -161,6 +161,9 @@ export async function schedulePush(
 
 // 未配達の予約投稿を取り消す。配達済みのものには触らないよう
 // 呼び出し側で未来分だけに絞ること。
+// DELETEではなくドキュメントにある代替手段の GET {topic}/{id}/delete を使う。
+// 本番ntfy.shでの実測で、DELETEは200を返しながら取り消しが効かず通知が届いた
+// （3/3で取消失敗）。GET deleteは2/2で取消できたためこちらに切り替える。
 export async function cancelScheduledPush(
   topic: string,
   sequenceId: string,
@@ -170,9 +173,9 @@ export async function cancelScheduledPush(
   const timer = withTimeout(controller)
   try {
     const res = await fetchImpl(
-      `${NTFY_BASE}/${encodeTopic(topic)}/${encodeURIComponent(sequenceId)}`,
+      `${NTFY_BASE}/${encodeTopic(topic)}/${encodeURIComponent(sequenceId)}/delete`,
       {
-        method: 'DELETE',
+        method: 'GET',
         cache: 'no-store',
         signal: controller.signal,
       },

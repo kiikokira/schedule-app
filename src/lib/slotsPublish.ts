@@ -14,12 +14,12 @@ export function slotSequenceId(date: string, start: string): string {
 }
 
 // 空き時間の開始10分前に届くよう予約投稿するためのUNIX秒。
+// 00:10より前の開始は前日に巻き戻る（日付文字列の組み立てではNaNになり
+// 通知が欠落するため、日またぎを吸収できるよう通しミリ秒で計算する）。
 export function slotStartUnix(date: string, start: string): number {
   const [h, m] = start.split(':').map(Number)
-  const fireMin = h * 60 + m - REMINDER_LEAD_MIN
-  const fireH = String(Math.floor(fireMin / 60)).padStart(2, '0')
-  const fireM = String(fireMin % 60).padStart(2, '0')
-  return Math.floor(new Date(`${date}T${fireH}:${fireM}:00+09:00`).getTime() / 1000)
+  const dayStart = new Date(`${date}T00:00:00+09:00`).getTime()
+  return Math.floor((dayStart + (h * 60 + m - REMINDER_LEAD_MIN) * 60_000) / 1000)
 }
 
 // 移行前の終了時刻基準の予約IDを解釈する（残留分の取り消し用）。
@@ -39,44 +39,92 @@ function parseSequenceId(id: string): { date: string; fireUnix: number } | null 
   return parseLegacySequenceId(id)
 }
 
-type DayState = { hash: string; ids: string[] }
-type ScheduledState = { days: Record<string, DayState> }
+type SlotRecord = { h: string; t: 0 | 1 }
+type DayState = { slots: Record<string, SlotRecord> }
+type ScheduledState = { v: 2; days: Record<string, DayState> }
+
+// 移行前の1世代分の状態（内容が一致すれば黙って引き継ぎ、違えば送り直す）
+type LegacyDayState = { hash: string; ids: string[] }
+
+function isSlotRecord(v: unknown): v is SlotRecord {
+  if (!v || typeof v !== 'object') return false
+  const sv = v as Partial<SlotRecord>
+  return typeof sv.h === 'string' && (sv.t === 0 || sv.t === 1)
+}
 
 function isDayState(v: unknown): v is DayState {
   if (!v || typeof v !== 'object') return false
-  const dv = v as Partial<DayState>
-  return typeof dv.hash === 'string' && Array.isArray(dv.ids) && dv.ids.every((x) => typeof x === 'string')
+  const dv = v as { slots?: unknown }
+  if (!dv.slots || typeof dv.slots !== 'object' || Array.isArray(dv.slots)) return false
+  return Object.values(dv.slots as Record<string, unknown>).every(isSlotRecord)
+}
+
+function isLegacyDayState(v: unknown): v is LegacyDayState {
+  if (!v || typeof v !== 'object') return false
+  const dv = v as Partial<LegacyDayState>
+  return (
+    typeof dv.hash === 'string' &&
+    Array.isArray(dv.ids) &&
+    dv.ids.every((x) => typeof x === 'string')
+  )
+}
+
+// 未移行の旧形式（単日形式・days形式の {hash, ids}）をその日の分として読み出す。
+// 新形式があればそちらを優先する。
+function readLegacyDay(date: string, parsed: Record<string, unknown>): LegacyDayState | null {
+  const daysRaw = parsed.days
+  if (daysRaw && typeof daysRaw === 'object' && !Array.isArray(daysRaw)) {
+    const v = (daysRaw as Record<string, unknown>)[date]
+    if (isLegacyDayState(v)) return { hash: v.hash, ids: [...v.ids] }
+  }
+  if (
+    typeof parsed.date === 'string' &&
+    parsed.date === date &&
+    isLegacyDayState({ hash: parsed.hash, ids: parsed.ids })
+  ) {
+    return {
+      hash: parsed.hash as string,
+      ids: [...(parsed.ids as string[])],
+    }
+  }
+  return null
 }
 
 function readScheduledState(): ScheduledState {
   try {
     const raw = localStorage.getItem(SCHEDULED_KEY)
-    if (!raw) return { days: {} }
+    if (!raw) return { v: 2, days: {} }
     const parsed = JSON.parse(raw) as Record<string, unknown>
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { days: {} }
-    const daysRaw = parsed.days
-    if (daysRaw && typeof daysRaw === 'object' && !Array.isArray(daysRaw)) {
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { v: 2, days: {} }
+    if ((parsed as { v?: unknown }).v === 2) {
+      const daysRaw = parsed.days
+      if (!daysRaw || typeof daysRaw !== 'object' || Array.isArray(daysRaw)) return { v: 2, days: {} }
       const days: Record<string, DayState> = {}
       for (const [date, v] of Object.entries(daysRaw as Record<string, unknown>)) {
-        if (isDayState(v)) days[date] = { hash: v.hash, ids: [...v.ids] }
+        if (isDayState(v)) {
+          const slots: Record<string, SlotRecord> = {}
+          for (const [id, r] of Object.entries(v.slots)) slots[id] = { h: r.h, t: r.t }
+          days[date] = { slots }
+        }
       }
-      return { days }
+      return { v: 2, days }
     }
-    // 移行前の単日形式はその日の分として引き継ぐ（再送は置換になるため安全）
-    const legacyDate = parsed.date
-    const legacyHash = parsed.hash
-    const legacyIds = parsed.ids
-    if (
-      typeof legacyDate === 'string' &&
-      typeof legacyHash === 'string' &&
-      Array.isArray(legacyIds) &&
-      legacyIds.every((x) => typeof x === 'string')
-    ) {
-      return { days: { [legacyDate]: { hash: legacyHash, ids: [...legacyIds] } } }
-    }
-    return { days: {} }
+    return { v: 2, days: {} }
   } catch {
-    return { days: {} }
+    return { v: 2, days: {} }
+  }
+}
+
+function readRawLegacy(date: string): LegacyDayState | null {
+  try {
+    const raw = localStorage.getItem(SCHEDULED_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+    if ((parsed as { v?: unknown }).v === 2) return null
+    return readLegacyDay(date, parsed)
+  } catch {
+    return null
   }
 }
 
@@ -114,16 +162,19 @@ export async function publishSlotsOnce(
 }
 
 // その日の残り枠の開始10分前に届くようntfyへ予約投稿する。
-// アプリが閉じていてもサーバー側で配達される。内容が変わらなければ何もしらない。
+// アプリが閉じていてもサーバー側で配達される。
+// 本番ntfy.shの実測では、同じ予約IDへの再送が置換にならない場合があり
+// （再送のたびに重複が増える）、DELETEでの取り消しも効かない。
+// そのため再送は「内容が変わった枠だけ」に絞り、取り消しは GET delete で行う。
 // なくなった未来分の予約は取り消す（配達済みには触らない）。
-// 予約に間に合わなかった直近分（猶予内）はその場で送る。いずれも
-// 決定的な予約IDで管理するため、再送・複数端末でも二重送信にならない。
-// 送信に失敗した場合は記録を残さず、次回に再試行できるようにする。
+// 予約に間に合わなかった直近分（猶予内）はその場で送る。
+// 送信に失敗した分は記録を残さず、次回に再試行できるようにする。
 export async function syncSlotSchedules(
   topic: string,
   payload: SlotsPayload,
   fetchImpl: typeof fetch = fetch,
   now: Date = new Date(),
+  titled = false,
 ): Promise<{ scheduled: number; salvaged: number; cancelled: number }> {
   // 同期同士を直列化する。起動時と今日の計画表示時の2回の同期が重なると、
   // どちらも書き込み前の状態を読んでサルベージを二重送信してしまうため、
@@ -135,7 +186,7 @@ export async function syncSlotSchedules(
   })
   await previous
   try {
-    return await runSyncSlotSchedules(topic, payload, fetchImpl, now)
+    return await runSyncSlotSchedules(topic, payload, fetchImpl, now, titled)
   } finally {
     release()
   }
@@ -143,75 +194,135 @@ export async function syncSlotSchedules(
 
 let syncQueue: Promise<void> = Promise.resolve()
 
+function slotContentHash(slot: SlotsPayload['slots'][number]): string {
+  return JSON.stringify(slot)
+}
+
 async function runSyncSlotSchedules(
   topic: string,
   payload: SlotsPayload,
   fetchImpl: typeof fetch = fetch,
   now: Date = new Date(),
+  titled = false,
 ): Promise<{ scheduled: number; salvaged: number; cancelled: number }> {
   const none = { scheduled: 0, salvaged: 0, cancelled: 0 }
   const today = formatDate(now)
   if (payload.date < today) return none
-  const hash = `${payload.date}|${JSON.stringify(payload.slots)}`
-  const state = readScheduledState()
-  const prev = state.days[payload.date]
-  if (prev && prev.hash === hash) return none
   const nowMs = now.getTime()
-  const storedIds = new Set(prev ? prev.ids : [])
-  const future = payload.slots.filter(
-    (s) => slotStartUnix(payload.date, s.start) * 1000 - nowMs >= SCHEDULE_AHEAD_MS,
-  )
-  const salvage = payload.slots.filter((s) => {
+  const state = readScheduledState()
+  let records: Record<string, SlotRecord> = { ...(state.days[payload.date]?.slots ?? {}) }
+  // 旧形式の記録は、内容が一致すれば黙って引き継ぎ、違えば送り直す。
+  // 内容が違う場合も旧IDは引き継ぎ、なくなった枠の取り消し対象にする。
+  if (Object.keys(records).length === 0) {
+    const legacy = readRawLegacy(payload.date)
+    const freshDayHash = `${payload.date}|${JSON.stringify(payload.slots)}`
+    if (legacy) {
+      for (const id of legacy.ids) records[id] = { h: '', t: 0 }
+    }
+    if (legacy && legacy.hash === freshDayHash) {
+      records = {}
+      for (const s of payload.slots) {
+        records[slotSequenceId(payload.date, s.start)] = { h: slotContentHash(s), t: 0 }
+      }
+      const days: Record<string, DayState> = { ...state.days }
+      for (const d of Object.keys(days)) {
+        if (d < today) delete days[d]
+      }
+      days[payload.date] = { slots: records }
+      try {
+        localStorage.setItem(SCHEDULED_KEY, JSON.stringify({ v: 2, days }))
+      } catch {
+        // localStorage が利用できない環境では保存しない
+      }
+      return none
+    }
+  }
+  const mark = titled ? 1 : 0
+  const future: typeof payload.slots = []
+  const salvage: typeof payload.slots = []
+  for (const s of payload.slots) {
     const id = slotSequenceId(payload.date, s.start)
-    if (storedIds.has(id)) return false
+    const rec = records[id]
+    const hash = slotContentHash(s)
+    if (rec && rec.h === hash) continue
+    // 無題（起動時）の同期は題付き（今日の計画）の記録を上書きしない。
+    // 毎回の起動で無題予約が再送され重複するのを防ぐ。
+    if (!titled && rec && rec.t === 1) continue
     const fireMs = slotStartUnix(payload.date, s.start) * 1000
-    return fireMs - nowMs < SCHEDULE_AHEAD_MS && nowMs - fireMs < SALVAGE_WINDOW_MIN * 60_000
-  })
-  const ids = future.map((s) => slotSequenceId(payload.date, s.start))
+    if (fireMs - nowMs >= SCHEDULE_AHEAD_MS) future.push(s)
+    else if (nowMs - fireMs < SALVAGE_WINDOW_MIN * 60_000) salvage.push(s)
+  }
+  const current = new Set(payload.slots.map((s) => slotSequenceId(payload.date, s.start)))
   let cancelled = 0
-  if (prev) {
-    const current = new Set(ids)
-    for (const id of prev.ids) {
-      if (current.has(id)) continue
-      const parsed = parseSequenceId(id)
-      if (!parsed) continue
-      if (parsed.fireUnix * 1000 <= nowMs) continue
-      if (await cancelScheduledPush(topic, id, fetchImpl)) cancelled++
+  let failed = false
+  let anySuccess = false
+  const next: Record<string, SlotRecord> = {}
+  // 今回送らない枠の記録はそのまま引き継ぐ。送る枠は成功時に新しい記録で置き換える。
+  const posting = new Set([...future, ...salvage].map((s) => slotSequenceId(payload.date, s.start)))
+  for (const s of payload.slots) {
+    const id = slotSequenceId(payload.date, s.start)
+    const rec = records[id]
+    if (rec && !posting.has(id)) next[id] = rec
+  }
+  for (const id of Object.keys(records)) {
+    if (current.has(id)) continue
+    const parsed = parseSequenceId(id)
+    if (!parsed) continue
+    if (parsed.fireUnix * 1000 <= nowMs) continue
+    if (await cancelScheduledPush(topic, id, fetchImpl)) {
+      cancelled++
+      anySuccess = true
+    } else {
+      failed = true
+      const rec = records[id]
+      if (rec) next[id] = rec
     }
   }
   let scheduled = 0
-  let failed = false
   for (const slot of future) {
+    const id = slotSequenceId(payload.date, slot.start)
     const fireUnix = slotStartUnix(payload.date, slot.start)
     const result = await schedulePush(topic, slotStartMessage(slot), {
       title: slotStartTitle(slot.start),
       delay: fireUnix,
-      sequenceId: slotSequenceId(payload.date, slot.start),
+      sequenceId: id,
     }, fetchImpl)
-    if (result.ok) scheduled++
-    else failed = true
+    if (result.ok) {
+      scheduled++
+      anySuccess = true
+      next[id] = { h: slotContentHash(slot), t: mark }
+    } else {
+      failed = true
+      const rec = records[id]
+      if (rec) next[id] = rec
+    }
   }
   let salvaged = 0
   for (const slot of salvage) {
+    const id = slotSequenceId(payload.date, slot.start)
     const result = await schedulePush(topic, slotStartMessage(slot), {
       title: slotStartTitle(slot.start),
       delay: Math.floor(now.getTime() / 1000) + SALVAGE_DELAY_SEC,
-      sequenceId: slotSequenceId(payload.date, slot.start),
+      sequenceId: id,
     }, fetchImpl)
-    if (result.ok) salvaged++
-    else failed = true
+    if (result.ok) {
+      salvaged++
+      anySuccess = true
+      next[id] = { h: slotContentHash(slot), t: mark }
+    } else {
+      failed = true
+      const rec = records[id]
+      if (rec) next[id] = rec
+    }
   }
-  if (failed) return { scheduled, salvaged, cancelled }
+  if (failed && !anySuccess) return { scheduled, salvaged, cancelled }
   const days: Record<string, DayState> = { ...state.days }
   for (const d of Object.keys(days)) {
     if (d < today) delete days[d]
   }
-  days[payload.date] = {
-    hash,
-    ids: [...ids, ...salvage.map((s) => slotSequenceId(payload.date, s.start))],
-  }
+  days[payload.date] = { slots: next }
   try {
-    localStorage.setItem(SCHEDULED_KEY, JSON.stringify({ days }))
+    localStorage.setItem(SCHEDULED_KEY, JSON.stringify({ v: 2, days }))
   } catch {
     // localStorage が利用できない環境では保存しない
   }

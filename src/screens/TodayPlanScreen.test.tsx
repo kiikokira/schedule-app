@@ -652,5 +652,21 @@ describe('TodayPlanScreen', () => {
     await screen.findByTestId('school-events-section')
     expect(screen.queryByTestId('school-events-open')).not.toBeInTheDocument()
   })
+
+  it('今日だけ上書きは重なる時間帯を保存しない', async () => {
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
+    fireEvent.click(await screen.findByTestId('today-override-toggle'))
+    fireEvent.click(screen.getByTestId('today-override-add'))
+    fireEvent.click(screen.getByTestId('today-override-add'))
+    fireEvent.change(screen.getByTestId('today-override-start-0'), { target: { value: '09:00' } })
+    fireEvent.change(screen.getByTestId('today-override-end-0'), { target: { value: '10:00' } })
+    fireEvent.change(screen.getByTestId('today-override-start-1'), { target: { value: '09:30' } })
+    fireEvent.change(screen.getByTestId('today-override-end-1'), { target: { value: '10:30' } })
+    fireEvent.click(screen.getByTestId('today-override-save'))
+    expect(await screen.findByTestId('today-override-message')).toHaveTextContent(
+      '時間帯が重複しないようにしてください',
+    )
+    expect(await listAvailability()).toHaveLength(0)
+  })
 })
 

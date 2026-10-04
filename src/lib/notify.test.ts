@@ -249,7 +249,7 @@ describe('schedulePush', () => {
 })
 
 describe('cancelScheduledPush', () => {
-  it('deletes the scheduled message by sequence id', async () => {
+  it('cancels the scheduled message with a GET delete request', async () => {
     const fetchImpl = vi.fn(
       async (_input: RequestInfo | URL, _init?: RequestInit) =>
         ({ ok: true }) as Response,
@@ -261,8 +261,8 @@ describe('cancelScheduledPush', () => {
     )
     expect(ok).toBe(true)
     const [url, init] = fetchImpl.mock.calls[0]
-    expect(url).toBe('https://ntfy.sh/my-topic/slot-2026-09-27-2200')
-    expect((init as RequestInit).method).toBe('DELETE')
+    expect(url).toBe('https://ntfy.sh/my-topic/slot-2026-09-27-2200/delete')
+    expect((init as RequestInit).method).toBe('GET')
   })
 
   it('returns false when the request throws', async () => {

@@ -328,9 +328,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   useEffect(() => {
     if (!notifyEnabled || !notifyTopic.trim() || !slotsPayload) return
     void publishSlotsOnce(notifyTopic, slotsPayload)
-    // 開始10分前に届くよう予約投稿する。同じ予約IDの再送は置換になるため、
-    // 開くたび・複数端末でも二重送信しない。直近に過ぎた分はその場で送る。
-    void syncSlotSchedules(notifyTopic, slotsPayload)
+    // 開始10分前に届くよう予約投稿する。題付き（本の名前入り）として記録し、
+    // 起動時の無題予約で上書きされないようにする。直近に過ぎた分はその場で送る。
+    void syncSlotSchedules(notifyTopic, slotsPayload, undefined, undefined, true)
   }, [notifyEnabled, notifyTopic, slotsPayload])
 
   const saveTodayOverrides = async (slotsToSave: PlanSlot[]) => {
@@ -368,6 +368,15 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       }
       if (eh * 60 + em <= sh * 60 + sm) {
         setDayMessage('終了時刻は開始時刻より後にしてください')
+        return
+      }
+    }
+    // 重なる時間帯は同じ予約IDで上書きし合い片方が届かなくなるため保存しない。
+    // スケジュール画面の曜日設定と同じ検査にする。
+    const sorted = [...rows].sort((a, b) => parseTimeToMin(a.start) - parseTimeToMin(b.start))
+    for (let i = 1; i < sorted.length; i++) {
+      if (parseTimeToMin(sorted[i].start) < parseTimeToMin(sorted[i - 1].end)) {
+        setDayMessage('時間帯が重複しないようにしてください')
         return
       }
     }
