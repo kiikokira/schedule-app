@@ -401,11 +401,21 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
     if (overrideOpen) setPresets(loadOverridePresets())
   }, [overrideOpen])
 
-  const applyPreset = () => {
-    const preset = presets.find((p) => p.id === presetId)
+  const loadPresetById = (id: string) => {
+    const preset = presets.find((p) => p.id === id)
     if (!preset) return
     setDayRows(preset.rows.map((r) => ({ ...r })))
     setDayMessage(`プリセット「${preset.name}」を入力しました`)
+  }
+
+  const applyPreset = () => {
+    loadPresetById(presetId)
+  }
+
+  const handlePresetSelect = (id: string) => {
+    setPresetId(id)
+    if (!id) return
+    loadPresetById(id)
   }
 
   const handleCycleRecord = async (slotKey: string, book: BookData) => {
@@ -747,7 +757,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp }
               <select
                 data-testid="today-override-preset-select"
                 value={presetId}
-                onChange={(e) => setPresetId(e.target.value)}
+                onChange={(e) => handlePresetSelect(e.target.value)}
                 aria-label="プリセット"
               >
                 <option value="">プリセットを選ぶ</option>

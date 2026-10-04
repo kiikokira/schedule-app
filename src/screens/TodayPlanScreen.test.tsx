@@ -594,6 +594,38 @@ describe('TodayPlanScreen', () => {
     expect(loadOverridePresets()[0].rows[0].start).toBe('09:00')
   })
 
+  it('プリセットを選び直すと上書きフォームが上書きされる', async () => {
+    const { saveOverridePresets } = await import('../data/overridePresets')
+    saveOverridePresets([
+      { id: 'p1', name: '午前', rows: [{ start: '09:00', end: '10:00' }] },
+      { id: 'p2', name: '午後', rows: [{ start: '14:00', end: '15:00' }] },
+    ])
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    fireEvent.click(await screen.findByTestId('today-override-toggle'))
+    fireEvent.change(screen.getByTestId('today-override-preset-select'), { target: { value: 'p1' } })
+    fireEvent.click(screen.getByTestId('today-override-preset-apply'))
+    expect(screen.getByTestId('today-override-start-0')).toHaveValue('09:00')
+    fireEvent.change(screen.getByTestId('today-override-preset-select'), { target: { value: 'p2' } })
+    expect(screen.getByTestId('today-override-start-0')).toHaveValue('14:00')
+  })
+
+  it('選び直し後のその場編集は原本に影響しない', async () => {
+    const { saveOverridePresets, loadOverridePresets } = await import('../data/overridePresets')
+    saveOverridePresets([
+      { id: 'p1', name: '午前', rows: [{ start: '09:00', end: '10:00' }] },
+      { id: 'p2', name: '午後', rows: [{ start: '14:00', end: '15:00' }] },
+    ])
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    fireEvent.click(await screen.findByTestId('today-override-toggle'))
+    fireEvent.change(screen.getByTestId('today-override-preset-select'), { target: { value: 'p1' } })
+    fireEvent.click(screen.getByTestId('today-override-preset-apply'))
+    fireEvent.change(screen.getByTestId('today-override-preset-select'), { target: { value: 'p2' } })
+    expect(screen.getByTestId('today-override-start-0')).toHaveValue('14:00')
+    fireEvent.change(screen.getByTestId('today-override-start-0'), { target: { value: '16:00' } })
+    expect(screen.getByTestId('today-override-start-0')).toHaveValue('16:00')
+    expect(loadOverridePresets().find((p) => p.id === 'p2')?.rows[0].start).toBe('14:00')
+  })
+
   it('学校の日程は初期は畳まれ展開すると今月の行事が見える', async () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
     expect(screen.getByTestId('school-events-toggle')).toBeInTheDocument()
