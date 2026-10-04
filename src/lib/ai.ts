@@ -14,6 +14,31 @@ export const GROQ_EXAMPLE_MODEL = 'llama-3.1-8b-instant'
 
 const STORAGE_KEY = 'ai-settings'
 
+export function isSafeAiEndpoint(endpoint: string): boolean {
+  try {
+    const u = new URL(endpoint)
+    if (u.protocol === 'https:' && u.hostname !== '') return true
+    if (u.protocol === 'http:') {
+      const host = u.hostname
+      if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '::1') {
+        return true
+      }
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+export function isKnownAiEndpoint(endpoint: string): boolean {
+  return (
+    endpoint === DEFAULT_ENDPOINT ||
+    endpoint === GEMINI_COMPAT_ENDPOINT ||
+    endpoint === OPENROUTER_ENDPOINT ||
+    endpoint === GROQ_ENDPOINT
+  )
+}
+
 /**
  * APIキーの無害化。コピペ混入の空白・改行・不可視文字・非ASCIIを除去し、
  * HTTPヘッダに載せられる印字可能ASCIIのみにする。正規キー（英数・記号）は不変。
@@ -30,9 +55,12 @@ export function getAiSettings(): AiSettings {
     if (raw) {
       const p = JSON.parse(raw) as Partial<AiSettings>
       return {
-        endpoint: p.endpoint?.trim() || DEFAULT_ENDPOINT,
-        apiKey: p.apiKey ?? '',
-        model: p.model?.trim() ?? '',
+        endpoint:
+          typeof p.endpoint === 'string' && p.endpoint.trim() !== ''
+            ? p.endpoint.trim()
+            : DEFAULT_ENDPOINT,
+        apiKey: typeof p.apiKey === 'string' ? p.apiKey : '',
+        model: typeof p.model === 'string' ? p.model.trim() : '',
       }
     }
   } catch {
@@ -77,6 +105,9 @@ export async function chatWithModel(
   opts?: { timeoutMs?: number },
 ): Promise<ChatResult> {
   const timeoutMs = opts?.timeoutMs ?? 60000
+  if (!isSafeAiEndpoint(settings.endpoint)) {
+    return { ok: false, reason: 'network', detail: 'unsafe endpoint' }
+  }
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   const apiKey = sanitizeAiKey(settings.apiKey)
@@ -85,7 +116,13 @@ export async function chatWithModel(
     'Content-Type': 'application/json',
     Authorization: `Bearer ${apiKey}`,
   }
-  if (settings.endpoint.includes('openrouter.ai')) {
+  let isOpenRouter = false
+  try {
+    isOpenRouter = new URL(settings.endpoint).hostname === 'openrouter.ai'
+  } catch {
+    isOpenRouter = false
+  }
+  if (isOpenRouter) {
     headers['HTTP-Referer'] = 'https://kiikokira.github.io/schedule-app/'
     headers['X-OpenRouter-Title'] = '参考書スケジュール管理'
   }
@@ -141,6 +178,9 @@ export async function pingEndpoint(
   endpoint: string,
   opts?: { timeoutMs?: number },
 ): Promise<PingResult> {
+  if (!isSafeAiEndpoint(endpoint)) {
+    return { ok: true, reachable: false }
+  }
   const timeoutMs = opts?.timeoutMs ?? 15000
   const base = endpoint.replace(/\/chat\/completions\/?$/, '')
   const controller = new AbortController()
