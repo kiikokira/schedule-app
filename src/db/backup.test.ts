@@ -57,3 +57,12 @@ it('cycleRecords のない古いバックアップも受け付ける', () => {
   const old = { exportedAt: '2026-01-05T00:00:00.000Z', books: [book], records: [record] }
   expect(validateBackup(old)).toBe(true)
 })
+
+it('rejects books with unsafe coverUrl', () => {
+  const data: unknown = {
+    exportedAt: '2026-01-05T00:00:00.000Z',
+    books: [{ ...book, coverUrl: 'javascript:alert(1)' }],
+    records: [],
+  }
+  expect(validateBackup(data)).toBe(false)
+})

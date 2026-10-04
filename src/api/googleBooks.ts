@@ -68,9 +68,12 @@ function parseItems(data: unknown): SearchResultItem[] {
         title: info.title ?? '(タイトルなし)',
         authors: info.authors ?? [],
         pageCount: typeof info.pageCount === 'number' ? info.pageCount : null,
-        thumbnail: info.imageLinks?.thumbnail
-          ? info.imageLinks.thumbnail.replace(/^http:/, 'https:')
-          : null,
+        thumbnail: (() => {
+          const raw = info.imageLinks?.thumbnail
+          if (!raw) return null
+          const upgraded = raw.replace(/^http:/, 'https:')
+          return upgraded.startsWith('https:') ? upgraded : null
+        })(),
       }
     })
 }

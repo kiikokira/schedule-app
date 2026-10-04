@@ -1,5 +1,6 @@
 import { db } from './database'
 import { saveSchedule } from '../data/scheduleStore'
+import { isSafeCoverUrl } from '../lib/coverUrl'
 import type { BookData, ProgressRecordData, CycleRecordData } from '../lib/progress'
 import type { AvailabilitySlot, Adjustment } from '../data/dayplanStore'
 import type { ChatHistoryEntry } from '../data/chatHistoryStore'
@@ -32,6 +33,10 @@ export function validateBackup(data: unknown): data is BackupData {
     if (typeof b.title !== 'string') return false
     if (typeof b.totalPages !== 'number' || b.totalPages < 1) return false
     if (typeof b.startDate !== 'string' || typeof b.deadline !== 'string') return false
+    const coverUrl = (b as { coverUrl?: unknown }).coverUrl
+    if (coverUrl !== undefined && coverUrl !== null) {
+      if (typeof coverUrl !== 'string' || !isSafeCoverUrl(coverUrl)) return false
+    }
     bookIds.add(b.id)
   }
   for (const r of d.records) {

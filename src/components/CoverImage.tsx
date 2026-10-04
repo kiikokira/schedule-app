@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { sanitizeCoverUrl } from '../lib/coverUrl'
 
 type Props = {
   src: string | null
@@ -10,8 +11,9 @@ type Props = {
 export default function CoverImage({ src, alt, width, height }: Props) {
   const [failed, setFailed] = useState(false)
   useEffect(() => setFailed(false), [src])
+  const safeSrc = sanitizeCoverUrl(src)
 
-  if (!src || failed) {
+  if (!safeSrc || failed) {
     return (
       <div
         data-testid="cover-placeholder"
@@ -23,10 +25,11 @@ export default function CoverImage({ src, alt, width, height }: Props) {
 
   return (
     <img
-      src={src}
+      src={safeSrc}
       alt={alt ?? ''}
       width={width}
       height={height}
+      referrerPolicy="no-referrer"
       style={{ objectFit: 'contain', width, height }}
       onError={() => setFailed(true)}
     />
