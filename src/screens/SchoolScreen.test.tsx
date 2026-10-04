@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import SchoolScreen from './SchoolScreen'
 
@@ -44,5 +44,22 @@ describe('SchoolScreen', () => {
     window.scrollTo = scrollTo as unknown as typeof window.scrollTo
     render(<SchoolScreen onBack={() => {}} today="2026-10-05" />)
     expect(scrollTo).toHaveBeenCalledWith(0, 0)
+  })
+
+  it('marks the row matching today with a badge', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-10-08" />)
+    expect(within(screen.getByTestId('school-event-10-8-0')).getByText('今日')).toBeInTheDocument()
+    expect(within(screen.getByTestId('school-event-10-9-0')).queryByText('今日')).not.toBeInTheDocument()
+  })
+
+  it('marks every row when multiple events share today', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-11-04" />)
+    expect(within(screen.getByTestId('school-event-11-4-0')).getByText('今日')).toBeInTheDocument()
+    expect(within(screen.getByTestId('school-event-11-4-1')).getByText('今日')).toBeInTheDocument()
+  })
+
+  it('shows no marker on days without events', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-10-02" />)
+    expect(screen.queryByText('今日')).not.toBeInTheDocument()
   })
 })

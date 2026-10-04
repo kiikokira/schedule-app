@@ -19,6 +19,8 @@ const TONE_COLOR: Record<SchoolEvent['tone'], string | undefined> = {
 
 export default function SchoolScreen({ onBack, today: todayProp }: Props) {
   const today = todayProp ?? todayStr()
+  const todayMonth = Number(today.slice(5, 7))
+  const todayDay = Number(today.slice(8, 10))
   // 別ページ遷移時に前画面のスクロール位置が残り途中から表示されるため、先頭から表示する
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -34,13 +36,42 @@ export default function SchoolScreen({ onBack, today: todayProp }: Props) {
             <h2 style={{ fontSize: 16, backgroundColor: '#1e3a8a', color: '#fff', padding: '4px 8px' }}>{m}月</h2>
             {events.map((e, idx) => {
               const i = events.slice(0, idx).filter((x) => x.day === e.day).length
+              const isToday = e.month === todayMonth && e.day === todayDay
               return (
                 <div
                   key={`${e.month}-${e.day}-${idx}`}
                   data-testid={`school-event-${e.month}-${e.day}-${i}`}
-                  style={{ marginBottom: 8, color: TONE_COLOR[e.tone] }}
+                  style={{
+                    marginBottom: 8,
+                    color: TONE_COLOR[e.tone],
+                    ...(isToday
+                      ? {
+                          backgroundColor: '#fef3c7',
+                          borderLeft: '4px solid #eab308',
+                          borderRadius: 4,
+                          padding: '4px 4px 4px 8px',
+                        }
+                      : undefined),
+                  }}
                 >
-                  <div style={{ fontWeight: 700 }}>{formatSchoolEventDate(year, e.month, e.day)}</div>
+                  <div style={{ fontWeight: 700 }}>
+                    {formatSchoolEventDate(year, e.month, e.day)}
+                    {isToday && (
+                      <span
+                        style={{
+                          marginLeft: 8,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          backgroundColor: '#eab308',
+                          color: '#fff',
+                          borderRadius: 4,
+                          padding: '2px 6px',
+                        }}
+                      >
+                        今日
+                      </span>
+                    )}
+                  </div>
                   <div>{e.text}</div>
                 </div>
               )
