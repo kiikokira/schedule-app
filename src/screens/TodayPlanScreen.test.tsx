@@ -654,5 +654,12 @@ describe('TodayPlanScreen', () => {
     await screen.findByTestId('school-events-section')
     expect(screen.queryByTestId('school-events-open')).not.toBeInTheDocument()
   })
+
+  it('学校の日程の日付に曜日を表示する', async () => {
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
+    fireEvent.click(screen.getByTestId('school-events-toggle'))
+    expect(await screen.findByTestId('school-events-list')).toBeInTheDocument()
+    expect(screen.getByText('10月1日（木）')).toBeInTheDocument()
+  })
 })
 

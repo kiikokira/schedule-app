@@ -29,4 +29,10 @@ describe('SchoolScreen', () => {
     const header = screen.getByTestId('school-month-10').querySelector('h2')
     expect(header).toHaveStyle({ backgroundColor: '#1e3a8a', color: '#fff' })
   })
+
+  it('shows school event dates with weekday', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-10-05" />)
+    expect(screen.getByText('10月1日（木）')).toBeInTheDocument()
+    expect(screen.getByText('2月10日（水）')).toBeInTheDocument()
+  })
 })

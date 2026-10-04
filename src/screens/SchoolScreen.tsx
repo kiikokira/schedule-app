@@ -1,7 +1,9 @@
-import { schoolEventsForMonth, type SchoolEvent } from '../data/schoolEvents'
+import { schoolEventsForMonth, formatSchoolEventDate, schoolYearOfMonth, type SchoolEvent } from '../data/schoolEvents'
+import { todayStr } from '../lib/progress'
 
 type Props = {
   onBack: () => void
+  today?: string
 }
 
 const MONTHS = [10, 11, 12, 1, 2, 3]
@@ -14,12 +16,14 @@ const TONE_COLOR: Record<SchoolEvent['tone'], string | undefined> = {
   plain: undefined,
 }
 
-export default function SchoolScreen({ onBack }: Props) {
+export default function SchoolScreen({ onBack, today: todayProp }: Props) {
+  const today = todayProp ?? todayStr()
   return (
     <div data-testid="school-page" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>学校の日程</h1>
       {MONTHS.map((m) => {
         const events = schoolEventsForMonth(m)
+        const year = schoolYearOfMonth(today, m)
         return (
           <div key={m} data-testid={`school-month-${m}`} style={{ marginTop: 16 }}>
             <h2 style={{ fontSize: 16, backgroundColor: '#1e3a8a', color: '#fff', padding: '4px 8px' }}>{m}月</h2>
@@ -31,7 +35,7 @@ export default function SchoolScreen({ onBack }: Props) {
                   data-testid={`school-event-${e.month}-${e.day}-${i}`}
                   style={{ marginBottom: 8, color: TONE_COLOR[e.tone] }}
                 >
-                  <div style={{ fontWeight: 700 }}>{e.month}月{e.day}日</div>
+                  <div style={{ fontWeight: 700 }}>{formatSchoolEventDate(year, e.month, e.day)}</div>
                   <div>{e.text}</div>
                 </div>
               )

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { schoolEventsForMonth } from './schoolEvents'
+import { schoolEventsForMonth, formatSchoolEventDate, schoolYearOfMonth } from './schoolEvents'
 
 describe('schoolEvents', () => {
   it('returns October events sorted by day including past dates', () => {
@@ -30,5 +30,15 @@ describe('schoolEvents', () => {
     expect(schoolEventsForMonth(1).find((e) => e.text === '追試')?.tone).toBe('plain')
     expect(schoolEventsForMonth(1).find((e) => e.text === '課題テスト')?.tone).toBe('info')
     expect(schoolEventsForMonth(11).find((e) => e.text === '校内選考③［作文・面接］')?.tone).toBe('plain')
+  })
+
+  it('formats school event dates with weekday', () => {
+    expect(formatSchoolEventDate(2026, 10, 1)).toBe('10月1日（木）')
+    expect(formatSchoolEventDate(2027, 2, 10)).toBe('2月10日（水）')
+  })
+
+  it('resolves the school year for a display month', () => {
+    expect(schoolYearOfMonth('2026-10-05', 2)).toBe(2027)
+    expect(schoolYearOfMonth('2027-02-01', 10)).toBe(2026)
   })
 })

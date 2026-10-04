@@ -106,3 +106,17 @@ const EVENTS: SchoolEvent[] = [
 export function schoolEventsForMonth(month: number): SchoolEvent[] {
   return EVENTS.filter((e) => e.month === month).sort((a, b) => a.day - b.day)
 }
+
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
+
+export function schoolYearOfMonth(today: string, month: number): number {
+  const todayMonth = Number(today.slice(5, 7))
+  const todayYear = Number(today.slice(0, 4))
+  const schoolYearStart = todayMonth >= 10 && todayMonth <= 12 ? todayYear : todayYear - 1
+  return month >= 10 && month <= 12 ? schoolYearStart : schoolYearStart + 1
+}
+
+export function formatSchoolEventDate(year: number, month: number, day: number): string {
+  const weekday = WEEKDAYS[new Date(year, month - 1, day).getDay()]
+  return `${month}月${day}日（${weekday}）`
+}

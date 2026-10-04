@@ -16,7 +16,7 @@ import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { isLeapBook } from '../lib/leap'
 import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
 import { loadOverridePresets, type OverridePreset } from '../data/overridePresets'
-import { schoolEventsForMonth } from '../data/schoolEvents'
+import { schoolEventsForMonth, formatSchoolEventDate, schoolYearOfMonth } from '../data/schoolEvents'
 import CoverImage from '../components/CoverImage'
 
 type Props = {
@@ -931,7 +931,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
             )}
             {schoolEvents.map((e, i) => (
               <div key={`${e.month}-${e.day}-${i}`} style={{ marginBottom: 8 }}>
-                <div style={{ fontWeight: 700 }}>{e.month}月{e.day}日</div>
+                <div style={{ fontWeight: 700 }}>{formatSchoolEventDate(schoolYearOfMonth(today, schoolMonth), e.month, e.day)}</div>
                 <div>{e.text}</div>
               </div>
             ))}
