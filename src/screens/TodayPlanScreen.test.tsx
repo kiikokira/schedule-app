@@ -626,22 +626,18 @@ describe('TodayPlanScreen', () => {
     expect(loadOverridePresets().find((p) => p.id === 'p2')?.rows[0].start).toBe('14:00')
   })
 
-  it('学校の日程は初期は畳まれ展開すると今月の行事が見える', async () => {
-    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
-    expect(screen.getByTestId('school-events-toggle')).toBeInTheDocument()
-    expect(screen.queryByTestId('school-events-list')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByTestId('school-events-toggle'))
-    expect(await screen.findByTestId('school-events-list')).toBeInTheDocument()
-    expect(screen.getByText('中間試験発表')).toBeInTheDocument()
+  it('開くを押すと別ページに遷移する', async () => {
+    const onSchool = vi.fn()
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" onSchool={onSchool} />)
+    fireEvent.click(await screen.findByTestId('school-events-toggle'))
+    expect(onSchool).toHaveBeenCalled()
   })
 
-  it('開くと別ページ相当の全月の行事が表示される', async () => {
-    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
-    fireEvent.click(screen.getByTestId('school-events-toggle'))
-    expect(await screen.findByTestId('school-events-list')).toBeInTheDocument()
-    expect(screen.getByText('中間試験発表')).toBeInTheDocument()
-    expect(screen.getByText('期末試験①')).toBeInTheDocument()
-    expect(screen.getAllByText('家庭学習').length).toBeGreaterThan(0)
+  it('開いてもインラインの一覧は表示しない', async () => {
+    const onSchool = vi.fn()
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" onSchool={onSchool} />)
+    fireEvent.click(await screen.findByTestId('school-events-toggle'))
+    expect(screen.queryByTestId('school-events-list')).not.toBeInTheDocument()
   })
 
   it('別ページで見るボタンは表示しない（onSchool指定時も）', async () => {
@@ -655,13 +651,6 @@ describe('TodayPlanScreen', () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
     await screen.findByTestId('school-events-section')
     expect(screen.queryByTestId('school-events-open')).not.toBeInTheDocument()
-  })
-
-  it('学校の日程の日付に曜日を表示する', async () => {
-    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
-    fireEvent.click(screen.getByTestId('school-events-toggle'))
-    expect(await screen.findByTestId('school-events-list')).toBeInTheDocument()
-    expect(screen.getByText('10月1日（木）')).toBeInTheDocument()
   })
 })
 
