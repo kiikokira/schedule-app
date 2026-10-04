@@ -81,6 +81,7 @@ it('exports a JSON file on export click', async () => {
 })
 
 it('shows result message after import', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
   const validData = {
     exportedAt: '2026-01-05T00:00:00.000Z',
     books: [],
@@ -92,6 +93,42 @@ it('shows result message after import', async () => {
   render(<SettingsScreen onDone={() => {}} />)
   fireEvent.change(screen.getByTestId('backup-import'), { target: { files: [file] } })
   await waitFor(() => expect(screen.getByTestId('backup-result')).toHaveTextContent(/読み込みました/))
+})
+
+it('rejects files larger than 2MB before parsing', async () => {
+  const validData = {
+    exportedAt: '2026-01-05T00:00:00.000Z',
+    books: [],
+    records: [],
+  }
+  const raw = JSON.stringify(validData)
+  const file = new File([raw], 'backup.json', { type: 'application/json' })
+  Object.defineProperty(file, 'size', { value: 2 * 1024 * 1024 + 1 })
+  const textSpy = vi.fn(async () => raw)
+  Object.defineProperty(file, 'text', { value: textSpy })
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.change(screen.getByTestId('backup-import'), { target: { files: [file] } })
+  await waitFor(() =>
+    expect(screen.getByTestId('backup-result')).toHaveTextContent('読み込み失敗: ファイルが大きすぎます（2MBまで）'),
+  )
+  expect(textSpy).not.toHaveBeenCalled()
+  expect(await db.books.count()).toBe(0)
+})
+
+it('asks for confirmation before overwriting on import', async () => {
+  const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+  const validData = {
+    exportedAt: '2026-01-05T00:00:00.000Z',
+    books: [],
+    records: [],
+  }
+  const raw = JSON.stringify(validData)
+  const file = new File([raw], 'backup.json', { type: 'application/json' })
+  Object.defineProperty(file, 'text', { value: vi.fn(async () => raw) })
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.change(screen.getByTestId('backup-import'), { target: { files: [file] } })
+  await waitFor(() => expect(confirmSpy).toHaveBeenCalledWith('バックアップから復元しますか？現在のデータは上書きされます。'))
+  expect(await db.books.count()).toBe(0)
 })
 
   it('saves the Google Books api key to localStorage', () => {

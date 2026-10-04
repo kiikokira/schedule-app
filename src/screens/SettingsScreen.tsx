@@ -72,12 +72,17 @@ export default function SettingsScreen({ onDone }: Props) {
     if (!file) return
     setResult(null)
     try {
+      if (file.size > 2 * 1024 * 1024) {
+        setResult('読み込み失敗: ファイルが大きすぎます（2MBまで）')
+        return
+      }
       const text = await file.text()
       const parsed: unknown = JSON.parse(text)
       if (!validateBackup(parsed)) {
         setResult('読み込み失敗: 不正なバックアップデータです')
         return
       }
+      if (!window.confirm('バックアップから復元しますか？現在のデータは上書きされます。')) return
       const { books, records } = await importBackup(parsed)
       setResult(`読み込みました（参考書 ${books} 冊 / 進捗 ${records} 件）`)
     } catch {
