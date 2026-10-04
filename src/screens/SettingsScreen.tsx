@@ -8,7 +8,7 @@ import {
   setNotifySettings,
   publishPush,
 } from '../lib/notify'
-import { getAiSettings, setAiSettings, chatWithModel, pingEndpoint, GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL, GROQ_ENDPOINT, GROQ_EXAMPLE_MODEL, DEFAULT_ENDPOINT } from '../lib/ai'
+import { getAiSettings, setAiSettings, chatWithModel, pingEndpoint, isSafeAiEndpoint, GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL, GROQ_ENDPOINT, GROQ_EXAMPLE_MODEL, DEFAULT_ENDPOINT } from '../lib/ai'
 
 type Props = {
   onDone: () => void
@@ -72,12 +72,17 @@ export default function SettingsScreen({ onDone }: Props) {
     if (!file) return
     setResult(null)
     try {
+      if (file.size > 2 * 1024 * 1024) {
+        setResult('読み込み失敗: ファイルが大きすぎます（2MBまで）')
+        return
+      }
       const text = await file.text()
       const parsed: unknown = JSON.parse(text)
       if (!validateBackup(parsed)) {
         setResult('読み込み失敗: 不正なバックアップデータです')
         return
       }
+      if (!window.confirm('バックアップから復元しますか？現在のデータは上書きされます。')) return
       const { books, records } = await importBackup(parsed)
       setResult(`読み込みました（参考書 ${books} 冊 / 進捗 ${records} 件）`)
     } catch {
@@ -168,6 +173,14 @@ export default function SettingsScreen({ onDone }: Props) {
   }
 
   const handleSaveAi = () => {
+    if (!isSafeAiEndpoint(aiEndpoint.trim())) {
+      if (
+        !window.confirm(
+          'httpなど安全でないエンドポイントにはAPIキーを送信しません。保存しますか？（送信時にブロックされます）',
+        )
+      )
+        return
+    }
     setAiSettings({ endpoint: aiEndpoint, apiKey: aiApiKey, model: aiModel })
     setResult('調整AIの設定を保存しました')
     setEditingAi(false)
@@ -235,13 +248,13 @@ export default function SettingsScreen({ onDone }: Props) {
       <section style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 16 }}>Google Books 検索</h2>
         <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
-          Google Booksで参考書を検索するためのAPIキー。発行方法は docs/usage.md を参照してください。
+          Google Booksで参考書を検索するためのAPIキー。発行方法は docs/usage.md を参照してください。APIキーはこの端末のlocalStorageに平文で保存されます。共有PCでは設定後に削除してください。
         </p>
         <label htmlFor="google-books-api-key">APIキー（任意）</label>
         <input
           id="google-books-api-key"
           data-testid="google-books-api-key"
-          type="text"
+          type="password"
           value={apiKey}
           disabled={!editingGoogle}
           onChange={(e) => setApiKey(e.target.value)}
@@ -273,7 +286,7 @@ export default function SettingsScreen({ onDone }: Props) {
           トピックは例:
           my-schedule3 のような文字列です(アドレス欄をコピーした場合もそのまま入力できます)。テスト通知は
           ntfy.sh へ直接送信するため、ネットワークから ntfy.sh
-          に繋がらない環境では失敗します。
+          に繋がらない環境では失敗します。トピック名を知っている人は誰でも購読・投稿できます。推測されにくい長い文字列を使い、学習予定（時間帯・書籍名）が ntfy.sh に平文送信されることに同意の上ご利用ください。
         </p>
         <label htmlFor="ntfy-topic">トピック名</label>
         <input
@@ -286,6 +299,18 @@ export default function SettingsScreen({ onDone }: Props) {
           placeholder="例: my-study-reminder"
           autoComplete="off"
         />
+        {editingNtfy && (
+          <button
+            data-testid="ntfy-generate"
+            type="button"
+            onClick={() => {
+              const hex = crypto.randomUUID().replace(/-/g, '').slice(0, 32)
+              setNtfyTopic(`my-study-${hex}`)
+            }}
+          >
+            ランダム生成
+          </button>
+        )}
         <div>
           <label htmlFor="ntfy-enabled">通知を有効にする</label>
           <input
@@ -351,7 +376,7 @@ export default function SettingsScreen({ onDone }: Props) {
           <option value="groq">Groq無料枠（登録のみ・高速）</option>
         </select>
         <p data-testid="ai-description" style={{ fontSize: 13, color: 'var(--text-dim)' }}>
-          オンラインでの自由文相談に使う高精度AI接続（OpenAI互換API）。WiFi・モバイル回線どちらでも利用可（GBを消費します。1回数KB〜数十KB程度）。未設定でもオフラインの内蔵AI（定型文＋自動提案）は動きます。期限は変更されません。APIキーはこの端末内だけに保存されます。高精度モデルは応答が遅く料金・GBが増えます（軽量例: gpt-4o-mini／高精度例: gpt-4o）。無料枠はGoogle AI Studioで無料キーを作成し、モデル名は一覧で確認してください。無料枠は回数制限があります。プロジェクト作成でつまずく場合はOpenRouterの無料登録（キー発行のみ・`:free`モデル）が簡単です。
+          オンラインでの自由文相談に使う高精度AI接続（OpenAI互換API）。WiFi・モバイル回線どちらでも利用可（GBを消費します。1回数KB〜数十KB程度）。未設定でもオフラインの内蔵AI（定型文＋自動提案）は動きます。期限は変更されません。APIキーはこの端末内だけに保存されます。高精度モデルは応答が遅く料金・GBが増えます（軽量例: gpt-4o-mini／高精度例: gpt-4o）。無料枠はGoogle AI Studioで無料キーを作成し、モデル名は一覧で確認してください。無料枠は回数制限があります。プロジェクト作成でつまずく場合はOpenRouterの無料登録（キー発行のみ・`:free`モデル）が簡単です。APIキー・モデル名・相談内容（書籍名・残ページ・時間割・自由文）は選択したAI事業者のエンドポイントに送信されます。共有端末では保存しないでください。httpのエンドポイントには送信しません。
         </p>
         <label htmlFor="ai-endpoint">エンドポイントURL</label>
         <input

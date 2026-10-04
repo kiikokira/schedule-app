@@ -57,6 +57,30 @@ describe('parseOperationReply', () => {
   it('returns none when there is no operation', () => {
     expect(parseOperationReply('今日は頑張りましょう')).toEqual({ ok: true, op: null })
   })
+
+  it('rejects weekday:99', () => {
+    expect(parseOperationReply('{"op":"add_availability","weekday":99,"date":null,"start":"17:45","end":"19:00"}').ok).toBe(false)
+  })
+
+  it('rejects weekday:1.5', () => {
+    expect(parseOperationReply('{"op":"add_availability","weekday":1.5,"date":null,"start":"17:45","end":"19:00"}').ok).toBe(false)
+  })
+
+  it("rejects date:'<script>'", () => {
+    expect(parseOperationReply('{"op":"add_availability","weekday":null,"date":"<script>","start":"17:45","end":"19:00"}').ok).toBe(false)
+  })
+
+  it("rejects date:'2026-02-30' (nonexistent day)", () => {
+    expect(parseOperationReply('{"op":"add_availability","weekday":null,"date":"2026-02-30","start":"17:45","end":"19:00"}').ok).toBe(false)
+  })
+
+  it("accepts date:'2026-10-05' with valid times", () => {
+    expect(parseOperationReply('{"op":"add_availability","weekday":null,"date":"2026-10-05","start":"17:45","end":"19:00"}').ok).toBe(true)
+  })
+
+  it("rejects start:'25:00'", () => {
+    expect(parseOperationReply('{"op":"add_availability","weekday":1,"date":null,"start":"25:00","end":"19:00"}').ok).toBe(false)
+  })
 })
 
 describe('describeOperation', () => {

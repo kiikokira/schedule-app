@@ -81,6 +81,7 @@ it('exports a JSON file on export click', async () => {
 })
 
 it('shows result message after import', async () => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
   const validData = {
     exportedAt: '2026-01-05T00:00:00.000Z',
     books: [],
@@ -92,6 +93,42 @@ it('shows result message after import', async () => {
   render(<SettingsScreen onDone={() => {}} />)
   fireEvent.change(screen.getByTestId('backup-import'), { target: { files: [file] } })
   await waitFor(() => expect(screen.getByTestId('backup-result')).toHaveTextContent(/読み込みました/))
+})
+
+it('rejects files larger than 2MB before parsing', async () => {
+  const validData = {
+    exportedAt: '2026-01-05T00:00:00.000Z',
+    books: [],
+    records: [],
+  }
+  const raw = JSON.stringify(validData)
+  const file = new File([raw], 'backup.json', { type: 'application/json' })
+  Object.defineProperty(file, 'size', { value: 2 * 1024 * 1024 + 1 })
+  const textSpy = vi.fn(async () => raw)
+  Object.defineProperty(file, 'text', { value: textSpy })
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.change(screen.getByTestId('backup-import'), { target: { files: [file] } })
+  await waitFor(() =>
+    expect(screen.getByTestId('backup-result')).toHaveTextContent('読み込み失敗: ファイルが大きすぎます（2MBまで）'),
+  )
+  expect(textSpy).not.toHaveBeenCalled()
+  expect(await db.books.count()).toBe(0)
+})
+
+it('asks for confirmation before overwriting on import', async () => {
+  const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+  const validData = {
+    exportedAt: '2026-01-05T00:00:00.000Z',
+    books: [],
+    records: [],
+  }
+  const raw = JSON.stringify(validData)
+  const file = new File([raw], 'backup.json', { type: 'application/json' })
+  Object.defineProperty(file, 'text', { value: vi.fn(async () => raw) })
+  render(<SettingsScreen onDone={() => {}} />)
+  fireEvent.change(screen.getByTestId('backup-import'), { target: { files: [file] } })
+  await waitFor(() => expect(confirmSpy).toHaveBeenCalledWith('バックアップから復元しますか？現在のデータは上書きされます。'))
+  expect(await db.books.count()).toBe(0)
 })
 
   it('saves the Google Books api key to localStorage', () => {
@@ -347,5 +384,60 @@ describe('adjustment AI settings', () => {
     await waitFor(() =>
       expect(screen.getByTestId('ai-ping-result')).toHaveTextContent(/到達NG/),
     )
+  })
+})
+
+describe('settings UI hardening (task6)', () => {
+  it('masks the Google Books api key input', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    expect(screen.getByTestId('google-books-api-key')).toHaveAttribute('type', 'password')
+  })
+
+  it('warns about plaintext storage and ntfy visibility', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    expect(screen.getByText(/平文で保存されます/)).toBeInTheDocument()
+    expect(screen.getByTestId('ai-description')).toHaveTextContent(
+      /選択したAI事業者のエンドポイントに送信されます/,
+    )
+    expect(screen.getByTestId('ai-description')).toHaveTextContent(/httpのエンドポイントには送信しません/)
+    expect(screen.getByText(/誰でも購読/)).toBeInTheDocument()
+  })
+
+  it('generates a random ntfy topic', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ntfy'))
+    fireEvent.click(screen.getByTestId('ntfy-generate'))
+    expect((screen.getByTestId('ntfy-topic') as HTMLInputElement).value).toMatch(
+      /^my-study-[0-9a-f]{32}$/,
+    )
+  })
+
+  it('asks confirmation before saving unsafe AI endpoint and aborts on cancel', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
+    fireEvent.change(screen.getByTestId('ai-endpoint'), {
+      target: { value: 'http://evil.example.com/v1/chat/completions' },
+    })
+    fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    fireEvent.click(screen.getByTestId('ai-save'))
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'httpなど安全でないエンドポイントにはAPIキーを送信しません。保存しますか？（送信時にブロックされます）',
+    )
+    expect(screen.getByTestId('ai-save')).toBeInTheDocument()
+  })
+
+  it('saves a custom https endpoint without confirmation', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
+    fireEvent.change(screen.getByTestId('ai-endpoint'), {
+      target: { value: 'https://custom.example.com/v1/chat/completions' },
+    })
+    fireEvent.change(screen.getByTestId('ai-api-key'), { target: { value: 'sk-test' } })
+    fireEvent.change(screen.getByTestId('ai-model'), { target: { value: 'm' } })
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    fireEvent.click(screen.getByTestId('ai-save'))
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(getAiSettings().endpoint).toBe('https://custom.example.com/v1/chat/completions')
   })
 })
