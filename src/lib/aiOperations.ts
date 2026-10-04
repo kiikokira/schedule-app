@@ -17,6 +17,18 @@ export type ParseResult =
   | { ok: false; error: string }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+
+function isValidWeekday(w: unknown): w is number | null {
+  return w === null || (typeof w === 'number' && Number.isInteger(w) && w >= 0 && w <= 6)
+}
+
+function isValidDate(s: unknown): s is string | null {
+  if (s === null) return true
+  if (typeof s !== 'string' || !DATE_RE.test(s)) return false
+  const d = new Date(s + 'T00:00:00Z')
+  return Number.isNaN(d.getTime()) === false && d.toISOString().slice(0, 10) === s
+}
 
 function extractJson(text: string): string | null {
   const fenced = text.match(/```json\s*([\s\S]*?)```/)
@@ -52,12 +64,15 @@ export function parseOperationReply(text: string): ParseResult {
       return { ok: false, error: 'unpin_bookにはslotIdが必要です' }
     case 'add_availability':
       if (
-        (typeof o.weekday === 'number' || o.weekday === null) &&
-        (typeof o.date === 'string' || o.date === null) &&
+        isValidWeekday(o.weekday) &&
+        isValidDate(o.date) &&
         typeof o.start === 'string' &&
         typeof o.end === 'string' &&
         (o.bookId === undefined || typeof o.bookId === 'string')
       ) {
+        if (!TIME_RE.test(o.start) || !TIME_RE.test(o.end) || !(o.start < o.end)) {
+          return { ok: false, error: '時刻の形式または範囲が正しくありません' }
+        }
         return {
           ok: true,
           op: { kind: 'add_availability', weekday: o.weekday, date: o.date, start: o.start, end: o.end, bookId: o.bookId },
@@ -84,7 +99,7 @@ export function slotLabel(s: AvailabilitySlot): string {
     s.date !== null
       ? s.date
       : s.weekday !== null
-        ? ['日曜', '月曜', '火曜', '水曜', '木曜', '金曜', '土曜'][s.weekday]
+        ? (['日曜', '月曜', '火曜', '水曜', '木曜', '金曜', '土曜'][s.weekday] ?? '毎日')
         : '毎日'
   return `${when} ${s.start}-${s.end}`
 }
@@ -101,7 +116,7 @@ export function describeOperation(op: AiOperation, ctx: OpContext): string {
       return `${slot}の本の固定を外し、自動割り当てに戻します。`
     }
     case 'add_availability': {
-      const when = op.date !== null ? op.date : op.weekday !== null ? ['日曜', '月曜', '火曜', '水曜', '木曜', '金曜', '土曜'][op.weekday] : '毎日'
+      const when = op.date !== null ? op.date : op.weekday !== null ? (['日曜', '月曜', '火曜', '水曜', '木曜', '金曜', '土曜'][op.weekday] ?? '毎日') : '毎日'
       const book = op.bookId ? `「${ctx.books.get(op.bookId) ?? op.bookId}」` : ''
       return `${when} ${op.start}-${op.end}の時間帯${book ? `（${book}）` : ''}を追加します。`
     }
@@ -133,6 +148,9 @@ export async function applyOperation(op: AiOperation): Promise<ApplyResult> {
       return { ok: true, message: '時間帯の固定を外しました' }
     }
     case 'add_availability': {
+      if (!isValidWeekday(op.weekday) || !isValidDate(op.date)) {
+        return { ok: false, error: '時間帯の指定が正しくありません' }
+      }
       if (!TIME_RE.test(op.start) || !TIME_RE.test(op.end) || !(op.start < op.end)) {
         return { ok: false, error: '時刻の形式または範囲が正しくありません' }
       }
