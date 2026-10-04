@@ -18,4 +18,15 @@ describe('SchoolScreen', () => {
     fireEvent.click(screen.getByTestId('school-back'))
     expect(onBack).toHaveBeenCalled()
   })
+
+  it('renders exam events in red', () => {
+    render(<SchoolScreen onBack={() => {}} />)
+    expect(screen.getByTestId('school-event-10-8-0')).toHaveStyle({ color: '#c02727' })
+  })
+
+  it('renders month headers as navy bars with white text', () => {
+    render(<SchoolScreen onBack={() => {}} />)
+    const header = screen.getByTestId('school-month-10').querySelector('h2')
+    expect(header).toHaveStyle({ backgroundColor: '#1e3a8a', color: '#fff' })
+  })
 })
