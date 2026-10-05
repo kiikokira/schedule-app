@@ -17,11 +17,11 @@ export const generatedAt = '2026-10-05T00:00:00+09:00'
 
 export const JAPAN_MATCHES: JapanMatch[] = [
   {
-    id: '2026-10-05-kirin-cup-final',
+    id: '2026-10-05-vs-new-zealand',
     date: '2026-10-05',
     kickoff: '19:30',
     opponent: 'ニュージーランド',
-    competition: 'KIRIN CUP SOCCER 2026 決勝',
+    competition: 'KIRIN CUP SOCCER 2026',
     venue: '国立競技場',
     homeAway: 'home',
   },

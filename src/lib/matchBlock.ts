@@ -76,22 +76,28 @@ function clearWatchDecision(matchId: string): void {
   writeMap(WATCH_KEY, map)
 }
 
-// 日付指定枠をバックアップ時点に戻す：バックアップに無いIDの日付指定枠は削除する。
+// 日付指定枠をバックアップ時点に戻す：バックアップに無いIDの日付指定枠は削除し、
+// バックアップにあってDBに無いものは再挿入する。バックアップが無ければ何もしない。
 async function restoreDateSlots(matchId: string, date: string): Promise<void> {
-  const backup = readMap(BACKUP_KEY)[matchId]
-  const ids = new Set(Array.isArray(backup) ? (backup as { id?: unknown }[]).map((s) => s?.id) : [])
+  const raw = readMap(BACKUP_KEY)[matchId]
+  if (!Array.isArray(raw)) return
+  const backup = raw as AvailabilitySlot[]
+  const ids = new Set(backup.map((s) => s?.id))
   const current = await db.availability.where('date').equals(date).toArray()
+  const currentIds = new Set(current.map((s) => s.id))
   for (const s of current) {
     if (!ids.has(s.id)) await db.availability.delete(s.id)
   }
+  const missing = backup.filter((s) => s && typeof s.id === 'string' && !currentIds.has(s.id))
+  if (missing.length > 0) await db.availability.bulkAdd(missing)
 }
 
 export async function watchMatch(matchId: string): Promise<WatchResult> {
   const match = JAPAN_MATCHES.find((m) => m.id === matchId)
   if (!match) return { ok: false, error: '試合が見つかりません' }
   const all = await listAvailability()
-  const window = matchWindow(match)
-  const rest = subtractWindow(slotsForDate(all, match.date), window.start, window.end)
+  const slotWindow = matchWindow(match)
+  const rest = subtractWindow(slotsForDate(all, match.date), slotWindow.start, slotWindow.end)
   const existing = await db.availability.where('date').equals(match.date).toArray()
   const backup = readMap(BACKUP_KEY)
   backup[matchId] = existing
@@ -116,7 +122,10 @@ export async function watchMatch(matchId: string): Promise<WatchResult> {
 export async function skipMatch(matchId: string): Promise<WatchResult> {
   const match = JAPAN_MATCHES.find((m) => m.id === matchId)
   if (!match) return { ok: false, error: '試合が見つかりません' }
-  await restoreDateSlots(matchId, match.date)
+  const backup = readMap(BACKUP_KEY)[matchId]
+  if (Array.isArray(backup)) {
+    await restoreDateSlots(matchId, match.date)
+  }
   saveWatchDecision(matchId, 'skip')
   return { ok: true }
 }
