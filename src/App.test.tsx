@@ -62,3 +62,9 @@ it('navigates to the school page from the today plan screen and back', async () 
   fireEvent.click(screen.getByTestId('school-back'))
   expect(await screen.findByTestId('today-plan-screen')).toBeInTheDocument()
 })
+
+it('navigates to the japan match screen from home', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByTestId('nav-japan'))
+  expect(await screen.findByTestId('japan-page')).toBeInTheDocument()
+})

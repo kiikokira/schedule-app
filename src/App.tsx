@@ -10,6 +10,7 @@ import ChatScreen from './screens/ChatScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import FocusPeriodScreen from './screens/FocusPeriodScreen'
 import SchoolScreen from './screens/SchoolScreen'
+import JapanMatchScreen from './screens/JapanMatchScreen'
 import { useBooks } from './hooks/useBooks'
 import { listAvailability, prunePastOverrides } from './data/dayplanStore'
 import { todayStr, formatDate } from './lib/progress'
@@ -33,6 +34,7 @@ type Route =
   | { name: 'ai-history' }
   | { name: 'focus' }
   | { name: 'school' }
+  | { name: 'japan' }
 
 export default function App() {
   const { books, refresh } = useBooks()
@@ -133,6 +135,9 @@ export default function App() {
         {route.name === 'school' && (
           <SchoolScreen onBack={() => setRoute({ name: 'today' })} />
         )}
+        {route.name === 'japan' && (
+          <JapanMatchScreen onBack={() => setRoute({ name: 'home' })} />
+        )}
       </main>
       <footer className="app-footer">
         {route.name === 'home' && (
@@ -145,6 +150,9 @@ export default function App() {
             </button>
             <button data-testid="nav-ai" onClick={() => setRoute({ name: 'ai' })}>
               調整AI
+            </button>
+            <button data-testid="nav-japan" onClick={() => setRoute({ name: 'japan' })}>
+              代表戦
             </button>
             <button data-testid="nav-add" onClick={() => setRoute({ name: 'add' })}>
               ＋ 参考書を追加
