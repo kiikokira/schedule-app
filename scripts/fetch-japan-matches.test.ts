@@ -6,6 +6,7 @@ import {
   buildDataFile,
   toJapanMatch,
   resolveHomeAway,
+  decideOutcome,
 } from './fetch-japan-matches.mjs'
 
 const LIST_FIXTURE = `
@@ -95,5 +96,29 @@ describe('fetch-japan-matches', () => {
   })
   it('refuses to build an empty data file (protects against page staleness)', () => {
     expect(() => buildDataFile([], '2026-10-05T00:00:00+09:00')).toThrow(/no upcoming/)
+  })
+  it('returns [] for a page with only commented-out past blocks', () => {
+    const html = [
+      '<html><body>',
+      '<!-- <div class="samuraiblue outer-inner"><ul>',
+      '<li>Monday, 10 November 2025</li>',
+      '</ul></div></div> -->',
+      '<div class="other">nadeshiko</div>',
+      '</body></html>',
+    ].join('\n')
+    expect(parseListPage(html)).toEqual([])
+  })
+  it('keeps data (exit 0 path) when page parses fine but yields zero upcoming', () => {
+    const html = [
+      '<html><body><h1>SAMURAI BLUE</h1>',
+      '<!-- <div class="samuraiblue outer-inner"><ul><li>past</li></ul></div></div> -->',
+      '</body></html>',
+    ].join('\n')
+    expect(decideOutcome([], html)).toMatchObject({ action: 'keep' })
+  })
+  it('throws when the SAMURAI BLUE section is entirely absent (structure break)', () => {
+    expect(() => decideOutcome([], '<html><body><h1>other</h1></body></html>')).toThrow(
+      /SAMURAI BLUE/i,
+    )
   })
 })

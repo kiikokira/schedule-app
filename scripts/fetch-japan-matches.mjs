@@ -366,6 +366,17 @@ export function buildDataFile(matches, generatedAt) {
   return renderDataFile(matches, generatedAt)
 }
 
+// ゼロ件時のメイン経路判定 (純粋・単体テスト可能)。page parses fine なら keep/0、
+// SAMURAI BLUE節自体が無い (構造破壊) なら throw → main は exit 1。
+export function decideOutcome(rows, html) {
+  if (rows.length > 0) return { action: 'write' }
+  const src = html || ''
+  if (!/SAMURAI BLUE/i.test(src) && !/samuraiblue/i.test(src)) {
+    throw new Error('SAMURAI BLUE section missing; data not updated')
+  }
+  return { action: 'keep', reason: 'no upcoming fixtures' }
+}
+
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTH_NAMES = [
   'January',
@@ -413,6 +424,15 @@ async function main() {
   const today = jstNow().date
   // 未来 (含む今日JST) の試合のみ残す。
   const raws = parseListPage(listHtml).filter((r) => r.date >= today)
+  if (raws.length === 0) {
+    try {
+      const decision = decideOutcome(raws, listHtml)
+      console.log(`fetch-japan-matches: ${decision.reason}; data not updated`)
+      return
+    } catch (e) {
+      fail(e.message)
+    }
+  }
   const matches = []
   for (const raw of raws) {
     if (!raw.detailPath) fail(`no detail page for ${raw.date} (opponent: ${raw.opponentEn}); data not updated`)
