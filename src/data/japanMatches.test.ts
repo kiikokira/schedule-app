@@ -7,7 +7,7 @@ describe('japanMatches', () => {
     expect(m).toMatchObject({ date: '2026-10-05', kickoff: '19:30', opponent: 'ニュージーランド' })
   })
   it('derives a 19:20-21:35 window for a 19:30 kickoff', () => {
-    expect(matchWindow({ id: 'x', date: '2026-10-05', kickoff: '19:30', opponent: 'NZ', competition: 'K', homeAway: 'home' })).toEqual({ start: '19:20', end: '21:35' })
+    expect(matchWindow({ kickoff: '19:30' })).toEqual({ start: '19:20', end: '21:35' })
   })
   it('counts days until the match', () => {
     expect(daysUntil('2026-11-14', '2026-10-05')).toBe(40)
