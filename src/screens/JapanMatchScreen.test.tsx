@@ -33,4 +33,9 @@ describe('JapanMatchScreen', () => {
     fireEvent.click(screen.getByTestId('japan-back'))
     expect(onBack).toHaveBeenCalled()
   })
+  it('hides past matches when today is after all fixtures', () => {
+    render(<JapanMatchScreen onBack={() => {}} today="2026-12-01" />)
+    expect(screen.queryByTestId('japan-match-2026-11-14-vs-brazil')).toBeNull()
+    expect(screen.queryByTestId('japan-next')).toBeNull()
+  })
 })

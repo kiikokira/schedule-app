@@ -83,7 +83,7 @@ export default function JapanMatchScreen({ onBack, today: todayProp }: Props) {
           <div style={{ fontSize: 24, fontWeight: 700 }}>{countdownText(next.date)}</div>
         </div>
       )}
-      {JAPAN_MATCHES.map((m) => (
+      {upcoming.map((m) => (
         <div key={m.id} data-testid={`japan-match-${m.id}`} style={{ marginTop: 16 }}>
           <div style={{ fontWeight: 700 }}>
             {m.date} vs {m.opponent}（{m.competition}）
