@@ -149,7 +149,7 @@ export default function JapanMatchScreen({ onBack, today: todayProp }: Props) {
             {formatJaFullDate(next.date)} {next.kickoff}キックオフ
           </div>
           <div style={{ fontSize: 32, fontWeight: 900, marginTop: 4 }}>
-            {countdownText(next.date) === '今日' ? '⚽ 今日は決戦！ ⚽' : `⚽ ${countdownText(next.date)} ⚽`}
+            {countdownText(next.date) === '今日' ? '⚽ 今日は決戦！' : `⚽ ${countdownText(next.date)}`}
           </div>
           {renderActions(next)}
         </div>
