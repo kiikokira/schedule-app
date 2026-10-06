@@ -45,6 +45,11 @@ afterEach(() => {
 })
 
 describe('HomeScreen', () => {
+  it('shows the goal university heading for motivation', () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('慶應義塾大学環境情報学部')
+  })
+
   it('shows a 学習スケジュール section with the default schedule books', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     expect(screen.getByText('学習スケジュール')).toBeInTheDocument()

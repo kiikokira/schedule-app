@@ -486,7 +486,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
 
   return (
     <div style={{ padding: 16 }}>
-      <h1 style={{ fontSize: 20 }}>参考書スケジュール</h1>
+      <h1 style={{ fontSize: 20 }}>慶應義塾大学環境情報学部</h1>
       <p data-testid="today-date" style={{ fontWeight: 700 }}>
         今日は {formatJaDate(today)}
       </p>
