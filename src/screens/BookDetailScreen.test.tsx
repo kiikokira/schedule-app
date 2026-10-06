@@ -426,7 +426,7 @@ describe('BookDetailScreen', () => {
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     expect(await screen.findByTestId('cycle-record')).toBeInTheDocument()
     expect(screen.queryByTestId('cycle-date')).not.toBeInTheDocument()
-    expect(screen.getByTestId('cycle-round')).toHaveValue(1)
+    expect(screen.getByTestId('cycle-round')).toHaveValue('1')
     fireEvent.click(screen.getByTestId('leap-preset-1-400'))
     fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '12' } })
     fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '13' } })
@@ -563,6 +563,46 @@ describe('BookDetailScreen', () => {
       const { formatJaTime } = await import('../lib/progress')
       expect(formatJaTime(stored?.recordedAt ?? new Date().toISOString())).toBe('06:00')
     })
+  })
+
+  it('全角数字でも開始語・終了語が消えずに入力でき記録できる', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('leap-preset-1-400'))
+    fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '１２' } })
+    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '３４' } })
+    expect((screen.getByTestId('cycle-from') as HTMLInputElement).value).toBe('12')
+    expect((screen.getByTestId('cycle-to') as HTMLInputElement).value).toBe('34')
+    fireEvent.click(screen.getByTestId('cycle-record'))
+    await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('23 / 6900'))
+  })
+
+  it('全角数字でも反復の編集入力が消えない', async () => {
+    const date = daysFromNow(0)
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(-1),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date, unitFrom: 1, unitTo: 2, round: 1 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('cycle-list-toggle'))
+    fireEvent.click(await screen.findByTestId('cycle-edit-c1'))
+    fireEvent.change(await screen.findByTestId('cycle-edit-from-c1'), { target: { value: '１２' } })
+    expect((screen.getByTestId('cycle-edit-from-c1') as HTMLInputElement).value).toBe('12')
   })
 
   it('通常記録の編集も2行レイアウトで空き時間を選べる', async () => {

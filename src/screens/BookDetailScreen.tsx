@@ -39,6 +39,13 @@ function buildRecordedAt(dateStr: string, hhmm: string): string {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).toISOString()
 }
 
+// iPhone日本語キーボードの全角数字を半角に寄せる。
+// type="number" は全角を空文字にサニタイズして入力が消えたように見えるため、
+// text入力＋正規化で受け付けて送信時の数値検証はそのまま行う。
+function normalizeNumericInput(s: string): string {
+  return s.replace(/[０-９]/g, (ch) => String('０１２３４５６７８９'.indexOf(ch)))
+}
+
 type Props = {
   bookId: string
   onBack: () => void
@@ -285,30 +292,33 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           <input
             id="cycle-from"
             data-testid="cycle-from"
-            type="number"
+            type="text"
             inputMode="numeric"
+            pattern="[0-9]*"
             value={cycleFrom}
-            onChange={(e) => setCycleFrom(e.target.value)}
+            onChange={(e) => setCycleFrom(normalizeNumericInput(e.target.value))}
             placeholder="例: 1"
           />
           <label htmlFor="cycle-to">終了{unit}</label>
           <input
             id="cycle-to"
             data-testid="cycle-to"
-            type="number"
+            type="text"
             inputMode="numeric"
+            pattern="[0-9]*"
             value={cycleTo}
-            onChange={(e) => setCycleTo(e.target.value)}
+            onChange={(e) => setCycleTo(normalizeNumericInput(e.target.value))}
             placeholder="例: 12"
           />
           <label htmlFor="cycle-round">{isLeap ? '目標周回' : '周回'}</label>
           <input
             id="cycle-round"
             data-testid="cycle-round"
-            type="number"
+            type="text"
             inputMode="numeric"
+            pattern="[0-9]*"
             value={roundFieldValue}
-            onChange={(e) => setCycleRoundInput(e.target.value)}
+            onChange={(e) => setCycleRoundInput(normalizeNumericInput(e.target.value))}
             placeholder={isLeap ? `例: ${round}` : '例: 1'}
           />
           {isLeap && (
@@ -407,10 +417,11 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                             <input
                               id={`cycle-edit-from-${record.id}`}
                               data-testid={`cycle-edit-from-${record.id}`}
-                              type="number"
+                              type="text"
                               inputMode="numeric"
+                              pattern="[0-9]*"
                               value={cycleEditFrom}
-                              onChange={(e) => setCycleEditFrom(e.target.value)}
+                              onChange={(e) => setCycleEditFrom(normalizeNumericInput(e.target.value))}
                               placeholder="例: 1"
                               style={{ width: 72 }}
                             />
@@ -418,10 +429,11 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                             <input
                               id={`cycle-edit-to-${record.id}`}
                               data-testid={`cycle-edit-to-${record.id}`}
-                              type="number"
+                              type="text"
                               inputMode="numeric"
+                              pattern="[0-9]*"
                               value={cycleEditTo}
-                              onChange={(e) => setCycleEditTo(e.target.value)}
+                              onChange={(e) => setCycleEditTo(normalizeNumericInput(e.target.value))}
                               placeholder="例: 12"
                               style={{ width: 72 }}
                             />
@@ -429,10 +441,11 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                             <input
                               id={`cycle-edit-round-${record.id}`}
                               data-testid={`cycle-edit-round-${record.id}`}
-                              type="number"
+                              type="text"
                               inputMode="numeric"
+                              pattern="[0-9]*"
                               value={cycleEditRound}
-                              onChange={(e) => setCycleEditRound(e.target.value)}
+                              onChange={(e) => setCycleEditRound(normalizeNumericInput(e.target.value))}
                               placeholder="例: 1"
                               style={{ width: 64 }}
                             />
