@@ -27,6 +27,7 @@ export type ProgressRecordData = {
   bookId: string
   date: string
   pages: number
+  recordedAt?: string
 }
 
 export function formatDate(d: Date): string {

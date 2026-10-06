@@ -24,7 +24,7 @@ export function useCycleRecords(bookId?: string) {
   )
 
   const updateCycle = useCallback(
-    async (id: string, patch: { date?: string; unitFrom?: number; unitTo?: number; round?: number }) => {
+    async (id: string, patch: { date?: string; unitFrom?: number; unitTo?: number; round?: number; recordedAt?: string }) => {
       await updateCycleRecord(id, patch)
       await refresh()
     },

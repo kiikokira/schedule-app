@@ -61,14 +61,17 @@ export async function upsertProgress(
   bookId: string,
   date: string,
   pages: number,
+  recordedAt?: string,
 ): Promise<ProgressRecordData> {
   const existing = await db.records.where('[bookId+date]').equals([bookId, date]).first()
   if (existing) {
-    await db.records.update(existing.id, { pages })
-    return { ...existing, pages }
+    const patch: Partial<DexieRecord> = { pages }
+    if (recordedAt !== undefined) patch.recordedAt = recordedAt
+    await db.records.update(existing.id, patch)
+    return { ...existing, pages, ...(recordedAt !== undefined ? { recordedAt } : {}) }
   }
   const id = crypto.randomUUID()
-  const record: ProgressRecordData = { id, bookId, date, pages }
+  const record: ProgressRecordData = { id, bookId, date, pages, ...(recordedAt !== undefined ? { recordedAt } : {}) }
   await db.records.add(record)
   return record
 }
@@ -83,6 +86,7 @@ export async function deleteBookCascade(bookId: string): Promise<void> {
 export type RecordPatch = {
   date?: string
   pages?: number
+  recordedAt?: string
 }
 
 export async function updateProgressRecord(
@@ -103,6 +107,7 @@ export async function updateProgressRecord(
   const changes: Partial<DexieRecord> = {}
   if (patch.date !== undefined) changes.date = patch.date
   if (patch.pages !== undefined) changes.pages = patch.pages
+  if (patch.recordedAt !== undefined) changes.recordedAt = patch.recordedAt
   await db.records.update(id, changes)
   return (await db.records.get(id)) as DexieRecord
 }
@@ -121,7 +126,7 @@ export async function addCycleRecord(rec: CycleRecordData): Promise<void> {
 
 export async function updateCycleRecord(
   id: string,
-  patch: { date?: string; unitFrom?: number; unitTo?: number; round?: number },
+  patch: { date?: string; unitFrom?: number; unitTo?: number; round?: number; recordedAt?: string },
 ): Promise<void> {
   await db.cycleRecords.update(id, patch)
 }

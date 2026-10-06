@@ -12,6 +12,7 @@ import {
   formatJaDate,
   formatJaTime,
   todayStr,
+  parseDate,
   calcCycleDonePairs,
   calcCycleDailyTarget,
   cycleGrandTotal,
@@ -22,6 +23,21 @@ import {
   type CycleRecordData,
 } from '../lib/progress'
 import { LEAP_WORD_RANGES, isLeapBook } from '../lib/leap'
+import { listAvailability, type AvailabilitySlot } from '../data/dayplanStore'
+
+function slotsForRecordDate(slots: AvailabilitySlot[], dateStr: string): AvailabilitySlot[] {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return []
+  const weekday = parseDate(dateStr).getDay()
+  return slots
+    .filter((s) => s.date === dateStr || (s.date === null && s.weekday === weekday))
+    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0))
+}
+
+function buildRecordedAt(dateStr: string, hhmm: string): string {
+  const d = parseDate(dateStr)
+  const [h, m] = hhmm.split(':').map(Number)
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).toISOString()
+}
 
 type Props = {
   bookId: string
@@ -50,8 +66,17 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const [cycleEditRound, setCycleEditRound] = useState('')
   const [cycleEditDate, setCycleEditDate] = useState('')
   const [cycleEditError, setCycleEditError] = useState<string | null>(null)
+  const [cycleEditSlot, setCycleEditSlot] = useState('')
+  const [cycleNewSlot, setCycleNewSlot] = useState('')
+  const [recordEditSlot, setRecordEditSlot] = useState('')
+  const [recordNewSlot, setRecordNewSlot] = useState('')
+  const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
   const [leapBlock, setLeapBlock] = useState<number | null>(null)
   const [showCycleList, setShowCycleList] = useState(false)
+
+  useEffect(() => {
+    void listAvailability().then(setAvailability).catch(() => {})
+  }, [])
 
   const book: BookData | undefined = books.find((b) => b.id === bookId)
   const today = todayStr()
@@ -129,7 +154,11 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       }
       setCycleError(null)
       try {
-        await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: effectiveDate, unitFrom: from, unitTo: to, round: roundNum, recordedAt: new Date().toISOString() })
+        const recordedAt =
+          cycleNewSlot !== ''
+            ? buildRecordedAt(effectiveDate, cycleNewSlot)
+            : new Date().toISOString()
+        await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: effectiveDate, unitFrom: from, unitTo: to, round: roundNum, recordedAt })
       } catch {
         setCycleError('記録に失敗しました。もう一度お試しください')
         return
@@ -137,6 +166,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       setCycleFrom('')
       setCycleTo('')
       setCycleRoundInput('')
+      setCycleNewSlot('')
     }
 
     const handleCycleDeleteBook = async () => {
@@ -156,6 +186,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       setCycleEditTo(String(record.unitTo))
       setCycleEditRound(String(record.round))
       setCycleEditDate(record.date)
+      setCycleEditSlot('')
       setCycleEditError(null)
     }
 
@@ -177,8 +208,11 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       }
       setCycleEditError(null)
       try {
-        await updateCycle(record.id, { date: cycleEditDate, unitFrom: from, unitTo: to, round: roundNum })
+        const patch: { date: string; unitFrom: number; unitTo: number; round: number; recordedAt?: string } = { date: cycleEditDate, unitFrom: from, unitTo: to, round: roundNum }
+        if (cycleEditSlot !== '') patch.recordedAt = buildRecordedAt(cycleEditDate, cycleEditSlot)
+        await updateCycle(record.id, patch)
         setCycleEditingId(null)
+        setCycleEditSlot('')
       } catch {
         setCycleEditError('更新に失敗しました。もう一度お試しください')
       }
@@ -290,10 +324,32 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                 data-testid="cycle-date"
                 type="date"
                 value={cycleDate}
-                onChange={(e) => setCycleDate(e.target.value)}
+                onChange={(e) => { setCycleDate(e.target.value); setCycleNewSlot('') }}
               />
             </>
           )}
+          {(() => {
+            const newSlots = slotsForRecordDate(availability, effectiveDate)
+            if (newSlots.length === 0) return null
+            return (
+              <>
+                <label htmlFor="cycle-slot-new">空き時間から選択</label>
+                <select
+                  id="cycle-slot-new"
+                  data-testid="cycle-slot-new"
+                  value={cycleNewSlot}
+                  onChange={(e) => setCycleNewSlot(e.target.value)}
+                >
+                  <option value="">時刻を選ぶ（任意）</option>
+                  {newSlots.map((s) => (
+                    <option key={s.id} value={s.start}>
+                      {s.start}〜{s.end}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )
+          })()}
           <button data-testid="cycle-record" type="button" onClick={() => void handleCycleRecord()}>
             範囲を記録
           </button>
@@ -343,7 +399,10 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                         }}
                       >
                         {cycleEditingId === record.id ? (
-                          <>
+                          <div
+                            data-testid={`cycle-edit-form-${record.id}`}
+                            style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, flex: 1 }}
+                          >
                             <label htmlFor={`cycle-edit-from-${record.id}`}>開始{unit}</label>
                             <input
                               id={`cycle-edit-from-${record.id}`}
@@ -353,7 +412,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                               value={cycleEditFrom}
                               onChange={(e) => setCycleEditFrom(e.target.value)}
                               placeholder="例: 1"
-                              style={{ width: 64 }}
+                              style={{ width: 72 }}
                             />
                             <label htmlFor={`cycle-edit-to-${record.id}`}>終了{unit}</label>
                             <input
@@ -364,7 +423,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                               value={cycleEditTo}
                               onChange={(e) => setCycleEditTo(e.target.value)}
                               placeholder="例: 12"
-                              style={{ width: 64 }}
+                              style={{ width: 72 }}
                             />
                             <label htmlFor={`cycle-edit-round-${record.id}`}>周回</label>
                             <input
@@ -383,9 +442,32 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                               data-testid={`cycle-edit-date-${record.id}`}
                               type="date"
                               value={cycleEditDate}
-                              onChange={(e) => setCycleEditDate(e.target.value)}
-                              style={{ flex: 1, minWidth: 120 }}
+                              onChange={(e) => { setCycleEditDate(e.target.value); setCycleEditSlot('') }}
+                              style={{ flex: '1 1 140px', minWidth: 140 }}
                             />
+                            {(() => {
+                              const editSlots = slotsForRecordDate(availability, cycleEditDate)
+                              if (editSlots.length === 0) return null
+                              return (
+                                <>
+                                  <label htmlFor={`cycle-slot-${record.id}`}>時間</label>
+                                  <select
+                                    id={`cycle-slot-${record.id}`}
+                                    data-testid={`cycle-slot-${record.id}`}
+                                    value={cycleEditSlot}
+                                    onChange={(e) => setCycleEditSlot(e.target.value)}
+                                    style={{ flex: '1 1 140px', minWidth: 140 }}
+                                  >
+                                    <option value="">空き時間から選択</option>
+                                    {editSlots.map((s) => (
+                                      <option key={s.id} value={s.start}>
+                                        {s.start}〜{s.end}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </>
+                              )
+                            })()}
                             <button
                               data-testid={`cycle-save-${record.id}`}
                               type="button"
@@ -396,19 +478,19 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                             <button
                               data-testid={`cycle-cancel-${record.id}`}
                               type="button"
-                              onClick={() => setCycleEditingId(null)}
+                              onClick={() => { setCycleEditingId(null); setCycleEditSlot('') }}
                             >
                               キャンセル
                             </button>
                             {cycleEditError && (
                               <p
                                 data-testid={`cycle-edit-error-${record.id}`}
-                                style={{ color: 'var(--danger)', fontSize: 12 }}
+                                style={{ color: 'var(--danger)', fontSize: 12, flexBasis: '100%' }}
                               >
                                 {cycleEditError}
                               </p>
                             )}
-                          </>
+                          </div>
                         ) : (
                           <>
                             <span style={{ flex: 1 }}>
@@ -481,12 +563,14 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     }
     setError(null)
     try {
-      await addProgress(book.id, today, pages)
+      const recordedAt = recordNewSlot !== '' ? buildRecordedAt(today, recordNewSlot) : undefined
+      await addProgress(book.id, today, pages, recordedAt)
     } catch {
       setError('記録に失敗しました。もう一度お試しください')
       return
     }
     setPagesInput('')
+    setRecordNewSlot('')
   }
 
   const handleDelete = async () => {
@@ -504,6 +588,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     setEditingId(record.id)
     setEditDate(record.date)
     setEditPages(String(record.pages))
+    setRecordEditSlot('')
     setEditError(null)
   }
 
@@ -519,8 +604,11 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     }
     setEditError(null)
     try {
-      await updateRecord(record.id, { date: editDate, pages })
+      const patch: { date: string; pages: number; recordedAt?: string } = { date: editDate, pages }
+      if (recordEditSlot !== '') patch.recordedAt = buildRecordedAt(editDate, recordEditSlot)
+      await updateRecord(record.id, patch)
       setEditingId(null)
+      setRecordEditSlot('')
     } catch {
       setEditError('更新に失敗しました。もう一度お試しください')
     }
@@ -567,6 +655,25 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           onChange={(e) => setPagesInput(e.target.value)}
           placeholder="ページ数"
         />
+        {(() => {
+          const todaySlots = slotsForRecordDate(availability, today)
+          if (todaySlots.length === 0) return null
+          return (
+            <select
+              data-testid="record-slot-new"
+              aria-label="空き時間から選択"
+              value={recordNewSlot}
+              onChange={(e) => setRecordNewSlot(e.target.value)}
+            >
+              <option value="">時刻を選ぶ（任意）</option>
+              {todaySlots.map((s) => (
+                <option key={s.id} value={s.start}>
+                  {s.start}〜{s.end}
+                </option>
+              ))}
+            </select>
+          )
+        })()}
         <button data-testid="record-progress" type="button" onClick={() => void handleRecord()}>
           今日やったページ数を記録
         </button>
@@ -599,13 +706,16 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
               }}
             >
               {editingId === record.id ? (
-                <>
+                <div
+                  data-testid={`record-edit-form-${record.id}`}
+                  style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, flex: 1 }}
+                >
                   <input
                     data-testid={`record-edit-date-${record.id}`}
                     type="date"
                     value={editDate}
-                    onChange={(e) => setEditDate(e.target.value)}
-                    style={{ flex: 1, minWidth: 120 }}
+                    onChange={(e) => { setEditDate(e.target.value); setRecordEditSlot('') }}
+                    style={{ flex: '1 1 140px', minWidth: 140 }}
                   />
                   <input
                     data-testid={`record-edit-pages-${record.id}`}
@@ -614,8 +724,28 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                     value={editPages}
                     onChange={(e) => setEditPages(e.target.value)}
                     placeholder="ページ数"
-                    style={{ width: 80 }}
+                    style={{ flex: '1 1 80px', minWidth: 80 }}
                   />
+                  {(() => {
+                    const editSlots = slotsForRecordDate(availability, editDate)
+                    if (editSlots.length === 0) return null
+                    return (
+                      <select
+                        data-testid={`record-slot-${record.id}`}
+                        aria-label="空き時間から選択"
+                        value={recordEditSlot}
+                        onChange={(e) => setRecordEditSlot(e.target.value)}
+                        style={{ flex: '1 1 140px', minWidth: 140 }}
+                      >
+                        <option value="">空き時間から選択</option>
+                        {editSlots.map((s) => (
+                          <option key={s.id} value={s.start}>
+                            {s.start}〜{s.end}
+                          </option>
+                        ))}
+                      </select>
+                    )
+                  })()}
                   <button
                     data-testid={`record-save-${record.id}`}
                     type="button"
@@ -626,19 +756,19 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                   <button
                     data-testid={`record-cancel-${record.id}`}
                     type="button"
-                    onClick={() => setEditingId(null)}
+                    onClick={() => { setEditingId(null); setRecordEditSlot('') }}
                   >
                     キャンセル
                   </button>
                   {editError && (
                     <p
                       data-testid={`record-edit-error-${record.id}`}
-                      style={{ color: 'var(--danger)', fontSize: 12 }}
+                      style={{ color: 'var(--danger)', fontSize: 12, flexBasis: '100%' }}
                     >
                       {editError}
                     </p>
                   )}
-                </>
+                </div>
               ) : (
                 <>
                   <span style={{ flex: 1 }}>{formatJaDate(record.date)}</span>

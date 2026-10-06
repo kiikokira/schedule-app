@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { db } from '../db/database'
+import { saveAvailabilitySlot } from '../data/dayplanStore'
 import BookDetailScreen from './BookDetailScreen'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -26,6 +27,7 @@ beforeEach(async () => {
   await db.books.clear()
   await db.records.clear()
   await db.cycleRecords.clear()
+  await db.availability.clear()
   vi.restoreAllMocks()
 })
 
@@ -530,5 +532,59 @@ describe('BookDetailScreen', () => {
     const dateText = formatJaDate(sameDate)
     const matches = screen.getAllByText(dateText)
     expect(matches).toHaveLength(1)
+  })
+
+  it('反復の編集は2行レイアウトで空き時間を選んで時刻を保存できる', async () => {
+    const date = daysFromNow(-1)
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(-2),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date, unitFrom: 1, unitTo: 2, round: 1 })
+    await saveAvailabilitySlot(
+      { id: 's1', weekday: null, date, start: '06:00', end: '07:00' },
+      true,
+    )
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('cycle-list-toggle'))
+    fireEvent.click(await screen.findByTestId('cycle-edit-c1'))
+    const form = await screen.findByTestId('cycle-edit-form-c1')
+    expect(form).toHaveStyle({ 'flex-wrap': 'wrap' })
+    const slotSelect = await screen.findByTestId('cycle-slot-c1')
+    expect(slotSelect).toBeInTheDocument()
+    fireEvent.change(slotSelect, { target: { value: '06:00' } })
+    fireEvent.click(screen.getByTestId('cycle-save-c1'))
+    await waitFor(async () => {
+      const stored = await db.cycleRecords.get('c1')
+      const { formatJaTime } = await import('../lib/progress')
+      expect(formatJaTime(stored?.recordedAt ?? new Date().toISOString())).toBe('06:00')
+    })
+  })
+
+  it('通常記録の編集も2行レイアウトで空き時間を選べる', async () => {
+    const date = daysFromNow(-1)
+    await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date, pages: 10 })
+    await saveAvailabilitySlot(
+      { id: 's2', weekday: null, date, start: '21:00', end: '22:00' },
+      true,
+    )
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('record-edit-r1'))
+    const form = await screen.findByTestId('record-edit-form-r1')
+    expect(form).toHaveStyle({ 'flex-wrap': 'wrap' })
+    const slotSelect = await screen.findByTestId('record-slot-r1')
+    expect(slotSelect).toBeInTheDocument()
+    fireEvent.change(slotSelect, { target: { value: '21:00' } })
+    fireEvent.click(screen.getByTestId('record-save-r1'))
+    await waitFor(async () => {
+      const stored = await db.records.get('r1')
+      const { formatJaTime } = await import('../lib/progress')
+      expect(formatJaTime(stored?.recordedAt ?? new Date().toISOString())).toBe('21:00')
+    })
   })
 })

@@ -5,6 +5,7 @@ import {
   deleteBookCascade,
   updateProgressRecord,
   deleteProgressRecord,
+  updateCycleRecord,
   type DexieBook,
 } from './database'
 
@@ -81,6 +82,30 @@ describe('updateProgressRecord', () => {
     await expect(updateProgressRecord('missing', { pages: 5 })).rejects.toThrow(
       '見つかりません',
     )
+  })
+
+  it('keeps recordedAt when updating time slot', async () => {
+    const rec = await upsertProgress('b1', '2026-01-05', 10)
+    await updateProgressRecord(rec.id, { recordedAt: '2026-01-05T06:00:00.000Z' })
+    const stored = await db.records.get(rec.id)
+    expect(stored?.recordedAt).toBe('2026-01-05T06:00:00.000Z')
+  })
+})
+
+describe('updateCycleRecord', () => {
+  it('keeps recordedAt when updating time slot', async () => {
+    await db.cycleRecords.clear()
+    await db.cycleRecords.add({
+      id: 'c1',
+      bookId: 'b1',
+      date: '2026-01-05',
+      unitFrom: 1,
+      unitTo: 10,
+      round: 1,
+    })
+    await updateCycleRecord('c1', { recordedAt: '2026-01-05T06:00:00.000Z' })
+    const stored = await db.cycleRecords.get('c1')
+    expect(stored?.recordedAt).toBe('2026-01-05T06:00:00.000Z')
   })
 })
 
