@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type CompositionEvent, type Dispatch, type SetStateAction } from 'react'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
@@ -41,6 +41,41 @@ function toScheduledBook(b: BookData): ScheduledBook {
 }
 
 type DayRow = { start: string; end: string; bookId?: string; onTrain?: boolean }
+
+// iPhone日本語キーボード対応：変換中は値を書き換えず確定時に全角→半角化する。
+// type="number" は全角入力を消してしまうためtext＋正規化で受ける。
+function normalizeNumericInput(s: string): string {
+  return s.replace(/[０-９]/g, (ch) => String('０１２３４５６７８９'.indexOf(ch)))
+}
+
+function setCycleInputValue(
+  set: Dispatch<SetStateAction<Record<string, string>>>,
+  key: string,
+  v: string,
+): void {
+  set((p) => ({ ...p, [key]: v }))
+}
+
+function handleCycleInputChange(
+  e: ChangeEvent<HTMLInputElement>,
+  key: string,
+  set: Dispatch<SetStateAction<Record<string, string>>>,
+): void {
+  const v = e.target.value
+  if ((e.nativeEvent as { isComposing?: boolean } | undefined)?.isComposing === true) {
+    setCycleInputValue(set, key, v)
+    return
+  }
+  setCycleInputValue(set, key, normalizeNumericInput(v))
+}
+
+function handleCycleCompositionEnd(
+  e: CompositionEvent<HTMLInputElement>,
+  key: string,
+  set: Dispatch<SetStateAction<Record<string, string>>>,
+): void {
+  setCycleInputValue(set, key, normalizeNumericInput(e.currentTarget.value))
+}
 
 function minToHHMM(min: number): string {
   const h = String(Math.floor(min / 60)).padStart(2, '0')
@@ -432,9 +467,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     const totalUnits = book.totalUnits ?? 0
     const targetRounds = book.targetRounds ?? 0
     const unit = isLeapBook(book) ? '語' : '区画'
-    const from = Number(cycleInputs[`${slotKey}-from`] ?? '')
-    const to = Number(cycleInputs[`${slotKey}-to`] ?? '')
-    const roundInput = (cycleInputs[`${slotKey}-round`] ?? '').trim()
+    const from = Number(normalizeNumericInput((cycleInputs[`${slotKey}-from`] ?? '').trim()))
+    const to = Number(normalizeNumericInput((cycleInputs[`${slotKey}-to`] ?? '').trim()))
+    const roundInput = normalizeNumericInput((cycleInputs[`${slotKey}-round`] ?? '').trim())
     const mine = cycleRecords.filter((r) => r.bookId === book.id)
     const round = roundInput === '' ? currentCycleRound(book, mine) : Number(roundInput)
     if (
@@ -713,36 +748,45 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       <input
                         data-testid={`plan-cycle-from-${s.bookId}`}
-                        type="number"
+                        type="text"
                         inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
                         value={cycleInputs[`${inputKey}-from`] ?? ''}
-                        onChange={(e) =>
-                          setCycleInputs((p) => ({ ...p, [`${inputKey}-from`]: e.target.value }))
-                        }
+                        onChange={(e) => handleCycleInputChange(e, `${inputKey}-from`, setCycleInputs)}
+                        onCompositionEnd={(e) => handleCycleCompositionEnd(e, `${inputKey}-from`, setCycleInputs)}
                         placeholder={isLeapBook(book) ? '開始語' : '開始区画'}
-                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0 }}
+                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0, fontSize: 16 }}
                       />
                       <input
                         data-testid={`plan-cycle-to-${s.bookId}`}
-                        type="number"
+                        type="text"
                         inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
                         value={cycleInputs[`${inputKey}-to`] ?? ''}
-                        onChange={(e) =>
-                          setCycleInputs((p) => ({ ...p, [`${inputKey}-to`]: e.target.value }))
-                        }
+                        onChange={(e) => handleCycleInputChange(e, `${inputKey}-to`, setCycleInputs)}
+                        onCompositionEnd={(e) => handleCycleCompositionEnd(e, `${inputKey}-to`, setCycleInputs)}
                         placeholder={isLeapBook(book) ? '終了語' : '終了区画'}
-                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0 }}
+                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0, fontSize: 16 }}
                       />
                       <input
                         data-testid={`plan-cycle-round-${s.bookId}`}
-                        type="number"
+                        type="text"
                         inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
                         value={cycleInputs[`${inputKey}-round`] ?? ''}
-                        onChange={(e) =>
-                          setCycleInputs((p) => ({ ...p, [`${inputKey}-round`]: e.target.value }))
-                        }
+                        onChange={(e) => handleCycleInputChange(e, `${inputKey}-round`, setCycleInputs)}
+                        onCompositionEnd={(e) => handleCycleCompositionEnd(e, `${inputKey}-round`, setCycleInputs)}
                         placeholder={`周回（今${cycleRound}周目）`}
-                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0 }}
+                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0, fontSize: 16 }}
                       />
                       <button
                         data-testid={`plan-cycle-record-${s.bookId}`}

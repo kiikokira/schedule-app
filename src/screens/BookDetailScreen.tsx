@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ChangeEvent, type CompositionEvent } from 'react'
 import ProgressChart from '../components/ProgressChart'
 import CoverImage from '../components/CoverImage'
 import { useBooks } from '../hooks/useBooks'
@@ -42,8 +42,27 @@ function buildRecordedAt(dateStr: string, hhmm: string): string {
 // iPhone日本語キーボードの全角数字を半角に寄せる。
 // type="number" は全角を空文字にサニタイズして入力が消えたように見えるため、
 // text入力＋正規化で受け付けて送信時の数値検証はそのまま行う。
+// なお変換中（isComposing）に値を書き換えるとiPhoneで文字が小さく表示されたまま
+// 先頭文字が消えるため、変換中は素通しし確定時に正規化する。
 function normalizeNumericInput(s: string): string {
   return s.replace(/[０-９]/g, (ch) => String('０１２３４５６７８９'.indexOf(ch)))
+}
+
+function isComposingEvent(e: ChangeEvent<HTMLInputElement>): boolean {
+  return (e.nativeEvent as { isComposing?: boolean } | undefined)?.isComposing === true
+}
+
+function handleNumericInputChange(e: ChangeEvent<HTMLInputElement>, set: (v: string) => void): void {
+  const v = e.target.value
+  if (isComposingEvent(e)) {
+    set(v)
+    return
+  }
+  set(normalizeNumericInput(v))
+}
+
+function handleNumericCompositionEnd(e: CompositionEvent<HTMLInputElement>, set: (v: string) => void): void {
+  set(normalizeNumericInput(e.currentTarget.value))
 }
 
 type Props = {
@@ -141,9 +160,9 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     })
 
     const handleCycleRecord = async () => {
-      const from = Number(cycleFrom)
-      const to = Number(cycleTo)
-      const roundNum = Number(roundFieldValue)
+      const from = Number(normalizeNumericInput(cycleFrom.trim()))
+      const to = Number(normalizeNumericInput(cycleTo.trim()))
+      const roundNum = Number(normalizeNumericInput(String(roundFieldValue).trim()))
       if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from || to > (book.totalUnits ?? 0)) {
         setCycleError(`${unit}の範囲を正しく入力してください`)
         return
@@ -198,9 +217,9 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     }
 
     const handleCycleSaveEdit = async (record: CycleRecordData) => {
-      const from = Number(cycleEditFrom)
-      const to = Number(cycleEditTo)
-      const roundNum = Number(cycleEditRound)
+      const from = Number(normalizeNumericInput(cycleEditFrom.trim()))
+      const to = Number(normalizeNumericInput(cycleEditTo.trim()))
+      const roundNum = Number(normalizeNumericInput(cycleEditRound.trim()))
       if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from || to > (book.totalUnits ?? 0)) {
         setCycleEditError(`${unit}の範囲を正しく入力してください`)
         return
@@ -295,9 +314,14 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
             value={cycleFrom}
-            onChange={(e) => setCycleFrom(normalizeNumericInput(e.target.value))}
+            onChange={(e) => handleNumericInputChange(e, setCycleFrom)}
+            onCompositionEnd={(e) => handleNumericCompositionEnd(e, setCycleFrom)}
             placeholder="例: 1"
+            style={{ fontSize: 16 }}
           />
           <label htmlFor="cycle-to">終了{unit}</label>
           <input
@@ -306,9 +330,14 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
             value={cycleTo}
-            onChange={(e) => setCycleTo(normalizeNumericInput(e.target.value))}
+            onChange={(e) => handleNumericInputChange(e, setCycleTo)}
+            onCompositionEnd={(e) => handleNumericCompositionEnd(e, setCycleTo)}
             placeholder="例: 12"
+            style={{ fontSize: 16 }}
           />
           <label htmlFor="cycle-round">{isLeap ? '目標周回' : '周回'}</label>
           <input
@@ -317,9 +346,14 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
             value={roundFieldValue}
-            onChange={(e) => setCycleRoundInput(normalizeNumericInput(e.target.value))}
+            onChange={(e) => handleNumericInputChange(e, setCycleRoundInput)}
+            onCompositionEnd={(e) => handleNumericCompositionEnd(e, setCycleRoundInput)}
             placeholder={isLeap ? `例: ${round}` : '例: 1'}
+            style={{ fontSize: 16 }}
           />
           {isLeap && (
             <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px' }}>
@@ -420,10 +454,14 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                               type="text"
                               inputMode="numeric"
                               pattern="[0-9]*"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              autoCapitalize="off"
                               value={cycleEditFrom}
-                              onChange={(e) => setCycleEditFrom(normalizeNumericInput(e.target.value))}
+                              onChange={(e) => handleNumericInputChange(e, setCycleEditFrom)}
+                              onCompositionEnd={(e) => handleNumericCompositionEnd(e, setCycleEditFrom)}
                               placeholder="例: 1"
-                              style={{ width: 72 }}
+                              style={{ width: 72, fontSize: 16 }}
                             />
                             <label htmlFor={`cycle-edit-to-${record.id}`}>終了{unit}</label>
                             <input
@@ -432,10 +470,14 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                               type="text"
                               inputMode="numeric"
                               pattern="[0-9]*"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              autoCapitalize="off"
                               value={cycleEditTo}
-                              onChange={(e) => setCycleEditTo(normalizeNumericInput(e.target.value))}
+                              onChange={(e) => handleNumericInputChange(e, setCycleEditTo)}
+                              onCompositionEnd={(e) => handleNumericCompositionEnd(e, setCycleEditTo)}
                               placeholder="例: 12"
-                              style={{ width: 72 }}
+                              style={{ width: 72, fontSize: 16 }}
                             />
                             <label htmlFor={`cycle-edit-round-${record.id}`}>周回</label>
                             <input
@@ -444,10 +486,14 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                               type="text"
                               inputMode="numeric"
                               pattern="[0-9]*"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              autoCapitalize="off"
                               value={cycleEditRound}
-                              onChange={(e) => setCycleEditRound(normalizeNumericInput(e.target.value))}
+                              onChange={(e) => handleNumericInputChange(e, setCycleEditRound)}
+                              onCompositionEnd={(e) => handleNumericCompositionEnd(e, setCycleEditRound)}
                               placeholder="例: 1"
-                              style={{ width: 64 }}
+                              style={{ width: 64, fontSize: 16 }}
                             />
                             <label htmlFor={`cycle-edit-date-${record.id}`}>日付</label>
                             <input
