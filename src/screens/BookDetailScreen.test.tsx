@@ -605,6 +605,26 @@ describe('BookDetailScreen', () => {
     expect((screen.getByTestId('cycle-edit-from-c1') as HTMLInputElement).value).toBe('12')
   })
 
+  it('composition end normalizes fullwidth digits', async () => {
+    await db.books.add({
+      ...book,
+      title: 'LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    const input = await screen.findByTestId('cycle-from') as HTMLInputElement
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+    setter.call(input, '１２')
+    fireEvent.compositionEnd(input)
+    expect(input.value).toBe('12')
+  })
+
   it('通常記録の編集も2行レイアウトで空き時間を選べる', async () => {
     const date = daysFromNow(-1)
     await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
