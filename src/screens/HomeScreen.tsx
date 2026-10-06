@@ -13,8 +13,12 @@ import {
   calcScheduleStatus,
   currentRound,
   daysBetween,
+  formatDate,
   formatJaDate,
   overallDiagnosis,
+  parseDate,
+  scoreActivityOnDate,
+  calcStreakDays,
   todayStr,
   type BookData,
   type CycleRecordData,
@@ -473,6 +477,18 @@ export default function HomeScreen({ onOpenBook }: Props) {
 
   const diagnosis = overallDiagnosis(books, records, today)
 
+  const halfQuota = Math.max(1, Math.ceil(diagnosis.requiredPerDay / 2))
+  const streakScores: Record<string, number> = {}
+  for (const d of new Set([...records.map((r) => r.date), ...cycleRecords.map((r) => r.date)])) {
+    streakScores[d] = scoreActivityOnDate(d, records, cycleRecords)
+  }
+  const streak = calcStreakDays(streakScores, halfQuota, today)
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = parseDate(today)
+    d.setDate(d.getDate() - (6 - i))
+    return formatDate(d)
+  })
+
   // 削除済みの参考書を指すbookIdエントリの残留を掃除する。
   // booksLoaded が false の間（DB読み込み前）は何もしない。
   useEffect(() => {
@@ -487,6 +503,27 @@ export default function HomeScreen({ onOpenBook }: Props) {
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>慶應義塾大学環境情報学部</h1>
+      <section
+        data-testid="streak-section"
+        style={{
+          marginTop: 8,
+          marginBottom: 8,
+          padding: '10px 12px',
+          borderRadius: 8,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+        }}
+      >
+        <div data-testid="streak-count" style={{ fontWeight: 800, fontSize: 16 }}>
+          連続{streak.streak}日
+        </div>
+        <div data-testid="streak-dots" style={{ fontSize: 14, letterSpacing: 2, marginTop: 4 }}>
+          {last7Days.map((d) => ((streakScores[d] ?? 0) >= halfQuota ? '●' : '○')).join(' ')}
+        </div>
+        {streak.remaining > 0 && (
+          <div style={{ fontSize: 13, marginTop: 4 }}>今日あと{streak.remaining}で継続！</div>
+        )}
+      </section>
       <p data-testid="today-date" style={{ fontWeight: 700 }}>
         今日は {formatJaDate(today)}
       </p>

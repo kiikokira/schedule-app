@@ -13,6 +13,8 @@ import {
   formatJaDate,
   formatJaFullDate,
   formatJaTime,
+  scoreActivityOnDate,
+  calcStreakDays,
   recentAvgPagesPerDay,
   overallDiagnosis,
   expandCyclePairs,
@@ -337,5 +339,45 @@ describe('cycle progress', () => {
     const book = { totalUnits: 10, targetRounds: 1 }
     expect(calcCycleDailyTarget(book, 10, 5)).toBe(0)
     expect(calcCycleDailyTarget(book, 4, 0)).toBe(6)
+  })
+})
+
+describe('scoreActivityOnDate', () => {
+  it('ページ数と反復の区画を通算する', () => {
+    const records: ProgressRecordData[] = [
+      { id: 'r1', bookId: 'b1', date: '2026-10-05', pages: 10 },
+      { id: 'r2', bookId: 'b2', date: '2026-10-05', pages: 5 },
+      { id: 'r3', bookId: 'b1', date: '2026-10-04', pages: 99 },
+    ]
+    const cycles: CycleRecordData[] = [
+      { id: 'c1', bookId: 'b3', date: '2026-10-05', unitFrom: 1, unitTo: 8, round: 1 },
+    ]
+    expect(scoreActivityOnDate('2026-10-05', records, cycles)).toBe(23)
+    expect(scoreActivityOnDate('2026-10-04', records, cycles)).toBe(99)
+    expect(scoreActivityOnDate('2026-10-03', records, cycles)).toBe(0)
+  })
+})
+
+describe('calcStreakDays', () => {
+  it('今日まで連続なら今日を含めて数える', () => {
+    expect(
+      calcStreakDays({ '2026-10-04': 10, '2026-10-05': 10, '2026-10-06': 10 }, 5, '2026-10-06'),
+    ).toEqual({ streak: 3, todayScore: 10, remaining: 0 })
+  })
+
+  it('今日未達でも昨日まで連続なら継続扱いにする', () => {
+    expect(
+      calcStreakDays({ '2026-10-04': 10, '2026-10-05': 10 }, 5, '2026-10-06'),
+    ).toEqual({ streak: 2, todayScore: 0, remaining: 5 })
+  })
+
+  it('目安未満の日で途切れる', () => {
+    expect(
+      calcStreakDays({ '2026-10-03': 10, '2026-10-04': 1, '2026-10-05': 10, '2026-10-06': 10 }, 5, '2026-10-06'),
+    ).toEqual({ streak: 2, todayScore: 10, remaining: 0 })
+  })
+
+  it('記録なしなら0日', () => {
+    expect(calcStreakDays({}, 5, '2026-10-06')).toEqual({ streak: 0, todayScore: 0, remaining: 5 })
   })
 })

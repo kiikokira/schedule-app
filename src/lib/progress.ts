@@ -58,6 +58,50 @@ export function formatJaFullDate(iso: string): string {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${WEEKDAYS[d.getDay()]})`
 }
 
+// その日に記録した量（通常のページ数＋反復の区画・語数）を通算する。
+export function scoreActivityOnDate(
+  date: string,
+  records: ProgressRecordData[],
+  cycles: CycleRecordData[],
+): number {
+  const pages = records
+    .filter((r) => r.date === date)
+    .reduce((sum, r) => sum + r.pages, 0)
+  const pairs = cycles
+    .filter((r) => r.date === date)
+    .reduce((sum, r) => {
+      if (!Number.isInteger(r.unitFrom) || !Number.isInteger(r.unitTo)) return sum
+      if (r.unitFrom < 1 || r.unitTo < r.unitFrom) return sum
+      return sum + (r.unitTo - r.unitFrom + 1)
+    }, 0)
+  return pages + pairs
+}
+
+export type StreakResult = { streak: number; todayScore: number; remaining: number }
+
+// 目安（halfQuota）以上の記録がある日が何日連続しているかを数える。
+// 今日が未達でも昨日まで連続なら継続扱いにする。
+export function calcStreakDays(
+  scores: Record<string, number>,
+  halfQuota: number,
+  today: string,
+): StreakResult {
+  const qualifies = (date: string): boolean => {
+    const score = scores[date] ?? 0
+    if (halfQuota <= 0) return score > 0
+    return score >= halfQuota
+  }
+  const todayScore = scores[today] ?? 0
+  let streak = 0
+  let cursor = qualifies(today) ? today : addDays(today, -1)
+  while (qualifies(cursor)) {
+    streak++
+    cursor = addDays(cursor, -1)
+  }
+  const remaining = halfQuota <= 0 ? 0 : Math.max(halfQuota - todayScore, 0)
+  return { streak, todayScore, remaining }
+}
+
 export function formatJaTime(iso: string): string {
   const d = new Date(iso)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`

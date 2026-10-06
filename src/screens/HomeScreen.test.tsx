@@ -50,6 +50,15 @@ describe('HomeScreen', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('慶應義塾大学環境情報学部')
   })
 
+  it('shows consecutive record days with last-7 dots', async () => {
+    await db.books.add({ ...book, startDate: daysAgo(30), deadline: daysAhead(100) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: daysAgo(1), pages: 10 })
+    await db.records.add({ id: 'r2', bookId: 'b1', date: localDateStr(new Date()), pages: 10 })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await waitFor(() => expect(screen.getByTestId('streak-section')).toHaveTextContent('連続2日'))
+    expect(screen.getByTestId('streak-dots')).toBeInTheDocument()
+  })
+
   it('shows a 学習スケジュール section with the default schedule books', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     expect(screen.getByText('学習スケジュール')).toBeInTheDocument()
