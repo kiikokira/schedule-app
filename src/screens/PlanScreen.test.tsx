@@ -38,6 +38,7 @@ describe('PlanScreen', () => {
 
   it('shows a suggested deadline when adding a book from the catalog', () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('catalog-toggle'))
     fireEvent.change(screen.getByTestId('catalog-select'), {
       target: { value: 'eibunpo-polaris-1' },
     })
@@ -52,6 +53,7 @@ describe('PlanScreen', () => {
 
   it('adds a book from the catalog to the schedule', () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('catalog-toggle'))
     fireEvent.change(screen.getByTestId('catalog-select'), {
       target: { value: 'eibunpo-polaris-1' },
     })
@@ -268,6 +270,7 @@ describe('PlanScreen', () => {
       updatedAt: '2026-01-01T00:00:00.000Z',
     })
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('registered-toggle'))
     await waitFor(() => {
       const select = screen.getByTestId<HTMLSelectElement>('registered-select')
       expect(Array.from(select.options).some((o) => o.value === 'b1')).toBe(true)
@@ -299,6 +302,7 @@ describe('PlanScreen', () => {
       updatedAt: '2026-01-01T00:00:00.000Z',
     })
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('registered-toggle'))
     fireEvent.change(screen.getByTestId('registered-select'), {
       target: { value: 'b1' },
     })
@@ -320,6 +324,7 @@ describe('PlanScreen', () => {
       updatedAt: '2026-01-01T00:00:00.000Z',
     })
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('registered-toggle'))
     await waitFor(() => {
       const select = screen.getByTestId<HTMLSelectElement>('registered-select')
       expect(Array.from(select.options).some((o) => o.value === 'b1')).toBe(true)
@@ -962,5 +967,25 @@ describe('PlanScreen', () => {
     fireEvent.change(screen.getByTestId('plan-preset-select'), { target: { value: 'p1' } })
     fireEvent.click(screen.getByTestId('plan-preset-delete'))
     expect(loadOverridePresets()).toHaveLength(1)
+  })
+
+  it('カタログ追加と登録済み追加は初期は閉じていて展開できる', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    expect(screen.getByTestId('catalog-toggle')).toBeInTheDocument()
+    expect(screen.getByTestId('registered-toggle')).toBeInTheDocument()
+    expect(screen.queryByTestId('catalog-select')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('registered-select')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('catalog-toggle'))
+    expect(await screen.findByTestId('catalog-select')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('registered-toggle'))
+    expect(await screen.findByTestId('registered-select')).toBeInTheDocument()
+  })
+
+  it('代表戦の欄を押すと日本代表戦ページへ遷移できる', async () => {
+    const onJapan = vi.fn()
+    render(<PlanScreen onDone={() => {}} onJapan={onJapan} />)
+    expect(screen.getByTestId('japan-toggle')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('japan-toggle'))
+    expect(onJapan).toHaveBeenCalledTimes(1)
   })
 })

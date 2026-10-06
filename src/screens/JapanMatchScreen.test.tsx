@@ -19,6 +19,18 @@ describe('JapanMatchScreen', () => {
     render(<JapanMatchScreen onBack={() => {}} today="2026-10-05" />)
     expect(screen.getByTestId('japan-match-2026-11-14-vs-brazil')).toHaveTextContent('あと40日')
   })
+  it('shows dates in 何年何月何日(曜日) format', () => {
+    render(<JapanMatchScreen onBack={() => {}} today="2026-10-05" />)
+    expect(screen.getByTestId('japan-next')).toHaveTextContent('2026年10月5日(月)')
+    expect(screen.getByTestId('japan-match-2026-11-14-vs-brazil')).toHaveTextContent('2026年11月14日(土)')
+    expect(screen.getByTestId('japan-page')).toHaveTextContent('2026年10月5日(月)')
+  })
+  it('shows the next match only once without duplication', () => {
+    render(<JapanMatchScreen onBack={() => {}} today="2026-10-06" />)
+    // 次の試合はブラジル戦1つだけ。nextに表示されるので一覧側に重複表示しない
+    expect(screen.getByTestId('japan-next')).toHaveTextContent('ブラジル')
+    expect(screen.queryByTestId('japan-match-2026-11-14-vs-brazil')).toBeNull()
+  })
   it('watch blocks the match window and restore brings it back', async () => {
     await db.availability.add({ id: 'd1', weekday: null, date: '2026-11-14', start: '19:00', end: '22:00' })
     render(<JapanMatchScreen onBack={() => {}} today="2026-10-05" />)

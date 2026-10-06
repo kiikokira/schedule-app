@@ -11,6 +11,7 @@ import {
   calcTotalDone,
   currentRound,
   formatJaDate,
+  formatJaFullDate,
   formatJaTime,
   recentAvgPagesPerDay,
   overallDiagnosis,
@@ -40,6 +41,13 @@ describe('formatJaDate', () => {
     expect(formatJaDate('2026-09-21')).toBe('9月21日（月）')
     expect(formatJaDate('2026-01-03')).toBe('1月3日（土）')
     expect(formatJaDate('2026-12-31')).toBe('12月31日（木）')
+  })
+})
+
+describe('formatJaFullDate', () => {
+  it('formats a date as 何年何月何日(曜日)', () => {
+    expect(formatJaFullDate('2026-11-14')).toBe('2026年11月14日(土)')
+    expect(formatJaFullDate('2026-10-05')).toBe('2026年10月5日(月)')
   })
 })
 

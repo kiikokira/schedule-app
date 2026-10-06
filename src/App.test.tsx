@@ -63,8 +63,14 @@ it('navigates to the school page from the today plan screen and back', async () 
   expect(await screen.findByTestId('today-plan-screen')).toBeInTheDocument()
 })
 
-it('navigates to the japan match screen from home', async () => {
+it('does not show japan nav on home', async () => {
   render(<App />)
-  fireEvent.click(screen.getByTestId('nav-japan'))
+  expect(screen.queryByTestId('nav-japan')).toBeNull()
+})
+
+it('navigates to the japan match screen from plan via japan toggle', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByTestId('nav-plan'))
+  fireEvent.click(await screen.findByTestId('japan-toggle'))
   expect(await screen.findByTestId('japan-page')).toBeInTheDocument()
 })

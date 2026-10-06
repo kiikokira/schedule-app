@@ -123,7 +123,7 @@ export default function App() {
         )}
         {route.name === 'ai-history' && <HistoryScreen onBack={() => setRoute({ name: 'ai' })} />}
         {route.name === 'focus' && <FocusPeriodScreen onBack={() => setRoute({ name: 'home' })} />}
-        {route.name === 'plan' && <PlanScreen onDone={() => setRoute({ name: 'home' })} onFocus={() => setRoute({ name: 'focus' })} />}
+        {route.name === 'plan' && <PlanScreen onDone={() => setRoute({ name: 'home' })} onFocus={() => setRoute({ name: 'focus' })} onJapan={() => setRoute({ name: 'japan' })} />}
         {route.name === 'today' && (
           <TodayPlanScreen
             onBack={() => setRoute({ name: 'home' })}
@@ -136,7 +136,7 @@ export default function App() {
           <SchoolScreen onBack={() => setRoute({ name: 'today' })} />
         )}
         {route.name === 'japan' && (
-          <JapanMatchScreen onBack={() => setRoute({ name: 'home' })} />
+          <JapanMatchScreen onBack={() => setRoute({ name: 'plan' })} />
         )}
       </main>
       <footer className="app-footer">
@@ -150,9 +150,6 @@ export default function App() {
             </button>
             <button data-testid="nav-ai" onClick={() => setRoute({ name: 'ai' })}>
               調整AI
-            </button>
-            <button data-testid="nav-japan" onClick={() => setRoute({ name: 'japan' })}>
-              代表戦
             </button>
             <button data-testid="nav-add" onClick={() => setRoute({ name: 'add' })}>
               ＋ 参考書を追加

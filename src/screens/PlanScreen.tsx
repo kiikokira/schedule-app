@@ -40,6 +40,7 @@ import { isLeapBook } from '../lib/leap'
 type Props = {
   onDone: () => void
   onFocus?: () => void
+  onJapan?: () => void
 }
 
 type SlotRow = { start: string; end: string; bookId?: string; onTrain?: boolean }
@@ -69,7 +70,7 @@ function collectRows(rows: SlotRow[]): RowsResult {
   return { ok: true, rows: filled }
 }
 
-export default function PlanScreen({ onDone, onFocus }: Props) {
+export default function PlanScreen({ onDone, onFocus, onJapan }: Props) {
   const { books, saveBook } = useBooks()
   const [entries, setEntries] = useState<ScheduleEntry[]>(() => loadSchedule())
   const [result, setResult] = useState<string | null>(null)
@@ -81,6 +82,8 @@ export default function PlanScreen({ onDone, onFocus }: Props) {
   const [showWeeklyForm, setShowWeeklyForm] = useState(false)
   const [showDateForm, setShowDateForm] = useState(false)
   const [showPresetForm, setShowPresetForm] = useState(false)
+  const [showCatalogForm, setShowCatalogForm] = useState(false)
+  const [showRegisteredForm, setShowRegisteredForm] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set())
   const [slotDrafts, setSlotDrafts] = useState<Record<string, SlotRow>>({})
   const [presets, setPresets] = useState<OverridePreset[]>(() => loadOverridePresets())
@@ -381,7 +384,16 @@ export default function PlanScreen({ onDone, onFocus }: Props) {
       </p>
 
       <section style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-        <h2 style={{ fontSize: 16 }}>カタログから追加</h2>
+        <button
+          data-testid="catalog-toggle"
+          type="button"
+          aria-expanded={showCatalogForm}
+          onClick={() => setShowCatalogForm((v) => !v)}
+          style={{ fontSize: 16, fontWeight: 700, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+        >
+          カタログから追加 {showCatalogForm ? '▼' : '▶'}
+        </button>
+        {showCatalogForm && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
           <select
             data-testid="catalog-select"
@@ -435,10 +447,21 @@ export default function PlanScreen({ onDone, onFocus }: Props) {
             追加
           </button>
         </div>
+        )}
       </section>
 
       <section style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-        <h2 style={{ fontSize: 16 }}>登録済みの参考書を追加</h2>
+        <button
+          data-testid="registered-toggle"
+          type="button"
+          aria-expanded={showRegisteredForm}
+          onClick={() => setShowRegisteredForm((v) => !v)}
+          style={{ fontSize: 16, fontWeight: 700, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+        >
+          登録済みの参考書を追加 {showRegisteredForm ? '▼' : '▶'}
+        </button>
+        {showRegisteredForm && (
+        <>
         <p data-testid="registered-books-section" style={{ color: 'var(--text-dim)', fontSize: 13 }}>
           検索で追加した参考書もスケジュールに組み込めます。
         </p>
@@ -485,6 +508,19 @@ export default function PlanScreen({ onDone, onFocus }: Props) {
             追加
           </button>
         </div>
+        </>
+        )}
+      </section>
+
+      <section style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+        <button
+          data-testid="japan-toggle"
+          type="button"
+          onClick={() => onJapan?.()}
+          style={{ fontSize: 16, fontWeight: 700, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', width: '100%', textAlign: 'left' }}
+        >
+          ⚽ 代表戦 ▶
+        </button>
       </section>
 
       {entries.map((entry) => {
