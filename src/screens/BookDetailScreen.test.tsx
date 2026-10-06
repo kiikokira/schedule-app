@@ -178,8 +178,9 @@ describe('BookDetailScreen', () => {
     expect(await screen.findByTestId('cycle-round-badge')).toHaveTextContent('今1周目')
     expect(screen.getByTestId('cycle-summary')).not.toHaveTextContent('今1周目')
     expect(screen.getByTestId('today-target')).toHaveTextContent('10')
-    fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '1' } })
-    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '4' } })
+    fireEvent.click(screen.getByTestId('numpad-1'))
+    fireEvent.click(screen.getByTestId('numpad-tab-to'))
+    fireEvent.click(screen.getByTestId('numpad-4'))
     fireEvent.change(screen.getByTestId('cycle-round'), { target: { value: '1' } })
     fireEvent.click(screen.getByTestId('cycle-record'))
     await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('4 / 60'))
@@ -200,7 +201,7 @@ describe('BookDetailScreen', () => {
     expect(screen.getByText('終了区画')).toBeInTheDocument()
     expect(screen.getByText('周回')).toBeInTheDocument()
     expect(screen.getByText('日付')).toBeInTheDocument()
-    expect(screen.getByTestId('cycle-from')).toHaveAttribute('placeholder', '例: 1')
+    expect(screen.getByTestId('cycle-from-display')).toHaveTextContent('例: 1')
   })
 
   it('From＞To の範囲は拒否する', async () => {
@@ -213,8 +214,9 @@ describe('BookDetailScreen', () => {
       deadline: daysFromNow(6),
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
-    fireEvent.change(await screen.findByTestId('cycle-from'), { target: { value: '5' } })
-    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '2' } })
+    fireEvent.click(await screen.findByTestId('numpad-5'))
+    fireEvent.click(screen.getByTestId('numpad-tab-to'))
+    fireEvent.click(screen.getByTestId('numpad-2'))
     fireEvent.click(screen.getByTestId('cycle-record'))
     expect(screen.getByTestId('cycle-error')).toHaveTextContent(/範囲/)
   })
@@ -365,8 +367,8 @@ describe('BookDetailScreen', () => {
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     fireEvent.click(await screen.findByTestId('leap-preset-401-1000'))
-    expect((screen.getByTestId('cycle-from') as HTMLInputElement).value).toBe('')
-    expect((screen.getByTestId('cycle-to') as HTMLInputElement).value).toBe('')
+    expect(screen.getByTestId('cycle-from-display')).toHaveTextContent('例: 1')
+    expect(screen.getByTestId('cycle-to-display')).toHaveTextContent('例: 12')
     expect(screen.getByTestId('leap-preset-401-1000')).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByText(/選択中：401〜1000語/)).toBeInTheDocument()
   })
@@ -385,8 +387,9 @@ describe('BookDetailScreen', () => {
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     fireEvent.click(await screen.findByTestId('leap-preset-401-1000'))
-    fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '401' } })
-    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '500' } })
+    for (const d of ['4', '0', '1']) fireEvent.click(screen.getByTestId('numpad-' + d))
+    fireEvent.click(screen.getByTestId('numpad-tab-to'))
+    for (const d of ['5', '0', '0']) fireEvent.click(screen.getByTestId('numpad-' + d))
     fireEvent.click(screen.getByTestId('cycle-record'))
     await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('100 / 6900'))
   })
@@ -405,8 +408,9 @@ describe('BookDetailScreen', () => {
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     fireEvent.click(await screen.findByTestId('leap-preset-1-400'))
-    fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '401' } })
-    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '500' } })
+    for (const d of ['4', '0', '1']) fireEvent.click(screen.getByTestId('numpad-' + d))
+    fireEvent.click(screen.getByTestId('numpad-tab-to'))
+    for (const d of ['5', '0', '0']) fireEvent.click(screen.getByTestId('numpad-' + d))
     fireEvent.click(screen.getByTestId('cycle-record'))
     expect(screen.getByTestId('cycle-error')).toHaveTextContent(/選択中の範囲/)
   })
@@ -428,8 +432,9 @@ describe('BookDetailScreen', () => {
     expect(screen.queryByTestId('cycle-date')).not.toBeInTheDocument()
     expect(screen.getByTestId('cycle-round')).toHaveValue('1')
     fireEvent.click(screen.getByTestId('leap-preset-1-400'))
-    fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '12' } })
-    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '13' } })
+    for (const d of ['1', '2']) fireEvent.click(screen.getByTestId('numpad-' + d))
+    fireEvent.click(screen.getByTestId('numpad-tab-to'))
+    for (const d of ['1', '3']) fireEvent.click(screen.getByTestId('numpad-' + d))
     fireEvent.click(screen.getByTestId('cycle-record'))
     await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('2 / 6900'))
     const recs = await db.cycleRecords.toArray()
@@ -565,28 +570,6 @@ describe('BookDetailScreen', () => {
     })
   })
 
-  it('全角数字でも開始語・終了語が消えずに入力でき記録できる', async () => {
-    await db.books.add({
-      ...book,
-      title: '改訂版 必携 英単語 LEAP',
-      catalogId: 'leap',
-      totalPages: 576,
-      studyMode: 'cycles',
-      totalUnits: 2300,
-      targetRounds: 3,
-      startDate: daysFromNow(0),
-      deadline: daysFromNow(6),
-    })
-    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
-    fireEvent.click(await screen.findByTestId('leap-preset-1-400'))
-    fireEvent.change(screen.getByTestId('cycle-from'), { target: { value: '１２' } })
-    fireEvent.change(screen.getByTestId('cycle-to'), { target: { value: '３４' } })
-    expect((screen.getByTestId('cycle-from') as HTMLInputElement).value).toBe('12')
-    expect((screen.getByTestId('cycle-to') as HTMLInputElement).value).toBe('34')
-    fireEvent.click(screen.getByTestId('cycle-record'))
-    await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('23 / 6900'))
-  })
-
   it('全角数字でも反復の編集入力が消えない', async () => {
     const date = daysFromNow(0)
     await db.books.add({
@@ -618,11 +601,52 @@ describe('BookDetailScreen', () => {
       deadline: daysFromNow(6),
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
-    const input = await screen.findByTestId('cycle-from') as HTMLInputElement
+    const input = await screen.findByTestId('cycle-round') as HTMLInputElement
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
     setter.call(input, '１２')
     fireEvent.compositionEnd(input)
     expect(input.value).toBe('12')
+  })
+
+  it('enters start/end numbers with the in-app keypad without a keyboard', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('leap-preset-1401-2000'))
+    for (const d of ['1', '4', '0', '1']) fireEvent.click(await screen.findByTestId(`numpad-${d}`))
+    expect(screen.getByTestId('cycle-from-display')).toHaveTextContent('1401')
+    fireEvent.click(screen.getByTestId('numpad-tab-to'))
+    for (const d of ['2', '0', '0', '0']) fireEvent.click(screen.getByTestId(`numpad-${d}`))
+    expect(screen.getByTestId('cycle-to-display')).toHaveTextContent('2000')
+    fireEvent.click(screen.getByTestId('cycle-record'))
+    await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('600 / 6900'))
+  })
+
+  it('supports backspace and clear on the in-app keypad', async () => {
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    for (const d of ['1', '2', '3']) fireEvent.click(await screen.findByTestId(`numpad-${d}`))
+    expect(screen.getByTestId('cycle-from-display')).toHaveTextContent('123')
+    fireEvent.click(screen.getByTestId('numpad-back'))
+    expect(screen.getByTestId('cycle-from-display')).toHaveTextContent('12')
+    fireEvent.click(screen.getByTestId('numpad-clear'))
+    expect(screen.getByTestId('cycle-from-display')).toHaveTextContent('例')
   })
 
   it('通常記録の編集も2行レイアウトで空き時間を選べる', async () => {

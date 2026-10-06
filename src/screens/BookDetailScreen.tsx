@@ -94,6 +94,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const [cycleEditError, setCycleEditError] = useState<string | null>(null)
   const [cycleEditSlot, setCycleEditSlot] = useState('')
   const [cycleNewSlot, setCycleNewSlot] = useState('')
+  const [numpadTarget, setNumpadTarget] = useState<'from' | 'to'>('from')
   const [recordEditSlot, setRecordEditSlot] = useState('')
   const [recordNewSlot, setRecordNewSlot] = useState('')
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
@@ -193,6 +194,24 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       setCycleTo('')
       setCycleRoundInput('')
       setCycleNewSlot('')
+      setNumpadTarget('from')
+    }
+
+    // アプリ内テンキー：OSキーボードを開かず半角数字だけを確定で積む。
+    // フリック・変換・サニタイズの影響を受けないため表示崩れが起きない。
+    const tapNumpad = (key: string) => {
+      const set = numpadTarget === 'from' ? setCycleFrom : setCycleTo
+      const cur = numpadTarget === 'from' ? cycleFrom : cycleTo
+      if (key === 'clear') {
+        set('')
+        return
+      }
+      if (key === 'back') {
+        set(cur.slice(0, -1))
+        return
+      }
+      if (cur.length >= 5) return
+      set(`${cur}${key}`)
     }
 
     const handleCycleDeleteBook = async () => {
@@ -307,38 +326,49 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
               選択中：{LEAP_WORD_RANGES[leapBlock].from}〜{LEAP_WORD_RANGES[leapBlock].to}語の中で開始語・終了語を入力
             </p>
           )}
-          <label htmlFor="cycle-from">開始{unit}</label>
-          <input
-            id="cycle-from"
-            data-testid="cycle-from"
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            value={cycleFrom}
-            onChange={(e) => handleNumericInputChange(e, setCycleFrom)}
-            onCompositionEnd={(e) => handleNumericCompositionEnd(e, setCycleFrom)}
-            placeholder="例: 1"
-            style={{ fontSize: 16 }}
-          />
-          <label htmlFor="cycle-to">終了{unit}</label>
-          <input
-            id="cycle-to"
-            data-testid="cycle-to"
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            value={cycleTo}
-            onChange={(e) => handleNumericInputChange(e, setCycleTo)}
-            onCompositionEnd={(e) => handleNumericCompositionEnd(e, setCycleTo)}
-            placeholder="例: 12"
-            style={{ fontSize: 16 }}
-          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              data-testid="numpad-tab-from"
+              type="button"
+              aria-pressed={numpadTarget === 'from'}
+              onClick={() => setNumpadTarget('from')}
+              style={numpadTarget === 'from' ? { fontWeight: 700, borderWidth: 2, borderColor: 'var(--accent)' } : undefined}
+            >
+              開始{unit}
+            </button>
+            <button
+              data-testid="numpad-tab-to"
+              type="button"
+              aria-pressed={numpadTarget === 'to'}
+              onClick={() => setNumpadTarget('to')}
+              style={numpadTarget === 'to' ? { fontWeight: 700, borderWidth: 2, borderColor: 'var(--accent)' } : undefined}
+            >
+              終了{unit}
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+            <div data-testid="cycle-from-display" style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 8, padding: 8, minHeight: 20 }}>
+              {cycleFrom === '' ? `例: 1` : cycleFrom}
+            </div>
+            <span>〜</span>
+            <div data-testid="cycle-to-display" style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 8, padding: 8, minHeight: 20 }}>
+              {cycleTo === '' ? `例: 12` : cycleTo}
+            </div>
+          </div>
+          <div data-testid="numpad" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'back'].map((key) => (
+              <button
+                key={key}
+                data-testid={key === 'C' ? 'numpad-clear' : key === 'back' ? 'numpad-back' : `numpad-${key}`}
+                type="button"
+                aria-label={key === 'C' ? '消去' : key === 'back' ? '一文字削除' : `数字${key}`}
+                onClick={() => tapNumpad(key === 'C' ? 'clear' : key)}
+                style={{ padding: '10px 0', fontSize: 18 }}
+              >
+                {key === 'back' ? '⌫' : key}
+              </button>
+            ))}
+          </div>
           <label htmlFor="cycle-round">{isLeap ? '目標周回' : '周回'}</label>
           <input
             id="cycle-round"
