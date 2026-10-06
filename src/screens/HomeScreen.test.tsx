@@ -45,9 +45,17 @@ afterEach(() => {
 })
 
 describe('HomeScreen', () => {
-  it('shows the goal university heading for motivation', () => {
+  it('shows the goal university heading larger for motivation', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('慶應義塾大学環境情報学部')
+    const heading = screen.getByRole('heading', { level: 1 })
+    expect(heading).toHaveTextContent('慶應義塾大学環境情報学部')
+    expect(heading).toHaveStyle({ fontSize: '24px' })
+  })
+
+  it('explains the streak dots without clutter', async () => {
+    await db.books.add({ ...book, startDate: daysAgo(30), deadline: daysAhead(100) })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(await screen.findByTestId('streak-caption')).toHaveTextContent('直近7日の記録')
   })
 
   it('shows consecutive record days with last-7 dots', async () => {

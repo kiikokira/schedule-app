@@ -502,7 +502,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
 
   return (
     <div style={{ padding: 16 }}>
-      <h1 style={{ fontSize: 20 }}>慶應義塾大学環境情報学部</h1>
+      <h1 style={{ fontSize: 24 }}>慶應義塾大学環境情報学部</h1>
       <section
         data-testid="streak-section"
         style={{
@@ -519,6 +519,9 @@ export default function HomeScreen({ onOpenBook }: Props) {
         </div>
         <div data-testid="streak-dots" style={{ fontSize: 14, letterSpacing: 2, marginTop: 4 }}>
           {last7Days.map((d) => ((streakScores[d] ?? 0) >= halfQuota ? '●' : '○')).join(' ')}
+        </div>
+        <div data-testid="streak-caption" style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
+          直近7日の記録（●＝目安達成、○＝未達）
         </div>
         {streak.remaining > 0 && (
           <div style={{ fontSize: 13, marginTop: 4 }}>今日あと{streak.remaining}で継続！</div>
