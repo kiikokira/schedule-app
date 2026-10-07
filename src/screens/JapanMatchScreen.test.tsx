@@ -31,6 +31,12 @@ describe('JapanMatchScreen', () => {
     expect(screen.getByTestId('japan-next')).toHaveTextContent('ブラジル')
     expect(screen.queryByTestId('japan-match-2026-11-14-vs-brazil')).toBeNull()
   })
+  it('lists officially announced upcoming matches after the next one', () => {
+    render(<JapanMatchScreen onBack={() => {}} today="2026-10-06" />)
+    expect(screen.getByTestId('japan-next')).toHaveTextContent('ブラジル')
+    expect(screen.getByTestId('japan-match-2026-11-17-vs-paraguay')).toHaveTextContent('パラグアイ')
+    expect(screen.getByTestId('japan-upcoming-heading')).toHaveTextContent('今後の試合')
+  })
   it('watch blocks the match window and restore brings it back', async () => {
     await db.availability.add({ id: 'd1', weekday: null, date: '2026-11-14', start: '19:00', end: '22:00' })
     render(<JapanMatchScreen onBack={() => {}} today="2026-10-05" />)

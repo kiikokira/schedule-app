@@ -517,11 +517,28 @@ export default function HomeScreen({ onOpenBook }: Props) {
         <div data-testid="streak-count" style={{ fontWeight: 800, fontSize: 16 }}>
           連続{streak.streak}日
         </div>
-        <div data-testid="streak-dots" style={{ fontSize: 14, letterSpacing: 2, marginTop: 4 }}>
-          {last7Days.map((d) => ((streakScores[d] ?? 0) >= halfQuota ? '●' : '○')).join(' ')}
+        <div data-testid="streak-dots" style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+          {last7Days.map((d, i) => {
+            const done = (streakScores[d] ?? 0) >= halfQuota
+            const isToday = i === last7Days.length - 1
+            const label = `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`
+            return (
+              <div key={d} style={{ flex: 1, textAlign: 'center', fontWeight: isToday ? 800 : 400 }}>
+                <div style={{ fontSize: 14, color: isToday ? 'var(--accent)' : undefined }}>
+                  {done ? '●' : '○'}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>{label}</div>
+                {isToday && (
+                  <div data-testid="streak-today-label" style={{ fontSize: 10, fontWeight: 800, color: 'var(--accent)' }}>
+                    今日
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
         <div data-testid="streak-caption" style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
-          直近7日の記録（●＝目安達成、○＝未達）
+          直近7日の記録（●＝目安達成、○＝未達、左→右：6日前→今日・右端が今日）
         </div>
         {streak.remaining > 0 && (
           <div style={{ fontSize: 13, marginTop: 4 }}>今日あと{streak.remaining}で継続！</div>

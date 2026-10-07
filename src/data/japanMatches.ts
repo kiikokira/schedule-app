@@ -13,7 +13,7 @@ export type JapanMatch = {
   homeAway: 'home' | 'away' | 'neutral'
 }
 
-export const generatedAt = '2026-10-05T00:00:00+09:00'
+export const generatedAt = '2026-10-07T00:00:00+09:00'
 
 export const JAPAN_MATCHES: JapanMatch[] = [
   {
@@ -30,6 +30,15 @@ export const JAPAN_MATCHES: JapanMatch[] = [
     date: '2026-11-14',
     kickoff: '19:15',
     opponent: 'ブラジル',
+    competition: 'MIZUHO BLUE CHALLENGE',
+    venue: 'シンガポール・ナショナルスタジアム',
+    homeAway: 'neutral',
+  },
+  {
+    id: '2026-11-17-vs-paraguay',
+    date: '2026-11-17',
+    kickoff: '21:10',
+    opponent: 'パラグアイ',
     competition: 'MIZUHO BLUE CHALLENGE',
     venue: 'シンガポール・ナショナルスタジアム',
     homeAway: 'neutral',

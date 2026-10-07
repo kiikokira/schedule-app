@@ -67,6 +67,23 @@ describe('HomeScreen', () => {
     expect(screen.getByTestId('streak-dots')).toBeInTheDocument()
   })
 
+  it('shows 7 date labels with today marked at the right end', async () => {
+    await db.books.add({ ...book, startDate: daysAgo(30), deadline: daysAhead(100) })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const dots = await screen.findByTestId('streak-dots')
+    // 左→右に6日前〜今日の日付が並ぶ
+    const today = new Date()
+    const oldest = new Date()
+    oldest.setDate(today.getDate() - 6)
+    const oldestLabel = `${oldest.getMonth() + 1}/${oldest.getDate()}`
+    const todayLabel = `${today.getMonth() + 1}/${today.getDate()}`
+    expect(dots).toHaveTextContent(oldestLabel)
+    expect(dots).toHaveTextContent(todayLabel)
+    // 右端が今日とわかる表示
+    expect(await screen.findByTestId('streak-today-label')).toHaveTextContent('今日')
+    expect(screen.getByTestId('streak-caption')).toHaveTextContent('右端が今日')
+  })
+
   it('shows a 学習スケジュール section with the default schedule books', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     expect(screen.getByText('学習スケジュール')).toBeInTheDocument()

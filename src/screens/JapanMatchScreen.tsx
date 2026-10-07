@@ -154,6 +154,11 @@ export default function JapanMatchScreen({ onBack, today: todayProp }: Props) {
           {renderActions(next)}
         </div>
       )}
+      {rest.length > 0 && (
+        <h2 data-testid="japan-upcoming-heading" style={{ fontSize: 14, margin: '16px 0 0', color: 'var(--text-dim)' }}>
+          今後の試合（{rest.length}件）
+        </h2>
+      )}
       {rest.map((m) => (
         <div
           key={m.id}

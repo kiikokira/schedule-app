@@ -11,6 +11,15 @@ describe('japanMatches', () => {
       competition: 'KIRIN CUP SOCCER 2026',
     })
   })
+  it('ships the 2026-11-17 vs Paraguay at 21:10 in Singapore', () => {
+    const m = JAPAN_MATCHES.find((x) => x.id === '2026-11-17-vs-paraguay')
+    expect(m).toMatchObject({
+      date: '2026-11-17',
+      kickoff: '21:10',
+      opponent: 'パラグアイ',
+      venue: 'シンガポール・ナショナルスタジアム',
+    })
+  })
   it('derives a 19:20-21:35 window for a 19:30 kickoff', () => {
     expect(matchWindow({ kickoff: '19:30' })).toEqual({ start: '19:20', end: '21:35' })
   })
