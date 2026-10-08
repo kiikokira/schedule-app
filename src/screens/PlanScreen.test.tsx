@@ -94,6 +94,16 @@ describe('PlanScreen', () => {
     expect(screen.queryByTestId('plan-focus')).not.toBeInTheDocument()
   })
 
+  it('collapses the availability section by default and toggles open', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    // 初期は折りたたみ：LEAP固定ボタンが見えない
+    expect(screen.queryByTestId('leap-focus-all')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('availability-toggle'))
+    expect(await screen.findByTestId('leap-focus-all')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('availability-toggle'))
+    expect(screen.queryByTestId('leap-focus-all')).not.toBeInTheDocument()
+  })
+
   it('pins all weekday slots to LEAP and restores the previous pins', async () => {
     const now = new Date().toISOString()
     await db.books.add({
@@ -115,6 +125,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-group-weekday-2'))
     await waitFor(() => {
       const sel = screen.getByTestId('slot-book-w2') as HTMLSelectElement
@@ -350,6 +361,7 @@ describe('PlanScreen', () => {
 
   it('adds a weekday availability slot', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '1' },
@@ -370,6 +382,7 @@ describe('PlanScreen', () => {
 
   it('adds multiple weekday slots at once', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '0' },
@@ -400,6 +413,7 @@ describe('PlanScreen', () => {
 
   it('ignores fully empty trailing rows and saves only filled rows', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '1' },
@@ -422,6 +436,7 @@ describe('PlanScreen', () => {
   it('rejects a partial row and saves nothing', async () => {
     vi.spyOn(window, 'alert').mockImplementation(() => {})
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '1' },
@@ -439,6 +454,7 @@ describe('PlanScreen', () => {
   it('rejects a row whose end is not after start', async () => {
     vi.spyOn(window, 'alert').mockImplementation(() => {})
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '1' },
@@ -459,6 +475,7 @@ describe('PlanScreen', () => {
   it('rejects overlapping rows within the same weekday', async () => {
     vi.spyOn(window, 'alert').mockImplementation(() => {})
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
       target: { value: '0' },
@@ -489,6 +506,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-copy-weekday-1'))
     fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     expect((screen.getByTestId('slot-weekday-select') as HTMLSelectElement).value).toBe('1')
@@ -502,6 +520,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-copy-weekday-1'))
     fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.change(screen.getByTestId('slot-weekday-select'), {
@@ -522,6 +541,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     expect(await screen.findByTestId('slot-group-date-2026-09-30')).toBeInTheDocument()
     expect(screen.queryByTestId('slot-copy-date-2026-09-30')).not.toBeInTheDocument()
   })
@@ -533,6 +553,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     await waitFor(() => {
       expect(screen.getByTestId('slot-group-weekday-1')).toBeInTheDocument()
     })
@@ -553,6 +574,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     await waitFor(() => {
       expect(screen.getByTestId('slot-group-weekday-1')).toBeInTheDocument()
     })
@@ -576,6 +598,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     await waitFor(() => {
       expect(screen.getByTestId('slot-group-weekday-1')).toBeInTheDocument()
     })
@@ -592,6 +615,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     await waitFor(() => {
       expect(screen.getByTestId('slot-group-weekday-1')).toBeInTheDocument()
     })
@@ -620,6 +644,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     await waitFor(() => {
       expect(screen.getByTestId('slot-group-weekday-1')).toBeInTheDocument()
     })
@@ -644,6 +669,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     await waitFor(() => {
       expect(
         screen.getByTestId('slot-group-date-2026-09-22'),
@@ -660,6 +686,7 @@ describe('PlanScreen', () => {
 
   it('adds a date-override slot and stores the date', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-date-toggle'))
     fireEvent.change(screen.getByTestId('slot-date'), {
       target: { value: '2026-09-22' },
@@ -681,6 +708,7 @@ describe('PlanScreen', () => {
 
   it('adds multiple date-override slots at once', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-date-toggle'))
     fireEvent.change(screen.getByTestId('slot-date'), {
       target: { value: '2026-09-22' },
@@ -713,6 +741,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-group-weekday-1'))
     fireEvent.change(screen.getByTestId('slot-edit-start-a1'), {
       target: { value: '20:00' },
@@ -740,6 +769,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-group-weekday-1'))
     fireEvent.change(screen.getByTestId('slot-edit-start-a1'), {
       target: { value: '23:00' },
@@ -762,6 +792,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-group-date-2026-09-22'))
     fireEvent.change(screen.getByTestId('slot-edit-start-d1'), {
       target: { value: '08:00' },
@@ -805,6 +836,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-group-weekday-1'))
     const select = await screen.findByTestId('slot-book-a1')
     await waitFor(() => {
@@ -839,6 +871,7 @@ describe('PlanScreen', () => {
       true,
     )
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-group-weekday-1'))
     const select = await screen.findByTestId('slot-book-a1')
     expect((select as HTMLSelectElement).value).toBe('b1')
@@ -853,6 +886,7 @@ describe('PlanScreen', () => {
 
   it('labels start/end pairs in weekday and date rows', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     fireEvent.click(await screen.findByTestId('slot-date-toggle'))
     expect(screen.getAllByLabelText('開始時刻').length).toBeGreaterThanOrEqual(1)
@@ -865,6 +899,7 @@ describe('PlanScreen', () => {
 
   it('曜日ごと・当日上書きは初期は畳まれボタンで展開できる', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     expect(screen.getByTestId('slot-weekly-toggle')).toBeInTheDocument()
     expect(screen.getByTestId('slot-date-toggle')).toBeInTheDocument()
     expect(screen.queryByTestId('slot-weekday-select')).not.toBeInTheDocument()
@@ -877,6 +912,7 @@ describe('PlanScreen', () => {
 
   it('開閉ボタンで畳み直せる', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-weekly-toggle'))
     await screen.findByTestId('slot-weekday-select')
     fireEvent.click(screen.getByTestId('slot-weekly-toggle'))
@@ -885,6 +921,7 @@ describe('PlanScreen', () => {
 
   it('プリセット制作は初期は畳まれボタンで展開できる', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     expect(screen.getByTestId('slot-preset-toggle')).toBeInTheDocument()
     expect(screen.queryByTestId('plan-preset-select')).not.toBeInTheDocument()
     fireEvent.click(screen.getByTestId('slot-preset-toggle'))
@@ -895,6 +932,7 @@ describe('PlanScreen', () => {
 
   it('プリセットを新規作成して保存できる', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
     fireEvent.change(screen.getByTestId('plan-preset-name'), { target: { value: '夜勉' } })
     fireEvent.click(screen.getByTestId('plan-preset-row-add'))
@@ -910,6 +948,7 @@ describe('PlanScreen', () => {
 
   it('名前なしではプリセット保存されない', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
     fireEvent.click(screen.getByTestId('plan-preset-save'))
     expect(loadOverridePresets()).toEqual([])
@@ -920,6 +959,7 @@ describe('PlanScreen', () => {
       { id: 'p1', name: '夜勉', rows: [{ start: '09:00', end: '10:00' }] },
     ])
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
     fireEvent.change(screen.getByTestId('plan-preset-select'), { target: { value: 'p1' } })
     expect(screen.getByTestId('plan-preset-name')).toHaveValue('夜勉')
@@ -931,6 +971,7 @@ describe('PlanScreen', () => {
       { id: 'p1', name: '夜勉', rows: [{ start: '09:00', end: '10:00' }] },
     ])
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
     fireEvent.change(screen.getByTestId('plan-preset-select'), { target: { value: 'p1' } })
     fireEvent.change(screen.getByTestId('plan-preset-start-0'), { target: { value: '10:00' } })
@@ -948,6 +989,7 @@ describe('PlanScreen', () => {
       { id: 'p1', name: '夜勉', rows: [{ start: '09:00', end: '10:00' }] },
     ])
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
     fireEvent.change(screen.getByTestId('plan-preset-select'), { target: { value: 'p1' } })
     fireEvent.click(screen.getByTestId('plan-preset-delete'))
@@ -963,6 +1005,7 @@ describe('PlanScreen', () => {
       { id: 'p1', name: '夜勉', rows: [{ start: '09:00', end: '10:00' }] },
     ])
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
     fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
     fireEvent.change(screen.getByTestId('plan-preset-select'), { target: { value: 'p1' } })
     fireEvent.click(screen.getByTestId('plan-preset-delete'))

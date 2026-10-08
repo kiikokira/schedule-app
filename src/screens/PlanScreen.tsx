@@ -85,6 +85,7 @@ export default function PlanScreen({ onDone, onFocus, onJapan }: Props) {
   const [showCatalogForm, setShowCatalogForm] = useState(false)
   const [showRegisteredForm, setShowRegisteredForm] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set())
+  const [availabilityOpen, setAvailabilityOpen] = useState(false)
   const [slotDrafts, setSlotDrafts] = useState<Record<string, SlotRow>>({})
   const [presets, setPresets] = useState<OverridePreset[]>(() => loadOverridePresets())
   const [presetId, setPresetId] = useState('')
@@ -596,7 +597,17 @@ export default function PlanScreen({ onDone, onFocus, onJapan }: Props) {
       })}
 
       <section data-testid="availability-section" style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
-        <h2 style={{ fontSize: 16 }}>空き時間の設定</h2>
+        <button
+          data-testid="availability-toggle"
+          type="button"
+          aria-expanded={availabilityOpen}
+          onClick={() => setAvailabilityOpen((v) => !v)}
+          style={{ fontSize: 16, fontWeight: 700, width: '100%', textAlign: 'left' }}
+        >
+          空き時間の設定（{weekdayGroups.length + dateGroups.length}件） {availabilityOpen ? '▼' : '▶'}
+        </button>
+        {availabilityOpen && (
+          <>
         <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
           テスト期間などは全ての曜日枠をLEAPに固定できます（固定前の状態に戻せます）。
         </p>
@@ -901,6 +912,8 @@ export default function PlanScreen({ onDone, onFocus, onJapan }: Props) {
             <button data-testid="plan-preset-save" type="button" onClick={savePreset} style={{ marginTop: 8 }}>
               保存
             </button>
+          </>
+        )}
           </>
         )}
       </section>
