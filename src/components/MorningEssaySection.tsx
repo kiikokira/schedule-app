@@ -2,16 +2,18 @@ import { useMemo, useState } from 'react'
 import {
   CORRECTION_PASTE_MIN_LENGTH,
   DEFAULT_ESSAY_PROMPT,
-  WEEKLY_ESSAY_GOAL,
   buildChatGptUrl,
   calcCorrectionRate,
   countWeeklyCorrections,
+  getWeekDays,
   isCorrectionPasteValid,
   isWeeklyGoalAchieved,
 } from '../lib/morningEssay'
 import {
   getMorningEssayRecord,
+  loadMorningEssayGoal,
   loadMorningEssayRecords,
+  saveMorningEssayGoal,
   saveMorningEssayRecord,
 } from '../data/morningEssayStore'
 import { todayStr } from '../lib/progress'
@@ -25,8 +27,10 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
   const [tick, setTick] = useState(0)
   const [paste, setPaste] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [weekOpen, setWeekOpen] = useState(false)
 
   const records = useMemo(() => loadMorningEssayRecords(), [today, tick])
+  const goal = useMemo(() => loadMorningEssayGoal(), [tick])
   const current = getMorningEssayRecord(today)
   const choice = current?.choice ?? null
 
@@ -72,8 +76,33 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
   }
 
   const weeklyCount = countWeeklyCorrections(records, today)
-  const achieved = isWeeklyGoalAchieved(records, today)
+  const achieved = isWeeklyGoalAchieved(records, today, goal)
   const rate = calcCorrectionRate(records, today)
+  const weekDays = useMemo(() => getWeekDays(today), [today])
+
+  const changeGoal = (raw: string) => {
+    const n = Number(raw)
+    if (!Number.isInteger(n) || n < 1 || n > 7) return
+    saveMorningEssayGoal(n)
+    refresh()
+  }
+
+  const toggleDayDone = (date: string) => {
+    const rec = records.find((r) => r.date === date)
+    if (rec?.correctionDone) {
+      saveMorningEssayRecord({ ...rec, correctionDone: false })
+    } else if (rec) {
+      saveMorningEssayRecord({ ...rec, choice: 'essay', correctionDone: true })
+    } else {
+      saveMorningEssayRecord({
+        date,
+        choice: 'essay',
+        correctionDone: true,
+        prompt: DEFAULT_ESSAY_PROMPT,
+      })
+    }
+    refresh()
+  }
 
   return (
     <div
@@ -132,11 +161,54 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
             </p>
           )}
           <p data-testid="morning-weekly-status" style={{ fontSize: 13, marginTop: 8 }}>
-            今週 {weeklyCount}/{WEEKLY_ESSAY_GOAL}{achieved ? ' 達成！' : ''}
+            今週 {weeklyCount}/{goal}{achieved ? ' 達成！' : ''}
+            <input
+              data-testid="morning-goal-input"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={7}
+              value={goal}
+              onChange={(e) => changeGoal(e.target.value)}
+              aria-label="週目標の回数"
+              style={{ width: 48, marginLeft: 8 }}
+            />
           </p>
           <p data-testid="morning-rate" style={{ fontSize: 13, color: 'var(--text-dim)' }}>
             添削までできた率 {rate.rate}%（{rate.done}/{rate.chosen}）
           </p>
+          <button
+            data-testid="morning-week-edit-toggle"
+            type="button"
+            style={{ marginTop: 4, fontSize: 13 }}
+            onClick={() => setWeekOpen((v) => !v)}
+          >
+            {weekOpen ? '今週の編集を閉じる' : '今週を編集'}
+          </button>
+          {weekOpen && (
+            <div data-testid="morning-week-editor" style={{ marginTop: 8 }}>
+              {weekDays.map((d) => {
+                const rec = records.find((r) => r.date === d)
+                const done = rec?.correctionDone ?? false
+                return (
+                  <div
+                    key={d}
+                    data-testid={`morning-day-row-${d}`}
+                    style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, fontSize: 13 }}
+                  >
+                    <span style={{ minWidth: 88 }}>{d.slice(5).replace('-', '/')}</span>
+                    <button
+                      data-testid={`morning-day-done-${d}`}
+                      type="button"
+                      onClick={() => toggleDayDone(d)}
+                    >
+                      {done ? '済' : '未'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 

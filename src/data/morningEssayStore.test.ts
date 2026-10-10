@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
+  loadMorningEssayGoal,
   loadMorningEssayRecords,
+  saveMorningEssayGoal,
   saveMorningEssayRecords,
   saveMorningEssayRecord,
   getMorningEssayRecord,
@@ -30,5 +32,21 @@ describe('morningEssayStore', () => {
     ])
     expect(loadMorningEssayRecords()).toHaveLength(2)
     expect(getMorningEssayRecord('2026-10-11')?.choice).toBe('book')
+  })
+
+  it('defaults the weekly goal to 3', () => {
+    expect(loadMorningEssayGoal()).toBe(3)
+  })
+
+  it('round-trips a custom weekly goal', () => {
+    saveMorningEssayGoal(5)
+    expect(loadMorningEssayGoal()).toBe(5)
+  })
+
+  it('rejects out-of-range goals', () => {
+    saveMorningEssayGoal(0)
+    expect(loadMorningEssayGoal()).toBe(3)
+    saveMorningEssayGoal(8)
+    expect(loadMorningEssayGoal()).toBe(3)
   })
 })

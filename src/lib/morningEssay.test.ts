@@ -3,6 +3,7 @@ import {
   DEFAULT_ESSAY_PROMPT,
   WEEKLY_ESSAY_GOAL,
   buildChatGptUrl,
+  getWeekDays,
   isCorrectionPasteValid,
   countWeeklyCorrections,
   isWeeklyGoalAchieved,
@@ -70,5 +71,27 @@ describe('morningEssay', () => {
     expect(rate.chosen).toBe(2)
     expect(rate.done).toBe(1)
     expect(rate.rate).toBe(50)
+  })
+
+  it('returns Monday-to-Sunday dates for the week', () => {
+    // 2026-10-10 is Saturday; week is Mon 2026-10-05 to Sun 2026-10-11
+    expect(getWeekDays('2026-10-10')).toEqual([
+      '2026-10-05',
+      '2026-10-06',
+      '2026-10-07',
+      '2026-10-08',
+      '2026-10-09',
+      '2026-10-10',
+      '2026-10-11',
+    ])
+  })
+
+  it('judges the goal against a custom target', () => {
+    const records: MorningEssayRecord[] = [
+      { date: '2026-10-05', choice: 'essay', correctionDone: true },
+      { date: '2026-10-06', choice: 'essay', correctionDone: true },
+    ]
+    expect(isWeeklyGoalAchieved(records, '2026-10-07', 2)).toBe(true)
+    expect(isWeeklyGoalAchieved(records, '2026-10-07', 5)).toBe(false)
   })
 })

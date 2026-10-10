@@ -37,14 +37,18 @@ export function startOfWeekMonday(dateStr: string): string {
 }
 
 function weekDates(dateStr: string): Set<string> {
+  return new Set(getWeekDays(dateStr))
+}
+
+export function getWeekDays(dateStr: string): string[] {
   const monday = parseDate(startOfWeekMonday(dateStr))
-  const set = new Set<string>()
+  const days: string[] = []
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday)
     d.setDate(d.getDate() + i)
-    set.add(formatDate(d))
+    days.push(formatDate(d))
   }
-  return set
+  return days
 }
 
 export function weeklyRecords(records: MorningEssayRecord[], today: string): MorningEssayRecord[] {
@@ -56,8 +60,12 @@ export function countWeeklyCorrections(records: MorningEssayRecord[], today: str
   return weeklyRecords(records, today).filter((r) => r.correctionDone).length
 }
 
-export function isWeeklyGoalAchieved(records: MorningEssayRecord[], today: string): boolean {
-  return countWeeklyCorrections(records, today) >= WEEKLY_ESSAY_GOAL
+export function isWeeklyGoalAchieved(
+  records: MorningEssayRecord[],
+  today: string,
+  goal: number = WEEKLY_ESSAY_GOAL,
+): boolean {
+  return countWeeklyCorrections(records, today) >= goal
 }
 
 export function calcCorrectionRate(

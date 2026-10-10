@@ -57,4 +57,24 @@ describe('MorningEssaySection', () => {
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
     expect(screen.getByTestId('morning-rate')).toBeInTheDocument()
   })
+
+  it('lets the weekly goal be changed', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    const input = screen.getByTestId('morning-goal-input') as HTMLInputElement
+    expect(input.value).toBe('3')
+    fireEvent.change(input, { target: { value: '5' } })
+    expect(screen.getByTestId('morning-weekly-status')).toHaveTextContent('/5')
+  })
+
+  it('backfills a past weekday as done from the week editor', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
+    // 2026-10-10 is Saturday; Monday 2026-10-05 starts unchecked
+    const toggle = screen.getByTestId('morning-day-done-2026-10-05')
+    expect(toggle).toHaveTextContent('未')
+    fireEvent.click(toggle)
+    expect(screen.getByTestId('morning-weekly-status')).toHaveTextContent('1/3')
+  })
 })
