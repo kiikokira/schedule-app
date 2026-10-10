@@ -17,6 +17,7 @@ import { isLeapBook } from '../lib/leap'
 import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
 import { loadOverridePresets, type OverridePreset } from '../data/overridePresets'
 import CoverImage from '../components/CoverImage'
+import MorningEssaySection from '../components/MorningEssaySection'
 
 type Props = {
   onBack: () => void
@@ -534,6 +535,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   return (
     <div data-testid="today-plan-screen" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>今日の計画</h1>
+      <MorningEssaySection today={today} />
       {availability.length > 0 && risks.length > 0 && (
         <div
           data-testid="deadline-risk-section"
