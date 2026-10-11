@@ -4,16 +4,12 @@ import {
   DEFAULT_ESSAY_PROMPT,
   buildChatGptUrl,
   calcCorrectionRate,
-  countWeeklyCorrections,
   getWeekDays,
   isCorrectionPasteValid,
-  isWeeklyGoalAchieved,
 } from '../lib/morningEssay'
 import {
   getMorningEssayRecord,
-  loadMorningEssayGoal,
   loadMorningEssayRecords,
-  saveMorningEssayGoal,
   saveMorningEssayRecord,
 } from '../data/morningEssayStore'
 import { todayStr } from '../lib/progress'
@@ -28,9 +24,11 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
   const [paste, setPaste] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [weekOpen, setWeekOpen] = useState(false)
+  const [promptEditing, setPromptEditing] = useState(false)
+  const [promptDraft, setPromptDraft] = useState('')
+  const [promptError, setPromptError] = useState<string | null>(null)
 
   const records = useMemo(() => loadMorningEssayRecords(), [today, tick])
-  const goal = useMemo(() => loadMorningEssayGoal(), [tick])
   const current = getMorningEssayRecord(today)
   const choice = current?.choice ?? null
 
@@ -75,15 +73,33 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
     refresh()
   }
 
-  const weeklyCount = countWeeklyCorrections(records, today)
-  const achieved = isWeeklyGoalAchieved(records, today, goal)
   const rate = calcCorrectionRate(records, today)
   const weekDays = useMemo(() => getWeekDays(today), [today])
 
-  const changeGoal = (raw: string) => {
-    const n = Number(raw)
-    if (!Number.isInteger(n) || n < 1 || n > 7) return
-    saveMorningEssayGoal(n)
+  const openPromptEditor = () => {
+    setPromptDraft(current?.prompt ?? DEFAULT_ESSAY_PROMPT)
+    setPromptError(null)
+    setPromptEditing(true)
+  }
+
+  const savePrompt = () => {
+    const text = promptDraft.trim()
+    if (!text) {
+      setPromptError('指示文を入力してください')
+      return
+    }
+    if (current) {
+      saveMorningEssayRecord({ ...current, prompt: text })
+    } else {
+      saveMorningEssayRecord({
+        date: today,
+        choice: 'essay',
+        correctionDone: false,
+        prompt: text,
+      })
+    }
+    setPromptError(null)
+    setPromptEditing(false)
     refresh()
   }
 
@@ -134,6 +150,33 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
           <p data-testid="morning-prompt-preview" style={{ fontSize: 13 }}>
             {current?.prompt ?? DEFAULT_ESSAY_PROMPT}
           </p>
+          <button
+            data-testid="morning-prompt-edit-toggle"
+            type="button"
+            style={{ fontSize: 13 }}
+            onClick={() => (promptEditing ? setPromptEditing(false) : openPromptEditor())}
+          >
+            {promptEditing ? '指示文の編集を閉じる' : '指示文を編集'}
+          </button>
+          {promptEditing && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <textarea
+                data-testid="morning-prompt-input"
+                value={promptDraft}
+                onChange={(e) => setPromptDraft(e.target.value)}
+                rows={3}
+                style={{ flex: 1, fontSize: 13 }}
+              />
+              <button data-testid="morning-prompt-save" type="button" onClick={savePrompt}>
+                保存
+              </button>
+            </div>
+          )}
+          {promptEditing && promptError && (
+            <p data-testid="morning-prompt-error" style={{ color: 'var(--danger)', fontSize: 13 }}>
+              {promptError}
+            </p>
+          )}
           <button data-testid="morning-open-chatgpt" type="button" onClick={() => void openChatGpt()}>
             ChatGPTで出題を開く
           </button>
@@ -160,20 +203,6 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
               今日は添削まで完了！
             </p>
           )}
-          <p data-testid="morning-weekly-status" style={{ fontSize: 13, marginTop: 8 }}>
-            今週 {weeklyCount}/{goal}{achieved ? ' 達成！' : ''}
-            <input
-              data-testid="morning-goal-input"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={7}
-              value={goal}
-              onChange={(e) => changeGoal(e.target.value)}
-              aria-label="週目標の回数"
-              style={{ width: 48, marginLeft: 8 }}
-            />
-          </p>
           <p data-testid="morning-rate" style={{ fontSize: 13, color: 'var(--text-dim)' }}>
             添削までできた率 {rate.rate}%（{rate.done}/{rate.chosen}）
           </p>

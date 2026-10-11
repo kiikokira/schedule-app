@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import MorningEssaySection from './MorningEssaySection'
+import { getMorningEssayRecord } from '../data/morningEssayStore'
 
 beforeEach(() => {
   localStorage.clear()
@@ -49,7 +50,7 @@ describe('MorningEssaySection', () => {
       target: { value: '添削結果：とても良い英作文でした。'.repeat(3) },
     })
     fireEvent.click(screen.getByTestId('morning-correction-save'))
-    expect(screen.getByTestId('morning-weekly-status')).toHaveTextContent('1/3')
+    expect(screen.getByTestId('morning-rate')).toHaveTextContent('1/1')
   })
 
   it('shows the correction rate when essay is chosen', () => {
@@ -58,13 +59,25 @@ describe('MorningEssaySection', () => {
     expect(screen.getByTestId('morning-rate')).toBeInTheDocument()
   })
 
-  it('lets the weekly goal be changed', () => {
+  it('edits the prompt text', () => {
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
-    const input = screen.getByTestId('morning-goal-input') as HTMLInputElement
-    expect(input.value).toBe('3')
-    fireEvent.change(input, { target: { value: '5' } })
-    expect(screen.getByTestId('morning-weekly-status')).toHaveTextContent('/5')
+    fireEvent.click(screen.getByTestId('morning-prompt-edit-toggle'))
+    const area = screen.getByTestId('morning-prompt-input') as HTMLTextAreaElement
+    expect(area.value).toContain('ベネッセ')
+    fireEvent.change(area, { target: { value: 'カスタム指示文テスト' } })
+    fireEvent.click(screen.getByTestId('morning-prompt-save'))
+    expect(screen.getByTestId('morning-prompt-preview')).toHaveTextContent('カスタム指示文テスト')
+    expect(getMorningEssayRecord('2026-10-10')?.prompt).toBe('カスタム指示文テスト')
+  })
+
+  it('rejects an empty prompt', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-prompt-edit-toggle'))
+    fireEvent.change(screen.getByTestId('morning-prompt-input'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByTestId('morning-prompt-save'))
+    expect(screen.getByTestId('morning-prompt-error')).toBeInTheDocument()
   })
 
   it('backfills a past weekday as done from the week editor', () => {
@@ -75,6 +88,6 @@ describe('MorningEssaySection', () => {
     const toggle = screen.getByTestId('morning-day-done-2026-10-05')
     expect(toggle).toHaveTextContent('未')
     fireEvent.click(toggle)
-    expect(screen.getByTestId('morning-weekly-status')).toHaveTextContent('1/3')
+    expect(screen.getByTestId('morning-rate')).toHaveTextContent('1/2')
   })
 })
