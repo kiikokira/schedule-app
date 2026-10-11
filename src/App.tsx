@@ -19,6 +19,8 @@ import { buildSlotsPayload } from './lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from './lib/slotsPublish'
 import { slotsForDate } from './lib/dayplan'
 import { takeAutoSnapshotIfNeeded } from './data/autoBackup'
+import { APP_BUILD_ID, shouldShowUpdateDot } from './lib/appVersion'
+import { loadLastSeenBuildId, saveLastSeenBuildId } from './data/appVersionStore'
 import './styles.css'
 
 type Route =
@@ -39,6 +41,16 @@ type Route =
 export default function App() {
   const { books, refresh } = useBooks()
   const [route, setRoute] = useState<Route>({ name: 'home' })
+  const [showUpdateDot, setShowUpdateDot] = useState(false)
+
+  // 前回起動時とビルドが違えば更新直後の初回起動なので、
+  // アプリ名の左に青ドットを出す。開いたことで既読になり次回から消える。
+  useEffect(() => {
+    if (shouldShowUpdateDot(loadLastSeenBuildId(), APP_BUILD_ID)) {
+      setShowUpdateDot(true)
+    }
+    saveLastSeenBuildId(APP_BUILD_ID)
+  }, [])
 
   // 起動時に過去日の「当日上書き」を、ユーザーが画面を見る前にバックグラウンドで削除する
   useEffect(() => {
@@ -85,7 +97,22 @@ export default function App() {
 
   return (
     <>
-      <header className="app-header">
+      <header className="app-header" style={{ display: 'flex', alignItems: 'center' }}>
+        {showUpdateDot && (
+          <span
+            data-testid="update-dot"
+            role="status"
+            aria-label="アップデートあり"
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              background: '#007aff',
+              marginRight: 6,
+              flexShrink: 0,
+            }}
+          />
+        )}
         <span className="app-title">スケジュール管理</span>
       </header>
       <main>

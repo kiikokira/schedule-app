@@ -1,7 +1,14 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { beforeEach } from 'vitest'
 import { db } from './db/database'
 import { todayStr } from './lib/progress'
+import { APP_BUILD_ID } from './lib/appVersion'
+import { loadLastSeenBuildId, saveLastSeenBuildId } from './data/appVersionStore'
 import App from './App'
+
+beforeEach(() => {
+  localStorage.clear()
+})
 
 it('renders app title', () => {
   render(<App />)
@@ -73,4 +80,18 @@ it('navigates to the japan match screen from plan via japan toggle', async () =>
   fireEvent.click(screen.getByTestId('nav-plan'))
   fireEvent.click(await screen.findByTestId('japan-toggle'))
   expect(await screen.findByTestId('japan-page')).toBeInTheDocument()
+})
+
+it('shows a blue update dot on first open after an update', () => {
+  saveLastSeenBuildId('old-build')
+  render(<App />)
+  expect(screen.getByTestId('update-dot')).toBeInTheDocument()
+  // 開いたことで既読になり、次回は消える
+  expect(loadLastSeenBuildId()).toBe(APP_BUILD_ID)
+})
+
+it('hides the update dot when the build is already seen', () => {
+  saveLastSeenBuildId(APP_BUILD_ID)
+  render(<App />)
+  expect(screen.queryByTestId('update-dot')).not.toBeInTheDocument()
 })
