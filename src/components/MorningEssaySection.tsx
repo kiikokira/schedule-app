@@ -156,7 +156,7 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
             style={{ fontSize: 13 }}
             onClick={() => (promptEditing ? setPromptEditing(false) : openPromptEditor())}
           >
-            {promptEditing ? '指示文の編集を閉じる' : '指示文を編集'}
+            {promptEditing ? '閉じる' : '編集'}
           </button>
           {promptEditing && (
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -216,7 +216,9 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
           </button>
           {weekOpen && (
             <div data-testid="morning-week-editor" style={{ marginTop: 8 }}>
-              {weekDays.map((d) => {
+              {weekDays
+                .filter((d) => records.find((r) => r.date === d)?.choice === 'essay')
+                .map((d) => {
                 const rec = records.find((r) => r.date === d)
                 const done = rec?.correctionDone ?? false
                 return (

@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import MorningEssaySection from './MorningEssaySection'
-import { getMorningEssayRecord } from '../data/morningEssayStore'
+import { getMorningEssayRecord, saveMorningEssayRecord } from '../data/morningEssayStore'
 
 beforeEach(() => {
   localStorage.clear()
@@ -62,6 +62,7 @@ describe('MorningEssaySection', () => {
   it('edits the prompt text', () => {
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    expect(screen.getByTestId('morning-prompt-edit-toggle').textContent).toBe('編集')
     fireEvent.click(screen.getByTestId('morning-prompt-edit-toggle'))
     const area = screen.getByTestId('morning-prompt-input') as HTMLTextAreaElement
     expect(area.value).toContain('ベネッセ')
@@ -84,10 +85,21 @@ describe('MorningEssaySection', () => {
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
     fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
-    // 2026-10-10 is Saturday; Monday 2026-10-05 starts unchecked
-    const toggle = screen.getByTestId('morning-day-done-2026-10-05')
+    // 今日だけが英作文選択日なので今日の行だけ出る
+    expect(screen.getByTestId('morning-day-row-2026-10-10')).toBeInTheDocument()
+    const toggle = screen.getByTestId('morning-day-done-2026-10-10')
     expect(toggle).toHaveTextContent('未')
     fireEvent.click(toggle)
-    expect(screen.getByTestId('morning-rate')).toHaveTextContent('1/2')
+    expect(screen.getByTestId('morning-rate')).toHaveTextContent('1/1')
+  })
+
+  it('lists only essay-chosen days in the week editor', () => {
+    saveMorningEssayRecord({ date: '2026-10-06', choice: 'book', correctionDone: false })
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
+    expect(screen.getByTestId('morning-day-row-2026-10-10')).toBeInTheDocument()
+    expect(screen.queryByTestId('morning-day-row-2026-10-06')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('morning-day-row-2026-10-05')).not.toBeInTheDocument()
   })
 })
