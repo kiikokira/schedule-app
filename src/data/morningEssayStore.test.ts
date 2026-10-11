@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
+  deleteMorningEssayRecord,
   loadMorningEssayGoal,
   loadMorningEssayRecords,
   saveMorningEssayGoal,
@@ -48,5 +49,16 @@ describe('morningEssayStore', () => {
     expect(loadMorningEssayGoal()).toBe(3)
     saveMorningEssayGoal(8)
     expect(loadMorningEssayGoal()).toBe(3)
+  })
+
+  it('deletes a record by date', () => {
+    saveMorningEssayRecords([
+      { date: '2026-10-10', choice: 'essay', correctionDone: true },
+      { date: '2026-10-11', choice: 'book', correctionDone: false },
+    ])
+    deleteMorningEssayRecord('2026-10-10')
+    expect(loadMorningEssayRecords()).toHaveLength(1)
+    expect(getMorningEssayRecord('2026-10-10')).toBeUndefined()
+    expect(getMorningEssayRecord('2026-10-11')?.choice).toBe('book')
   })
 })

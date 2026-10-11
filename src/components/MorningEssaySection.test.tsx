@@ -93,14 +93,58 @@ describe('MorningEssaySection', () => {
     expect(screen.getByTestId('morning-rate')).toHaveTextContent('1/1')
   })
 
-  it('lists only essay-chosen days in the week editor', () => {
+  it('lists days with morning records in the week editor', () => {
     saveMorningEssayRecord({ date: '2026-10-06', choice: 'book', correctionDone: false })
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
     fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
     expect(screen.getByTestId('morning-day-row-2026-10-10')).toBeInTheDocument()
-    expect(screen.queryByTestId('morning-day-row-2026-10-06')).not.toBeInTheDocument()
+    expect(screen.getByTestId('morning-day-row-2026-10-06')).toBeInTheDocument()
     expect(screen.queryByTestId('morning-day-row-2026-10-05')).not.toBeInTheDocument()
+  })
+
+  it('switches a day between essay and book', () => {
+    saveMorningEssayRecord({ date: '2026-10-06', choice: 'essay', correctionDone: false })
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
+    const choice = screen.getByTestId('morning-day-choice-2026-10-06')
+    expect(choice).toHaveTextContent('英作文')
+    fireEvent.click(choice)
+    expect(screen.getByTestId('morning-day-choice-2026-10-06')).toHaveTextContent('参考書')
+    expect(screen.getByTestId('morning-rate')).toHaveTextContent('0/1')
+    fireEvent.click(screen.getByTestId('morning-day-choice-2026-10-06'))
+    expect(screen.getByTestId('morning-day-choice-2026-10-06')).toHaveTextContent('英作文')
+  })
+
+  it('removes a day from the editor', () => {
+    const originalConfirm = window.confirm
+    window.confirm = (() => true) as unknown as typeof window.confirm
+    try {
+      saveMorningEssayRecord({ date: '2026-10-06', choice: 'book', correctionDone: false })
+      render(<MorningEssaySection today="2026-10-10" />)
+      fireEvent.click(screen.getByTestId('morning-choice-essay'))
+      fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
+      fireEvent.click(screen.getByTestId('morning-day-delete-2026-10-06'))
+      expect(screen.queryByTestId('morning-day-row-2026-10-06')).not.toBeInTheDocument()
+    } finally {
+      window.confirm = originalConfirm
+    }
+  })
+
+  it('keeps a day when removal is cancelled', () => {
+    const originalConfirm = window.confirm
+    window.confirm = (() => false) as unknown as typeof window.confirm
+    try {
+      saveMorningEssayRecord({ date: '2026-10-06', choice: 'book', correctionDone: false })
+      render(<MorningEssaySection today="2026-10-10" />)
+      fireEvent.click(screen.getByTestId('morning-choice-essay'))
+      fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
+      fireEvent.click(screen.getByTestId('morning-day-delete-2026-10-06'))
+      expect(screen.getByTestId('morning-day-row-2026-10-06')).toBeInTheDocument()
+    } finally {
+      window.confirm = originalConfirm
+    }
   })
 
   it('highlights done days in green in the week editor', () => {

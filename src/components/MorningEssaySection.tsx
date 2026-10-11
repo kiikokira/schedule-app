@@ -9,6 +9,7 @@ import {
 } from '../lib/morningEssay'
 import {
   getMorningEssayRecord,
+  deleteMorningEssayRecord,
   loadMorningEssayRecords,
   saveMorningEssayRecord,
 } from '../data/morningEssayStore'
@@ -117,6 +118,28 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
         prompt: DEFAULT_ESSAY_PROMPT,
       })
     }
+    refresh()
+  }
+
+  const cycleDayChoice = (date: string) => {
+    const rec = records.find((r) => r.date === date)
+    if (!rec) return
+    if (rec.choice === 'essay') {
+      saveMorningEssayRecord({
+        ...rec,
+        choice: 'book',
+        correctionDone: false,
+        correctionText: undefined,
+      })
+    } else {
+      saveMorningEssayRecord({ ...rec, choice: 'essay' })
+    }
+    refresh()
+  }
+
+  const removeDay = (date: string) => {
+    if (!window.confirm(`${date.slice(5).replace('-', '/')} の記録を消しますか？`)) return
+    deleteMorningEssayRecord(date)
     refresh()
   }
 
@@ -243,33 +266,51 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
           {weekOpen && (
             <div data-testid="morning-week-editor">
               {weekDays
-                .filter((d) => records.find((r) => r.date === d)?.choice === 'essay')
+                .filter((d) => records.some((r) => r.date === d))
                 .map((d) => {
                 const rec = records.find((r) => r.date === d)
                 const done = rec?.correctionDone ?? false
+                const isEssay = rec?.choice === 'essay'
                 return (
                   <div
                     key={d}
                     data-testid={`morning-day-row-${d}`}
-                    style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, fontSize: 13 }}
+                    style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, fontSize: 13, flexWrap: 'wrap' }}
                   >
-                    <span style={{ minWidth: 88 }}>{d.slice(5).replace('-', '/')}</span>
+                    <span style={{ minWidth: 56 }}>{d.slice(5).replace('-', '/')}</span>
                     <button
-                      data-testid={`morning-day-done-${d}`}
+                      data-testid={`morning-day-choice-${d}`}
                       type="button"
-                      onClick={() => toggleDayDone(d)}
-                      style={
-                        done
-                          ? {
-                              background: '#2f9e63',
-                              borderColor: '#2f9e63',
-                              color: '#fff',
-                              fontWeight: 700,
-                            }
-                          : undefined
-                      }
+                      onClick={() => cycleDayChoice(d)}
                     >
-                      {done ? '済' : '未'}
+                      {isEssay ? '英作文' : '参考書'}
+                    </button>
+                    {isEssay && (
+                      <button
+                        data-testid={`morning-day-done-${d}`}
+                        type="button"
+                        onClick={() => toggleDayDone(d)}
+                        style={
+                          done
+                            ? {
+                                background: '#2f9e63',
+                                borderColor: '#2f9e63',
+                                color: '#fff',
+                                fontWeight: 700,
+                              }
+                            : undefined
+                        }
+                      >
+                        {done ? '済' : '未'}
+                      </button>
+                    )}
+                    <button
+                      data-testid={`morning-day-delete-${d}`}
+                      type="button"
+                      aria-label={`${d.slice(5).replace('-', '/')} の記録を消す`}
+                      onClick={() => removeDay(d)}
+                    >
+                      ✕
                     </button>
                   </div>
                 )

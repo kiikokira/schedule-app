@@ -47,6 +47,10 @@ export function saveMorningEssayRecord(record: MorningEssayRecord): void {
   saveMorningEssayRecords(all)
 }
 
+export function deleteMorningEssayRecord(date: string): void {
+  saveMorningEssayRecords(loadMorningEssayRecords().filter((r) => r.date !== date))
+}
+
 export function loadMorningEssayGoal(): number {
   try {
     const raw = localStorage.getItem(GOAL_KEY)
