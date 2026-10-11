@@ -537,9 +537,6 @@ export default function HomeScreen({ onOpenBook }: Props) {
             )
           })}
         </div>
-        <div data-testid="streak-caption" style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
-          直近7日の記録（●＝目安達成、○＝未達、左→右：6日前→今日・右端が今日）
-        </div>
         {streak.remaining > 0 && (
           <div style={{ fontSize: 13, marginTop: 4 }}>今日あと{streak.remaining}で継続！</div>
         )}

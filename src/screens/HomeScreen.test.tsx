@@ -52,10 +52,11 @@ describe('HomeScreen', () => {
     expect(heading).toHaveStyle({ fontSize: '24px' })
   })
 
-  it('explains the streak dots without clutter', async () => {
+  it('hides the streak caption to keep the section uncluttered', async () => {
     await db.books.add({ ...book, startDate: daysAgo(30), deadline: daysAhead(100) })
     render(<HomeScreen onOpenBook={() => {}} />)
-    expect(await screen.findByTestId('streak-caption')).toHaveTextContent('直近7日の記録')
+    await screen.findByTestId('streak-dots')
+    expect(screen.queryByTestId('streak-caption')).not.toBeInTheDocument()
   })
 
   it('shows consecutive record days with last-7 dots', async () => {
@@ -81,7 +82,6 @@ describe('HomeScreen', () => {
     expect(dots).toHaveTextContent(todayLabel)
     // 右端が今日とわかる表示
     expect(await screen.findByTestId('streak-today-label')).toHaveTextContent('今日')
-    expect(screen.getByTestId('streak-caption')).toHaveTextContent('右端が今日')
   })
 
   it('shows a 学習スケジュール section with the default schedule books', () => {
