@@ -4,10 +4,6 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: './',
-  // ビルドごとに一意なIDを埋め込み、更新ドットの判定に使う
-  define: {
-    __APP_BUILD_ID__: JSON.stringify(new Date().toISOString()),
-  },
   plugins: [
     react(),
     VitePWA({
