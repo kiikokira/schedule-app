@@ -258,6 +258,16 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
                       data-testid={`morning-day-done-${d}`}
                       type="button"
                       onClick={() => toggleDayDone(d)}
+                      style={
+                        done
+                          ? {
+                              background: '#2f9e63',
+                              borderColor: '#2f9e63',
+                              color: '#fff',
+                              fontWeight: 700,
+                            }
+                          : undefined
+                      }
                     >
                       {done ? '済' : '未'}
                     </button>

@@ -103,6 +103,15 @@ describe('MorningEssaySection', () => {
     expect(screen.queryByTestId('morning-day-row-2026-10-05')).not.toBeInTheDocument()
   })
 
+  it('highlights done days in green in the week editor', () => {
+    saveMorningEssayRecord({ date: '2026-10-10', choice: 'essay', correctionDone: true })
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
+    expect(screen.getByTestId('morning-day-done-2026-10-10')).toHaveStyle({
+      background: '#2f9e63',
+    })
+  })
+
   it('structures the essay panel for readability', () => {
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
