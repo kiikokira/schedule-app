@@ -102,4 +102,11 @@ describe('MorningEssaySection', () => {
     expect(screen.queryByTestId('morning-day-row-2026-10-06')).not.toBeInTheDocument()
     expect(screen.queryByTestId('morning-day-row-2026-10-05')).not.toBeInTheDocument()
   })
+
+  it('structures the essay panel for readability', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    expect(screen.getByTestId('morning-prompt-box')).toBeInTheDocument()
+    expect(screen.getByTestId('morning-actions')).toHaveStyle({ flexDirection: 'column' })
+  })
 })

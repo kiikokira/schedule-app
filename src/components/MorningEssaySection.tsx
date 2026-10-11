@@ -146,20 +146,44 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
       </div>
 
       {choice === 'essay' && (
-        <div style={{ marginTop: 12 }}>
-          <p data-testid="morning-prompt-preview" style={{ fontSize: 13 }}>
-            {current?.prompt ?? DEFAULT_ESSAY_PROMPT}
-          </p>
-          <button
-            data-testid="morning-prompt-edit-toggle"
-            type="button"
-            style={{ fontSize: 13 }}
-            onClick={() => (promptEditing ? setPromptEditing(false) : openPromptEditor())}
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div
+            data-testid="morning-prompt-box"
+            style={{
+              padding: '10px 12px',
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: 'var(--surface-dim)',
+              lineHeight: 1.7,
+            }}
           >
-            {promptEditing ? '閉じる' : '編集'}
-          </button>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-dim)', marginBottom: 4 }}>
+              出題の指示文
+            </div>
+            <p data-testid="morning-prompt-preview" style={{ fontSize: 14, margin: 0 }}>
+              {current?.prompt ?? DEFAULT_ESSAY_PROMPT}
+            </p>
+          </div>
+          <div data-testid="morning-actions" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button
+              data-testid="morning-open-chatgpt"
+              type="button"
+              style={{ padding: '12px 8px', fontSize: 15, fontWeight: 700 }}
+              onClick={() => void openChatGpt()}
+            >
+              ChatGPTで出題を開く
+            </button>
+            <button
+              data-testid="morning-prompt-edit-toggle"
+              type="button"
+              style={{ padding: '10px 8px', fontSize: 14 }}
+              onClick={() => (promptEditing ? setPromptEditing(false) : openPromptEditor())}
+            >
+              {promptEditing ? '閉じる' : '編集'}
+            </button>
+          </div>
           {promptEditing && (
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
               <textarea
                 data-testid="morning-prompt-input"
                 value={promptDraft}
@@ -177,19 +201,21 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
               {promptError}
             </p>
           )}
-          <button data-testid="morning-open-chatgpt" type="button" onClick={() => void openChatGpt()}>
-            ChatGPTで出題を開く
-          </button>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               data-testid="morning-correction-input"
               type="text"
               value={paste}
               onChange={(e) => setPaste(e.target.value)}
               placeholder="添削結果を貼ると自動で完了"
-              style={{ flex: 1 }}
+              style={{ flex: 1, minWidth: 0, margin: 0 }}
             />
-            <button data-testid="morning-correction-save" type="button" onClick={saveCorrection}>
+            <button
+              data-testid="morning-correction-save"
+              type="button"
+              style={{ flexShrink: 0, padding: '10px 12px' }}
+              onClick={saveCorrection}
+            >
               記録
             </button>
           </div>
@@ -203,19 +229,19 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
               今日は添削まで完了！
             </p>
           )}
-          <p data-testid="morning-rate" style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+          <p data-testid="morning-rate" style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>
             添削までできた率 {rate.rate}%（{rate.done}/{rate.chosen}）
           </p>
           <button
             data-testid="morning-week-edit-toggle"
             type="button"
-            style={{ marginTop: 4, fontSize: 13 }}
+            style={{ padding: '10px 8px', fontSize: 14 }}
             onClick={() => setWeekOpen((v) => !v)}
           >
             {weekOpen ? '今週の編集を閉じる' : '今週を編集'}
           </button>
           {weekOpen && (
-            <div data-testid="morning-week-editor" style={{ marginTop: 8 }}>
+            <div data-testid="morning-week-editor">
               {weekDays
                 .filter((d) => records.find((r) => r.date === d)?.choice === 'essay')
                 .map((d) => {
