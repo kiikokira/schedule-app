@@ -62,8 +62,8 @@ describe('MorningEssaySection', () => {
   it('edits the prompt text', () => {
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
-    expect(screen.getByTestId('morning-prompt-edit-toggle').textContent).toBe('編集')
-    fireEvent.click(screen.getByTestId('morning-prompt-edit-toggle'))
+    expect(screen.queryByTestId('morning-prompt-edit-toggle')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('morning-prompt-box'))
     const area = screen.getByTestId('morning-prompt-input') as HTMLTextAreaElement
     expect(area.value).toContain('ベネッセ')
     fireEvent.change(area, { target: { value: 'カスタム指示文テスト' } })
@@ -75,7 +75,7 @@ describe('MorningEssaySection', () => {
   it('rejects an empty prompt', () => {
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
-    fireEvent.click(screen.getByTestId('morning-prompt-edit-toggle'))
+    fireEvent.click(screen.getByTestId('morning-prompt-box'))
     fireEvent.change(screen.getByTestId('morning-prompt-input'), { target: { value: '   ' } })
     fireEvent.click(screen.getByTestId('morning-prompt-save'))
     expect(screen.getByTestId('morning-prompt-error')).toBeInTheDocument()
@@ -161,5 +161,63 @@ describe('MorningEssaySection', () => {
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
     expect(screen.getByTestId('morning-prompt-box')).toBeInTheDocument()
     expect(screen.getByTestId('morning-actions')).toHaveStyle({ flexDirection: 'column' })
+  })
+
+  it('opens the editor by tapping the prompt box and has no edit button', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    expect(screen.queryByTestId('morning-prompt-edit-toggle')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('morning-prompt-input')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('morning-prompt-box'))
+    expect(screen.getByTestId('morning-prompt-input')).toBeInTheDocument()
+  })
+
+  it('closes the prompt editor without saving', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-prompt-box'))
+    expect(screen.getByTestId('morning-prompt-input')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('morning-prompt-close'))
+    expect(screen.queryByTestId('morning-prompt-input')).not.toBeInTheDocument()
+  })
+
+  it('shows the add-day form limited to the week', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
+    const dateInput = screen.getByTestId('morning-add-date') as HTMLInputElement
+    expect(dateInput.min).toBe('2026-10-05')
+    expect(dateInput.max).toBe('2026-10-11')
+    expect(screen.getByTestId('morning-add-save')).toBeInTheDocument()
+  })
+
+  it('adds a past day as essay', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
+    fireEvent.change(screen.getByTestId('morning-add-date'), { target: { value: '2026-10-05' } })
+    fireEvent.click(screen.getByTestId('morning-add-save'))
+    expect(screen.getByTestId('morning-day-row-2026-10-05')).toBeInTheDocument()
+    expect(screen.getByTestId('morning-day-choice-2026-10-05')).toHaveTextContent('英作文')
+    expect(screen.getByTestId('morning-rate')).toHaveTextContent('0/2')
+  })
+
+  it('rejects an empty date', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
+    fireEvent.click(screen.getByTestId('morning-add-save'))
+    expect(screen.getByTestId('morning-add-error')).toBeInTheDocument()
+  })
+
+  it('rejects a duplicate date without overwriting', () => {
+    saveMorningEssayRecord({ date: '2026-10-06', choice: 'essay', correctionDone: true })
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-week-edit-toggle'))
+    fireEvent.change(screen.getByTestId('morning-add-date'), { target: { value: '2026-10-06' } })
+    fireEvent.click(screen.getByTestId('morning-add-save'))
+    expect(screen.getByTestId('morning-add-error')).toBeInTheDocument()
+    expect(getMorningEssayRecord('2026-10-06')?.correctionDone).toBe(true)
   })
 })

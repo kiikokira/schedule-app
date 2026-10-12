@@ -6,6 +6,7 @@ import {
   calcCorrectionRate,
   getWeekDays,
   isCorrectionPasteValid,
+  startOfWeekMonday,
 } from '../lib/morningEssay'
 import {
   getMorningEssayRecord,
@@ -28,6 +29,8 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
   const [promptEditing, setPromptEditing] = useState(false)
   const [promptDraft, setPromptDraft] = useState('')
   const [promptError, setPromptError] = useState<string | null>(null)
+  const [addDate, setAddDate] = useState('')
+  const [addError, setAddError] = useState<string | null>(null)
 
   const records = useMemo(() => loadMorningEssayRecords(), [today, tick])
   const current = getMorningEssayRecord(today)
@@ -143,6 +146,26 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
     refresh()
   }
 
+  const addDay = () => {
+    if (!addDate) {
+      setAddError('日付を入れてください')
+      return
+    }
+    if (records.some((r) => r.date === addDate)) {
+      setAddError('その日はすでにあるよ')
+      return
+    }
+    saveMorningEssayRecord({
+      date: addDate,
+      choice: 'essay',
+      correctionDone: false,
+      prompt: DEFAULT_ESSAY_PROMPT,
+    })
+    setAddError(null)
+    setAddDate('')
+    refresh()
+  }
+
   return (
     <div
       data-testid="morning-essay-section"
@@ -172,16 +195,30 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div
             data-testid="morning-prompt-box"
+            role="button"
+            tabIndex={0}
+            title="タップで編集"
+            onClick={() => {
+              if (!promptEditing) openPromptEditor()
+            }}
+            onKeyDown={(e) => {
+              if (!promptEditing && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault()
+                openPromptEditor()
+              }
+            }}
             style={{
               padding: '10px 12px',
               borderRadius: 8,
               border: '1px solid var(--border)',
               background: 'var(--surface-dim)',
               lineHeight: 1.7,
+              cursor: 'pointer',
             }}
           >
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-dim)', marginBottom: 4 }}>
-              出題の指示文
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-dim)', marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>出題の指示文</span>
+              <span style={{ fontWeight: 400, fontSize: 10 }}>タップで編集</span>
             </div>
             <p data-testid="morning-prompt-preview" style={{ fontSize: 14, margin: 0 }}>
               {current?.prompt ?? DEFAULT_ESSAY_PROMPT}
@@ -196,14 +233,6 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
             >
               ChatGPTで出題を開く
             </button>
-            <button
-              data-testid="morning-prompt-edit-toggle"
-              type="button"
-              style={{ padding: '10px 8px', fontSize: 14 }}
-              onClick={() => (promptEditing ? setPromptEditing(false) : openPromptEditor())}
-            >
-              {promptEditing ? '閉じる' : '編集'}
-            </button>
           </div>
           {promptEditing && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -216,6 +245,13 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
               />
               <button data-testid="morning-prompt-save" type="button" onClick={savePrompt}>
                 保存
+              </button>
+              <button
+                data-testid="morning-prompt-close"
+                type="button"
+                onClick={() => setPromptEditing(false)}
+              >
+                閉じる
               </button>
             </div>
           )}
@@ -315,6 +351,31 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
                   </div>
                 )
               })}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+                <input
+                  data-testid="morning-add-date"
+                  type="date"
+                  value={addDate}
+                  min={startOfWeekMonday(today)}
+                  max={weekDays[weekDays.length - 1]}
+                  onChange={(e) => setAddDate(e.target.value)}
+                  aria-label="追加する日"
+                  style={{ flex: 1, minWidth: 0 }}
+                />
+                <button
+                  data-testid="morning-add-save"
+                  type="button"
+                  style={{ flexShrink: 0 }}
+                  onClick={addDay}
+                >
+                  追加
+                </button>
+              </div>
+              {addError && (
+                <p data-testid="morning-add-error" style={{ color: 'var(--danger)', fontSize: 13 }}>
+                  {addError}
+                </p>
+              )}
             </div>
           )}
         </div>
