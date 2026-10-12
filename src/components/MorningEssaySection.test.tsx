@@ -171,6 +171,21 @@ describe('MorningEssaySection', () => {
     expect(screen.getByTestId('morning-week-heading')).toHaveTextContent('今週の記録')
   })
 
+  it('collapses and expands the morning section from the header toggle', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    expect(screen.getByTestId('morning-prompt-box')).toBeInTheDocument()
+    const toggle = screen.getByTestId('morning-expand-toggle')
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(toggle)
+    expect(screen.queryByTestId('morning-prompt-box')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('morning-choice-essay')).not.toBeInTheDocument()
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(toggle)
+    expect(screen.getByTestId('morning-prompt-box')).toBeInTheDocument()
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  })
+
   it('opens the editor by tapping the prompt box and has no edit button', () => {
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))

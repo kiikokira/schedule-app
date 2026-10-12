@@ -31,6 +31,7 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
   const [promptError, setPromptError] = useState<string | null>(null)
   const [addDate, setAddDate] = useState('')
   const [addError, setAddError] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(true)
 
   const records = useMemo(() => loadMorningEssayRecords(), [today, tick])
   const current = getMorningEssayRecord(today)
@@ -171,25 +172,39 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
       data-testid="morning-essay-section"
       style={{ marginBottom: 16, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)' }}
     >
-      <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>朝 6:30〜7:00（今日は何をやる？）</h2>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: expanded ? 8 : 0 }}>
+        <h2 style={{ fontSize: 16, margin: 0, flex: 1 }}>朝 6:30〜7:00（今日は何をやる？）</h2>
         <button
-          data-testid="morning-choice-essay"
+          data-testid="morning-expand-toggle"
           type="button"
-          onClick={() => choose('essay')}
-          style={{ fontWeight: choice === 'essay' ? 800 : 400 }}
+          aria-expanded={expanded}
+          aria-label={expanded ? '朝の計画を閉じる' : '朝の計画を開く'}
+          onClick={() => setExpanded((v) => !v)}
+          style={{ flexShrink: 0, padding: '6px 10px', fontSize: 13 }}
         >
-          英作文
-        </button>
-        <button
-          data-testid="morning-choice-book"
-          type="button"
-          onClick={() => choose('book')}
-          style={{ fontWeight: choice === 'book' ? 800 : 400 }}
-        >
-          参考書
+          {expanded ? '▲' : '▼'}
         </button>
       </div>
+      {expanded && (
+        <>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              data-testid="morning-choice-essay"
+              type="button"
+              onClick={() => choose('essay')}
+              style={{ fontWeight: choice === 'essay' ? 800 : 400 }}
+            >
+              英作文
+            </button>
+            <button
+              data-testid="morning-choice-book"
+              type="button"
+              onClick={() => choose('book')}
+              style={{ fontWeight: choice === 'book' ? 800 : 400 }}
+            >
+              参考書
+            </button>
+          </div>
 
       {choice === 'essay' && (
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -399,6 +414,8 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
         <p data-testid="morning-book-hint" style={{ fontSize: 13, color: 'var(--text-dim)' }}>
           下の今日の計画から参考書を選んで進めてください。
         </p>
+      )}
+      </>
       )}
     </div>
   )
