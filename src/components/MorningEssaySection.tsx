@@ -218,11 +218,28 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
           >
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-dim)', marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>出題の指示文</span>
-              <span style={{ fontWeight: 400, fontSize: 10 }}>タップで編集</span>
+              <span style={{ fontWeight: 400, fontSize: 10 }}>{promptEditing ? '編集中（ほかタップで自動保存）' : 'タップで編集'}</span>
             </div>
-            <p data-testid="morning-prompt-preview" style={{ fontSize: 14, margin: 0 }}>
-              {current?.prompt ?? DEFAULT_ESSAY_PROMPT}
-            </p>
+            {promptEditing ? (
+              <textarea
+                data-testid="morning-prompt-input"
+                value={promptDraft}
+                onChange={(e) => setPromptDraft(e.target.value)}
+                onBlur={() => savePrompt()}
+                rows={4}
+                autoFocus
+                style={{ width: '100%', boxSizing: 'border-box', fontSize: 14, lineHeight: 1.7, margin: 0 }}
+              />
+            ) : (
+              <p data-testid="morning-prompt-preview" style={{ fontSize: 14, margin: 0 }}>
+                {current?.prompt ?? DEFAULT_ESSAY_PROMPT}
+              </p>
+            )}
+            {promptEditing && promptError && (
+              <p data-testid="morning-prompt-error" style={{ color: 'var(--danger)', fontSize: 13, margin: '4px 0 0' }}>
+                {promptError}
+              </p>
+            )}
           </div>
           <div data-testid="morning-actions" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <button
@@ -234,32 +251,6 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
               ChatGPTで出題を開く
             </button>
           </div>
-          {promptEditing && (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <textarea
-                data-testid="morning-prompt-input"
-                value={promptDraft}
-                onChange={(e) => setPromptDraft(e.target.value)}
-                rows={3}
-                style={{ flex: 1, fontSize: 13 }}
-              />
-              <button data-testid="morning-prompt-save" type="button" onClick={savePrompt}>
-                保存
-              </button>
-              <button
-                data-testid="morning-prompt-close"
-                type="button"
-                onClick={() => setPromptEditing(false)}
-              >
-                閉じる
-              </button>
-            </div>
-          )}
-          {promptEditing && promptError && (
-            <p data-testid="morning-prompt-error" style={{ color: 'var(--danger)', fontSize: 13 }}>
-              {promptError}
-            </p>
-          )}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               data-testid="morning-correction-input"

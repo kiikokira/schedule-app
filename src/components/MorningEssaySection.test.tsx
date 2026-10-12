@@ -67,7 +67,7 @@ describe('MorningEssaySection', () => {
     const area = screen.getByTestId('morning-prompt-input') as HTMLTextAreaElement
     expect(area.value).toContain('ベネッセ')
     fireEvent.change(area, { target: { value: 'カスタム指示文テスト' } })
-    fireEvent.click(screen.getByTestId('morning-prompt-save'))
+    fireEvent.blur(area)
     expect(screen.getByTestId('morning-prompt-preview')).toHaveTextContent('カスタム指示文テスト')
     expect(getMorningEssayRecord('2026-10-10')?.prompt).toBe('カスタム指示文テスト')
   })
@@ -76,8 +76,9 @@ describe('MorningEssaySection', () => {
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
     fireEvent.click(screen.getByTestId('morning-prompt-box'))
-    fireEvent.change(screen.getByTestId('morning-prompt-input'), { target: { value: '   ' } })
-    fireEvent.click(screen.getByTestId('morning-prompt-save'))
+    const area = screen.getByTestId('morning-prompt-input') as HTMLTextAreaElement
+    fireEvent.change(area, { target: { value: '   ' } })
+    fireEvent.blur(area)
     expect(screen.getByTestId('morning-prompt-error')).toBeInTheDocument()
   })
 
@@ -172,15 +173,6 @@ describe('MorningEssaySection', () => {
     expect(screen.getByTestId('morning-prompt-input')).toBeInTheDocument()
   })
 
-  it('closes the prompt editor without saving', () => {
-    render(<MorningEssaySection today="2026-10-10" />)
-    fireEvent.click(screen.getByTestId('morning-choice-essay'))
-    fireEvent.click(screen.getByTestId('morning-prompt-box'))
-    expect(screen.getByTestId('morning-prompt-input')).toBeInTheDocument()
-    fireEvent.click(screen.getByTestId('morning-prompt-close'))
-    expect(screen.queryByTestId('morning-prompt-input')).not.toBeInTheDocument()
-  })
-
   it('shows the add-day form limited to the week', () => {
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
@@ -219,5 +211,32 @@ describe('MorningEssaySection', () => {
     fireEvent.click(screen.getByTestId('morning-add-save'))
     expect(screen.getByTestId('morning-add-error')).toBeInTheDocument()
     expect(getMorningEssayRecord('2026-10-06')?.correctionDone).toBe(true)
+  })
+
+  it('edits inline in the prompt box and auto-saves on blur with no buttons', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-prompt-box'))
+    const box = screen.getByTestId('morning-prompt-box')
+    const area = screen.getByTestId('morning-prompt-input') as HTMLTextAreaElement
+    expect(box.contains(area)).toBe(true)
+    expect(screen.queryByTestId('morning-prompt-preview')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('morning-prompt-save')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('morning-prompt-close')).not.toBeInTheDocument()
+    fireEvent.change(area, { target: { value: '自動保存テスト指示文' } })
+    fireEvent.blur(area)
+    expect(screen.getByTestId('morning-prompt-preview')).toHaveTextContent('自動保存テスト指示文')
+    expect(getMorningEssayRecord('2026-10-10')?.prompt).toBe('自動保存テスト指示文')
+  })
+
+  it('keeps editing with an error when auto-saving empty text', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-prompt-box'))
+    const area = screen.getByTestId('morning-prompt-input') as HTMLTextAreaElement
+    fireEvent.change(area, { target: { value: '   ' } })
+    fireEvent.blur(area)
+    expect(screen.getByTestId('morning-prompt-error')).toBeInTheDocument()
+    expect(screen.getByTestId('morning-prompt-input')).toBeInTheDocument()
   })
 })
