@@ -245,11 +245,17 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
             <button
               data-testid="morning-open-chatgpt"
               type="button"
-              style={{ padding: '12px 8px', fontSize: 15, fontWeight: 700 }}
+              style={{ padding: '14px 8px', fontSize: 16, fontWeight: 700 }}
               onClick={() => void openChatGpt()}
             >
               ChatGPTで出題を開く
             </button>
+          </div>
+          <div
+            data-testid="morning-record-heading"
+            style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-dim)', margin: '4px 0 -4px' }}
+          >
+            添削の記録
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
@@ -263,7 +269,7 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
             <button
               data-testid="morning-correction-save"
               type="button"
-              style={{ flexShrink: 0, padding: '10px 12px' }}
+              style={{ flexShrink: 0, padding: '10px 12px', fontWeight: 700 }}
               onClick={saveCorrection}
             >
               記録
@@ -279,9 +285,18 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
               今日は添削まで完了！
             </p>
           )}
-          <p data-testid="morning-rate" style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>
-            添削までできた率 {rate.rate}%（{rate.done}/{rate.chosen}）
+          <p data-testid="morning-rate" style={{ fontSize: 14, margin: 0 }}>
+            添削までできた率{' '}
+            <span style={{ fontSize: 18, fontWeight: 800 }}>
+              {rate.rate}%（{rate.done}/{rate.chosen}）
+            </span>
           </p>
+          <div
+            data-testid="morning-week-heading"
+            style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-dim)', margin: '4px 0 -4px' }}
+          >
+            今週の記録
+          </div>
           <button
             data-testid="morning-week-edit-toggle"
             type="button"
@@ -291,7 +306,15 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
             {weekOpen ? '今週の編集を閉じる' : '今週を編集'}
           </button>
           {weekOpen && (
-            <div data-testid="morning-week-editor">
+            <div
+              data-testid="morning-week-editor"
+              style={{
+                padding: '8px 10px 10px',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--surface-dim)',
+              }}
+            >
               {weekDays
                 .filter((d) => records.some((r) => r.date === d))
                 .map((d) => {
@@ -356,7 +379,7 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
                 <button
                   data-testid="morning-add-save"
                   type="button"
-                  style={{ flexShrink: 0 }}
+                  style={{ flexShrink: 0, fontWeight: 700 }}
                   onClick={addDay}
                 >
                   追加

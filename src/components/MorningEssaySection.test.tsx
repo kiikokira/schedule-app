@@ -164,6 +164,13 @@ describe('MorningEssaySection', () => {
     expect(screen.getByTestId('morning-actions')).toHaveStyle({ flexDirection: 'column' })
   })
 
+  it('labels the record blocks with small headings', () => {
+    render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    expect(screen.getByTestId('morning-record-heading')).toHaveTextContent('添削の記録')
+    expect(screen.getByTestId('morning-week-heading')).toHaveTextContent('今週の記録')
+  })
+
   it('opens the editor by tapping the prompt box and has no edit button', () => {
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))
