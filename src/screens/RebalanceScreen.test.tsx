@@ -184,4 +184,25 @@ describe('RebalanceScreen', () => {
     })
     expect(onSchedule).toHaveBeenCalled()
   })
+
+  it('keeps home books out of train slots in the after plan', async () => {
+    const today = todayStr()
+    await addBook('bHome', { trainFit: 'home', totalPages: 200, minutesPerPage: 2, deadline: addDays(today, 90) })
+    await addBook('bTrain', { trainFit: 'train', totalPages: 200, minutesPerPage: 2, deadline: addDays(today, 90) })
+    await saveAvailabilitySlot(
+      { id: 't1', weekday: null, date: today, start: '17:45', end: '19:00', onTrain: true },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'h1', weekday: null, date: today, start: '20:30', end: '21:30' },
+      true,
+    )
+    render(<RebalanceScreen bookId="bTrain" onBack={() => {}} onSchedule={() => {}} />)
+    const after = within(await screen.findByTestId('rebalance-after'))
+    const homeRows = after.getAllByTestId('rebalance-after-row-bHome')
+    expect(homeRows.length).toBeGreaterThan(0)
+    for (const row of homeRows) {
+      expect(row).not.toHaveTextContent('17:45')
+    }
+  })
 })

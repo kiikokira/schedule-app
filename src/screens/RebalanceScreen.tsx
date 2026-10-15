@@ -32,6 +32,7 @@ function toScheduledBook(b: BookData, done: number): ScheduledBook {
     allottedRatio: b.allottedRatio,
     startDate: b.startDate,
     deadline: b.deadline,
+    trainFit: b.trainFit,
   }
 }
 
