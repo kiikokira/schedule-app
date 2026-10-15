@@ -5,6 +5,7 @@ import {
   findAtRiskBooks,
   generateDayPlan,
   improvePlan,
+  isCurrentSlot,
   learnSpeed,
   minutesPerPageFor,
   parseTimeToMin,
@@ -481,4 +482,14 @@ it('learnSpeed ignores abnormal ratios (speed outside 0.1..120 min/page)', () =>
 it('effectiveSpeed falls back to per-subject default', () => {
   expect(effectiveSpeed(undefined, '英単語')).toBe(1)
   expect(effectiveSpeed(4, '英単語')).toBe(4)
+})
+
+describe('isCurrentSlot', () => {
+  it('matches a time inside the slot (start inclusive, end exclusive)', () => {
+    expect(isCurrentSlot(540, 600, 540)).toBe(true)
+    expect(isCurrentSlot(540, 600, 570)).toBe(true)
+    expect(isCurrentSlot(540, 600, 600)).toBe(false)
+    expect(isCurrentSlot(540, 600, 539)).toBe(false)
+    expect(isCurrentSlot(540, 600, 601)).toBe(false)
+  })
 })

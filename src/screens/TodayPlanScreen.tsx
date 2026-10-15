@@ -8,7 +8,7 @@ import {
   deleteAvailabilitySlot,
   type AvailabilitySlot,
 } from '../data/dayplanStore'
-import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, parseTimeToMin, findAtRiskBooks, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
+import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
 import { todayStr, formatJaDate, daysBetween, parseDate, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
@@ -164,6 +164,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const { records, addProgress } = useRecords()
   const { cycleRecords, addCycle } = useCycleRecords()
   const today = todayProp ?? todayStr()
+  const now = new Date()
+  const nowMin = now.getHours() * 60 + now.getMinutes()
   // テスト期間中は選択本だけを対象にする（選択外は計画に出さない）
   const [focusPeriods] = useState(loadFocusPeriods)
   const focusIds = selectedBookIds(focusPeriods, today)
@@ -507,12 +509,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     })
   }
 
-  const handleRecord = async (slotKey: string, bookId: string) => {
-    const raw = inputs[slotKey] ?? ''
-    const pages = Number(raw)
-    if (!Number.isInteger(pages) || pages < 1) return
+  const recordPages = async (bookId: string, pages: number) => {
     await addProgress(bookId, today, pages)
-    setInputs((p) => ({ ...p, [slotKey]: '' }))
     // 速度学習: その日に割り当てられた時間の合計
     const todayMin = displayedSlots
       .filter((s) => s.bookId === bookId)
@@ -530,6 +528,21 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
         }
       }
     }
+  }
+
+  const handleRecord = async (slotKey: string, bookId: string) => {
+    const raw = inputs[slotKey] ?? ''
+    const pages = Number(raw)
+    if (!Number.isInteger(pages) || pages < 1) return
+    await recordPages(bookId, pages)
+    setInputs((p) => ({ ...p, [slotKey]: '' }))
+  }
+
+  const handleComplete = async (slot: PlanSlot, book: BookData) => {
+    const pages = slot.pages
+    if (!Number.isInteger(pages) || pages < 1) return
+    if (!window.confirm(`「${book.title}」を ${pages} ページで記録しますか？`)) return
+    await recordPages(book.id, pages)
   }
 
   return (
@@ -673,11 +686,12 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                 })
               }
             }
+            const isNow = isCurrentSlot(s.startMin, s.endMin, nowMin)
             return (
               <div
                 key={`${s.startMin}-${s.bookId}-${i}`}
                 data-testid={`plan-row-${i}`}
-                style={{ display: 'flex', gap: 8, alignItems: 'center', padding: 8, border: '1px solid var(--border)', borderRadius: 8, marginBottom: 8 }}
+                style={{ display: 'flex', gap: 8, alignItems: 'center', padding: 8, border: isNow ? '2px solid var(--accent-strong)' : '1px solid var(--border)', borderRadius: 8, marginBottom: 8, background: isNow ? '#eef3ff' : undefined }}
               >
                 <CoverImage src={book?.coverUrl ?? null} width={48} height={68} />
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
@@ -744,6 +758,16 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                       >
                         記録
                       </button>
+                      {s.pages > 0 && (
+                        <button
+                          data-testid={`plan-done-${s.bookId}`}
+                          type="button"
+                          style={{ flexShrink: 0 }}
+                          onClick={() => void handleComplete(s, book)}
+                        >
+                          完了
+                        </button>
+                      )}
                     </div>
                   )}
                   {book && isCycles && (
@@ -809,6 +833,11 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                     <div data-testid="plan-row-hours">
                       {fmt(s.startMin)}-{fmt(s.endMin)}
                     </div>
+                    {isNow && (
+                      <div data-testid="plan-now-badge" style={{ fontWeight: 700, color: 'var(--accent)' }}>
+                        今 あと{s.endMin - nowMin}分
+                      </div>
+                    )}
                     {isCycles ? (
                       <div data-testid="plan-row-units">今日やる{book && isLeapBook(book) ? '語' : '区画'} {cycleTarget}{book && isLeapBook(book) ? '語' : '区画'}</div>
                     ) : (

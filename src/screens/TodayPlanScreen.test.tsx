@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import TodayPlanScreen from './TodayPlanScreen'
 import { db } from '../db/database'
@@ -703,6 +703,77 @@ describe('TodayPlanScreen', () => {
       '時間帯が重複しないようにしてください',
     )
     expect(await listAvailability()).toHaveLength(0)
+  })
+
+  it('highlights only the row containing the current time', async () => {
+    const toHHMM = (min: number) =>
+      `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+    const now = new Date()
+    const nowMin = now.getHours() * 60 + now.getMinutes()
+    const aStart = Math.max(0, nowMin - 30)
+    const aEnd = Math.min(1440, nowMin + 30)
+    const bStart = aStart >= 90 ? aStart - 90 : aEnd + 30
+    const bEnd = aStart >= 90 ? aStart - 30 : aEnd + 90
+    await fillBook('b1', { totalPages: 3000 })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: toHHMM(aStart), end: toHHMM(aEnd) },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'a2', weekday: 1, date: null, start: toHHMM(bStart), end: toHHMM(bEnd) },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    await screen.findByTestId('today-table')
+    const badges = await screen.findAllByTestId('plan-now-badge')
+    expect(badges).toHaveLength(1)
+    expect(badges[0]).toHaveTextContent(/あと\d+分/)
+  })
+
+  it('records the planned pages with one tap after confirm', async () => {
+    const originalConfirm = window.confirm
+    window.confirm = (() => true) as unknown as typeof window.confirm
+    try {
+      await fillBook('b1')
+      await saveAvailabilitySlot(
+        { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+        true,
+      )
+      render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+      const row = await screen.findByTestId('plan-row-0')
+      const planned = Number(
+        within(row).getByTestId('plan-row-pages').textContent?.replace(/[^0-9]/g, '') ?? '0',
+      )
+      expect(planned).toBeGreaterThan(0)
+      fireEvent.click(within(row).getByTestId('plan-done-b1'))
+      await waitFor(async () => {
+        const recs = await db.records.toArray()
+        expect(recs).toHaveLength(1)
+        expect(recs[0].pages).toBe(planned)
+      })
+    } finally {
+      window.confirm = originalConfirm
+    }
+  })
+
+  it('cancelling the confirm records nothing', async () => {
+    const originalConfirm = window.confirm
+    window.confirm = (() => false) as unknown as typeof window.confirm
+    try {
+      await fillBook('b1')
+      await saveAvailabilitySlot(
+        { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+        true,
+      )
+      render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+      const row = await screen.findByTestId('plan-row-0')
+      fireEvent.click(within(row).getByTestId('plan-done-b1'))
+      await waitFor(async () => {
+        expect(await db.records.toArray()).toHaveLength(0)
+      })
+    } finally {
+      window.confirm = originalConfirm
+    }
   })
 })
 

@@ -33,6 +33,10 @@ export function parseTimeToMin(hhmm: string): number {
   return h * 60 + m
 }
 
+export function isCurrentSlot(startMin: number, endMin: number, nowMin: number): boolean {
+  return startMin <= nowMin && nowMin < endMin
+}
+
 export function slotsForDate(
   availability: AvailabilitySlot[],
   date: string,
