@@ -2,6 +2,7 @@ import { WEEKLY_ESSAY_GOAL, type MorningEssayRecord } from '../lib/morningEssay'
 
 const STORAGE_KEY = 'schedule-app-morning-essay'
 const GOAL_KEY = 'schedule-app-morning-essay-goal'
+const EXPANDED_KEY = 'schedule-app-morning-expanded'
 
 function isMorningEssayRecord(value: unknown): value is MorningEssayRecord {
   if (typeof value !== 'object' || value === null) return false
@@ -67,6 +68,22 @@ export function saveMorningEssayGoal(goal: number): void {
   if (!Number.isInteger(goal) || goal < 1 || goal > 7) return
   try {
     localStorage.setItem(GOAL_KEY, String(goal))
+  } catch {
+    // localStorage が利用できない環境では保存しない
+  }
+}
+
+export function loadMorningExpanded(): boolean {
+  try {
+    return localStorage.getItem(EXPANDED_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+export function saveMorningExpanded(expanded: boolean): void {
+  try {
+    localStorage.setItem(EXPANDED_KEY, expanded ? '1' : '0')
   } catch {
     // localStorage が利用できない環境では保存しない
   }

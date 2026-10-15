@@ -186,6 +186,18 @@ describe('MorningEssaySection', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true')
   })
 
+  it('restores the collapsed state after remount', () => {
+    const first = render(<MorningEssaySection today="2026-10-10" />)
+    fireEvent.click(screen.getByTestId('morning-choice-essay'))
+    fireEvent.click(screen.getByTestId('morning-expand-toggle'))
+    expect(screen.queryByTestId('morning-prompt-box')).not.toBeInTheDocument()
+    first.unmount()
+    render(<MorningEssaySection today="2026-10-10" />)
+    expect(screen.queryByTestId('morning-prompt-box')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('morning-choice-essay')).not.toBeInTheDocument()
+    expect(screen.getByTestId('morning-expand-toggle')).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it('opens the editor by tapping the prompt box and has no edit button', () => {
     render(<MorningEssaySection today="2026-10-10" />)
     fireEvent.click(screen.getByTestId('morning-choice-essay'))

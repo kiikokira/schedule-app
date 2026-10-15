@@ -12,7 +12,9 @@ import {
   getMorningEssayRecord,
   deleteMorningEssayRecord,
   loadMorningEssayRecords,
+  loadMorningExpanded,
   saveMorningEssayRecord,
+  saveMorningExpanded,
 } from '../data/morningEssayStore'
 import { todayStr } from '../lib/progress'
 
@@ -31,7 +33,13 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
   const [promptError, setPromptError] = useState<string | null>(null)
   const [addDate, setAddDate] = useState('')
   const [addError, setAddError] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState<boolean>(() => loadMorningExpanded())
+
+  const toggleExpanded = () => {
+    const next = !expanded
+    setExpanded(next)
+    saveMorningExpanded(next)
+  }
 
   const records = useMemo(() => loadMorningEssayRecords(), [today, tick])
   const current = getMorningEssayRecord(today)
@@ -179,7 +187,7 @@ export default function MorningEssaySection({ today: todayProp }: Props) {
           type="button"
           aria-expanded={expanded}
           aria-label={expanded ? '朝の計画を閉じる' : '朝の計画を開く'}
-          onClick={() => setExpanded((v) => !v)}
+          onClick={() => toggleExpanded()}
           style={{ flexShrink: 0, padding: '6px 10px', fontSize: 13 }}
         >
           {expanded ? '▲' : '▼'}

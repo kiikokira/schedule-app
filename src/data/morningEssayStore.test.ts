@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import {
+import * as store from './morningEssayStore'
+
+const {
   deleteMorningEssayRecord,
   loadMorningEssayGoal,
   loadMorningEssayRecords,
@@ -7,7 +9,7 @@ import {
   saveMorningEssayRecords,
   saveMorningEssayRecord,
   getMorningEssayRecord,
-} from './morningEssayStore'
+} = store
 
 beforeEach(() => {
   localStorage.clear()
@@ -60,5 +62,16 @@ describe('morningEssayStore', () => {
     expect(loadMorningEssayRecords()).toHaveLength(1)
     expect(getMorningEssayRecord('2026-10-10')).toBeUndefined()
     expect(getMorningEssayRecord('2026-10-11')?.choice).toBe('book')
+  })
+
+  it('defaults the section to expanded', () => {
+    expect(store.loadMorningExpanded()).toBe(true)
+  })
+
+  it('round-trips the collapsed state', () => {
+    store.saveMorningExpanded(false)
+    expect(store.loadMorningExpanded()).toBe(false)
+    store.saveMorningExpanded(true)
+    expect(store.loadMorningExpanded()).toBe(true)
   })
 })
