@@ -426,14 +426,22 @@ export default function HomeScreen({ onOpenBook }: Props) {
   const [extendProposals, setExtendProposals] = useState<ExtendProposal[] | null>(null)
   const [extendDoneMessage, setExtendDoneMessage] = useState<string | null>(null)
 
-  // 期限切れ・未完了の通常ページ本。反復本は単位が違うため対象外。
-  const overduePageTargets: { entry: ScheduleEntry; book: BookData; remaining: number }[] =
+  // 期限切れ・未完了の本（通常ページ・反復とも）。反復は区画×周回の単位で残量を見る。
+  const overdueExtendTargets: { entry: ScheduleEntry; book: BookData; remaining: number }[] =
     scheduled.flatMap((entry) => {
       const view = resolveEntry(books, entry)
       const b = view.registered
-      if (!b || b.studyMode === 'cycles') return []
-      const total = b.totalPages ?? view.catalogBook?.totalPages ?? 0
-      const done = calcTotalDone(b, records)
+      if (!b) return []
+      const isCycle = b.studyMode === 'cycles'
+      const total = isCycle
+        ? cycleGrandTotal(b)
+        : (b.totalPages ?? view.catalogBook?.totalPages ?? 0)
+      const done = isCycle
+        ? calcCycleDonePairs(
+            b,
+            cycleRecords.filter((r) => r.bookId === b.id),
+          )
+        : calcTotalDone(b, records)
       if (!(total > 0) || !(done < total)) return []
       if (!(entry.deadline < today)) return []
       return [{ entry, book: b, remaining: total - done }]
@@ -470,7 +478,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
     setExtendDoneMessage(null)
     const availability = await listAvailability()
     setExtendProposals(
-      overduePageTargets.map((t) => {
+      overdueExtendTargets.map((t) => {
         const newDeadline = earliestFeasibleDeadline({
           remainingPages: t.remaining,
           minutesPerPage: effectiveSpeed(t.book.minutesPerPage, t.book.subject),
@@ -774,7 +782,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
         <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
           期限が近い順。遅れている参考書が上に表示されます。
         </p>
-        {overduePageTargets.length > 0 && extendProposals === null && (
+        {overdueExtendTargets.length > 0 && extendProposals === null && (
           <button
             data-testid="bulk-extend-open"
             type="button"

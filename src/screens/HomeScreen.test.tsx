@@ -820,7 +820,7 @@ describe('HomeScreen', () => {
     expect(screen.queryByTestId('bulk-extend-open')).not.toBeInTheDocument()
   })
 
-  it('excludes cycle books from bulk extension', async () => {
+  it('includes overdue cycle books alongside page books', async () => {
     await seedOverduePageBook()
     const now = new Date().toISOString()
     await db.books.add({
@@ -843,7 +843,15 @@ describe('HomeScreen', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     fireEvent.click(await screen.findByTestId('bulk-extend-open'))
     const panel = await screen.findByTestId('bulk-extend-panel')
-    expect(panel).toHaveTextContent('期限切れの本')
-    expect(within(panel).queryByTestId('bulk-extend-row-cycle-1')).not.toBeInTheDocument()
+    expect(within(panel).getByTestId('bulk-extend-row-b1')).toHaveTextContent(
+      addDaysToDate(todayStr(), 2),
+    )
+    expect(within(panel).getByTestId('bulk-extend-row-cycle-1')).toHaveTextContent(todayStr())
+    fireEvent.click(screen.getByTestId('bulk-extend-apply'))
+    await waitFor(async () => {
+      expect((await db.books.get('b1'))?.deadline).toBe(addDaysToDate(todayStr(), 2))
+      expect((await db.books.get('cycle-1'))?.deadline).toBe(todayStr())
+      expect(loadSchedule().find((e) => e.bookId === 'cycle-1')?.deadline).toBe(todayStr())
+    })
   })
 })
