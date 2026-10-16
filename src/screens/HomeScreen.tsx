@@ -28,7 +28,9 @@ import { useCycleRecords } from '../hooks/useCycleRecords'
 import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
 import { quoteOf } from '../data/quotes'
-import { loadSchedule, saveSchedule } from '../data/scheduleStore'
+import { loadSchedule, saveSchedule, syncEntryDatesForBook } from '../data/scheduleStore'
+import { listAvailability } from '../data/dayplanStore'
+import { earliestFeasibleDeadline, effectiveSpeed } from '../lib/dayplan'
 import {
   advanceSchedule,
   entryKey,
@@ -75,8 +77,15 @@ function resolveEntry(
   }
 }
 
-type NowNextItemProps = {
-  label: string
+type ExtendProposal = {
+  bookId: string
+  title: string
+  oldDeadline: string
+  newDeadline: string | null
+  plusDays: number | null
+}
+
+type NowNextItemProps = {  label: string
   entry?: ScheduleEntry
   registered?: BookData
   testid: string
@@ -414,6 +423,21 @@ export default function HomeScreen({ onOpenBook }: Props) {
     schedule.filter((e) => !e.completed),
     today,
   )
+  const [extendProposals, setExtendProposals] = useState<ExtendProposal[] | null>(null)
+  const [extendDoneMessage, setExtendDoneMessage] = useState<string | null>(null)
+
+  // 期限切れ・未完了の通常ページ本。反復本は単位が違うため対象外。
+  const overduePageTargets: { entry: ScheduleEntry; book: BookData; remaining: number }[] =
+    scheduled.flatMap((entry) => {
+      const view = resolveEntry(books, entry)
+      const b = view.registered
+      if (!b || b.studyMode === 'cycles') return []
+      const total = b.totalPages ?? view.catalogBook?.totalPages ?? 0
+      const done = calcTotalDone(b, records)
+      if (!(total > 0) || !(done < total)) return []
+      if (!(entry.deadline < today)) return []
+      return [{ entry, book: b, remaining: total - done }]
+    })
 
   const handleAdvance = async (finishedKey: string) => {
     const marked = schedule.map((e) =>
@@ -442,8 +466,52 @@ export default function HomeScreen({ onOpenBook }: Props) {
     }
   }
 
-  const handleRowRecord = async (key: string, pages: number) => {
-    const entry = schedule.find((e) => entryKey(e) === key)
+  const handleBulkExtendOpen = async () => {
+    setExtendDoneMessage(null)
+    const availability = await listAvailability()
+    setExtendProposals(
+      overduePageTargets.map((t) => {
+        const newDeadline = earliestFeasibleDeadline({
+          remainingPages: t.remaining,
+          minutesPerPage: effectiveSpeed(t.book.minutesPerPage, t.book.subject),
+          availability,
+          today,
+        })
+        return {
+          bookId: t.book.id,
+          title: t.book.title,
+          oldDeadline: t.entry.deadline,
+          newDeadline,
+          plusDays: newDeadline === null ? null : daysBetween(t.entry.deadline, newDeadline),
+        }
+      }),
+    )
+  }
+
+  const handleBulkExtendApply = async () => {
+    if (!extendProposals) return
+    let nextSchedule = schedule
+    let count = 0
+    for (const p of extendProposals) {
+      if (p.newDeadline === null) continue
+      const b = books.find((x) => x.id === p.bookId)
+      if (!b) continue
+      await saveBook({ ...b, deadline: p.newDeadline, updatedAt: new Date().toISOString() }, false)
+      nextSchedule = syncEntryDatesForBook(nextSchedule, {
+        id: b.id,
+        catalogId: b.catalogId,
+        startDate: b.startDate,
+        deadline: p.newDeadline,
+      })
+      count += 1
+    }
+    saveSchedule(nextSchedule)
+    setSchedule(nextSchedule)
+    setExtendProposals(null)
+    setExtendDoneMessage(`期限を延長しました（${count}冊）`)
+  }
+
+  const handleRowRecord = async (key: string, pages: number) => {    const entry = schedule.find((e) => entryKey(e) === key)
     if (!entry) return
     if (entry.bookId) {
       const registeredBook = books.find((b) => b.id === entry.bookId)
@@ -706,6 +774,60 @@ export default function HomeScreen({ onOpenBook }: Props) {
         <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
           期限が近い順。遅れている参考書が上に表示されます。
         </p>
+        {overduePageTargets.length > 0 && extendProposals === null && (
+          <button
+            data-testid="bulk-extend-open"
+            type="button"
+            style={{ marginBottom: 8 }}
+            onClick={() => void handleBulkExtendOpen()}
+          >
+            期限切れを再調整
+          </button>
+        )}
+        {extendProposals !== null && (
+          <div
+            data-testid="bulk-extend-panel"
+            style={{
+              marginBottom: 8,
+              padding: '10px 12px',
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: 'var(--surface)',
+            }}
+          >
+            {extendProposals.map((p) => (
+              <div
+                key={p.bookId}
+                data-testid={`bulk-extend-row-${p.bookId}`}
+                style={{ fontSize: 14, marginBottom: 4 }}
+              >
+                {p.title} {p.oldDeadline} →{' '}
+                {p.newDeadline === null
+                  ? '算出できませんでした'
+                  : `${p.newDeadline}（+${p.plusDays}日）`}
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              {extendProposals.some((p) => p.newDeadline !== null) && (
+                <button
+                  data-testid="bulk-extend-apply"
+                  type="button"
+                  onClick={() => void handleBulkExtendApply()}
+                >
+                  延長して反映
+                </button>
+              )}
+              <button data-testid="bulk-extend-cancel" type="button" onClick={() => setExtendProposals(null)}>
+                やめる
+              </button>
+            </div>
+          </div>
+        )}
+        {extendDoneMessage !== null && (
+          <p data-testid="bulk-extend-done" style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+            {extendDoneMessage}
+          </p>
+        )}
         {scheduled.map((entry, index) => {
           const rowView = resolveEntry(books, entry)
           const originalIndex = schedule.findIndex(

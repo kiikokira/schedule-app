@@ -409,6 +409,30 @@ export type BookRisk = {
   shortfallPages: number
 }
 
+// 残りページを現在の空き時間ペースで終わらせる最初の日を返す。
+// 上限日数まで探して見つからなければ null。
+export function earliestFeasibleDeadline(params: {
+  remainingPages: number
+  minutesPerPage: number
+  availability: AvailabilitySlot[]
+  today: string
+  maxSearchDays?: number
+}): string | null {
+  const { remainingPages, minutesPerPage, availability, today, maxSearchDays = 365 } = params
+  if (!(minutesPerPage > 0)) return null
+  if (remainingPages <= 0) return today
+  const required = remainingPages * minutesPerPage
+  let capacity = 0
+  for (let d = 0; d <= maxSearchDays; d++) {
+    const date = addDays(today, d)
+    for (const s of slotsForDate(availability, date)) {
+      capacity += s.endMin - s.startMin
+    }
+    if (capacity >= required) return date
+  }
+  return null
+}
+
 // Books that cannot finish by their deadline at the current pace,
 // including books that have not started yet so future deadlines take
 // part in replanning. Deadlines are never changed here; callers only

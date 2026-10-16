@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   DEFAULT_MINUTES_PER_PAGE,
+  earliestFeasibleDeadline,
   effectiveSpeed,
   findAtRiskBooks,
   generateDayPlan,
@@ -491,5 +492,69 @@ describe('isCurrentSlot', () => {
     expect(isCurrentSlot(540, 600, 600)).toBe(false)
     expect(isCurrentSlot(540, 600, 539)).toBe(false)
     expect(isCurrentSlot(540, 600, 601)).toBe(false)
+  })
+})
+
+describe('earliestFeasibleDeadline', () => {
+  const cap = (weekday: number, start: string, end: string): AvailabilitySlot => ({
+    id: `c${weekday}-${start}`,
+    weekday,
+    date: null,
+    start,
+    end,
+  })
+
+  it('returns today when the remaining fits in today', () => {
+    // 2026-09-21は月曜。10ページ×2分=20分、月曜21:00-23:00=120分
+    expect(
+      earliestFeasibleDeadline({
+        remainingPages: 10,
+        minutesPerPage: 2,
+        availability: [cap(1, '21:00', '23:00')],
+        today: '2026-09-21',
+      }),
+    ).toBe('2026-09-21')
+  })
+
+  it('accumulates weekday capacity across days', () => {
+    // 100ページ×2分=200分。月〜金21:00-22:00=60分/日。月曜起点で木曜に到達
+    const av = [1, 2, 3, 4, 5].map((w) => cap(w, '21:00', '22:00'))
+    expect(
+      earliestFeasibleDeadline({
+        remainingPages: 100,
+        minutesPerPage: 2,
+        availability: av,
+        today: '2026-09-21',
+      }),
+    ).toBe('2026-09-24')
+  })
+
+  it('returns null without capacity or beyond the cap', () => {
+    expect(
+      earliestFeasibleDeadline({ remainingPages: 10, minutesPerPage: 2, availability: [], today: '2026-09-21' }),
+    ).toBeNull()
+    expect(
+      earliestFeasibleDeadline({
+        remainingPages: 10000,
+        minutesPerPage: 2,
+        availability: [cap(1, '21:00', '22:00')],
+        today: '2026-09-21',
+        maxSearchDays: 5,
+      }),
+    ).toBeNull()
+  })
+
+  it('returns today when nothing remains and rejects bad speed', () => {
+    expect(
+      earliestFeasibleDeadline({ remainingPages: 0, minutesPerPage: 2, availability: [], today: '2026-09-21' }),
+    ).toBe('2026-09-21')
+    expect(
+      earliestFeasibleDeadline({
+        remainingPages: 10,
+        minutesPerPage: 0,
+        availability: [cap(1, '21:00', '23:00')],
+        today: '2026-09-21',
+      }),
+    ).toBeNull()
   })
 })

@@ -1,7 +1,8 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { db } from '../db/database'
 import HomeScreen from './HomeScreen'
+import { saveAvailabilitySlot } from '../data/dayplanStore'
 import { saveSchedule, resetSchedule, loadSchedule } from '../data/scheduleStore'
 import { addDaysToDate, SCHEDULE, selectNowAndNext, type ScheduleEntry } from '../data/schedule'
 import { CATALOG } from '../data/catalog'
@@ -754,5 +755,95 @@ describe('HomeScreen', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     // 1周目完了→2周目開始のためNOW進捗は0%
     expect(await screen.findByTestId('now-next-progress')).toHaveTextContent('0%')
+  })
+
+  const seedOverduePageBook = async () => {
+    const now = new Date().toISOString()
+    await db.books.add({
+      id: 'b1',
+      title: '期限切れの本',
+      subject: '英語',
+      totalPages: 100,
+      startDate: daysAgo(30),
+      deadline: daysAgo(5),
+      createdAt: now,
+      updatedAt: now,
+    })
+    saveSchedule([{ bookId: 'b1', startDate: daysAgo(30), deadline: daysAgo(5) }])
+  }
+
+  const seedDailySlots = async () => {
+    await db.availability.clear()
+    for (let w = 0; w <= 6; w++) {
+      await saveAvailabilitySlot({ id: `dx${w}`, weekday: w, date: null, start: '21:00', end: '23:00' }, true)
+    }
+  }
+
+  it('offers bulk deadline extension for overdue unfinished books', async () => {
+    await seedOverduePageBook()
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(await screen.findByTestId('bulk-extend-open')).toBeInTheDocument()
+  })
+
+  it('previews minimal extensions and applies them', async () => {
+    await seedOverduePageBook()
+    await seedDailySlots()
+    render(<HomeScreen onOpenBook={() => {}} />)
+    fireEvent.click(await screen.findByTestId('bulk-extend-open'))
+    const panel = await screen.findByTestId('bulk-extend-panel')
+    const expected = addDaysToDate(todayStr(), 2)
+    expect(panel).toHaveTextContent(expected)
+    fireEvent.click(screen.getByTestId('bulk-extend-apply'))
+    await waitFor(async () => {
+      const b = await db.books.get('b1')
+      expect(b?.deadline).toBe(expected)
+      expect(loadSchedule().find((e) => e.bookId === 'b1')?.deadline).toBe(expected)
+    })
+    expect(await screen.findByTestId('bulk-extend-done')).toBeInTheDocument()
+  })
+
+  it('hides bulk extension without overdue books', async () => {
+    const now = new Date().toISOString()
+    await db.books.add({
+      id: 'b1',
+      title: '順調な本',
+      subject: '英語',
+      totalPages: 100,
+      startDate: daysAgo(30),
+      deadline: daysAhead(100),
+      createdAt: now,
+      updatedAt: now,
+    })
+    saveSchedule([{ bookId: 'b1', startDate: daysAgo(30), deadline: daysAhead(100) }])
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await screen.findByTestId('schedule-section')
+    expect(screen.queryByTestId('bulk-extend-open')).not.toBeInTheDocument()
+  })
+
+  it('excludes cycle books from bulk extension', async () => {
+    await seedOverduePageBook()
+    const now = new Date().toISOString()
+    await db.books.add({
+      id: 'cycle-1',
+      title: '反復本',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysAgo(30),
+      deadline: daysAgo(5),
+      createdAt: now,
+      updatedAt: now,
+    })
+    saveSchedule([
+      { bookId: 'b1', startDate: daysAgo(30), deadline: daysAgo(5) },
+      { bookId: 'cycle-1', startDate: daysAgo(30), deadline: daysAgo(5) },
+    ])
+    await seedDailySlots()
+    render(<HomeScreen onOpenBook={() => {}} />)
+    fireEvent.click(await screen.findByTestId('bulk-extend-open'))
+    const panel = await screen.findByTestId('bulk-extend-panel')
+    expect(panel).toHaveTextContent('期限切れの本')
+    expect(within(panel).queryByTestId('bulk-extend-row-cycle-1')).not.toBeInTheDocument()
   })
 })
