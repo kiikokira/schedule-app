@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useBooks } from '../hooks/useBooks'
+import { useRecords } from '../hooks/useRecords'
 import {
   listAvailability,
   addAdjustment,
@@ -52,6 +53,7 @@ function sameSlots(
 
 export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   const { books, saveBook } = useBooks()
+  const { records } = useRecords()
   const today = todayStr()
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
   const [priorities, setPriorities] = useState<Record<string, number>>({})
@@ -67,6 +69,16 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   const ratioOf = (b: BookData) =>
     ratios[b.id] !== undefined ? clampRatio(ratios[b.id]) : b.allottedRatio
 
+  // 今日の計画と同じく記録済みページを進捗に含める（0扱いにしない）。
+  const doneByBook = useMemo(() => {
+    const m = new Map(books.map((b) => [b.id, b.initialDonePages ?? 0]))
+    for (const r of records) {
+      const d = m.get(r.bookId)
+      if (d !== undefined) m.set(r.bookId, d + r.pages)
+    }
+    return m
+  }, [books, records])
+
   const scheduled = (includeTarget: boolean, overrides: boolean) =>
     books
       .filter((b) => includeTarget || b.id !== bookId)
@@ -78,7 +90,7 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
             priority: overrides ? priorityOf(b) : b.priority,
             allottedRatio: overrides ? ratioOf(b) : b.allottedRatio,
           },
-          0,
+          doneByBook.get(b.id) ?? 0,
         ),
       )
 
@@ -147,6 +159,10 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   const beforeSummary = summarize(before)
   const afterSummary = summarize(after)
   const targetBook = books.find((b) => b.id === bookId)
+  const hasPendingChanges =
+    targetBook !== undefined &&
+    ((priorities[bookId] !== undefined && priorities[bookId] !== targetBook.priority) ||
+      (ratios[bookId] !== undefined && ratioOf(targetBook) !== targetBook.allottedRatio))
 
   const renderPlan = (
     plan: Awaited<ReturnType<typeof generateDayPlan>>,
@@ -299,6 +315,11 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
           戻る
         </button>
       </div>
+      {targetBook && !hasPendingChanges && (
+        <p data-testid="rebalance-no-change-hint" style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 8 }}>
+          優先度・配分比率に変更がないため、このまま反映しても計画は変わりません
+        </p>
+      )}
       {recalcStatus && (
         <p data-testid="rebalance-status" style={{ color: 'var(--text-dim)' }}>
           {recalcStatus}

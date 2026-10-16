@@ -671,6 +671,18 @@ describe('TodayPlanScreen', () => {
     expect(onRebalance).toHaveBeenCalledWith('b1')
   })
 
+  it('explains how to clear the deadline warning', async () => {
+    await fillBook('b1', { totalPages: 500, deadline: '2026-09-22' })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '22:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('deadline-risk-hint')).toHaveTextContent(
+      '記録を進める・期限を延ばす・空き時間を増やすと解消します',
+    )
+  })
+
   it('期限に余裕があれば警告を出さない', async () => {
     await fillBook('b1')
     await saveAvailabilitySlot(

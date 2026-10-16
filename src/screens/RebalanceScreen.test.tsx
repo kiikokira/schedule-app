@@ -205,4 +205,29 @@ describe('RebalanceScreen', () => {
       expect(row).not.toHaveTextContent('17:45')
     }
   })
+
+  it('previews with recorded progress instead of from scratch', async () => {
+    const today = todayStr()
+    await addBook('b1', { totalPages: 800, minutesPerPage: 2, deadline: addDays(today, 90) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 700 })
+    await saveAvailabilitySlot(
+      { id: 't1', weekday: null, date: today, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={() => {}} />)
+    const after = within(await screen.findByTestId('rebalance-after'))
+    expect(after.getByTestId('rebalance-after-row-b1')).toHaveTextContent('21:00-21:15')
+  })
+
+  it('tells that nothing changes without priority or ratio edits', async () => {
+    await addBook('b1')
+    await addBook('b2')
+    await seedDaySlot()
+    render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={() => {}} />)
+    expect(await screen.findByTestId('rebalance-no-change-hint')).toHaveTextContent(
+      '優先度・配分比率に変更がないため、このまま反映しても計画は変わりません',
+    )
+    fireEvent.change(screen.getByTestId('priority-select-b1'), { target: { value: '0' } })
+    expect(screen.queryByTestId('rebalance-no-change-hint')).not.toBeInTheDocument()
+  })
 })

@@ -585,6 +585,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
               </div>
             )
           })}
+          <p data-testid="deadline-risk-hint" style={{ fontSize: 13, color: 'var(--text-dim)', margin: '8px 0 0' }}>
+            記録を進める・期限を延ばす・空き時間を増やすと解消します
+          </p>
         </div>
       )}
       {focusIds !== null && (
