@@ -553,12 +553,12 @@ export default function HomeScreen({ onOpenBook }: Props) {
 
   const diagnosis = overallDiagnosis(books, records, today)
 
-  const halfQuota = Math.max(1, Math.ceil(diagnosis.requiredPerDay / 2))
+  const dailyQuota = Math.max(1, diagnosis.requiredPerDay)
   const streakScores: Record<string, number> = {}
   for (const d of new Set([...records.map((r) => r.date), ...cycleRecords.map((r) => r.date)])) {
     streakScores[d] = scoreActivityOnDate(d, records)
   }
-  const streak = calcStreakDays(streakScores, halfQuota, today)
+  const streak = calcStreakDays(streakScores, dailyQuota, today)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = parseDate(today)
     d.setDate(d.getDate() - (6 - i))
@@ -595,7 +595,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
         </div>
         <div data-testid="streak-dots" style={{ display: 'flex', gap: 6, marginTop: 4 }}>
           {last7Days.map((d, i) => {
-            const done = (streakScores[d] ?? 0) >= halfQuota
+            const done = (streakScores[d] ?? 0) >= dailyQuota
             const isToday = i === last7Days.length - 1
             const label = `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`
             return (
@@ -617,7 +617,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
           <div style={{ fontSize: 13, marginTop: 4 }}>今日あと{streak.remaining}で継続！</div>
         )}
         <div data-testid="streak-legend" style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-          ●：達成（1日の目安の半分以上） ○：未達成
+          ●：達成（1日の目安以上） ○：未達成
         </div>
       </section>
       <p data-testid="today-date" style={{ fontWeight: 700 }}>

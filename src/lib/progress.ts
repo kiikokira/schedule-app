@@ -71,17 +71,17 @@ export function scoreActivityOnDate(
 
 export type StreakResult = { streak: number; todayScore: number; remaining: number }
 
-// 目安（halfQuota）以上の記録がある日が何日連続しているかを数える。
+// 目安（quota）以上の記録がある日が何日連続しているかを数える。
 // 今日が未達でも昨日まで連続なら継続扱いにする。
 export function calcStreakDays(
   scores: Record<string, number>,
-  halfQuota: number,
+  quota: number,
   today: string,
 ): StreakResult {
   const qualifies = (date: string): boolean => {
     const score = scores[date] ?? 0
-    if (halfQuota <= 0) return score > 0
-    return score >= halfQuota
+    if (quota <= 0) return score > 0
+    return score >= quota
   }
   const todayScore = scores[today] ?? 0
   let streak = 0
@@ -90,7 +90,7 @@ export function calcStreakDays(
     streak++
     cursor = addDays(cursor, -1)
   }
-  const remaining = halfQuota <= 0 ? 0 : Math.max(halfQuota - todayScore, 0)
+  const remaining = quota <= 0 ? 0 : Math.max(quota - todayScore, 0)
   return { streak, todayScore, remaining }
 }
 

@@ -777,6 +777,54 @@ describe('HomeScreen', () => {
     expect(dots.textContent).not.toContain('●')
   })
 
+  it('今日の目標の半分では達成にならない（満額で達成）', async () => {
+    const today = localDateStr(new Date())
+    saveSchedule([{ catalogId: 'porepore', startDate: daysAgo(30), deadline: daysAhead(10) }])
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'porepore',
+      totalPages: 100,
+      startDate: daysAgo(30),
+      deadline: daysAhead(10),
+    })
+    // 昨日は満額以上、今日は半分のみ。今日の目標に届かなければ連続は1日のままのはず
+    // 残り85ページ / 残り10日 = 9ページ/日。今日5ページは半分以上だが満額未満
+    await db.records.add({ id: 'r0', bookId: 'b1', date: daysAgo(1), pages: 10 })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 5 })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await waitFor(() => expect(screen.getByTestId('streak-count')).toHaveTextContent('連続1日'))
+    const dots = screen.getByTestId('streak-dots')
+    // 今日（右端）は○のはず。全体に昨日分の●は1つだけ
+    expect(dots.textContent?.match(/●/g)?.length ?? 0).toBe(1)
+  })
+
+  it('今日の目標の満額では達成になる', async () => {
+    const today = localDateStr(new Date())
+    saveSchedule([{ catalogId: 'porepore', startDate: daysAgo(30), deadline: daysAhead(10) }])
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      catalogId: 'porepore',
+      totalPages: 100,
+      startDate: daysAgo(30),
+      deadline: daysAhead(10),
+    })
+    // 残り90ページ / 残り10日 = 9ページ/日。10ページやれば達成のはず
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 10 })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await waitFor(() => expect(screen.getByTestId('streak-count')).toHaveTextContent('連続1日'))
+    const dots = screen.getByTestId('streak-dots')
+    expect(dots.textContent).toContain('●')
+  })
+
+  it('凡例は今日の目標達成を示す（半分ではない）', async () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const legend = await screen.findByTestId('streak-legend')
+    expect(legend).toHaveTextContent('1日の目安以上')
+    expect(legend).not.toHaveTextContent('半分')
+  })
+
   const seedOverduePageBook = async () => {
     const now = new Date().toISOString()
     await db.books.add({
