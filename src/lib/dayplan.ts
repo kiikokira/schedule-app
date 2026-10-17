@@ -37,6 +37,17 @@ export function isCurrentSlot(startMin: number, endMin: number, nowMin: number):
   return startMin <= nowMin && nowMin < endMin
 }
 
+// 今日の空き枠のうち現在時刻より前の部分を落とす。終了済み枠は除外し、
+// 進行中の枠は開始を現在時刻に切り詰める（汽車・固定指定などの属性は保持）。
+export function clipPastSlots(slots: TimeSlot[], nowMin: number): TimeSlot[] {
+  const out: TimeSlot[] = []
+  for (const s of slots) {
+    if (s.endMin <= nowMin) continue
+    out.push({ ...s, startMin: Math.max(s.startMin, nowMin) })
+  }
+  return out
+}
+
 export function slotsForDate(
   availability: AvailabilitySlot[],
   date: string,
@@ -184,8 +195,11 @@ function buildDayPlan(
   books: ScheduledBook[],
   today: string,
   availability: AvailabilitySlot[],
+  nowMin?: number,
 ): DayPlan {
-  const slots = slotsForDate(availability, date)
+  const base = slotsForDate(availability, date)
+  // 今日だけは過ぎた時間を計画に入れない（明日以降はそのまま）。
+  const slots = date === today && nowMin !== undefined ? clipPastSlots(base, nowMin) : base
   const totalMin = slots.reduce((sum, s) => sum + (s.endMin - s.startMin), 0)
 
   const targets = books
@@ -357,14 +371,19 @@ export function generateDayPlan(params: {
   books: ScheduledBook[]
   today: string
   horizonDays?: number
+  // 指定時は今日の空き枠から過ぎた時間を除いて計画する（明日以降は不変）。
+  nowMin?: number
 }): PlanOutput {
-  const { availability, books, today, horizonDays = 7 } = params
+  const { availability, books, today, horizonDays = 7, nowMin } = params
   const active = activeBooks(books, today)
-  const todayPlan = buildDayPlan(today, active, today, availability)
+  const todayPlan = buildDayPlan(today, active, today, availability, nowMin)
 
   const anyDeficit = active.some((b) => deficitOf(b, today) > 0)
-  const noAvailability = slotsForDate(availability, today).length === 0
-  const todaySlots = slotsForDate(availability, today)
+  const todaySlots =
+    nowMin !== undefined
+      ? clipPastSlots(slotsForDate(availability, today), nowMin)
+      : slotsForDate(availability, today)
+  const noAvailability = todaySlots.length === 0
   const trainFiltered =
     todaySlots.some((s) => s.onTrain) &&
     active.some((b) => b.trainFit === 'home')

@@ -7,7 +7,7 @@ import {
   type AvailabilitySlot,
 } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, type ScheduledBook } from '../lib/dayplan'
-import { todayStr, type BookData } from '../lib/progress'
+import { todayStr, formatJaDate, type BookData } from '../lib/progress'
 
 type Props = {
   bookId: string
@@ -55,6 +55,8 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   const { books, saveBook } = useBooks()
   const { records } = useRecords()
   const today = todayStr()
+  const now = new Date()
+  const nowMin = now.getHours() * 60 + now.getMinutes()
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
   const [priorities, setPriorities] = useState<Record<string, number>>({})
   const [ratios, setRatios] = useState<Record<string, string>>({})
@@ -98,11 +100,13 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
     availability,
     books: scheduled(false, false),
     today,
+    nowMin,
   })
   const after = generateDayPlan({
     availability,
     books: scheduled(true, true),
     today,
+    nowMin,
   })
 
   const recompute = () => {
@@ -257,6 +261,38 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {renderPlan(before, 'rebalance-before', '修正前')}
         {renderPlan(after, 'rebalance-after', '修正後')}
+      </div>
+      <div
+        data-testid="rebalance-upcoming"
+        style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}
+      >
+        <h3 style={{ fontSize: 15 }}>今後3日の修正後イメージ</h3>
+        {after.upcoming.slice(0, 3).map((day) => {
+          const items = [...day.items].sort((a, b) =>
+            a.bookId === bookId ? -1 : b.bookId === bookId ? 1 : 0,
+          )
+          return (
+            <div
+              key={day.date}
+              data-testid={`rebalance-upcoming-${day.date}`}
+              style={{ marginTop: 8, fontSize: 14, lineHeight: 1.6 }}
+            >
+              <div style={{ fontWeight: 700 }}>{formatJaDate(day.date)}</div>
+              {items.length === 0 ? (
+                <div style={{ color: 'var(--text-dim)' }}>割り当てなし</div>
+              ) : (
+                items.map((item) => {
+                  const book = books.find((b) => b.id === item.bookId)
+                  return (
+                    <div key={item.bookId}>
+                      {book?.title ?? item.bookId} {item.minutes}分 {item.pages}ページ
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          )
+        })}
       </div>
 
       {targetBook && (

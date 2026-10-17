@@ -558,3 +558,55 @@ describe('earliestFeasibleDeadline', () => {
     ).toBeNull()
   })
 })
+
+describe('generateDayPlan nowMin', () => {
+  // 2026-09-21（月曜）。スクショ再現：13:30-14:45／18:00-19:00／20:30-21:45、
+  // 現在20:14（1214分）のとき過去枠に割当を付けない。
+  const pastSlotsToday = [
+    dateSlot('2026-09-21', '13:30', '14:45'),
+    dateSlot('2026-09-21', '18:00', '19:00'),
+    dateSlot('2026-09-21', '20:30', '21:45'),
+  ]
+  const bigBook = () =>
+    book({ bookId: 'b1', totalPages: 3000, donePages: 0, minutesPerPage: 2, deadline: '2026-11-30' })
+
+  it('excludes past slots from today when nowMin is given', () => {
+    const out = generateDayPlan({
+      availability: pastSlotsToday,
+      books: [bigBook()],
+      today: '2026-09-21',
+      nowMin: 20 * 60 + 14,
+    })
+    expect(out.today.slots.length).toBeGreaterThan(0)
+    for (const s of out.today.slots) {
+      expect(s.startMin).toBeGreaterThanOrEqual(20 * 60 + 14)
+    }
+    expect(out.today.slots[0].startMin).toBe(20 * 60 + 30)
+    expect(out.today.totalMinutes).toBe(75)
+  })
+
+  it('clips an in-progress slot to the remaining minutes', () => {
+    const out = generateDayPlan({
+      availability: [dateSlot('2026-09-21', '20:00', '21:00')],
+      books: [bigBook()],
+      today: '2026-09-21',
+      nowMin: 20 * 60 + 14,
+    })
+    expect(out.today.slots[0].startMin).toBe(20 * 60 + 14)
+    expect(out.today.slots[0].endMin).toBe(21 * 60)
+    expect(out.today.totalMinutes).toBe(46)
+  })
+
+  it('keeps upcoming days unaffected by nowMin', () => {
+    // 2026-09-22は火曜。nowMinは今日だけに効き、明日以降はそのまま計画する。
+    const out = generateDayPlan({
+      availability: [...pastSlotsToday, weekSlot(2, '21:00', '22:00')],
+      books: [bigBook()],
+      today: '2026-09-21',
+      nowMin: 20 * 60 + 14,
+    })
+    expect(out.upcoming).toHaveLength(7)
+    expect(out.upcoming[0].date).toBe('2026-09-22')
+    expect(out.upcoming[0].items.length).toBeGreaterThan(0)
+  })
+})

@@ -30,10 +30,24 @@ const addBook = async (id: string, over: Record<string, unknown> = {}) => {
 }
 
 const seedDaySlot = async () => {
+  // 120分の未来枠。テスト実行時刻に依存しないよう現在時刻を基準にする。
+  // 再調整画面は現在時刻より前の枠を計画に入れない仕様のため。
+  const n = new Date()
+  const nowMin = n.getHours() * 60 + n.getMinutes()
+  let startMin = nowMin + 30
+  if (startMin + 120 > 1440) startMin = 1440 - 120
   await saveAvailabilitySlot(
-    { id: 'a1', weekday: null, date: todayStr(), start: '21:00', end: '23:00' },
+    { id: 'a1', weekday: null, date: todayStr(), start: fmtMin(startMin), end: fmtMin(startMin + 120) },
     true,
   )
+}
+
+const fmtMin = (m: number) =>
+  `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+
+const nowMinOf = () => {
+  const n = new Date()
+  return n.getHours() * 60 + n.getMinutes()
 }
 
 describe('RebalanceScreen', () => {
@@ -189,12 +203,18 @@ describe('RebalanceScreen', () => {
     const today = todayStr()
     await addBook('bHome', { trainFit: 'home', totalPages: 200, minutesPerPage: 2, deadline: addDays(today, 90) })
     await addBook('bTrain', { trainFit: 'train', totalPages: 200, minutesPerPage: 2, deadline: addDays(today, 90) })
+    // 75分の汽車枠＋60分の自宅枠を未来に確保（深夜帯は前にずらす）
+    const base = Math.min(nowMinOf() + 60, 1440 - 225)
+    const tStart = base
+    const tEnd = tStart + 75
+    const hStart = tEnd + 30
+    const hEnd = hStart + 60
     await saveAvailabilitySlot(
-      { id: 't1', weekday: null, date: today, start: '17:45', end: '19:00', onTrain: true },
+      { id: 't1', weekday: null, date: today, start: fmtMin(tStart), end: fmtMin(tEnd), onTrain: true },
       true,
     )
     await saveAvailabilitySlot(
-      { id: 'h1', weekday: null, date: today, start: '20:30', end: '21:30' },
+      { id: 'h1', weekday: null, date: today, start: fmtMin(hStart), end: fmtMin(hEnd) },
       true,
     )
     render(<RebalanceScreen bookId="bTrain" onBack={() => {}} onSchedule={() => {}} />)
@@ -202,7 +222,7 @@ describe('RebalanceScreen', () => {
     const homeRows = after.getAllByTestId('rebalance-after-row-bHome')
     expect(homeRows.length).toBeGreaterThan(0)
     for (const row of homeRows) {
-      expect(row).not.toHaveTextContent('17:45')
+      expect(row).not.toHaveTextContent(fmtMin(tStart))
     }
   })
 
@@ -210,13 +230,18 @@ describe('RebalanceScreen', () => {
     const today = todayStr()
     await addBook('b1', { totalPages: 800, minutesPerPage: 2, deadline: addDays(today, 90) })
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 700 })
+    const nowMin = nowMinOf()
+    let startMin = nowMin + 30
+    if (startMin + 120 > 1440) startMin = 1440 - 120
     await saveAvailabilitySlot(
-      { id: 't1', weekday: null, date: today, start: '21:00', end: '23:00' },
+      { id: 't1', weekday: null, date: today, start: fmtMin(startMin), end: fmtMin(startMin + 120) },
       true,
     )
     render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={() => {}} />)
     const after = within(await screen.findByTestId('rebalance-after'))
-    expect(after.getByTestId('rebalance-after-row-b1')).toHaveTextContent('21:00-21:15')
+    expect(after.getByTestId('rebalance-after-row-b1')).toHaveTextContent(
+      `${fmtMin(startMin)}-${fmtMin(startMin + 15)}`,
+    )
   })
 
   it('tells that nothing changes without priority or ratio edits', async () => {
@@ -229,5 +254,67 @@ describe('RebalanceScreen', () => {
     )
     fireEvent.change(screen.getByTestId('priority-select-b1'), { target: { value: '0' } })
     expect(screen.queryByTestId('rebalance-no-change-hint')).not.toBeInTheDocument()
+  })
+
+  it('excludes past slots from the after plan', async () => {
+    const today = todayStr()
+    const nowMin = nowMinOf()
+    // 120分の過去枠（60分以上前に終了）＋未来枠（30分後に開始、日またぎは丸める）
+    const pastEnd = nowMin - 60
+    const pastStart = pastEnd - 120
+    const futStart = nowMin + 30
+    const futEnd = Math.min(futStart + 120, 1440)
+    await addBook('b1', { totalPages: 3000, minutesPerPage: 2, deadline: addDays(today, 60) })
+    await saveAvailabilitySlot(
+      { id: 'past', weekday: null, date: today, start: fmtMin(pastStart), end: fmtMin(pastEnd) },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'fut', weekday: null, date: today, start: fmtMin(futStart), end: fmtMin(futEnd) },
+      true,
+    )
+    render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={() => {}} />)
+    const section = await screen.findByTestId('rebalance-after')
+    const after = within(section)
+    expect(await after.findByTestId('rebalance-after-row-b1')).toBeInTheDocument()
+    expect(section).not.toHaveTextContent(fmtMin(pastStart))
+    expect(section).toHaveTextContent(fmtMin(futStart))
+  })
+
+  it('clips an in-progress slot to the remaining time in the after plan', async () => {
+    const today = todayStr()
+    const nowMin = nowMinOf()
+    const startMin = nowMin - 15
+    const endMin = nowMin + 45
+    await addBook('b1', { totalPages: 3000, minutesPerPage: 2, deadline: addDays(today, 60) })
+    await saveAvailabilitySlot(
+      { id: 'cur', weekday: null, date: today, start: fmtMin(startMin), end: fmtMin(endMin) },
+      true,
+    )
+    render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={() => {}} />)
+    const after = within(await screen.findByTestId('rebalance-after'))
+    const row = await after.findByTestId('rebalance-after-row-b1')
+    // 開始済みの部分は切り詰められ、残り時間が割当表示になる
+    expect(row).not.toHaveTextContent(`${fmtMin(startMin)}-`)
+    expect(row).toHaveTextContent(fmtMin(endMin))
+  })
+
+  it('shows the next 3 days of the after plan', async () => {
+    const today = todayStr()
+    await addBook('b1', { totalPages: 3000, minutesPerPage: 2, deadline: addDays(today, 60) })
+    await seedDaySlot()
+    for (let i = 1; i <= 3; i++) {
+      await saveAvailabilitySlot(
+        { id: `up${i}`, weekday: null, date: addDays(today, i), start: '21:00', end: '22:00' },
+        true,
+      )
+    }
+    render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={() => {}} />)
+    const upcoming = await screen.findByTestId('rebalance-upcoming')
+    for (let i = 1; i <= 3; i++) {
+      expect(
+        within(upcoming).getByTestId(`rebalance-upcoming-${addDays(today, i)}`),
+      ).toHaveTextContent('b1')
+    }
   })
 })
