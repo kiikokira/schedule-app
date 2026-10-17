@@ -54,6 +54,15 @@ export default function SchoolScreen({ onBack, today: todayProp }: Props) {
       {MONTHS.map((m) => {
         const events = schoolEventsForMonth(m)
         const year = schoolYearOfMonth(today, m)
+        // 行事のない日の今日も日程内の位置が分かるよう、同形式の行を日付順に挿入する。
+        const isTodayMonth = m === todayMonth
+        const hasTodayEvent = events.some((e) => e.day === todayDay)
+        const display =
+          isTodayMonth && !hasTodayEvent
+            ? [...events, { month: m, day: todayDay, text: '予定なし', tone: 'plain' as const }].sort(
+                (a, b) => a.day - b.day,
+              )
+            : events
         return (
           <div key={m} data-testid={`school-month-${m}`} style={{ marginTop: 16 }}>
             <h2 style={{ fontSize: 16, backgroundColor: '#1e3a8a', color: '#fff', padding: '4px 8px' }}>
@@ -74,8 +83,8 @@ export default function SchoolScreen({ onBack, today: todayProp }: Props) {
                 </span>
               )}
             </h2>
-            {events.map((e, idx) => {
-              const i = events.slice(0, idx).filter((x) => x.day === e.day).length
+            {display.map((e, idx) => {
+              const i = display.slice(0, idx).filter((x) => x.day === e.day).length
               const isToday = e.month === todayMonth && e.day === todayDay
               return (
                 <div

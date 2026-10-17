@@ -58,9 +58,24 @@ describe('SchoolScreen', () => {
     expect(within(screen.getByTestId('school-event-11-4-1')).getByText('今日')).toBeInTheDocument()
   })
 
-  it('shows no marker on days without events', () => {
+  it('shows a today placeholder row on days without events', () => {
     render(<SchoolScreen onBack={() => {}} today="2026-10-02" />)
-    expect(screen.queryByText('今日')).not.toBeInTheDocument()
+    const row = screen.getByTestId('school-event-10-2-0')
+    expect(within(row).getByText('今日')).toBeInTheDocument()
+    expect(row).toHaveTextContent('予定なし')
+  })
+
+  it('places the today placeholder in chronological order', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-10-18" />)
+    const month = screen.getByTestId('school-month-10')
+    const ids = within(month)
+      .getAllByTestId(/^school-event-10-/, { exact: false })
+      .map((el) => el.getAttribute('data-testid'))
+    const placeholder = ids.indexOf('school-event-10-18-0')
+    expect(placeholder).toBeGreaterThan(-1)
+    expect(ids.indexOf('school-event-10-17-0')).toBeLessThan(placeholder)
+    expect(ids.indexOf('school-event-10-20-0')).toBeGreaterThan(placeholder)
+    expect(screen.getByTestId('school-event-10-18-0')).toHaveTextContent('10月18日（日）')
   })
 
   it('shows today date line under the title', () => {
@@ -89,11 +104,11 @@ describe('SchoolScreen', () => {
     expect(spy).toHaveBeenCalled()
   })
 
-  it('jump button scrolls to the month section when today has no events', () => {
+  it('jump button scrolls to the today placeholder row when today has no events', () => {
     render(<SchoolScreen onBack={() => {}} today="2026-10-04" />)
-    const month = screen.getByTestId('school-month-10')
+    const row = screen.getByTestId('school-event-10-4-0') as HTMLElement
     const spy = vi.fn()
-    ;(month as HTMLElement).scrollIntoView = spy
+    row.scrollIntoView = spy
     fireEvent.click(screen.getByTestId('school-jump-today'))
     expect(spy).toHaveBeenCalled()
   })
