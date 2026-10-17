@@ -343,18 +343,19 @@ describe('cycle progress', () => {
 })
 
 describe('scoreActivityOnDate', () => {
-  it('ページ数と反復の区画を通算する', () => {
+  it('その日の通常ページ数を通算する', () => {
     const records: ProgressRecordData[] = [
       { id: 'r1', bookId: 'b1', date: '2026-10-05', pages: 10 },
       { id: 'r2', bookId: 'b2', date: '2026-10-05', pages: 5 },
       { id: 'r3', bookId: 'b1', date: '2026-10-04', pages: 99 },
     ]
-    const cycles: CycleRecordData[] = [
-      { id: 'c1', bookId: 'b3', date: '2026-10-05', unitFrom: 1, unitTo: 8, round: 1 },
-    ]
-    expect(scoreActivityOnDate('2026-10-05', records, cycles)).toBe(23)
-    expect(scoreActivityOnDate('2026-10-04', records, cycles)).toBe(99)
-    expect(scoreActivityOnDate('2026-10-03', records, cycles)).toBe(0)
+    expect(scoreActivityOnDate('2026-10-05', records)).toBe(15)
+    expect(scoreActivityOnDate('2026-10-04', records)).toBe(99)
+    expect(scoreActivityOnDate('2026-10-03', records)).toBe(0)
+  })
+
+  it('反復の記録は日次スコアに含めない（ページのみ）', () => {
+    expect(scoreActivityOnDate('2026-10-05', [])).toBe(0)
   })
 })
 

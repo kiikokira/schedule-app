@@ -58,23 +58,15 @@ export function formatJaFullDate(iso: string): string {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${WEEKDAYS[d.getDay()]})`
 }
 
-// その日に記録した量（通常のページ数＋反復の区画・語数）を通算する。
+// その日に記録した通常のページ数を通算する。
+// 反復の区画・語数は単位が違うため含めない（目安はページ基準のため）。
 export function scoreActivityOnDate(
   date: string,
   records: ProgressRecordData[],
-  cycles: CycleRecordData[],
 ): number {
-  const pages = records
+  return records
     .filter((r) => r.date === date)
     .reduce((sum, r) => sum + r.pages, 0)
-  const pairs = cycles
-    .filter((r) => r.date === date)
-    .reduce((sum, r) => {
-      if (!Number.isInteger(r.unitFrom) || !Number.isInteger(r.unitTo)) return sum
-      if (r.unitFrom < 1 || r.unitTo < r.unitFrom) return sum
-      return sum + (r.unitTo - r.unitFrom + 1)
-    }, 0)
-  return pages + pairs
 }
 
 export type StreakResult = { streak: number; todayScore: number; remaining: number }

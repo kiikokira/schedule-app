@@ -556,7 +556,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
   const halfQuota = Math.max(1, Math.ceil(diagnosis.requiredPerDay / 2))
   const streakScores: Record<string, number> = {}
   for (const d of new Set([...records.map((r) => r.date), ...cycleRecords.map((r) => r.date)])) {
-    streakScores[d] = scoreActivityOnDate(d, records, cycleRecords)
+    streakScores[d] = scoreActivityOnDate(d, records)
   }
   const streak = calcStreakDays(streakScores, halfQuota, today)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -616,6 +616,9 @@ export default function HomeScreen({ onOpenBook }: Props) {
         {streak.remaining > 0 && (
           <div style={{ fontSize: 13, marginTop: 4 }}>今日あと{streak.remaining}で継続！</div>
         )}
+        <div data-testid="streak-legend" style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
+          ●：達成（1日の目安の半分以上） ○：未達成
+        </div>
       </section>
       <p data-testid="today-date" style={{ fontWeight: 700 }}>
         今日は {formatJaDate(today)}

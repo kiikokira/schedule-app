@@ -757,6 +757,26 @@ describe('HomeScreen', () => {
     expect(await screen.findByTestId('now-next-progress')).toHaveTextContent('0%')
   })
 
+  it('ドットの意味（●達成／○未達）を表示する', async () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(await screen.findByTestId('streak-legend')).toHaveTextContent('●')
+    expect(screen.getByTestId('streak-legend')).toHaveTextContent('○')
+  })
+
+  it('反復のみの日は未達成（○）になる', async () => {
+    await db.cycleRecords.add({
+      id: 'c1',
+      bookId: 'b9',
+      date: localDateStr(new Date()),
+      unitFrom: 1,
+      unitTo: 100,
+      round: 1,
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const dots = await screen.findByTestId('streak-dots')
+    expect(dots.textContent).not.toContain('●')
+  })
+
   const seedOverduePageBook = async () => {
     const now = new Date().toISOString()
     await db.books.add({
