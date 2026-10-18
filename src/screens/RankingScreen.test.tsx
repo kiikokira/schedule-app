@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import RankingScreen from './RankingScreen'
 import { db } from '../db/database'
@@ -45,6 +45,23 @@ describe('RankingScreen', () => {
     render(<RankingScreen onBack={() => {}} today={today} />)
     expect(await screen.findByTestId('ranking-reach')).toHaveTextContent('追い越す')
     expect(screen.getByTestId('ranking-page')).not.toHaveTextContent('を抜く')
+  })
+  it('近傍ボードの表示順位は1ずつ連続する', async () => {
+    const today = todayStr()
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    const rows = await screen.findAllByTestId(/^ranking-rival-/)
+    const ranks = rows.map((r) => Number((r.textContent?.match(/([\d,]+)位/)?.[1] ?? '').replace(/,/g, '')))
+    expect(ranks.length).toBeGreaterThan(1)
+    for (let i = 1; i < ranks.length; i++) {
+      expect(ranks[i] - ranks[i - 1] === 0 || ranks[i] - ranks[i - 1] === 1).toBe(true)
+    }
+  })
+  it('1位からの上位ボードを表示する', async () => {
+    const today = todayStr()
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    const top = await screen.findByTestId('ranking-top')
+    expect(within(top).getByTestId('ranking-top-0')).toHaveTextContent('1位')
+    expect(top).toHaveTextContent('ページ')
   })
   it('月初めの週に模試ウィーク確定と根拠を表示する', async () => {
     render(<RankingScreen onBack={() => {}} today="2026-10-05" />)

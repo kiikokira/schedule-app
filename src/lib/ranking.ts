@@ -69,18 +69,66 @@ export function rankToDeviation(rank: number): number {
 const RIVAL_UNIVERSITIES = ['東大', '京大', '阪大', '東北大', '名大', '九大', '北大', '早稲田', '慶應', '同志社', '立命館', '明治']
 const RIVAL_GRADES = ['高1', '高2', '高3', '浪人']
 
-export function sampleNearRivals(
-  userPages: number,
-  dateIso: string,
-  count: number,
-): { name: string; pages: number }[] {
-  const rand = mulberry32(hashSeed(`rivals-${dateIso}`))
-  const out: { name: string; pages: number }[] = []
-  for (let i = 0; i < count; i++) {
-    const delta = Math.round((rand() - 0.45) * 14)
-    const pages = Math.max(0, userPages + delta)
-    const name = `${RIVAL_UNIVERSITIES[Math.floor(rand() * RIVAL_UNIVERSITIES.length)]}の${RIVAL_GRADES[Math.floor(rand() * RIVAL_GRADES.length)]}`
-    out.push({ name, pages })
+function rivalName(rand: () => number): string {
+  return `${RIVAL_UNIVERSITIES[Math.floor(rand() * RIVAL_UNIVERSITIES.length)]}の${RIVAL_GRADES[Math.floor(rand() * RIVAL_GRADES.length)]}`
+}
+
+// 順位→ページ数の逆変換（分布の二分法）。近傍ボードの連続順位用。
+export function pagesForRank(rank: number): number {
+  const clamped = Math.min(Math.max(rank, 1), RANK_POPULATION)
+  const target = 1 - clamped / RANK_POPULATION
+  let lo = 0
+  let hi = 400
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2
+    if (populationCdf(mid) < target) lo = mid
+    else hi = mid
   }
-  return out.sort((x, y) => y.pages - x.pages)
+  return Math.max(0, Math.round((lo + hi) / 2))
+}
+
+export type BoardEntry = { rank: number; boardRank: number; name: string; pages: number; you: boolean }
+
+// 自分の前後half件ずつの近傍ボード。順位は1ずつ連続し、ページには
+// 決定的ジッターを付けて攻防のバラつきを出す。表示順位はdense方式。
+export function sampleNearBoard(
+  userPages: number,
+  userRank: number,
+  dateIso: string,
+  half = 15,
+): BoardEntry[] {
+  const clampedRank = Math.min(Math.max(userRank, 1), RANK_POPULATION)
+  const from = Math.max(1, clampedRank - half)
+  const to = Math.min(RANK_POPULATION, clampedRank + half)
+  const raw: BoardEntry[] = []
+  for (let rank = from; rank <= to; rank++) {
+    if (rank === clampedRank) continue
+    const rand = mulberry32(hashSeed(`board-${dateIso}-${rank}`))
+    const jitter = Math.floor(rand() * 5) - 2
+    raw.push({ rank, boardRank: 0, name: rivalName(rand), pages: Math.max(0, pagesForRank(rank) + jitter), you: false })
+  }
+  raw.push({ rank: clampedRank, boardRank: 0, name: 'あなた', pages: userPages, you: true })
+  raw.sort((a, b) => b.pages - a.pages || a.rank - b.rank)
+  let boardRank = 0
+  let prevPages = -1
+  for (const entry of raw) {
+    if (entry.pages !== prevPages) {
+      boardRank += 1
+      prevPages = entry.pages
+    }
+    entry.boardRank = boardRank
+  }
+  return raw
+}
+
+// 上位ボード（1位からの連番、ページ降順、日付シードで決定的）。
+export function sampleTopRivals(dateIso: string, count = 10): BoardEntry[] {
+  const rand = mulberry32(hashSeed(`top-${dateIso}`))
+  const out: BoardEntry[] = []
+  let pages = 56 + Math.floor(rand() * 7)
+  for (let rank = 1; rank <= count; rank++) {
+    out.push({ rank, boardRank: rank, name: rivalName(rand), pages, you: false })
+    pages = Math.max(0, pages - (2 + Math.floor(rand() * 3)))
+  }
+  return out
 }
