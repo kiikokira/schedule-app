@@ -82,6 +82,12 @@ it('navigates to the school page from plan via school toggle', async () => {
   expect(await screen.findByTestId('school-page')).toBeInTheDocument()
 })
 
+it('navigates to the ranking screen from home via ranking open', async () => {
+  render(<App />)
+  fireEvent.click(await screen.findByTestId('ranking-open'))
+  expect(await screen.findByTestId('ranking-page')).toBeInTheDocument()
+})
+
 it('shows no update dot', () => {
   localStorage.setItem('schedule-app-last-seen-build', 'old-build')
   render(<App />)
