@@ -1045,5 +1045,7 @@ describe('PlanScreen', () => {
     const japan = screen.getByTestId('japan-toggle')
     const school = screen.getByTestId('school-toggle')
     expect(japan.compareDocumentPosition(school) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(school).toHaveTextContent('学校の日程')
+    expect(school).not.toHaveTextContent('🏫')
   })
 })

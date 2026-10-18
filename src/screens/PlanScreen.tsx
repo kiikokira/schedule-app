@@ -532,7 +532,7 @@ export default function PlanScreen({ onDone, onFocus, onJapan, onSchool }: Props
           onClick={() => onSchool?.()}
           style={{ fontSize: 16, fontWeight: 700, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', width: '100%', textAlign: 'left' }}
         >
-          🏫 学校の日程 ▶
+          学校の日程 ▶
         </button>
       </section>
 
