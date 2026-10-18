@@ -25,6 +25,7 @@ import {
   type ProgressRecordData,
 } from '../lib/progress'
 import { useCycleRecords } from '../hooks/useCycleRecords'
+import { dailyPagesToRank, rankToDeviation, RANK_POPULATION } from '../lib/ranking'
 import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
 import { quoteOf } from '../data/quotes'
@@ -49,6 +50,7 @@ const ROUND_BADGE_COUNT = 5
 
 type Props = {
   onOpenBook: (id: string) => void
+  onRanking?: () => void
 }
 
 function findRegistered(
@@ -411,7 +413,7 @@ function ScheduleRow({
   )
 }
 
-export default function HomeScreen({ onOpenBook }: Props) {
+export default function HomeScreen({ onOpenBook, onRanking }: Props) {
   const { books, saveBook, loaded: booksLoaded } = useBooks()
   const { records, addProgress } = useRecords()
   const { cycleRecords } = useCycleRecords()
@@ -559,6 +561,9 @@ export default function HomeScreen({ onOpenBook }: Props) {
     streakScores[d] = scoreActivityOnDate(d, records)
   }
   const streak = calcStreakDays(streakScores, dailyQuota, today)
+  const todayPages = scoreActivityOnDate(today, records)
+  const rank = dailyPagesToRank(todayPages, today)
+  const deviation = rankToDeviation(rank)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = parseDate(today)
     d.setDate(d.getDate() - (6 - i))
@@ -619,6 +624,15 @@ export default function HomeScreen({ onOpenBook }: Props) {
         <div data-testid="streak-legend" style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
           ●：達成（1日の目安以上） ○：未達成
         </div>
+      </section>
+      <section data-testid="ranking-card" style={{ marginTop: 8, marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div style={{ fontWeight: 800, fontSize: 16 }}>仮想全国ランキング</div>
+        <div data-testid="ranking-summary" style={{ fontSize: 14 }}>
+          全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{deviation}）
+        </div>
+        <button data-testid="ranking-open" type="button" onClick={() => onRanking?.()}>
+          順位を見る
+        </button>
       </section>
       <p data-testid="today-date" style={{ fontWeight: 700 }}>
         今日は {formatJaDate(today)}

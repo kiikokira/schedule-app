@@ -840,6 +840,24 @@ describe('HomeScreen', () => {
     )
   })
 
+  it('仮想全国ランキングカードに順位と偏差値を表示する', async () => {
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      totalPages: 100,
+      startDate: daysAgo(30),
+      deadline: daysAhead(10),
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: localDateStr(new Date()), pages: 10 })
+    const onRanking = vi.fn()
+    render(<HomeScreen onOpenBook={() => {}} onRanking={onRanking} />)
+    const card = await screen.findByTestId('ranking-card')
+    expect(card).toHaveTextContent('仮想全国ランキング')
+    expect(card).toHaveTextContent('位')
+    fireEvent.click(screen.getByTestId('ranking-open'))
+    expect(onRanking).toHaveBeenCalledTimes(1)
+  })
+
   const seedOverduePageBook = async () => {
     const now = new Date().toISOString()
     await db.books.add({
