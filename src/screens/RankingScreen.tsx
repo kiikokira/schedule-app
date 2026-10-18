@@ -21,6 +21,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   }, [])
   const todayPages = scoreActivityOnDate(today, records)
   const rank = dailyPagesToRank(todayPages, today)
+  const deviation = rankToDeviation(rank)
   void nowMin
   const rivals = useMemo(() => sampleNearRivals(todayPages, today, 30), [todayPages, today])
   const prevRank = useRef(rank)
@@ -31,6 +32,9 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     prevRank.current = rank
   }, [rank])
   const ahead = rivals.find((r) => r.pages > todayPages)
+  const dayOfMonth = Number(today.slice(8, 10))
+  const isMockWeek = dayOfMonth >= 1 && dayOfMonth <= 7
+  const level = deviation >= 60 ? 'A' : deviation >= 55 ? 'B' : deviation >= 50 ? 'C' : deviation >= 45 ? 'D' : 'E'
   return (
     <div data-testid="ranking-page" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>仮想全国ランキング</h1>
@@ -48,6 +52,15 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
           {r.name} {r.pages}ページ
         </div>
       ))}
+      {isMockWeek && (
+        <section data-testid="ranking-mockweek" style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
+          <div style={{ fontWeight: 800 }}>全国模試ウィーク確定：{rank.toLocaleString()}位（偏差値{deviation}）</div>
+          <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>到達度目安：{level}</div>
+        </section>
+      )}
+      <section data-testid="ranking-sources" style={{ marginTop: 12, fontSize: 12, color: 'var(--text-dim)' }}>
+        母集団の根拠：文部科学省「高等教育の現状について」／ベネッセ教育総合研究所（大学生130人調査）／代々木ゼミナール目安／坪田塾コラム／SFC公式合格体験記・合格者体験談
+      </section>
       <button data-testid="ranking-back" type="button" onClick={onBack}>
         戻る
       </button>

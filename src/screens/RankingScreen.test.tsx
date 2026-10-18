@@ -28,4 +28,9 @@ describe('RankingScreen', () => {
     fireEvent.click(await screen.findByTestId('ranking-back'))
     expect(onBack).toHaveBeenCalledTimes(1)
   })
+  it('月初めの週に模試ウィーク確定と根拠を表示する', async () => {
+    render(<RankingScreen onBack={() => {}} today="2026-10-05" />)
+    expect(await screen.findByTestId('ranking-mockweek')).toHaveTextContent('全国模試ウィーク')
+    expect(screen.getByTestId('ranking-sources')).toHaveTextContent('文部科学省')
+  })
 })
