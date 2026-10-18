@@ -19,4 +19,12 @@ describe('ranking', () => {
     expect(first).toEqual(second)
     expect(first).toHaveLength(30)
   })
+  it('ライバル名は志望大学＋学年である', () => {
+    const rivals = sampleNearRivals(20, '2026-10-18', 30)
+    const universities = ['東大', '京大', '阪大', '東北大', '名大', '九大', '北大', '早稲田', '慶應', '同志社', '立命館', '明治']
+    for (const r of rivals) {
+      expect(universities.some((u) => r.name.startsWith(u))).toBe(true)
+    }
+    expect(rivals.map((r) => r.name).join()).not.toMatch(/都|道|府|県/)
+  })
 })

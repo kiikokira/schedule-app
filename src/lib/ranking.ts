@@ -66,7 +66,7 @@ export function rankToDeviation(rank: number): number {
   return Math.round((50 + 10 * z) * 10) / 10
 }
 
-const RIVAL_AREAS = ['東京', '大阪', '神奈川', '愛知', '福岡', '北海道', '京都', '広島']
+const RIVAL_UNIVERSITIES = ['東大', '京大', '阪大', '東北大', '名大', '九大', '北大', '早稲田', '慶應', '同志社', '立命館', '明治']
 const RIVAL_GRADES = ['高1', '高2', '高3', '浪人']
 
 export function sampleNearRivals(
@@ -79,7 +79,7 @@ export function sampleNearRivals(
   for (let i = 0; i < count; i++) {
     const delta = Math.round((rand() - 0.45) * 14)
     const pages = Math.max(0, userPages + delta)
-    const name = `${RIVAL_AREAS[Math.floor(rand() * RIVAL_AREAS.length)]}の${RIVAL_GRADES[Math.floor(rand() * RIVAL_GRADES.length)]}`
+    const name = `${RIVAL_UNIVERSITIES[Math.floor(rand() * RIVAL_UNIVERSITIES.length)]}の${RIVAL_GRADES[Math.floor(rand() * RIVAL_GRADES.length)]}`
     out.push({ name, pages })
   }
   return out.sort((x, y) => y.pages - x.pages)

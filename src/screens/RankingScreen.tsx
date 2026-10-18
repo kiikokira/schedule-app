@@ -27,8 +27,8 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const prevRank = useRef(rank)
   const [toast, setToast] = useState<string | null>(null)
   useEffect(() => {
-    if (rank < prevRank.current) setToast('ライバルを抜いた！')
-    else if (rank > prevRank.current) setToast('ライバルに抜かれた…')
+    if (rank < prevRank.current) setToast('ライバルを追い越した！')
+    else if (rank > prevRank.current) setToast('ライバルに追い越された…')
     prevRank.current = rank
   }, [rank])
   const ahead = rivals.find((r) => r.pages > todayPages)
@@ -44,12 +44,12 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       {toast && <p data-testid="ranking-toast">{toast}</p>}
       {ahead && (
         <p data-testid="ranking-reach">
-          あと{ahead.pages - todayPages}ページで{ahead.name}を抜く
+          あと{ahead.pages - todayPages}ページで{ahead.name}を追い越す
         </p>
       )}
       {rivals.map((r, i) => (
         <div key={`${r.name}-${i}`} data-testid={`ranking-rival-${i}`} style={{ fontSize: 14 }}>
-          {r.name} {r.pages}ページ
+          {r.name} {r.pages}ページ <span style={{ fontWeight: 800, color: '#111' }}>{dailyPagesToRank(r.pages, today).toLocaleString()}位</span>
         </div>
       ))}
       {isMockWeek && (

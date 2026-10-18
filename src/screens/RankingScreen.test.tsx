@@ -28,6 +28,24 @@ describe('RankingScreen', () => {
     fireEvent.click(await screen.findByTestId('ranking-back'))
     expect(onBack).toHaveBeenCalledTimes(1)
   })
+  it('ライバル行に順位と志望大学を表示する', async () => {
+    const today = todayStr()
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    const rows = await screen.findAllByTestId(/^ranking-rival-/)
+    expect(rows.length).toBeGreaterThan(0)
+    for (const row of rows) {
+      expect(row).toHaveTextContent(/[\d,]+位/)
+    }
+    const all = rows.map((r) => r.textContent ?? '').join()
+    expect(all).toMatch(/阪大|東大|京大|早稲田|慶應/)
+    expect(all).not.toMatch(/都|道|府|県/)
+  })
+  it('追い越す表記を使い抜くとは書かない', async () => {
+    const today = todayStr()
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    expect(await screen.findByTestId('ranking-reach')).toHaveTextContent('追い越す')
+    expect(screen.getByTestId('ranking-page')).not.toHaveTextContent('を抜く')
+  })
   it('月初めの週に模試ウィーク確定と根拠を表示する', async () => {
     render(<RankingScreen onBack={() => {}} today="2026-10-05" />)
     expect(await screen.findByTestId('ranking-mockweek')).toHaveTextContent('全国模試ウィーク')
