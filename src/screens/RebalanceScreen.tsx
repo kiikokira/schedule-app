@@ -324,17 +324,33 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
                   </option>
                 ))}
               </select>
-              <input
-                data-testid={`ratio-input-${targetBook.id}`}
-                type="number"
-                min="0"
-                max="1"
-                step="0.05"
-                value={ratios[targetBook.id] ?? (targetBook.allottedRatio !== undefined ? String(targetBook.allottedRatio) : '')}
-                onChange={(e) => setRatios((r) => ({ ...r, [targetBook.id]: e.target.value }))}
-                placeholder="配分比率(0-1)"
-                style={{ width: 140 }}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label
+                  data-testid={`ratio-label-${targetBook.id}`}
+                  htmlFor={`ratio-input-${targetBook.id}`}
+                  style={{ fontSize: 13, fontWeight: 700 }}
+                >
+                  配分比率（1〜10）
+                </label>
+                <input
+                  id={`ratio-input-${targetBook.id}`}
+                  data-testid={`ratio-input-${targetBook.id}`}
+                  type="number"
+                  min="1"
+                  max="10"
+                  step="1"
+                  value={ratios[targetBook.id] ?? ratioInputOf(targetBook)}
+                  onChange={(e) => setRatios((r) => ({ ...r, [targetBook.id]: e.target.value }))}
+                  placeholder="例: 5"
+                  style={{ width: 140 }}
+                />
+                <div
+                  data-testid={`ratio-hint-${targetBook.id}`}
+                  style={{ fontSize: 12, color: 'var(--text-dim)' }}
+                >
+                  1日の空き時間のうち使う上限の割合。5で5割まで
+                </div>
+              </div>
             </div>
           </div>
         </>
@@ -365,11 +381,18 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   )
 }
 
+// 入力欄は1〜10の整数で受け付け、NをN割（N/10）として保存する。
 function clampRatio(v: string | undefined): number | undefined {
   if (v === undefined || v === '') return undefined
   const n = Number(v)
   if (!Number.isFinite(n)) return undefined
-  return Math.min(Math.max(n, 0), 1)
+  return Math.min(Math.max(Math.round(n), 1), 10) / 10
+}
+
+// 保存済みの小数比率（0〜1）を入力欄表示用の1〜10整数に戻す。
+function ratioInputOf(b: BookData): string {
+  if (b.allottedRatio === undefined) return ''
+  return String(Math.min(Math.max(Math.round(b.allottedRatio * 10), 1), 10))
 }
 
 function fmt(min: number): string {

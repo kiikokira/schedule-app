@@ -124,10 +124,10 @@ describe('RebalanceScreen', () => {
     await seedDaySlot()
     render(<RebalanceScreen bookId="b2" onBack={() => {}} onSchedule={() => {}} />)
     fireEvent.change(await screen.findByTestId('ratio-input-b2'), {
-      target: { value: '0.5' },
+      target: { value: '5' },
     })
     fireEvent.click(screen.getByTestId('rebalance-apply'))
-    expect((screen.getByTestId('ratio-input-b2') as HTMLInputElement).value).toBe('0.5')
+    expect((screen.getByTestId('ratio-input-b2') as HTMLInputElement).value).toBe('5')
     const after = within(screen.getByTestId('rebalance-after'))
     expect(after.getByTestId('rebalance-after-row-b2')).toHaveTextContent('60分')
   })
@@ -139,7 +139,7 @@ describe('RebalanceScreen', () => {
     await seedDaySlot()
     render(<RebalanceScreen bookId="b2" onBack={() => {}} onSchedule={onSchedule} />)
     fireEvent.change(await screen.findByTestId('ratio-input-b2'), {
-      target: { value: '0.5' },
+      target: { value: '5' },
     })
     fireEvent.click(screen.getByTestId('rebalance-report'))
     await waitFor(async () => {
@@ -150,6 +150,23 @@ describe('RebalanceScreen', () => {
       expect(adjustments[0].kind).toBe('ratio')
     })
     expect(onSchedule).toHaveBeenCalled()
+  })
+
+  it('shows a saved decimal ratio as a 1-10 value', async () => {
+    await addBook('b1', { allottedRatio: 0.5 })
+    await seedDaySlot()
+    render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={() => {}} />)
+    expect((await screen.findByTestId('ratio-input-b1') as HTMLInputElement).value).toBe('5')
+  })
+
+  it('labels the ratio input with its meaning and an example', async () => {
+    await addBook('b1')
+    await seedDaySlot()
+    render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={() => {}} />)
+    expect(await screen.findByTestId('ratio-label-b1')).toHaveTextContent('配分比率')
+    expect(screen.getByTestId('ratio-label-b1')).toHaveTextContent('1〜10')
+    expect(screen.getByTestId('ratio-hint-b1')).toHaveTextContent('5で5割')
+    expect(screen.getByTestId('ratio-input-b1')).toHaveAttribute('placeholder', '例: 5')
   })
 
   it('shows 未設定 for an unset priority', async () => {
