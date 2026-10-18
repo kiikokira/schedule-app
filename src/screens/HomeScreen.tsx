@@ -614,7 +614,7 @@ export default function HomeScreen({ onOpenBook }: Props) {
           })}
         </div>
         {streak.remaining > 0 && (
-          <div style={{ fontSize: 13, marginTop: 4 }}>今日あと{streak.remaining}で継続！</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>今日あと{streak.remaining}ページで継続！</div>
         )}
         <div data-testid="streak-legend" style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
           ●：達成（1日の目安以上） ○：未達成

@@ -825,6 +825,21 @@ describe('HomeScreen', () => {
     expect(legend).not.toHaveTextContent('半分')
   })
 
+  it('継続までの残りはページ単位で表示する', async () => {
+    await db.books.add({
+      ...book,
+      id: 'b1',
+      totalPages: 100,
+      startDate: daysAgo(30),
+      deadline: daysAhead(10),
+    })
+    // 残り100ページ / 残り10日 = 10ページ/日。今日0ページなので残りはちょうど10ページ
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await waitFor(() =>
+      expect(screen.getByTestId('streak-section')).toHaveTextContent('今日あと10ページで継続！'),
+    )
+  })
+
   const seedOverduePageBook = async () => {
     const now = new Date().toISOString()
     await db.books.add({
