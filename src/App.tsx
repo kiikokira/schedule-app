@@ -123,7 +123,7 @@ export default function App() {
         )}
         {route.name === 'ai-history' && <HistoryScreen onBack={() => setRoute({ name: 'ai' })} />}
         {route.name === 'focus' && <FocusPeriodScreen onBack={() => setRoute({ name: 'home' })} />}
-        {route.name === 'plan' && <PlanScreen onDone={() => setRoute({ name: 'home' })} onFocus={() => setRoute({ name: 'focus' })} onJapan={() => setRoute({ name: 'japan' })} />}
+        {route.name === 'plan' && <PlanScreen onDone={() => setRoute({ name: 'home' })} onFocus={() => setRoute({ name: 'focus' })} onJapan={() => setRoute({ name: 'japan' })} onSchool={() => setRoute({ name: 'school' })} />}
         {route.name === 'today' && (
           <TodayPlanScreen
             onBack={() => setRoute({ name: 'home' })}

@@ -1031,4 +1031,19 @@ describe('PlanScreen', () => {
     fireEvent.click(screen.getByTestId('japan-toggle'))
     expect(onJapan).toHaveBeenCalledTimes(1)
   })
+
+  it('学校の日程の欄を押すと学校の日程ページへ遷移できる', async () => {
+    const onSchool = vi.fn()
+    render(<PlanScreen onDone={() => {}} onSchool={onSchool} />)
+    expect(screen.getByTestId('school-toggle')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('school-toggle'))
+    expect(onSchool).toHaveBeenCalledTimes(1)
+  })
+
+  it('学校の日程の欄は代表戦の欄の下にある', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    const japan = screen.getByTestId('japan-toggle')
+    const school = screen.getByTestId('school-toggle')
+    expect(japan.compareDocumentPosition(school) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
 })

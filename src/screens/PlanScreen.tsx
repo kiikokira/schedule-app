@@ -41,6 +41,7 @@ type Props = {
   onDone: () => void
   onFocus?: () => void
   onJapan?: () => void
+  onSchool?: () => void
 }
 
 type SlotRow = { start: string; end: string; bookId?: string; onTrain?: boolean }
@@ -70,7 +71,7 @@ function collectRows(rows: SlotRow[]): RowsResult {
   return { ok: true, rows: filled }
 }
 
-export default function PlanScreen({ onDone, onFocus, onJapan }: Props) {
+export default function PlanScreen({ onDone, onFocus, onJapan, onSchool }: Props) {
   const { books, saveBook } = useBooks()
   const [entries, setEntries] = useState<ScheduleEntry[]>(() => loadSchedule())
   const [result, setResult] = useState<string | null>(null)
@@ -521,6 +522,17 @@ export default function PlanScreen({ onDone, onFocus, onJapan }: Props) {
           style={{ fontSize: 16, fontWeight: 700, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', width: '100%', textAlign: 'left' }}
         >
           ⚽ 代表戦 ▶
+        </button>
+      </section>
+
+      <section style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+        <button
+          data-testid="school-toggle"
+          type="button"
+          onClick={() => onSchool?.()}
+          style={{ fontSize: 16, fontWeight: 700, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', width: '100%', textAlign: 'left' }}
+        >
+          🏫 学校の日程 ▶
         </button>
       </section>
 

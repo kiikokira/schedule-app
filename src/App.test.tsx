@@ -75,6 +75,13 @@ it('navigates to the japan match screen from plan via japan toggle', async () =>
   expect(await screen.findByTestId('japan-page')).toBeInTheDocument()
 })
 
+it('navigates to the school page from plan via school toggle', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByTestId('nav-plan'))
+  fireEvent.click(await screen.findByTestId('school-toggle'))
+  expect(await screen.findByTestId('school-page')).toBeInTheDocument()
+})
+
 it('shows no update dot', () => {
   localStorage.setItem('schedule-app-last-seen-build', 'old-build')
   render(<App />)
