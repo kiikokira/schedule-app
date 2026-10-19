@@ -19,7 +19,7 @@ import {
   rankToDeviation,
 } from '../lib/ranking'
 import { loadProfile, saveProfile } from '../data/profileStore'
-import { ALL_UNIVERSITIES, facultiesFor } from '../data/universities'
+import { ALL_UNIVERSITIES, facultiesFor, formalUniversityName } from '../data/universities'
 import ProgressChart from '../components/ProgressChart'
 
 type Props = { onBack: () => void; onRanking: () => void; today?: string }
@@ -96,7 +96,7 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
         {hasUniv ? (
           <>
             <div style={{ fontWeight: 800, fontSize: 20 }}>
-              {profile.university}{profile.faculty}
+              {formalUniversityName(profile.university)}{profile.faculty}
             </div>
             <div style={{ fontSize: 14, color: 'var(--text-dim)' }}>
               {[profile.nickname, profile.grade, profile.department].filter(Boolean).join(' / ')}
@@ -137,7 +137,7 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
         <section data-testid="mypage-view" style={{ marginTop: 12 }}>
           <div>ニックネーム：{profile.nickname || '未設定'}</div>
           <div>学年：{profile.grade || '未設定'}</div>
-          <div>志望校：{profile.university || '未設定'} {profile.faculty || '未設定'}</div>
+          <div>志望校：{profile.university ? formalUniversityName(profile.university) : '未設定'} {profile.faculty || '未設定'}</div>
           {profile.department && <div>学科：{profile.department}</div>}
           <button data-testid="mypage-edit" type="button" onClick={startEdit} style={{ marginTop: 8 }}>
             編集する

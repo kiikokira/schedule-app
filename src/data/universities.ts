@@ -129,3 +129,14 @@ export const FACULTIES_BY_UNIV: Record<string, string[]> = {
 export function facultiesFor(university: string): string[] {
   return FACULTIES_BY_UNIV[university] ?? COMMON_FACULTIES
 }
+
+// 略称→正式名称マップ（表示専用。保存値は略称のままにして既存データを壊さない）
+export const FORMAL_UNIVERSITY_NAMES: Record<string, string> = {
+  慶應: '慶應義塾大学',
+}
+
+export function formalUniversityName(university: string): string {
+  if (!university) return university
+  if (university === '慶應義塾大学') return university
+  return FORMAL_UNIVERSITY_NAMES[university] ?? university
+}

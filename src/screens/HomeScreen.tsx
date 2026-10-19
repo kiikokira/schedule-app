@@ -27,6 +27,7 @@ import {
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { totalPagesToRank, rankToDeviation, totalActivity, RANK_POPULATION } from '../lib/ranking'
 import { loadProfile } from '../data/profileStore'
+import { formalUniversityName } from '../data/universities'
 import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
 import { quoteOf } from '../data/quotes'
@@ -568,7 +569,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
   const rank = totalPagesToRank(totalPages)
   const deviation = rankToDeviation(rank)
   const profile = loadProfile()
-  const headerUniv = profile.university && profile.faculty ? `${profile.university}${profile.faculty}` : '慶應義塾大学環境情報学部'
+  const headerUniv = profile.university && profile.faculty ? `${formalUniversityName(profile.university)}${profile.faculty}` : '慶應義塾大学環境情報学部'
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = parseDate(today)
     d.setDate(d.getDate() - (6 - i))

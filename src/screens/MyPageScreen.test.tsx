@@ -48,6 +48,15 @@ describe('MyPageScreen', () => {
     expect(hero).toHaveTextContent('環境情報学部')
     expect(hero).toHaveTextContent('たろう')
   })
+  it('ヒーローの大学名は正式名称で表示する（慶應→慶應義塾大学）', async () => {
+    const { saveProfile } = await import('../data/profileStore')
+    saveProfile({ nickname: 'たろう', grade: '高2', university: '慶應', faculty: '環境情報学部', department: '' })
+    render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today={todayStr()} />)
+    const hero = await screen.findByTestId('mypage-hero')
+    expect(hero).toHaveTextContent('慶應義塾大学環境情報学部')
+    const view = await screen.findByTestId('mypage-view')
+    expect(view).toHaveTextContent('慶應義塾大学')
+  })
   it('志望校未設定なら設定を促す', async () => {
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today={todayStr()} />)
     const hero = await screen.findByTestId('mypage-hero')
