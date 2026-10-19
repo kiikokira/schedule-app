@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { RANK_POPULATION, dailyPagesToRank, rankToDeviation, pagesForRank, sampleNearBoard, sampleTopRivals, totalPagesToRank, totalPagesForRank, totalActivity } from './ranking'
+import { RANK_POPULATION, dailyPagesToRank, rankToDeviation, pagesForRank, sampleNearBoard, sampleTopRivals, totalPagesToRank, totalPagesForRank, totalActivity, nextRankMilestone } from './ranking'
 import { ALL_UNIVERSITIES } from '../data/universities'
 
 describe('ranking', () => {
@@ -75,5 +75,11 @@ describe('ranking', () => {
     const topNames = sampleTopRivals('2026-10-18', 10).map((r) => r.name).join()
     const bottomBoard = sampleNearBoard(5, 199990, '2026-10-18', 5).filter((r) => !r.you).map((r) => r.name).join()
     expect(topNames + bottomBoard).toMatch(/新潟|金沢|信州|岡山|広島|熊本|鹿児島|琉球|弘前|静岡/)
+  })
+  it('次の節目順位を返す（1位ならnull）', () => {
+    expect(nextRankMilestone(199159)).toBe(100000)
+    expect(nextRankMilestone(90000)).toBe(50000)
+    expect(nextRankMilestone(500)).toBe(100)
+    expect(nextRankMilestone(1)).toBeNull()
   })
 })

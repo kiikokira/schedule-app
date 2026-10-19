@@ -66,6 +66,13 @@ export function totalActivity(records: { pages: number; date?: string }[]): numb
   return records.reduce((sum, r) => sum + (r.pages ?? 0), 0)
 }
 
+// 節目の順位（上位ほど小さい）。現在の順位より1つ上の節目を返す。1位ならnull。
+export const RANK_MILESTONES = [100000, 50000, 10000, 5000, 1000, 100, 10, 1]
+
+export function nextRankMilestone(rank: number): number | null {
+  return RANK_MILESTONES.find((m) => m < rank) ?? null
+}
+
 export function rankToDeviation(rank: number): number {
   const p = 1 - (rank - 0.5) / RANK_POPULATION
   const capped = Math.min(Math.max(p, 1e-6), 1 - 1e-6)

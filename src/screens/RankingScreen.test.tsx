@@ -19,7 +19,7 @@ describe('RankingScreen', () => {
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 10 })
     render(<RankingScreen onBack={() => {}} today={today} />)
     expect(await screen.findByTestId('ranking-page')).toHaveTextContent('仮想全国ランキング')
-    expect(await screen.findByTestId('ranking-reach')).toHaveTextContent('ページで')
+    expect(await screen.findByTestId('ranking-reach')).toHaveTextContent('ページ')
     expect((await screen.findAllByTestId(/^ranking-rival-/)).length).toBeGreaterThan(0)
   })
   it('戻るボタンでonBackを呼ぶ', async () => {
@@ -40,10 +40,11 @@ describe('RankingScreen', () => {
     expect(all).toMatch(/阪大|東大|京大|早稲田|慶應|新潟|信州|岡山|広島|熊本|鹿児島|琉球|弘前|静岡|金沢/)
     expect(all).not.toMatch(/都|道|府|県/)
   })
-  it('追い越す表記を使い抜くとは書かない', async () => {
+  it('追い越す表記を使わず次の節目までの差を表示する', async () => {
     const today = todayStr()
     render(<RankingScreen onBack={() => {}} today={today} />)
-    expect(await screen.findByTestId('ranking-reach')).toHaveTextContent('追い越す')
+    expect(await screen.findByTestId('ranking-reach')).toHaveTextContent('まであと')
+    expect(screen.getByTestId('ranking-reach')).not.toHaveTextContent('追い越す')
     expect(screen.getByTestId('ranking-page')).not.toHaveTextContent('を抜く')
   })
   it('近傍ボードの表示順位は1ずつ連続する', async () => {
@@ -101,5 +102,30 @@ describe('RankingScreen', () => {
     render(<RankingScreen onBack={() => {}} today={today} />)
     const summary = await screen.findByTestId('ranking-summary')
     expect(summary).not.toHaveTextContent('200,000位')
+  })
+  it('ライバル行は名前・ページ・順位の3列で縦に揃う', async () => {
+    const today = todayStr()
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    const rows = await screen.findAllByTestId(/^ranking-rival-/)
+    expect(rows.length).toBeGreaterThan(0)
+    for (const row of rows) {
+      expect(row).toHaveStyle({ display: 'grid' })
+      expect(within(row).getByTestId('rival-name')).toBeInTheDocument()
+      expect(within(row).getByTestId('rival-pages')).toBeInTheDocument()
+      expect(within(row).getByTestId('rival-rank')).toBeInTheDocument()
+    }
+  })
+  it('節目までの差は累計基準で計算される（累計50なら100,000位まであと100ページ）', async () => {
+    const now = new Date().toISOString()
+    const today = todayStr()
+    await db.books.add({
+      id: 'b1', title: '単語帳', totalPages: 500,
+      startDate: today, deadline: today, createdAt: now, updatedAt: now,
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 50 })
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    const reach = await screen.findByTestId('ranking-reach')
+    expect(reach).toHaveTextContent('全国100,000位')
+    expect(reach).toHaveTextContent('あと100ページ')
   })
 })

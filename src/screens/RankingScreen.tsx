@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRecords } from '../hooks/useRecords'
 import { scoreActivityOnDate, todayStr } from '../lib/progress'
-import { RANK_POPULATION, totalPagesToRank, totalActivity, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
+import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
 
 type Props = { onBack: () => void; today?: string }
 
@@ -33,7 +33,8 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     else if (rank > prevRank.current) setToast('ライバルに追い越された…')
     prevRank.current = rank
   }, [rank])
-  const ahead = rivals.find((r) => !r.you && r.pages > totalPages)
+  const milestone = nextRankMilestone(rank)
+  const milestoneDiff = milestone == null ? 0 : Math.max(0, totalPagesForRank(milestone) - totalPages)
   const dayOfMonth = Number(today.slice(8, 10))
   const isMockWeek = dayOfMonth >= 1 && dayOfMonth <= 7
   const level = deviation >= 60 ? 'A' : deviation >= 55 ? 'B' : deviation >= 50 ? 'C' : deviation >= 45 ? 'D' : 'E'
@@ -44,9 +45,11 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
         全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{rankToDeviation(rank)}） 累計{totalPages.toLocaleString()}ページ（今日{todayPages.toLocaleString()}ページ）
       </p>
       {toast && <p data-testid="ranking-toast">{toast}</p>}
-      {ahead && (
+      {milestone == null ? (
+        <p data-testid="ranking-reach">全国1位をキープ中！</p>
+      ) : (
         <p data-testid="ranking-reach">
-          あと{(ahead.pages - totalPages).toLocaleString()}ページで{ahead.name}を追い越す
+          全国{milestone.toLocaleString()}位（偏差値{rankToDeviation(milestone)}）まであと{milestoneDiff.toLocaleString()}ページ
         </p>
       )}
       {rivals.map((r, i) => (
@@ -54,19 +57,41 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
           key={`${r.rank}-${i}`}
           data-testid={`ranking-rival-${i}`}
           style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto auto',
+            columnGap: 8,
+            alignItems: 'baseline',
             fontSize: 14,
             fontWeight: r.you ? 800 : undefined,
             background: r.you ? '#eef3ff' : undefined,
           }}
         >
-          {r.you ? 'あなた' : r.name} {r.pages}ページ <span style={{ fontWeight: 800, color: '#111' }}>{r.rank.toLocaleString()}位</span>
+          <span data-testid="rival-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {r.you ? 'あなた' : r.name}
+          </span>
+          <span data-testid="rival-pages" style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+            {r.pages.toLocaleString()}ページ
+          </span>
+          <span data-testid="rival-rank" style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', fontWeight: 800, color: '#111' }}>
+            {r.rank.toLocaleString()}位
+          </span>
         </div>
       ))}
       <section data-testid="ranking-top" style={{ marginTop: 12 }}>
         <h2 style={{ fontSize: 15 }}>全国トップ10</h2>
         {topRivals.map((r, i) => (
-          <div key={`top-${r.rank}`} data-testid={`ranking-top-${i}`} style={{ fontSize: 14 }}>
-            {r.rank}位 {r.name} {r.pages}ページ
+          <div key={`top-${r.rank}`}             data-testid={`ranking-top-${i}`}
+            style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', columnGap: 8, alignItems: 'baseline', fontSize: 14 }}
+          >
+            <span data-testid="top-rank" style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+              {r.rank}位
+            </span>
+            <span data-testid="top-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {r.name}
+            </span>
+            <span data-testid="top-pages" style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+              {r.pages.toLocaleString()}ページ
+            </span>
           </div>
         ))}
       </section>
