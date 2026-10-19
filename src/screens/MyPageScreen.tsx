@@ -83,7 +83,14 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
   const hasUniv = profile.university !== ''
 
   return (
-    <div data-testid="mypage-page" style={{ padding: 16 }}>
+    <div
+      data-testid="mypage-page"
+      style={{
+        padding: 16,
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #dbe7ff 0%, #eef4ff 38%, #f2f4f8 100%)',
+      }}
+    >
       <h1 style={{ fontSize: 20 }}>マイページ</h1>
       <section data-testid="mypage-hero" style={cardStyle}>
         {hasUniv ? (

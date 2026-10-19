@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRecords } from '../hooks/useRecords'
 import { scoreActivityOnDate, todayStr } from '../lib/progress'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
@@ -26,13 +26,6 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   void nowMin
   const rivals = useMemo(() => sampleNearBoard(totalPages, rank, today, 15), [totalPages, rank, today])
   const topRivals = useMemo(() => sampleTopRivals(today, 10), [today])
-  const prevRank = useRef(rank)
-  const [toast, setToast] = useState<string | null>(null)
-  useEffect(() => {
-    if (rank < prevRank.current) setToast('ライバルを追い越した！')
-    else if (rank > prevRank.current) setToast('ライバルに追い越された…')
-    prevRank.current = rank
-  }, [rank])
   const milestone = nextRankMilestone(rank)
   const milestoneDiff = milestone == null ? 0 : Math.max(0, totalPagesForRank(milestone) - totalPages)
   const dayOfMonth = Number(today.slice(8, 10))
@@ -44,7 +37,6 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       <p data-testid="ranking-summary" style={{ fontWeight: 700 }}>
         全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{rankToDeviation(rank)}） 累計{totalPages.toLocaleString()}ページ（今日{todayPages.toLocaleString()}ページ）
       </p>
-      {toast && <p data-testid="ranking-toast">{toast}</p>}
       {milestone == null ? (
         <p data-testid="ranking-reach">全国1位をキープ中！</p>
       ) : (
