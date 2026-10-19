@@ -1,16 +1,44 @@
 import { useState } from 'react'
+import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
-import { scoreActivityOnDate, todayStr } from '../lib/progress'
-import { RANK_POPULATION, totalActivity, totalPagesToRank, rankToDeviation } from '../lib/ranking'
+import { useCycleRecords } from '../hooks/useCycleRecords'
+import {
+  scoreActivityOnDate,
+  todayStr,
+  formatDate,
+  parseDate,
+  overallDiagnosis,
+  calcStreakDays,
+} from '../lib/progress'
+import {
+  RANK_POPULATION,
+  totalActivity,
+  totalPagesToRank,
+  totalPagesForRank,
+  nextRankMilestone,
+  rankToDeviation,
+} from '../lib/ranking'
 import { loadProfile, saveProfile } from '../data/profileStore'
 import { ALL_UNIVERSITIES, facultiesFor } from '../data/universities'
+import ProgressChart from '../components/ProgressChart'
 
 type Props = { onBack: () => void; onRanking: () => void; today?: string }
 
 const GRADES = ['高1', '高2', '高3', '浪人']
 
+const cardStyle = {
+  marginTop: 8,
+  marginBottom: 8,
+  padding: '10px 12px',
+  borderRadius: 8,
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+} as const
+
 export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Props) {
+  const { books } = useBooks()
   const { records } = useRecords()
+  const { cycleRecords } = useCycleRecords()
   const today = todayProp ?? todayStr()
   const [profile, setProfile] = useState(loadProfile)
   const [editing, setEditing] = useState(false)
@@ -20,6 +48,22 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
   const totalPages = totalActivity(records)
   const rank = totalPagesToRank(totalPages)
   const deviation = rankToDeviation(rank)
+  const milestone = nextRankMilestone(rank)
+  const milestoneDiff = milestone == null ? 0 : Math.max(0, totalPagesForRank(milestone) - totalPages)
+
+  const diagnosis = overallDiagnosis(books, records, today)
+  const dailyQuota = Math.max(1, diagnosis.requiredPerDay)
+  const streakScores: Record<string, number> = {}
+  for (const d of new Set([...records.map((r) => r.date), ...cycleRecords.map((r) => r.date)])) {
+    streakScores[d] = scoreActivityOnDate(d, records)
+  }
+  const streak = calcStreakDays(streakScores, dailyQuota, today)
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = parseDate(today)
+    d.setDate(d.getDate() - (6 - i))
+    return formatDate(d)
+  })
+  const last7Values = last7Days.map((d) => scoreActivityOnDate(d, records))
 
   const startEdit = () => {
     setDraft(profile)
@@ -36,24 +80,57 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
   }
 
   const facultyOptions = draft.university ? facultiesFor(draft.university) : []
-  const displayUniv = profile.university || '未設定'
-  const displayFaculty = profile.faculty || '未設定'
+  const hasUniv = profile.university !== ''
 
   return (
     <div data-testid="mypage-page" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>マイページ</h1>
-      <section style={{ marginTop: 8 }}>
-        <div data-testid="mypage-total" style={{ fontSize: 14 }}>累計 {totalPages.toLocaleString()}ページ</div>
-        <div data-testid="mypage-today" style={{ fontSize: 14 }}>今日 {todayPages.toLocaleString()}ページ</div>
+      <section data-testid="mypage-hero" style={cardStyle}>
+        {hasUniv ? (
+          <>
+            <div style={{ fontWeight: 800, fontSize: 20 }}>
+              {profile.university}{profile.faculty}
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--text-dim)' }}>
+              {[profile.nickname, profile.grade, profile.department].filter(Boolean).join(' / ')}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontWeight: 800, fontSize: 18 }}>志望校：未設定</div>
+            <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+              編集するから志望校を設定して道のりを表示しよう
+            </div>
+          </>
+        )}
+      </section>
+      <section data-testid="mypage-goal" style={cardStyle}>
+        <div style={{ fontWeight: 800, fontSize: 16 }}>志望校への道のり</div>
         <div data-testid="mypage-rank" style={{ fontSize: 14 }}>
           全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{deviation}）
         </div>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>
+          {milestone == null
+            ? '全国1位をキープ中！'
+            : `全国${milestone.toLocaleString()}位（偏差値${rankToDeviation(milestone)}）まであと${milestoneDiff.toLocaleString()}ページ`}
+        </div>
+        <div data-testid="mypage-total" style={{ fontSize: 14 }}>累計 {totalPages.toLocaleString()}ページ</div>
+        <div data-testid="mypage-today" style={{ fontSize: 14 }}>今日 {todayPages.toLocaleString()}ページ</div>
+      </section>
+      <section style={cardStyle}>
+        <div data-testid="mypage-streak" style={{ fontWeight: 800, fontSize: 16 }}>
+          連続{streak.streak}日
+        </div>
+        {streak.remaining > 0 && (
+          <div style={{ fontSize: 13 }}>今日あと{streak.remaining}ページで継続！</div>
+        )}
+        <ProgressChart dates={last7Days} values={last7Values} />
       </section>
       {!editing ? (
         <section data-testid="mypage-view" style={{ marginTop: 12 }}>
           <div>ニックネーム：{profile.nickname || '未設定'}</div>
           <div>学年：{profile.grade || '未設定'}</div>
-          <div>志望校：{displayUniv} {displayFaculty}</div>
+          <div>志望校：{profile.university || '未設定'} {profile.faculty || '未設定'}</div>
           {profile.department && <div>学科：{profile.department}</div>}
           <button data-testid="mypage-edit" type="button" onClick={startEdit} style={{ marginTop: 8 }}>
             編集する
