@@ -228,29 +228,6 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
     )
   }
 
-  if (!hasDiff) {
-    return (
-      <div data-testid="rebalance-screen" style={{ padding: 16 }}>
-        <h1 style={{ fontSize: 20 }}>配分を再調整</h1>
-        <p data-testid="rebalance-summary" style={{ fontSize: 16 }}>
-          {targetBook?.title ?? bookId}：{beforeSummary.minutes}分 {beforeSummary.pages}ページ →{' '}
-          {afterSummary.minutes}分 {afterSummary.pages}ページ
-        </p>
-        <p data-testid="rebalance-no-change" style={{ fontSize: 16 }}>
-          今日の割当に変化はありません。
-        </p>
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button data-testid="rebalance-report" type="button" onClick={onSchedule}>
-            今日の計画を見る
-          </button>
-          <button data-testid="rebalance-back" type="button" onClick={onBack}>
-            戻る
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div data-testid="rebalance-screen" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>配分を再調整</h1>
@@ -258,6 +235,11 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
         {targetBook?.title ?? bookId}：{beforeSummary.minutes}分 {beforeSummary.pages}ページ →{' '}
         {afterSummary.minutes}分 {afterSummary.pages}ページ
       </p>
+      {!hasDiff && (
+        <p data-testid="rebalance-no-change" style={{ fontSize: 16 }}>
+          今日の割当に変化はありません。明日以降の割当も下に表示しています。
+        </p>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {renderPlan(before, 'rebalance-before', '修正前')}
         {renderPlan(after, 'rebalance-after', '修正後')}

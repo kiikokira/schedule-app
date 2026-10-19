@@ -334,4 +334,16 @@ describe('RebalanceScreen', () => {
       ).toHaveTextContent('b1')
     }
   })
+
+  it('no-changeでも調整UIと今後3日を表示する（夜間など今日枠なしの死角対策）', async () => {
+    await addBook('b1')
+    await addBook('b2')
+    // 今日の空きなし → before/afterとも今日0件で hasDiff=false になる
+    render(<RebalanceScreen bookId="b2" onBack={() => {}} onSchedule={() => {}} />)
+    expect(await screen.findByTestId('rebalance-no-change')).toBeInTheDocument()
+    // 死角: 現状はここで早期リターンして調整UIが出ない
+    expect(await screen.findByTestId('priority-select-b2')).toBeInTheDocument()
+    expect(await screen.findByTestId('rebalance-upcoming')).toBeInTheDocument()
+    expect(await screen.findByTestId('rebalance-report')).toBeInTheDocument()
+  })
 })
