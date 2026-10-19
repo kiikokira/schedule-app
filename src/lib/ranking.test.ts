@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { RANK_POPULATION, dailyPagesToRank, rankToDeviation, pagesForRank, sampleNearBoard, sampleTopRivals, totalPagesToRank, totalPagesForRank, totalActivity, nextRankMilestone } from './ranking'
+import { RANK_POPULATION, dailyPagesToRank, rankToDeviation, pagesForRank, sampleNearBoard, sampleTopRivals, totalPagesToRank, totalPagesForRank, totalActivity, nextRankMilestone, RIVAL_GRADES } from './ranking'
 import { ALL_UNIVERSITIES, TOP_UNIVERSITIES, LOCAL_UNIVERSITIES } from '../data/universities'
 
 describe('ranking', () => {
@@ -23,7 +23,8 @@ describe('ranking', () => {
   it('ライバル名は志望大学＋学年である', () => {
     const rivals = sampleNearBoard(20, 150000, '2026-10-18', 15).filter((r) => !r.you)
     for (const r of rivals) {
-      expect(ALL_UNIVERSITIES.some((u) => r.name.startsWith(u))).toBe(true)
+      expect(ALL_UNIVERSITIES).toContain(r.name)
+      expect(RIVAL_GRADES).toContain(r.grade)
     }
     expect(rivals.map((r) => r.name).join()).not.toMatch(/都|道|府|県/)
   })

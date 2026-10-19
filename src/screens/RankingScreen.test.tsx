@@ -109,10 +109,25 @@ describe('RankingScreen', () => {
     const rows = await screen.findAllByTestId(/^ranking-rival-/)
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) {
-      expect(row).toHaveStyle({ display: 'grid', gridTemplateColumns: 'auto auto auto' })
+      expect(row).toHaveStyle({ display: 'grid', gridTemplateColumns: 'auto auto auto', columnGap: '4px' })
       expect(within(row).getByTestId('rival-name')).toBeInTheDocument()
       expect(within(row).getByTestId('rival-pages')).toBeInTheDocument()
       expect(within(row).getByTestId('rival-rank')).toBeInTheDocument()
+    }
+  })
+  it('ライバルは志望校＋学年バッジで表示しページ列は太字にしない', async () => {
+    const today = todayStr()
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    const rows = await screen.findAllByTestId(/^ranking-rival-/)
+    const rivalRows = rows.filter((r) => !r.textContent?.includes('あなた'))
+    expect(rivalRows.length).toBeGreaterThan(0)
+    for (const row of rivalRows) {
+      expect(within(row).getByTestId('rival-grade')).toHaveTextContent(/高1|高2|高3|浪人/)
+    }
+    const youRow = rows.find((r) => r.textContent?.includes('あなた'))!
+    expect(within(youRow).queryByTestId('rival-grade')).toBeNull()
+    for (const row of rows) {
+      expect(within(row).getByTestId('rival-pages')).toHaveStyle({ fontWeight: '400' })
     }
   })
   it('表示順に順位が1ずつ増える（上が良い順位）', async () => {

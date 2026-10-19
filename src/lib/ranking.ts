@@ -98,11 +98,14 @@ export function rankToDeviation(rank: number): number {
   return Math.round((50 + 10 * z) * 10) / 10
 }
 
-const RIVAL_GRADES = ['高1', '高2', '高3', '浪人']
+export const RIVAL_GRADES = ['高1', '高2', '高3', '浪人']
 
-function rivalName(rand: () => number, rank = 100000): string {
+function rivalLabel(rand: () => number, rank = 100000): { univ: string; grade: string } {
   const pool = universitiesForRank(rank)
-  return `${pool[Math.floor(rand() * pool.length)]}の${RIVAL_GRADES[Math.floor(rand() * RIVAL_GRADES.length)]}`
+  return {
+    univ: pool[Math.floor(rand() * pool.length)],
+    grade: RIVAL_GRADES[Math.floor(rand() * RIVAL_GRADES.length)],
+  }
 }
 
 // 順位→ページ数の逆変換（分布の二分法）。近傍ボードの連続順位用。
@@ -133,7 +136,7 @@ export function totalPagesForRank(rank: number): number {
   return Math.max(0, Math.round((lo + hi) / 2))
 }
 
-export type BoardEntry = { rank: number; boardRank: number; name: string; pages: number; you: boolean }
+export type BoardEntry = { rank: number; boardRank: number; name: string; grade: string; pages: number; you: boolean }
 
 // 自分の前後half件ずつの近傍ボード。順位は1ずつ連続し、ページには
 // 決定的ジッターを付けて攻防のバラつきを出す。表示順位はdense方式。
@@ -151,9 +154,10 @@ export function sampleNearBoard(
   for (let rank = from; rank <= to; rank++) {
     if (rank === clampedRank) continue
     const rand = mulberry32(hashSeed(`board-${dateIso}-${rank}`))
-    raw.push({ rank, boardRank: 0, name: rivalName(rand, rank), pages: totalPagesForRank(rank), you: false })
+    const label = rivalLabel(rand, rank)
+    raw.push({ rank, boardRank: 0, name: label.univ, grade: label.grade, pages: totalPagesForRank(rank), you: false })
   }
-  raw.push({ rank: clampedRank, boardRank: 0, name: 'あなた', pages: userPages, you: true })
+  raw.push({ rank: clampedRank, boardRank: 0, name: 'あなた', grade: '', pages: userPages, you: true })
   raw.sort((a, b) => a.rank - b.rank)
   let boardRank = 0
   let prevPages = -1
@@ -174,7 +178,8 @@ export function sampleTopRivals(dateIso: string, count = 10): BoardEntry[] {
   const out: BoardEntry[] = []
   let pages = 6000 + Math.floor(rand() * 800)
   for (let rank = 1; rank <= count; rank++) {
-    out.push({ rank, boardRank: rank, name: rivalName(rand, rank), pages, you: false })
+    const label = rivalLabel(rand, rank)
+    out.push({ rank, boardRank: rank, name: label.univ, grade: label.grade, pages, you: false })
     pages = Math.max(0, pages - (150 + Math.floor(rand() * 250)))
   }
   return out

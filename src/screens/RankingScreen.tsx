@@ -59,7 +59,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
           style={{
             display: 'grid',
             gridTemplateColumns: 'auto auto auto',
-            columnGap: 8,
+            columnGap: 4,
             alignItems: 'baseline',
             fontSize: 14,
             fontWeight: r.you ? 800 : undefined,
@@ -68,8 +68,13 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
         >
           <span data-testid="rival-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {r.you ? 'あなた' : r.name}
+            {!r.you && (
+              <span data-testid="rival-grade" style={{ marginLeft: 4, padding: '0 4px', fontSize: 11, fontWeight: 400, color: 'var(--text-dim)', border: '1px solid var(--border)', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                {r.grade}
+              </span>
+            )}
           </span>
-          <span data-testid="rival-pages" style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+          <span data-testid="rival-pages" style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', fontWeight: 400 }}>
             {r.pages.toLocaleString()}ページ
           </span>
           <span data-testid="rival-rank" style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', fontWeight: 800, color: '#111' }}>
@@ -88,6 +93,9 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             </span>
             <span data-testid="top-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {r.name}
+              <span style={{ marginLeft: 4, padding: '0 4px', fontSize: 11, color: 'var(--text-dim)', border: '1px solid var(--border)', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                {r.grade}
+              </span>
             </span>
             <span data-testid="top-pages" style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
               {r.pages.toLocaleString()}ページ
