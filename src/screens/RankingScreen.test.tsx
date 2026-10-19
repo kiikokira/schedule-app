@@ -36,9 +36,14 @@ describe('RankingScreen', () => {
     for (const row of rows) {
       expect(row).toHaveTextContent(/[\d,]+位/)
     }
-    const all = rows.map((r) => r.textContent ?? '').join()
-    expect(all).toMatch(/阪大|東大|京大|早稲田|慶應|新潟|信州|岡山|広島|熊本|鹿児島|琉球|弘前|静岡|金沢/)
-    expect(all).not.toMatch(/都|道|府|県/)
+    const univTexts = rows
+      .map((r) => {
+        const univ = within(r).queryByTestId('rival-univ')
+        return univ?.textContent ?? ''
+      })
+      .join()
+    expect(univTexts).toMatch(/阪大|東大|京大|早稲田|慶應|新潟|信州|岡山|広島|熊本|鹿児島|琉球|弘前|静岡|金沢/)
+    expect(univTexts).not.toMatch(/都|道|府|県/)
   })
   it('追い越す表記を使わず次の節目までの差を表示する', async () => {
     const today = todayStr()
@@ -109,7 +114,7 @@ describe('RankingScreen', () => {
     const rows = await screen.findAllByTestId(/^ranking-rival-/)
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) {
-      expect(row).toHaveStyle({ display: 'grid', gridTemplateColumns: 'auto auto auto', columnGap: '4px' })
+      expect(row).toHaveStyle({ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 6.5em 7em', columnGap: '8px' })
       expect(within(row).getByTestId('rival-name')).toBeInTheDocument()
       expect(within(row).getByTestId('rival-pages')).toBeInTheDocument()
       expect(within(row).getByTestId('rival-rank')).toBeInTheDocument()
@@ -153,5 +158,35 @@ describe('RankingScreen', () => {
     const reach = await screen.findByTestId('ranking-reach')
     expect(reach).toHaveTextContent('全国100,000位')
     expect(reach).toHaveTextContent('あと100ページ')
+  })
+  it('近傍とトップの全ライバルに学部名を表示する', async () => {
+    const today = todayStr()
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    const rows = await screen.findAllByTestId(/^ranking-rival-/)
+    const rivalRows = rows.filter((r) => !r.textContent?.includes('あなた'))
+    expect(rivalRows.length).toBeGreaterThan(0)
+    for (const row of rivalRows) {
+      const faculty = within(row).getByTestId('rival-faculty')
+      expect(faculty.textContent?.length).toBeGreaterThan(0)
+      expect(faculty.textContent).toMatch(/学部|学群|学域|学院|学環|類|群/)
+    }
+    const top = await screen.findByTestId('ranking-top')
+    for (let i = 0; i < 10; i++) {
+      const topRow = within(top).getByTestId(`ranking-top-${i}`)
+      const faculty = within(topRow).getByTestId('top-faculty')
+      expect(faculty.textContent?.length).toBeGreaterThan(0)
+    }
+  })
+  it('トップ10行は順位・大学・ページの3列で縦に揃う', async () => {
+    const today = todayStr()
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    const top = await screen.findByTestId('ranking-top')
+    for (let i = 0; i < 10; i++) {
+      const row = within(top).getByTestId(`ranking-top-${i}`)
+      expect(row).toHaveStyle({ display: 'grid', gridTemplateColumns: '2.8em minmax(0,1fr) 7em', columnGap: '8px' })
+      expect(within(row).getByTestId('top-rank')).toBeInTheDocument()
+      expect(within(row).getByTestId('top-name')).toBeInTheDocument()
+      expect(within(row).getByTestId('top-pages')).toBeInTheDocument()
+    }
   })
 })

@@ -25,6 +25,7 @@ describe('ranking', () => {
     for (const r of rivals) {
       expect(ALL_UNIVERSITIES).toContain(r.name)
       expect(RIVAL_GRADES).toContain(r.grade)
+      expect(r.faculty.length).toBeGreaterThan(0)
     }
     expect(rivals.map((r) => r.name).join()).not.toMatch(/都|道|府|県/)
   })

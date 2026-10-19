@@ -2,7 +2,7 @@
 // 母集団は分布モデル。個人シミュレーションは近傍のみ。
 // 日次分布（中央値8p）と累計分布（中央値150p）の2系統を持つ。
 // 累計は減らず、最下位スタートで貯めるほど上がる。
-import { universitiesForRank } from '../data/universities'
+import { facultiesFor, universitiesForRank } from '../data/universities'
 export const RANK_POPULATION = 200000
 
 // 簡易ハッシュ＋mulberry32（日付シード決定的乱数）
@@ -100,10 +100,13 @@ export function rankToDeviation(rank: number): number {
 
 export const RIVAL_GRADES = ['高1', '高2', '高3', '浪人']
 
-function rivalLabel(rand: () => number, rank = 100000): { univ: string; grade: string } {
+function rivalLabel(rand: () => number, rank = 100000): { univ: string; faculty: string; grade: string } {
   const pool = universitiesForRank(rank)
+  const univ = pool[Math.floor(rand() * pool.length)]
+  const faculties = facultiesFor(univ)
   return {
-    univ: pool[Math.floor(rand() * pool.length)],
+    univ,
+    faculty: faculties[Math.floor(rand() * faculties.length)],
     grade: RIVAL_GRADES[Math.floor(rand() * RIVAL_GRADES.length)],
   }
 }
@@ -136,7 +139,7 @@ export function totalPagesForRank(rank: number): number {
   return Math.max(0, Math.round((lo + hi) / 2))
 }
 
-export type BoardEntry = { rank: number; boardRank: number; name: string; grade: string; pages: number; you: boolean }
+export type BoardEntry = { rank: number; boardRank: number; name: string; faculty: string; grade: string; pages: number; you: boolean }
 
 // 自分の前後half件ずつの近傍ボード。順位は1ずつ連続し、ページには
 // 決定的ジッターを付けて攻防のバラつきを出す。表示順位はdense方式。
@@ -155,9 +158,9 @@ export function sampleNearBoard(
     if (rank === clampedRank) continue
     const rand = mulberry32(hashSeed(`board-${dateIso}-${rank}`))
     const label = rivalLabel(rand, rank)
-    raw.push({ rank, boardRank: 0, name: label.univ, grade: label.grade, pages: totalPagesForRank(rank), you: false })
+    raw.push({ rank, boardRank: 0, name: label.univ, faculty: label.faculty, grade: label.grade, pages: totalPagesForRank(rank), you: false })
   }
-  raw.push({ rank: clampedRank, boardRank: 0, name: 'あなた', grade: '', pages: userPages, you: true })
+  raw.push({ rank: clampedRank, boardRank: 0, name: 'あなた', faculty: '', grade: '', pages: userPages, you: true })
   raw.sort((a, b) => a.rank - b.rank)
   let boardRank = 0
   let prevPages = -1
@@ -179,7 +182,7 @@ export function sampleTopRivals(dateIso: string, count = 10): BoardEntry[] {
   let pages = 6000 + Math.floor(rand() * 800)
   for (let rank = 1; rank <= count; rank++) {
     const label = rivalLabel(rand, rank)
-    out.push({ rank, boardRank: rank, name: label.univ, grade: label.grade, pages, you: false })
+    out.push({ rank, boardRank: rank, name: label.univ, faculty: label.faculty, grade: label.grade, pages, you: false })
     pages = Math.max(0, pages - (150 + Math.floor(rand() * 250)))
   }
   return out

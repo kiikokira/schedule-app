@@ -58,16 +58,23 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
           data-testid={`ranking-rival-${i}`}
           style={{
             display: 'grid',
-            gridTemplateColumns: 'auto auto auto',
-            columnGap: 4,
-            alignItems: 'baseline',
+            gridTemplateColumns: 'minmax(0,1fr) 6.5em 7em',
+            columnGap: 8,
+            alignItems: 'center',
             fontSize: 14,
             fontWeight: r.you ? 800 : undefined,
             background: r.you ? '#eef3ff' : undefined,
           }}
         >
-          <span data-testid="rival-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {r.you ? 'あなた' : r.name}
+          <span data-testid="rival-name" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {r.you ? (
+              'あなた'
+            ) : (
+              <>
+                <span data-testid="rival-univ">{r.name}</span>
+                <span data-testid="rival-faculty" style={{ marginLeft: 4 }}>{r.faculty}</span>
+              </>
+            )}
             {!r.you && (
               <span data-testid="rival-grade" style={{ marginLeft: 4, padding: '0 4px', fontSize: 11, fontWeight: 400, color: 'var(--text-dim)', border: '1px solid var(--border)', borderRadius: 6, whiteSpace: 'nowrap' }}>
                 {r.grade}
@@ -86,14 +93,15 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
         <h2 style={{ fontSize: 15 }}>全国トップ10</h2>
         {topRivals.map((r, i) => (
           <div key={`top-${r.rank}`}             data-testid={`ranking-top-${i}`}
-            style={{ display: 'grid', gridTemplateColumns: 'auto auto auto', columnGap: 8, alignItems: 'baseline', fontSize: 14 }}
+            style={{ display: 'grid', gridTemplateColumns: '2.8em minmax(0,1fr) 7em', columnGap: 8, alignItems: 'center', fontSize: 14 }}
           >
             <span data-testid="top-rank" style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
               {r.rank}位
             </span>
-            <span data-testid="top-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {r.name}
-              <span style={{ marginLeft: 4, padding: '0 4px', fontSize: 11, color: 'var(--text-dim)', border: '1px solid var(--border)', borderRadius: 6, whiteSpace: 'nowrap' }}>
+            <span data-testid="top-name" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span data-testid="top-univ">{r.name}</span>
+              <span data-testid="top-faculty" style={{ marginLeft: 4 }}>{r.faculty}</span>
+              <span data-testid="top-grade" style={{ marginLeft: 4, padding: '0 4px', fontSize: 11, color: 'var(--text-dim)', border: '1px solid var(--border)', borderRadius: 6, whiteSpace: 'nowrap' }}>
                 {r.grade}
               </span>
             </span>
