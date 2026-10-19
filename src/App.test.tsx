@@ -8,6 +8,11 @@ it('renders app title', () => {
   expect(screen.getByText('スケジュール管理')).toBeInTheDocument()
 })
 
+it('does not show a mypage button in the footer nav', () => {
+  render(<App />)
+  expect(screen.queryByTestId('nav-mypage')).toBeNull()
+})
+
 it('navigates to the today plan screen from home', async () => {
   render(<App />)
   // 空き時間が無いので empty 表示でも遷移自体を確認

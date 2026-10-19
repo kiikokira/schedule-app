@@ -151,11 +151,10 @@ export function sampleNearBoard(
   for (let rank = from; rank <= to; rank++) {
     if (rank === clampedRank) continue
     const rand = mulberry32(hashSeed(`board-${dateIso}-${rank}`))
-    const jitter = Math.floor(rand() * 17) - 8
-    raw.push({ rank, boardRank: 0, name: rivalName(rand, rank), pages: Math.max(0, totalPagesForRank(rank) + jitter), you: false })
+    raw.push({ rank, boardRank: 0, name: rivalName(rand, rank), pages: totalPagesForRank(rank), you: false })
   }
   raw.push({ rank: clampedRank, boardRank: 0, name: 'あなた', pages: userPages, you: true })
-  raw.sort((a, b) => b.pages - a.pages || a.rank - b.rank)
+  raw.sort((a, b) => a.rank - b.rank)
   let boardRank = 0
   let prevPages = -1
   for (const entry of raw) {

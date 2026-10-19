@@ -58,7 +58,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
           data-testid={`ranking-rival-${i}`}
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr auto auto',
+            gridTemplateColumns: 'auto auto auto',
             columnGap: 8,
             alignItems: 'baseline',
             fontSize: 14,
@@ -81,7 +81,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
         <h2 style={{ fontSize: 15 }}>全国トップ10</h2>
         {topRivals.map((r, i) => (
           <div key={`top-${r.rank}`}             data-testid={`ranking-top-${i}`}
-            style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', columnGap: 8, alignItems: 'baseline', fontSize: 14 }}
+            style={{ display: 'grid', gridTemplateColumns: 'auto auto auto', columnGap: 8, alignItems: 'baseline', fontSize: 14 }}
           >
             <span data-testid="top-rank" style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
               {r.rank}位

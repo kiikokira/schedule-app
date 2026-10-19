@@ -109,10 +109,21 @@ describe('RankingScreen', () => {
     const rows = await screen.findAllByTestId(/^ranking-rival-/)
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) {
-      expect(row).toHaveStyle({ display: 'grid' })
+      expect(row).toHaveStyle({ display: 'grid', gridTemplateColumns: 'auto auto auto' })
       expect(within(row).getByTestId('rival-name')).toBeInTheDocument()
       expect(within(row).getByTestId('rival-pages')).toBeInTheDocument()
       expect(within(row).getByTestId('rival-rank')).toBeInTheDocument()
+    }
+  })
+  it('表示順に順位が1ずつ増える（上が良い順位）', async () => {
+    const today = todayStr()
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    const rows = await screen.findAllByTestId(/^ranking-rival-/)
+    const ranks = rows.map((r) => Number(within(r).getByTestId('rival-rank').textContent?.replace(/[,位]/g, '') ?? ''))
+    expect(ranks.length).toBeGreaterThan(1)
+    expect(ranks[0]).toBeLessThan(ranks[ranks.length - 1])
+    for (let i = 1; i < ranks.length; i++) {
+      expect(ranks[i] - ranks[i - 1]).toBe(1)
     }
   })
   it('節目までの差は累計基準で計算される（累計50なら100,000位まであと100ページ）', async () => {

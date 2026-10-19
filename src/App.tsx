@@ -164,9 +164,6 @@ export default function App() {
             <button data-testid="nav-add" onClick={() => setRoute({ name: 'add' })}>
               ＋ 参考書を追加
             </button>
-            <button data-testid="nav-mypage" onClick={() => setRoute({ name: 'mypage' })}>
-              マイページ
-            </button>
           </>
         )}
         {route.name !== 'home' && (
