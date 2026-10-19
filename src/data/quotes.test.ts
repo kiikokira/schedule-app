@@ -12,13 +12,33 @@ const addDays = (iso: string, days: number): string => {
 
 describe('quotes', () => {
   it('provides a non-empty text, author, role and explanation for every quote', () => {
-    expect(QUOTES.length).toBeGreaterThanOrEqual(25)
+    expect(QUOTES.length).toBeGreaterThanOrEqual(60)
     for (const q of QUOTES) {
       expect(q.text.length).toBeGreaterThan(0)
       expect(q.author.length).toBeGreaterThan(0)
       expect(q.role.length).toBeGreaterThan(0)
       expect(q.explanation.length).toBeGreaterThan(0)
     }
+  })
+
+  it('has no duplicate texts and no consecutive duplicate authors', () => {
+    const texts = QUOTES.map((q) => q.text)
+    expect(new Set(texts).size).toBe(QUOTES.length)
+    for (let i = 0; i < QUOTES.length; i++) {
+      const a = QUOTES[i].author
+      const b = QUOTES[(i + 1) % QUOTES.length].author
+      expect(a).not.toBe(b)
+    }
+  })
+
+  it('shows a different quote every day for at least 60 days', () => {
+    const seen = new Set<string>()
+    for (let i = 0; i < 60; i++) {
+      const q = quoteOf(addDays('2026-09-21', i))
+      expect(q).not.toBeNull()
+      seen.add((q as { text: string }).text)
+    }
+    expect(seen.size).toBe(60)
   })
 
   it('returns the same quote for the same date', () => {
