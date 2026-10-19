@@ -12,6 +12,7 @@ import FocusPeriodScreen from './screens/FocusPeriodScreen'
 import SchoolScreen from './screens/SchoolScreen'
 import JapanMatchScreen from './screens/JapanMatchScreen'
 import RankingScreen from './screens/RankingScreen'
+import MyPageScreen from './screens/MyPageScreen'
 import { useBooks } from './hooks/useBooks'
 import { listAvailability, prunePastOverrides } from './data/dayplanStore'
 import { todayStr, formatDate } from './lib/progress'
@@ -37,6 +38,7 @@ type Route =
   | { name: 'school' }
   | { name: 'japan' }
   | { name: 'ranking' }
+  | { name: 'mypage' }
 
 export default function App() {
   const { books, refresh } = useBooks()
@@ -92,7 +94,7 @@ export default function App() {
       </header>
       <main>
         {route.name === 'home' && (
-          <HomeScreen onOpenBook={(id) => setRoute({ name: 'detail', bookId: id })} onRanking={() => setRoute({ name: 'ranking' })} />
+          <HomeScreen onOpenBook={(id) => setRoute({ name: 'detail', bookId: id })} onRanking={() => setRoute({ name: 'ranking' })} onMyPage={() => setRoute({ name: 'mypage' })} />
         )}
         {route.name === 'detail' && (
           <BookDetailScreen
@@ -143,6 +145,9 @@ export default function App() {
         {route.name === 'ranking' && (
           <RankingScreen onBack={() => setRoute({ name: 'home' })} />
         )}
+        {route.name === 'mypage' && (
+          <MyPageScreen onBack={() => setRoute({ name: 'home' })} onRanking={() => setRoute({ name: 'ranking' })} />
+        )}
       </main>
       <footer className="app-footer">
         {route.name === 'home' && (
@@ -158,6 +163,9 @@ export default function App() {
             </button>
             <button data-testid="nav-add" onClick={() => setRoute({ name: 'add' })}>
               ＋ 参考書を追加
+            </button>
+            <button data-testid="nav-mypage" onClick={() => setRoute({ name: 'mypage' })}>
+              マイページ
             </button>
           </>
         )}

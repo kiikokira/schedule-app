@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRecords } from '../hooks/useRecords'
 import { scoreActivityOnDate, todayStr } from '../lib/progress'
-import { RANK_POPULATION, dailyPagesToRank, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
+import { RANK_POPULATION, totalPagesToRank, totalActivity, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
 
 type Props = { onBack: () => void; today?: string }
 
@@ -20,10 +20,11 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     return () => clearInterval(id)
   }, [])
   const todayPages = scoreActivityOnDate(today, records)
-  const rank = dailyPagesToRank(todayPages, today)
+  const totalPages = totalActivity(records)
+  const rank = totalPagesToRank(totalPages)
   const deviation = rankToDeviation(rank)
   void nowMin
-  const rivals = useMemo(() => sampleNearBoard(todayPages, rank, today, 15), [todayPages, rank, today])
+  const rivals = useMemo(() => sampleNearBoard(totalPages, rank, today, 15), [totalPages, rank, today])
   const topRivals = useMemo(() => sampleTopRivals(today, 10), [today])
   const prevRank = useRef(rank)
   const [toast, setToast] = useState<string | null>(null)
@@ -32,7 +33,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     else if (rank > prevRank.current) setToast('ライバルに追い越された…')
     prevRank.current = rank
   }, [rank])
-  const ahead = rivals.find((r) => !r.you && r.pages > todayPages)
+  const ahead = rivals.find((r) => !r.you && r.pages > totalPages)
   const dayOfMonth = Number(today.slice(8, 10))
   const isMockWeek = dayOfMonth >= 1 && dayOfMonth <= 7
   const level = deviation >= 60 ? 'A' : deviation >= 55 ? 'B' : deviation >= 50 ? 'C' : deviation >= 45 ? 'D' : 'E'
@@ -40,12 +41,12 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     <div data-testid="ranking-page" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>仮想全国ランキング</h1>
       <p data-testid="ranking-summary" style={{ fontWeight: 700 }}>
-        全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{rankToDeviation(rank)}）
+        全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{rankToDeviation(rank)}） 累計{totalPages.toLocaleString()}ページ（今日{todayPages.toLocaleString()}ページ）
       </p>
       {toast && <p data-testid="ranking-toast">{toast}</p>}
       {ahead && (
         <p data-testid="ranking-reach">
-          あと{ahead.pages - todayPages}ページで{ahead.name}を追い越す
+          あと{(ahead.pages - totalPages).toLocaleString()}ページで{ahead.name}を追い越す
         </p>
       )}
       {rivals.map((r, i) => (
@@ -58,7 +59,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             background: r.you ? '#eef3ff' : undefined,
           }}
         >
-          {r.you ? 'あなた' : r.name} {r.pages}ページ <span style={{ fontWeight: 800, color: '#111' }}>{r.boardRank}位</span>
+          {r.you ? 'あなた' : r.name} {r.pages}ページ <span style={{ fontWeight: 800, color: '#111' }}>{r.rank.toLocaleString()}位</span>
         </div>
       ))}
       <section data-testid="ranking-top" style={{ marginTop: 12 }}>

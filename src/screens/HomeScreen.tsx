@@ -25,7 +25,8 @@ import {
   type ProgressRecordData,
 } from '../lib/progress'
 import { useCycleRecords } from '../hooks/useCycleRecords'
-import { dailyPagesToRank, rankToDeviation, RANK_POPULATION } from '../lib/ranking'
+import { totalPagesToRank, rankToDeviation, totalActivity, RANK_POPULATION } from '../lib/ranking'
+import { loadProfile } from '../data/profileStore'
 import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
 import { quoteOf } from '../data/quotes'
@@ -51,6 +52,7 @@ const ROUND_BADGE_COUNT = 5
 type Props = {
   onOpenBook: (id: string) => void
   onRanking?: () => void
+  onMyPage?: () => void
 }
 
 function findRegistered(
@@ -413,7 +415,7 @@ function ScheduleRow({
   )
 }
 
-export default function HomeScreen({ onOpenBook, onRanking }: Props) {
+export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
   const { books, saveBook, loaded: booksLoaded } = useBooks()
   const { records, addProgress } = useRecords()
   const { cycleRecords } = useCycleRecords()
@@ -562,8 +564,11 @@ export default function HomeScreen({ onOpenBook, onRanking }: Props) {
   }
   const streak = calcStreakDays(streakScores, dailyQuota, today)
   const todayPages = scoreActivityOnDate(today, records)
-  const rank = dailyPagesToRank(todayPages, today)
+  const totalPages = totalActivity(records)
+  const rank = totalPagesToRank(totalPages)
   const deviation = rankToDeviation(rank)
+  const profile = loadProfile()
+  const headerUniv = profile.university && profile.faculty ? `${profile.university}${profile.faculty}` : '慶應義塾大学環境情報学部'
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = parseDate(today)
     d.setDate(d.getDate() - (6 - i))
@@ -583,7 +588,7 @@ export default function HomeScreen({ onOpenBook, onRanking }: Props) {
 
   return (
     <div style={{ padding: 16 }}>
-      <h1 style={{ fontSize: 24 }}>慶應義塾大学環境情報学部</h1>
+      <h1 style={{ fontSize: 24 }}>{headerUniv}</h1>
       <section
         data-testid="streak-section"
         style={{
@@ -628,10 +633,13 @@ export default function HomeScreen({ onOpenBook, onRanking }: Props) {
       <section data-testid="ranking-card" style={{ marginTop: 8, marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div style={{ fontWeight: 800, fontSize: 16 }}>仮想全国ランキング</div>
         <div data-testid="ranking-summary" style={{ fontSize: 14 }}>
-          全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{deviation}）
+          全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{deviation}） 累計{totalPages.toLocaleString()}ページ（今日{todayPages.toLocaleString()}ページ）
         </div>
         <button data-testid="ranking-open" type="button" onClick={() => onRanking?.()}>
           順位を見る
+        </button>
+        <button data-testid="mypage-open" type="button" onClick={() => onMyPage?.()} style={{ marginLeft: 8 }}>
+          マイページ
         </button>
       </section>
       <p data-testid="today-date" style={{ fontWeight: 700 }}>

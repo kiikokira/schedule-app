@@ -1,5 +1,8 @@
 // 仮想全国ランキングの母集団・順位計算（純粋関数、通信なし）。
 // 母集団は分布モデル。個人シミュレーションは近傍のみ。
+// 日次分布（中央値8p）と累計分布（中央値150p）の2系統を持つ。
+// 累計は減らず、最下位スタートで貯めるほど上がる。
+import { universitiesForRank } from '../data/universities'
 export const RANK_POPULATION = 200000
 
 // 簡易ハッシュ＋mulberry32（日付シード決定的乱数）
@@ -41,6 +44,28 @@ export function dailyPagesToRank(pages: number, _dateIso: string): number {
   return Math.min(Math.max(rank, 1), RANK_POPULATION)
 }
 
+// 累計分布のCDF（中央値150ページ、σ=0.9）
+function populationCdfTotal(pages: number): number {
+  if (pages <= 0) return 0
+  const mu = Math.log(150)
+  const sigma = 0.9
+  const z = (Math.log(pages) - mu) / sigma
+  const t = 1 / (1 + 0.2316419 * Math.abs(z))
+  const d = 0.3989423 * Math.exp((-z * z) / 2)
+  let p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))))
+  if (z > 0) p = 1 - p
+  return Math.min(Math.max(p, 0), 1)
+}
+
+export function totalPagesToRank(totalPages: number): number {
+  const rank = Math.round(RANK_POPULATION * (1 - populationCdfTotal(totalPages)))
+  return Math.min(Math.max(rank, 1), RANK_POPULATION)
+}
+
+export function totalActivity(records: { pages: number; date?: string }[]): number {
+  return records.reduce((sum, r) => sum + (r.pages ?? 0), 0)
+}
+
 export function rankToDeviation(rank: number): number {
   const p = 1 - (rank - 0.5) / RANK_POPULATION
   const capped = Math.min(Math.max(p, 1e-6), 1 - 1e-6)
@@ -66,11 +91,11 @@ export function rankToDeviation(rank: number): number {
   return Math.round((50 + 10 * z) * 10) / 10
 }
 
-const RIVAL_UNIVERSITIES = ['東大', '京大', '阪大', '東北大', '名大', '九大', '北大', '早稲田', '慶應', '同志社', '立命館', '明治']
 const RIVAL_GRADES = ['高1', '高2', '高3', '浪人']
 
-function rivalName(rand: () => number): string {
-  return `${RIVAL_UNIVERSITIES[Math.floor(rand() * RIVAL_UNIVERSITIES.length)]}の${RIVAL_GRADES[Math.floor(rand() * RIVAL_GRADES.length)]}`
+function rivalName(rand: () => number, rank = 100000): string {
+  const pool = universitiesForRank(rank)
+  return `${pool[Math.floor(rand() * pool.length)]}の${RIVAL_GRADES[Math.floor(rand() * RIVAL_GRADES.length)]}`
 }
 
 // 順位→ページ数の逆変換（分布の二分法）。近傍ボードの連続順位用。
@@ -87,10 +112,25 @@ export function pagesForRank(rank: number): number {
   return Math.max(0, Math.round((lo + hi) / 2))
 }
 
+// 累計版の逆変換（二分法、上限20000）
+export function totalPagesForRank(rank: number): number {
+  const clamped = Math.min(Math.max(rank, 1), RANK_POPULATION)
+  const target = 1 - clamped / RANK_POPULATION
+  let lo = 0
+  let hi = 20000
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2
+    if (populationCdfTotal(mid) < target) lo = mid
+    else hi = mid
+  }
+  return Math.max(0, Math.round((lo + hi) / 2))
+}
+
 export type BoardEntry = { rank: number; boardRank: number; name: string; pages: number; you: boolean }
 
 // 自分の前後half件ずつの近傍ボード。順位は1ずつ連続し、ページには
 // 決定的ジッターを付けて攻防のバラつきを出す。表示順位はdense方式。
+// 累計スケール（totalPagesForRank）で生成する。
 export function sampleNearBoard(
   userPages: number,
   userRank: number,
@@ -104,8 +144,8 @@ export function sampleNearBoard(
   for (let rank = from; rank <= to; rank++) {
     if (rank === clampedRank) continue
     const rand = mulberry32(hashSeed(`board-${dateIso}-${rank}`))
-    const jitter = Math.floor(rand() * 5) - 2
-    raw.push({ rank, boardRank: 0, name: rivalName(rand), pages: Math.max(0, pagesForRank(rank) + jitter), you: false })
+    const jitter = Math.floor(rand() * 17) - 8
+    raw.push({ rank, boardRank: 0, name: rivalName(rand, rank), pages: Math.max(0, totalPagesForRank(rank) + jitter), you: false })
   }
   raw.push({ rank: clampedRank, boardRank: 0, name: 'あなた', pages: userPages, you: true })
   raw.sort((a, b) => b.pages - a.pages || a.rank - b.rank)
@@ -122,13 +162,14 @@ export function sampleNearBoard(
 }
 
 // 上位ボード（1位からの連番、ページ降順、日付シードで決定的）。
+// 累計スケール（約4000〜6500ページ帯）。
 export function sampleTopRivals(dateIso: string, count = 10): BoardEntry[] {
   const rand = mulberry32(hashSeed(`top-${dateIso}`))
   const out: BoardEntry[] = []
-  let pages = 56 + Math.floor(rand() * 7)
+  let pages = 6000 + Math.floor(rand() * 800)
   for (let rank = 1; rank <= count; rank++) {
-    out.push({ rank, boardRank: rank, name: rivalName(rand), pages, you: false })
-    pages = Math.max(0, pages - (2 + Math.floor(rand() * 3)))
+    out.push({ rank, boardRank: rank, name: rivalName(rand, rank), pages, you: false })
+    pages = Math.max(0, pages - (150 + Math.floor(rand() * 250)))
   }
   return out
 }
