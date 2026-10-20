@@ -250,14 +250,25 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
 
   // 今日だけ上書きが曜日設定を隠している時間帯。上書きが優先される仕様のため、
   // 欠けた分は通知してワンタップで上書きに追加できるようにする。
+  // 少しずらした上書きも置き換えとみなすため、完全一致ではなく重なりで判定する。
+  // （完全一致だと、ずらす前の時間が未割当として残って重複表示される）
   const shadowedSlots = useMemo(() => {
     const overrides = availability.filter((a) => a.date === today)
     if (overrides.length === 0) return []
     const todayWeekday = parseDate(today).getDay()
+    const toRange = (s: { start: string; end: string }) => ({
+      startMin: parseTimeToMin(s.start),
+      endMin: parseTimeToMin(s.end),
+    })
+    const overlaps = (x: { start: string; end: string }, y: { start: string; end: string }) => {
+      const a = toRange(x)
+      const b = toRange(y)
+      return a.startMin < b.endMin && b.startMin < a.endMin
+    }
     return availability.filter(
       (a) =>
         a.weekday === todayWeekday &&
-        !overrides.some((d) => d.start === a.start && d.end === a.end),
+        !overrides.some((d) => overlaps(d, a)),
     )
   }, [availability, today])
 
@@ -401,6 +412,42 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
 
   const saveDayRows = async () => {
     const rows = dayRows.filter((r) => r.start && r.end)
+    // 画面上で選び直した本（未保存のセッション固定）を保存対象に引き継ぐ。
+    // そのまま保存すると選び直しが捨てられて予定が0ページに戻ってしまう。
+    // フォームで本を選んだ行はそちらを優先し、未指定の行だけ重なり最大の行に移す。
+    const sessionPicks: { startMin: number; endMin: number; bookId: string }[] = []
+    for (const [key, pin] of Object.entries(pinOverrides)) {
+      const [s, e] = key.split('-').map(Number)
+      if (Number.isFinite(s) && Number.isFinite(e) && e > s && pin.bookId) {
+        sessionPicks.push({ startMin: s, endMin: e, bookId: pin.bookId })
+      }
+    }
+    Object.entries(bookOverrides).forEach(([key, bookId]) => {
+      const slot = pageApplied[Number(key)]
+      if (slot && bookId) {
+        sessionPicks.push({ startMin: slot.startMin, endMin: slot.endMin, bookId })
+      }
+    })
+    const consumed = new Set<number>()
+    for (const r of rows) {
+      if (r.bookId) continue
+      const s = parseTimeToMin(r.start)
+      const e = parseTimeToMin(r.end)
+      let best = -1
+      let bestOverlap = 0
+      sessionPicks.forEach((p, pi) => {
+        if (consumed.has(pi)) return
+        const overlap = Math.min(e, p.endMin) - Math.max(s, p.startMin)
+        if (overlap > bestOverlap) {
+          bestOverlap = overlap
+          best = pi
+        }
+      })
+      if (best >= 0) {
+        consumed.add(best)
+        r.bookId = sessionPicks[best].bookId
+      }
+    }
     for (const r of rows) {
       const [sh, sm] = r.start.split(':').map(Number)
       const [eh, em] = r.end.split(':').map(Number)

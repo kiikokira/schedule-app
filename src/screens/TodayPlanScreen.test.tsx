@@ -768,6 +768,80 @@ describe('TodayPlanScreen', () => {
     }
   })
 
+  it('ずらした上書きでは上書き前の時間は残らない（重複なし）', async () => {
+    await fillBook('b1', { trainFit: 'home' })
+    await fillBook('b2', { trainFit: 'home' })
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '16:45', end: '17:15' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'w2', weekday: 2, date: null, start: '18:00', end: '19:00', onTrain: true },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'w3', weekday: 2, date: null, start: '20:30', end: '21:30' },
+      true,
+    )
+    // 18:00-19:00 を 17:45-19:00 にずらした上書き保存後のDB状態
+    await saveAvailabilitySlot(
+      { id: 'd1', weekday: null, date: '2026-09-29', start: '16:45', end: '17:15' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'd2', weekday: null, date: '2026-09-29', start: '17:45', end: '19:00', onTrain: true },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'd3', weekday: null, date: '2026-09-29', start: '20:30', end: '21:30' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('today-table')
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const shifted = rows.filter((r) => r.textContent?.includes('17:45-19:00'))
+    expect(shifted).toHaveLength(1)
+    expect(rows.some((r) => r.textContent?.includes('18:00-19:00'))).toBe(false)
+    expect(screen.queryByTestId('override-shadow-notice')).not.toBeInTheDocument()
+  })
+
+  it('選び直し後に時間をずらして上書きしても本の指定は残る', async () => {
+    await fillBook('b1', { trainFit: 'home' })
+    await fillBook('b2', { trainFit: 'home' })
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '16:45', end: '17:15' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'w2', weekday: 2, date: null, start: '18:00', end: '19:00', onTrain: true },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'w3', weekday: 2, date: null, start: '20:30', end: '21:30' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('today-table')
+    // 未割当の汽車枠で本を選び直す（セッションの固定）
+    const before = screen.getAllByTestId(/plan-row-\d+/)
+    const target = before.find((r) => r.textContent?.includes('18:00-19:00'))
+    expect(target?.textContent).toContain('未割当')
+    fireEvent.change(within(target as HTMLElement).getByRole('combobox'), {
+      target: { value: 'b1' },
+    })
+    await waitFor(() => expect(screen.queryByText(/未割当/)).not.toBeInTheDocument())
+    // 上書きフォームで 18:00 → 17:45 にずらして保存
+    fireEvent.click(await screen.findByTestId('today-override-toggle'))
+    fireEvent.change(screen.getByTestId('today-override-start-1'), { target: { value: '17:45' } })
+    fireEvent.click(screen.getByTestId('today-override-save'))
+    await waitFor(async () => {
+      const all = await listAvailability()
+      const shifted = all.filter((a) => a.date === '2026-09-29' && a.start === '17:45')
+      expect(shifted).toHaveLength(1)
+      expect(shifted[0].bookId).toBe('b1')
+    })
+  })
+
   it('cancelling the confirm records nothing', async () => {
     const originalConfirm = window.confirm
     window.confirm = (() => false) as unknown as typeof window.confirm
