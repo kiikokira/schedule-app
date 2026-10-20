@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, beforeEach } from 'vitest'
 import MyPageScreen from './MyPageScreen'
 import { db } from '../db/database'
@@ -36,8 +36,8 @@ describe('MyPageScreen', () => {
     await db.books.add({ id: 'b1', title: '単語帳', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 12 })
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today={today} />)
-    expect(await screen.findByTestId('mypage-total')).toHaveTextContent('12')
-    expect(await screen.findByTestId('mypage-today')).toHaveTextContent('12')
+    await waitFor(() => expect(screen.getByTestId('mypage-total')).toHaveTextContent('12'))
+    expect(screen.getByTestId('mypage-today')).toHaveTextContent('12')
   })
   it('ヒーローに志望校・学部・ニックネームを表示する', async () => {
     const { saveProfile } = await import('../data/profileStore')
@@ -94,8 +94,8 @@ describe('MyPageScreen', () => {
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 50 })
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today={today} />)
     const delta = await screen.findByTestId('mypage-rank-delta')
+    await waitFor(() => expect(delta).toHaveTextContent('+'))
     expect(delta).toHaveTextContent('前回比')
-    expect(delta).toHaveTextContent('+')
   })
   it('初回は増減を表示しない', async () => {
     const today = todayStr()
@@ -113,11 +113,11 @@ describe('MyPageScreen', () => {
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 14 })
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today={today} />)
     const delta = await screen.findByTestId('mypage-rank-delta')
+    await waitFor(() => expect(delta).toHaveTextContent('-36'))
     expect(delta).toHaveTextContent('前回比')
-    expect(delta).toHaveTextContent('-36')
     expect(delta).toHaveTextContent('▼')
   })
-  it('順位変化なしでも±0キープを大きく表示する', async () => {
+  it('順位変化なしは±0を小さめに表示しキープ文言は出さない', async () => {
     localStorage.setItem('schedule-app-last-rank', '199159')
     const today = todayStr()
     const now = new Date().toISOString()
@@ -125,7 +125,8 @@ describe('MyPageScreen', () => {
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 14 })
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today={today} />)
     const delta = await screen.findByTestId('mypage-rank-delta')
-    expect(delta).toHaveTextContent('±0')
-    expect(delta).toHaveTextContent('キープ')
+    await waitFor(() => expect(delta).toHaveTextContent('— ±0'))
+    expect(delta).not.toHaveTextContent('キープ')
+    expect(delta).not.toHaveTextContent('前回比')
   })
 })

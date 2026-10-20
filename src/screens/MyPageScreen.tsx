@@ -126,31 +126,47 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
         </div>
         {deltaText != null && (
           <div data-testid="mypage-rank-delta" style={{ margin: '8px 0' }}>
-            <span
-              style={{
-                display: 'inline-block',
-                padding: '6px 14px',
-                borderRadius: 999,
-                fontSize: 20,
-                fontWeight: 900,
-                lineHeight: 1.2,
-                border: '2px solid',
-                borderColor: tone === 'up' ? '#1a7f37' : tone === 'down' ? '#b42318' : '#98a2b3',
-                background: tone === 'up' ? '#e6f4ea' : tone === 'down' ? '#fdecea' : '#f1f3f5',
-                color: tone === 'up' ? '#1a7f37' : tone === 'down' ? '#b42318' : '#5f6368',
-              }}
-            >
-              {tone === 'up' ? '▲' : tone === 'down' ? '▼' : '—'} {deltaText}{' '}
-              {tone === 'up' ? 'UP' : tone === 'down' ? 'DOWN' : 'キープ'}
-            </span>
-            <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
-              前回比 {deltaText}
-              {tone === 'up'
-                ? '：前回よりランクアップ！'
-                : tone === 'down'
-                  ? '：前回よりダウン'
-                  : '：キープ中'}
-            </div>
+            {tone === 'flat' ? (
+              <span
+                style={{
+                  display: 'inline-block',
+                  padding: '4px 12px',
+                  borderRadius: 999,
+                  fontSize: 14,
+                  fontWeight: 800,
+                  lineHeight: 1.2,
+                  border: '1px solid',
+                  borderColor: '#98a2b3',
+                  background: '#f1f3f5',
+                  color: '#5f6368',
+                }}
+              >
+                — {deltaText}
+              </span>
+            ) : (
+              <>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    padding: '6px 14px',
+                    borderRadius: 999,
+                    fontSize: 20,
+                    fontWeight: 900,
+                    lineHeight: 1.2,
+                    border: '2px solid',
+                    borderColor: tone === 'up' ? '#1a7f37' : '#b42318',
+                    background: tone === 'up' ? '#e6f4ea' : '#fdecea',
+                    color: tone === 'up' ? '#1a7f37' : '#b42318',
+                  }}
+                >
+                  {tone === 'up' ? '▲' : '▼'} {deltaText} {tone === 'up' ? 'UP' : 'DOWN'}
+                </span>
+                <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
+                  前回比 {deltaText}
+                  {tone === 'up' ? '：前回よりランクアップ！' : '：前回よりダウン'}
+                </div>
+              </>
+            )}
           </div>
         )}
         <div style={{ fontSize: 14, fontWeight: 700 }}>
