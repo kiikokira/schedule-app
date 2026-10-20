@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
@@ -23,6 +23,9 @@ import { loadLastRank, saveLastRank } from '../data/lastRankStore'
 import { formatRankDelta, deltaTone } from '../lib/rankDelta'
 import { ALL_UNIVERSITIES, facultiesFor, formalUniversityName } from '../data/universities'
 import ProgressChart from '../components/ProgressChart'
+import { loadMockHistory, recordMockIfNeeded, type MockRecord } from '../lib/mockHistory'
+import { listBadges } from '../lib/mockBadges'
+import MockHistoryChart from '../components/MockHistoryChart'
 
 type Props = { onBack: () => void; onRanking: () => void; today?: string }
 
@@ -58,6 +61,13 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
   const deviation = rankToDeviation(rank)
   const milestone = nextRankMilestone(rank)
   const milestoneDiff = milestone == null ? 0 : Math.max(0, totalPagesForRank(milestone) - totalPages)
+  const [mockHistory, setMockHistory] = useState<MockRecord[]>(() => loadMockHistory())
+  useEffect(() => {
+    setMockHistory(recordMockIfNeeded(today, rank, deviation, totalPages))
+  }, [today, rank, deviation, totalPages])
+  const badges = useMemo(() => listBadges(mockHistory), [mockHistory])
+  const prevDev = mockHistory.length >= 2 ? mockHistory[mockHistory.length - 2].deviation : null
+  const devDelta = prevDev == null || mockHistory.length === 0 ? null : Math.round((mockHistory[mockHistory.length - 1].deviation - prevDev) * 10) / 10
 
   const diagnosis = overallDiagnosis(books, records, today)
   const dailyQuota = Math.max(1, diagnosis.requiredPerDay)
@@ -185,6 +195,41 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
           <div style={{ fontSize: 13 }}>今日あと{streak.remaining}ページで継続！</div>
         )}
         <ProgressChart dates={last7Days} values={last7Values} />
+      </section>
+      <section data-testid="mock-history" style={cardStyle}>
+        <div style={{ fontWeight: 800 }}>仮想模試 成績表</div>
+        {mockHistory.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>まだ初記録がありません。来月の第1週で初記録！</div>
+        ) : (
+          <>
+            <MockHistoryChart history={mockHistory} />
+            <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+              {devDelta == null ? '初記録おめでとう！' : `前回比 ${devDelta >= 0 ? '＋' : ''}${devDelta}`}
+            </div>
+          </>
+        )}
+      </section>
+      <section data-testid="mock-badges" style={cardStyle}>
+        <div style={{ fontWeight: 800 }}>称号バッジ</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+          {badges.map((b) => (
+            <div
+              key={b.id}
+              data-testid={`mock-badge-${b.id}`}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 999,
+                fontSize: 12,
+                border: '1px solid var(--border)',
+                background: b.unlocked ? '#fff4d6' : 'var(--surface)',
+                opacity: b.unlocked ? 1 : 0.6,
+              }}
+              title={b.hint}
+            >
+              {b.unlocked ? `★${b.name}` : `${b.name}（${b.hint}）`}
+            </div>
+          ))}
+        </div>
       </section>
       {!editing ? (
         <section data-testid="mypage-view" style={{ marginTop: 12 }}>
