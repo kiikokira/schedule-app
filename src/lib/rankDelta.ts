@@ -1,7 +1,7 @@
 export function formatRankDelta(prev: number | null, current: number): string | null {
   if (prev == null) return null
   const diff = prev - current
-  if (diff === 0) return null
+  if (diff === 0) return '±0'
   const sign = diff > 0 ? '+' : '-'
   return `${sign}${Math.abs(diff).toLocaleString()}`
 }

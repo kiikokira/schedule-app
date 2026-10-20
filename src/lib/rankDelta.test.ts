@@ -14,8 +14,8 @@ describe('rankDelta', () => {
     expect(formatRankDelta(199123, 199159)).toBe('-36')
     expect(deltaTone(199123, 199159)).toBe('down')
   })
-  it('差分0は表示なし', () => {
-    expect(formatRankDelta(199159, 199159)).toBeNull()
+  it('差分0は±0でキープ表示する', () => {
+    expect(formatRankDelta(199159, 199159)).toBe('±0')
     expect(deltaTone(199159, 199159)).toBe('flat')
   })
   it('3桁区切りで表示する', () => {
