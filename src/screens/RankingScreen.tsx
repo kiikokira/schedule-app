@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRecords } from '../hooks/useRecords'
 import { scoreActivityOnDate, todayStr } from '../lib/progress'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
+import { loadMockHistory, recordMockIfNeeded, type MockRecord } from '../lib/mockHistory'
+import { listBadges } from '../lib/mockBadges'
+import MockHistoryChart from '../components/MockHistoryChart'
 
 type Props = { onBack: () => void; today?: string }
 
@@ -31,6 +34,13 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const dayOfMonth = Number(today.slice(8, 10))
   const isMockWeek = dayOfMonth >= 1 && dayOfMonth <= 7
   const level = deviation >= 60 ? 'A' : deviation >= 55 ? 'B' : deviation >= 50 ? 'C' : deviation >= 45 ? 'D' : 'E'
+  const [mockHistory, setMockHistory] = useState<MockRecord[]>(() => loadMockHistory())
+  useEffect(() => {
+    setMockHistory(recordMockIfNeeded(today, rank, deviation, totalPages))
+  }, [today, rank, deviation, totalPages])
+  const badges = useMemo(() => listBadges(mockHistory), [mockHistory])
+  const prevDev = mockHistory.length >= 2 ? mockHistory[mockHistory.length - 2].deviation : null
+  const devDelta = prevDev == null || mockHistory.length === 0 ? null : Math.round((mockHistory[mockHistory.length - 1].deviation - prevDev) * 10) / 10
   return (
     <div data-testid="ranking-page" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>仮想全国ランキング</h1>
@@ -109,6 +119,41 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
           <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>到達度目安：{level}</div>
         </section>
       )}
+      <section data-testid="mock-history" style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
+        <div style={{ fontWeight: 800 }}>仮想模試 成績表</div>
+        {mockHistory.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>まだ初記録がありません。来月の第1週で初記録！</div>
+        ) : (
+          <>
+            <MockHistoryChart history={mockHistory} />
+            <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+              {devDelta == null ? '初記録おめでとう！' : `前回比 ${devDelta >= 0 ? '＋' : ''}${devDelta}`}
+            </div>
+          </>
+        )}
+      </section>
+      <section data-testid="mock-badges" style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
+        <div style={{ fontWeight: 800 }}>称号バッジ</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+          {badges.map((b) => (
+            <div
+              key={b.id}
+              data-testid={`mock-badge-${b.id}`}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 999,
+                fontSize: 12,
+                border: '1px solid var(--border)',
+                background: b.unlocked ? '#fff4d6' : 'var(--surface)',
+                opacity: b.unlocked ? 1 : 0.6,
+              }}
+              title={b.hint}
+            >
+              {b.unlocked ? `★${b.name}` : `${b.name}（${b.hint}）`}
+            </div>
+          ))}
+        </div>
+      </section>
       <section data-testid="ranking-sources" style={{ marginTop: 12, fontSize: 12, color: 'var(--text-dim)' }}>
         母集団の根拠：文部科学省「高等教育の現状について」／ベネッセ教育総合研究所（大学生130人調査）／代々木ゼミナール目安／坪田塾コラム／SFC公式合格体験記・合格者体験談
       </section>
