@@ -626,31 +626,12 @@ describe('TodayPlanScreen', () => {
     expect(loadOverridePresets().find((p) => p.id === 'p2')?.rows[0].start).toBe('14:00')
   })
 
-  it('開くを押すと別ページに遷移する', async () => {
-    const onSchool = vi.fn()
-    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" onSchool={onSchool} />)
-    fireEvent.click(await screen.findByTestId('school-events-toggle'))
-    expect(onSchool).toHaveBeenCalled()
-  })
-
-  it('開いてもインラインの一覧は表示しない', async () => {
-    const onSchool = vi.fn()
-    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" onSchool={onSchool} />)
-    fireEvent.click(await screen.findByTestId('school-events-toggle'))
-    expect(screen.queryByTestId('school-events-list')).not.toBeInTheDocument()
-  })
-
-  it('別ページで見るボタンは表示しない（onSchool指定時も）', async () => {
-    const onSchool = vi.fn()
-    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" onSchool={onSchool} />)
-    await screen.findByTestId('school-events-section')
-    expect(screen.queryByTestId('school-events-open')).not.toBeInTheDocument()
-  })
-
-  it('onSchool未指定時も別ページで見るボタンを出さない', async () => {
+  it('今日の計画に学校の日程セクションを表示しない', async () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
-    await screen.findByTestId('school-events-section')
-    expect(screen.queryByTestId('school-events-open')).not.toBeInTheDocument()
+    await screen.findByTestId('today-back')
+    expect(screen.queryByTestId('school-events-section')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('school-events-toggle')).not.toBeInTheDocument()
+    expect(screen.queryByText('学校の日程')).not.toBeInTheDocument()
   })
 
   it('期限に間に合わない本があると警告を出して見直しに進める', async () => {

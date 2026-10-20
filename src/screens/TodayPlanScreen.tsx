@@ -23,7 +23,6 @@ type Props = {
   onBack: () => void
   onSettings: () => void
   today?: string
-  onSchool?: () => void
   onRebalance?: (bookId: string) => void
 }
 
@@ -159,7 +158,7 @@ function overlayCyclesPins(
   return out.sort((a, b) => a.startMin - b.startMin)
 }
 
-export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, onSchool, onRebalance }: Props) {
+export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, onRebalance }: Props) {
   const { books: allBooks, saveBook } = useBooks()
   const { records, addProgress } = useRecords()
   const { cycleRecords, addCycle } = useCycleRecords()
@@ -1075,17 +1074,6 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
             })}
           </div>
         ))}
-      </div>
-      <div data-testid="school-events-section" style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
-        <h2 style={{ fontSize: 16 }}>学校の日程</h2>
-        <button
-          data-testid="school-events-toggle"
-          type="button"
-          style={{ marginBottom: 8 }}
-          onClick={() => onSchool?.()}
-        >
-          開く
-        </button>
       </div>
       <button data-testid="today-back" type="button" onClick={onBack}>
         戻る

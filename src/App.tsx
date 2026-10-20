@@ -132,7 +132,6 @@ export default function App() {
           <TodayPlanScreen
             onBack={() => setRoute({ name: 'home' })}
             onSettings={() => setRoute({ name: 'plan' })}
-            onSchool={() => setRoute({ name: 'school' })}
             onRebalance={(bookId) => setRoute({ name: 'rebalance', bookId })}
           />
         )}

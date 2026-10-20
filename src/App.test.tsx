@@ -58,14 +58,12 @@ it('navigates between the AI chat and history screens', async () => {
   expect(await screen.findByTestId('chat-screen')).toBeInTheDocument()
 })
 
-it('navigates to the school page from the today plan screen and back', async () => {
+it('does not show school schedule in the today plan screen', async () => {
   render(<App />)
   fireEvent.click(screen.getByTestId('nav-today'))
   await screen.findByTestId('today-plan-screen')
-  fireEvent.click(await screen.findByTestId('school-events-toggle'))
-  expect(await screen.findByTestId('school-page')).toBeInTheDocument()
-  fireEvent.click(screen.getByTestId('school-back'))
-  expect(await screen.findByTestId('today-plan-screen')).toBeInTheDocument()
+  expect(screen.queryByTestId('school-events-section')).not.toBeInTheDocument()
+  expect(screen.queryByTestId('school-events-toggle')).not.toBeInTheDocument()
 })
 
 it('does not show japan nav on home', async () => {
