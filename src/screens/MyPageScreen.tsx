@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
@@ -19,6 +19,8 @@ import {
   rankToDeviation,
 } from '../lib/ranking'
 import { loadProfile, saveProfile } from '../data/profileStore'
+import { loadLastRank, saveLastRank } from '../data/lastRankStore'
+import { formatRankDelta, deltaTone } from '../lib/rankDelta'
 import { ALL_UNIVERSITIES, facultiesFor, formalUniversityName } from '../data/universities'
 import ProgressChart from '../components/ProgressChart'
 
@@ -47,6 +49,12 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
   const todayPages = scoreActivityOnDate(today, records)
   const totalPages = totalActivity(records)
   const rank = totalPagesToRank(totalPages)
+  const [prevRank] = useState<number | null>(() => loadLastRank())
+  useEffect(() => {
+    saveLastRank(rank)
+  }, [rank])
+  const deltaText = formatRankDelta(prevRank, rank)
+  const tone = deltaTone(prevRank, rank)
   const deviation = rankToDeviation(rank)
   const milestone = nextRankMilestone(rank)
   const milestoneDiff = milestone == null ? 0 : Math.max(0, totalPagesForRank(milestone) - totalPages)
@@ -116,6 +124,11 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
         <div data-testid="mypage-rank" style={{ fontSize: 14 }}>
           全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{deviation}）
         </div>
+        {deltaText != null && (
+          <div data-testid="mypage-rank-delta" style={{ fontSize: 16, fontWeight: 800, color: tone === 'up' ? '#1a7f37' : '#d1242f' }}>
+            前回比 {deltaText}
+          </div>
+        )}
         <div style={{ fontSize: 14, fontWeight: 700 }}>
           {milestone == null
             ? '全国1位をキープ中！'
