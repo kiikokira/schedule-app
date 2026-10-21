@@ -121,6 +121,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     }
   })()
   const isRpg = tab === 'rpg'
+  const isLeague = tab === 'league'
   const expInLevel = ((seasonState.exp % 1000) + 1000) % 1000
   const expToNext = 1000 - expInLevel
   const expPct = Math.min(100, Math.max(0, Math.round((expInLevel / 1000) * 100)))
@@ -145,7 +146,9 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
         minHeight: '100vh',
         background: isRpg
           ? 'linear-gradient(180deg, #1e2a5a 0%, #3f56a8 45%, #9fb8ff 100%)'
-          : 'linear-gradient(180deg, #dbe7ff 0%, #eef4ff 38%, #f2f4f8 100%)',
+          : isLeague
+            ? 'linear-gradient(180deg, #dbe7ff 0%, #eef4ff 38%, #f2f4f8 100%)'
+            : undefined,
       }}
     >
       <h1 style={{ fontSize: 20, color: isRpg ? '#fff' : undefined, textShadow: isRpg ? '0 1px 4px rgba(0,0,0,0.4)' : undefined }}>仮想全国ランキング</h1>
