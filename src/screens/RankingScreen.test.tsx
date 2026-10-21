@@ -189,4 +189,17 @@ describe('RankingScreen', () => {
       expect(within(row).getByTestId('top-pages')).toBeInTheDocument()
     }
   })
+  it('リーグタブでDiv10順位表が出る', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.getByTestId('league-board')).toBeInTheDocument()
+    expect(screen.getByTestId('league-row-you')).toBeInTheDocument()
+  })
+  it('RPGタブでレベルが表示される', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('rpg-tab'))
+    expect(screen.getByTestId('rpg-level')).toHaveTextContent('Lv.1')
+  })
 })

@@ -32,6 +32,9 @@ import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
 import { quoteOf } from '../data/quotes'
 import { loadSchedule, saveSchedule, syncEntryDatesForBook } from '../data/scheduleStore'
+import { loadSeasonState, recordSeasonDay, applyPromotionIfNeeded } from '../data/seasonStore'
+import { seasonDayIndex, isSeasonFinalDay, seasonIdForDate } from '../lib/seasonLeague'
+import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
 import { listAvailability } from '../data/dayplanStore'
 import { earliestFeasibleDeadline, effectiveSpeed } from '../lib/dayplan'
 import {
@@ -570,6 +573,45 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
   const deviation = rankToDeviation(rank)
   const profile = loadProfile()
   const headerUniv = profile.university && profile.faculty ? `${formalUniversityName(profile.university)}${profile.faculty}` : '慶應義塾大学環境情報学部'
+  const season = (() => {
+    try {
+      return loadSeasonState(today)
+    } catch {
+      return { seasonId: '2026-09-01', div: 10, exp: 0, days: {} as Record<string, number> }
+    }
+  })()
+  const seasonRemain = (() => {
+    try {
+      return 28 - seasonDayIndex(today)
+    } catch {
+      return 28
+    }
+  })()
+
+  useEffect(() => {
+    try {
+      const pages = scoreActivityOnDate(today, records)
+      recordSeasonDay(today, pages, streak.streak)
+      if (isSeasonFinalDay(today)) {
+        try {
+          const st = loadSeasonState(today)
+          const dayIdx = seasonDayIndex(today)
+          const vals = Object.values(st.days ?? {})
+          const myCum = vals.length > 0 ? vals.reduce((s, v) => s + v, 0) : pages
+          const rivals = generateRivals(seasonIdForDate(today), st.div)
+          const rows = [
+            { id: 'you', cum: myCum },
+            ...rivals.map((r) => {
+              let cum = 0
+              for (let d = 0; d <= dayIdx; d++) cum += rivalPagesForDay(r, d)
+              return { id: r.id, cum }
+            }),
+          ].sort((a, b) => b.cum - a.cum)
+          applyPromotionIfNeeded(today, rows.map((r) => r.id), 'you')
+        } catch { /* national-only fallback */ }
+      }
+    } catch { /* national-only fallback */ }
+  }, [records, today, streak.streak])
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = parseDate(today)
     d.setDate(d.getDate() - (6 - i))
@@ -642,6 +684,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
         <button data-testid="mypage-open" type="button" onClick={() => onMyPage?.()} style={{ marginLeft: 8 }}>
           マイページ
         </button>
+        <div data-testid="season-banner">今季Div.{season.div} 残り{seasonRemain}節 順位はリーグタブで</div>
       </section>
       <p data-testid="today-date" style={{ fontWeight: 700 }}>
         今日は {formatJaDate(today)}
