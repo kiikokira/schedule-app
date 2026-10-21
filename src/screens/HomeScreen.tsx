@@ -32,6 +32,8 @@ import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
 import { quoteOf } from '../data/quotes'
 import { loadSchedule, saveSchedule, syncEntryDatesForBook } from '../data/scheduleStore'
+import { loadSeasonState } from '../data/seasonStore'
+import { seasonDayIndex } from '../lib/seasonLeague'
 import { listAvailability } from '../data/dayplanStore'
 import { earliestFeasibleDeadline, effectiveSpeed } from '../lib/dayplan'
 import {
@@ -570,6 +572,8 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
   const deviation = rankToDeviation(rank)
   const profile = loadProfile()
   const headerUniv = profile.university && profile.faculty ? `${formalUniversityName(profile.university)}${profile.faculty}` : '慶應義塾大学環境情報学部'
+  const season = loadSeasonState(today)
+  const seasonRemain = 28 - seasonDayIndex(today)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = parseDate(today)
     d.setDate(d.getDate() - (6 - i))
@@ -642,6 +646,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
         <button data-testid="mypage-open" type="button" onClick={() => onMyPage?.()} style={{ marginLeft: 8 }}>
           マイページ
         </button>
+        <div data-testid="season-banner">今季Div.{season.div} 残り{seasonRemain}節 順位はリーグタブで</div>
       </section>
       <p data-testid="today-date" style={{ fontWeight: 700 }}>
         今日は {formatJaDate(today)}

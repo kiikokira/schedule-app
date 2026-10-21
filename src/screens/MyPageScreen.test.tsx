@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { describe, it, expect, beforeEach } from 'vitest'
 import MyPageScreen from './MyPageScreen'
 import { db } from '../db/database'
@@ -139,5 +139,11 @@ describe('MyPageScreen', () => {
     localStorage.clear()
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today="2026-10-15" />)
     expect(await screen.findByTestId('mock-history')).toHaveTextContent(/初記録|来月/)
+  })
+  it('シーズン表示が目標カード内に出る', async () => {
+    localStorage.removeItem('schedule-app-season')
+    render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today={todayStr()} />)
+    const goal = await screen.findByTestId('mypage-goal')
+    expect(within(goal).getByTestId('mypage-season')).toBeInTheDocument()
   })
 })

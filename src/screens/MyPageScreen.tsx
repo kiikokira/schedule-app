@@ -24,6 +24,8 @@ import { formatRankDelta, deltaTone } from '../lib/rankDelta'
 import { ALL_UNIVERSITIES, facultiesFor, formalUniversityName } from '../data/universities'
 import ProgressChart from '../components/ProgressChart'
 import { loadMockHistory, recordMockIfNeeded, type MockRecord } from '../lib/mockHistory'
+import { loadSeasonState } from '../data/seasonStore'
+import { levelForExp } from '../lib/seasonExp'
 import { listBadges } from '../lib/mockBadges'
 import MockHistoryChart from '../components/MockHistoryChart'
 
@@ -99,6 +101,7 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
 
   const facultyOptions = draft.university ? facultiesFor(draft.university) : []
   const hasUniv = profile.university !== ''
+  const season = loadSeasonState(today)
 
   return (
     <div
@@ -186,6 +189,7 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
         </div>
         <div data-testid="mypage-total" style={{ fontSize: 14 }}>累計 {totalPages.toLocaleString()}ページ</div>
         <div data-testid="mypage-today" style={{ fontSize: 14 }}>今日 {todayPages.toLocaleString()}ページ</div>
+        <div data-testid="mypage-season">Lv.{levelForExp(season.exp)} Div.{season.div} EXP.{season.exp}</div>
       </section>
       <section style={cardStyle}>
         <div data-testid="mypage-streak" style={{ fontWeight: 800, fontSize: 16 }}>

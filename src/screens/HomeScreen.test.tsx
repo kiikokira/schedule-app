@@ -955,4 +955,11 @@ describe('HomeScreen', () => {
       expect(loadSchedule().find((e) => e.bookId === 'cycle-1')?.deadline).toBe(todayStr())
     })
   })
+
+  it('season banner appears inside ranking card', () => {
+    localStorage.removeItem('schedule-app-season')
+    render(<HomeScreen onOpenBook={() => {}} onRanking={() => {}} onMyPage={() => {}} />)
+    const card = screen.getByTestId('ranking-card')
+    expect(within(card).getByTestId('season-banner')).toBeInTheDocument()
+  })
 })
