@@ -120,9 +120,35 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       return 1
     }
   })()
+  const isRpg = tab === 'rpg'
+  const expInLevel = ((seasonState.exp % 1000) + 1000) % 1000
+  const expToNext = 1000 - expInLevel
+  const expPct = Math.min(100, Math.max(0, Math.round((expInLevel / 1000) * 100)))
+  const rpgTitle =
+    leagueLevel >= 10 ? '伝説の勇者' :
+    leagueLevel >= 8 ? '王国騎士' :
+    leagueLevel >= 5 ? '荒野の戦士' :
+    leagueLevel >= 3 ? '街の守り手' :
+    leagueLevel >= 2 ? '駆け出し冒険者' : '見習い勇者'
+  const rpgChara =
+    leagueLevel >= 10 ? '🐉' :
+    leagueLevel >= 8 ? '🦄' :
+    leagueLevel >= 5 ? '⚔️' :
+    leagueLevel >= 3 ? '🛡️' :
+    leagueLevel >= 2 ? '🌱' : '🐣'
+  const questCleared = todayPages > 0
   return (
-    <div data-testid="ranking-page" style={{ padding: 16 }}>
-      <h1 style={{ fontSize: 20 }}>仮想全国ランキング</h1>
+    <div
+      data-testid="ranking-page"
+      style={{
+        padding: 16,
+        minHeight: '100vh',
+        background: isRpg
+          ? 'linear-gradient(180deg, #1e2a5a 0%, #3f56a8 45%, #9fb8ff 100%)'
+          : 'linear-gradient(180deg, #dbe7ff 0%, #eef4ff 38%, #f2f4f8 100%)',
+      }}
+    >
+      <h1 style={{ fontSize: 20, color: isRpg ? '#fff' : undefined, textShadow: isRpg ? '0 1px 4px rgba(0,0,0,0.4)' : undefined }}>仮想全国ランキング</h1>
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
         <button data-testid="national-tab" type="button" onClick={() => setTab('national')}>
           全国
@@ -240,13 +266,58 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
         </div>
       )}
       {tab === 'rpg' && (
-        <div style={{ marginTop: 8 }}>
-          <p data-testid="rpg-level" style={{ fontWeight: 700 }}>
-            Lv.{leagueLevel}
-          </p>
-          <p style={{ fontSize: 14 }}>
-            Div.{seasonState.div} EXP.{seasonState.exp}
-          </p>
+        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <section
+            data-testid="rpg-hero"
+            style={{ padding: '14px 12px', borderRadius: 12, background: '#fff', border: '1px solid #d5dbe6', boxShadow: '0 2px 8px rgba(30,42,90,0.25)' }}
+          >
+            <div style={{ fontSize: 44, lineHeight: 1 }} role="img" aria-label="勇者キャラ">
+              {rpgChara}
+            </div>
+            <p data-testid="rpg-level" style={{ fontWeight: 800, fontSize: 20, margin: '8px 0 2px' }}>
+              Lv.{leagueLevel} {rpgTitle}
+            </p>
+            <p style={{ fontSize: 14, margin: '0 0 8px', color: 'var(--text-dim)' }}>
+              Div.{seasonState.div} EXP.{seasonState.exp.toLocaleString()}
+            </p>
+            <div
+              data-testid="rpg-exp-bar"
+              role="progressbar"
+              aria-valuenow={expPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              style={{ height: 14, borderRadius: 999, background: '#e5e7eb', overflow: 'hidden', border: '1px solid #d5dbe6' }}
+            >
+              <div style={{ width: `${expPct}%`, height: '100%', background: 'linear-gradient(90deg, #5a74c9, #eab308)', transition: 'width 0.3s' }} />
+            </div>
+            <div data-testid="rpg-next" style={{ fontSize: 13, marginTop: 6 }}>
+              次のレベルまであと{expToNext.toLocaleString()}EXP（{expInLevel.toLocaleString()}/1000）
+            </div>
+          </section>
+          <section
+            data-testid="rpg-quest"
+            style={{ padding: '12px', borderRadius: 12, background: '#fffdf0', border: '2px solid #eab308' }}
+          >
+            <div style={{ fontWeight: 800, fontSize: 16 }}>📜 今日のクエスト</div>
+            <div style={{ fontSize: 14, marginTop: 4 }}>
+              今日 {todayPages.toLocaleString()}ページ ／ 累計 {totalPages.toLocaleString()}ページ
+            </div>
+            <div style={{ fontSize: 14, marginTop: 4 }}>
+              Div.{seasonState.div} 第{leagueDay + 1}節（全28節） ○{leagueWins}勝
+            </div>
+            {questCleared ? (
+              <div data-testid="rpg-quest-clear" style={{ marginTop: 8, fontWeight: 800, color: '#1a7f37' }}>
+                🎉 クエストクリア！冒険が進んだ！
+              </div>
+            ) : (
+              <div data-testid="rpg-quest-yet" style={{ marginTop: 8, fontSize: 14 }}>
+                あと1ページでクエストクリア！本を開いて冒険を進めよう⚔️
+              </div>
+            )}
+            <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 6 }}>
+              ページを読むとEXPがたまり、リーグの順位も上がるよ。1日1ページからでOK！
+            </div>
+          </section>
         </div>
       )}
       <button data-testid="ranking-back" type="button" onClick={onBack}>
