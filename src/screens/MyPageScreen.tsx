@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
@@ -26,7 +26,6 @@ import ProgressChart from '../components/ProgressChart'
 import { loadMockHistory, recordMockIfNeeded, type MockRecord } from '../lib/mockHistory'
 import { loadSeasonState } from '../data/seasonStore'
 import { levelForExp } from '../lib/seasonExp'
-import { listBadges } from '../lib/mockBadges'
 import MockHistoryChart from '../components/MockHistoryChart'
 
 type Props = { onBack: () => void; onRanking: () => void; today?: string }
@@ -67,7 +66,6 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
   useEffect(() => {
     setMockHistory(recordMockIfNeeded(today, rank, deviation, totalPages))
   }, [today, rank, deviation, totalPages])
-  const badges = useMemo(() => listBadges(mockHistory), [mockHistory])
   const prevDev = mockHistory.length >= 2 ? mockHistory[mockHistory.length - 2].deviation : null
   const devDelta = prevDev == null || mockHistory.length === 0 ? null : Math.round((mockHistory[mockHistory.length - 1].deviation - prevDev) * 10) / 10
 
@@ -212,28 +210,6 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
             </div>
           </>
         )}
-      </section>
-      <section data-testid="mock-badges" style={cardStyle}>
-        <div style={{ fontWeight: 800 }}>称号バッジ</div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-          {badges.map((b) => (
-            <div
-              key={b.id}
-              data-testid={`mock-badge-${b.id}`}
-              style={{
-                padding: '6px 10px',
-                borderRadius: 999,
-                fontSize: 12,
-                border: '1px solid var(--border)',
-                background: b.unlocked ? '#fff4d6' : 'var(--surface)',
-                opacity: b.unlocked ? 1 : 0.6,
-              }}
-              title={b.hint}
-            >
-              {b.unlocked ? `★${b.name}` : `${b.name}（${b.hint}）`}
-            </div>
-          ))}
-        </div>
       </section>
       {!editing ? (
         <section data-testid="mypage-view" style={{ marginTop: 12 }}>

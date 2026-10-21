@@ -129,11 +129,11 @@ describe('MyPageScreen', () => {
     expect(delta).not.toHaveTextContent('キープ')
     expect(delta).not.toHaveTextContent('前回比')
   })
-  it('成績表コレクション（履歴・バッジ棚）を表示する', async () => {
+  it('成績表コレクション（履歴のみ・バッジ棚なし）を表示する', async () => {
     localStorage.clear()
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today="2026-10-05" />)
     expect(await screen.findByTestId('mock-history')).toBeInTheDocument()
-    expect(await screen.findByTestId('mock-badges')).toBeInTheDocument()
+    expect(screen.queryByTestId('mock-badges')).toBeNull()
   })
   it('履歴0件でも空表示で落ちない', async () => {
     localStorage.clear()
