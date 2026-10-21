@@ -1,4 +1,3 @@
-import { seasonIdForDate } from './seasonLeague'
 export type Rival = { id: string; name: string; div: number; basePages: number }
 export const DIV_BASE_PAGES: Record<number, number> = { 10: 20, 9: 30, 8: 40, 7: 50, 6: 60, 5: 75, 4: 90, 3: 110, 2: 130, 1: 150 }
 const NAMES = ['カナタ', 'ミレイ', 'ソウタ', 'ユズ', 'ハル', 'アオイ', 'レン']
@@ -17,7 +16,6 @@ function mulberry32(seed: number): () => number {
   }
 }
 export function generateRivals(seasonId: string, div: number): Rival[] {
-  void seasonIdForDate
   const base = DIV_BASE_PAGES[div] ?? 20
   return NAMES.map((name, i) => {
     const rand = mulberry32(hashSeed(`rival-${seasonId}-${div}-${i}`))
