@@ -194,6 +194,7 @@ describe('RankingScreen', () => {
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
     expect(screen.getByTestId('league-board')).toBeInTheDocument()
+    expect(screen.getByTestId('league-row-you')).toBeInTheDocument()
   })
   it('RPGタブでレベルが表示される', () => {
     localStorage.clear()

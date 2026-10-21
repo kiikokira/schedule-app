@@ -36,21 +36,23 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const isMockWeek = dayOfMonth >= 1 && dayOfMonth <= 7
   const level = deviation >= 60 ? 'A' : deviation >= 55 ? 'B' : deviation >= 50 ? 'C' : deviation >= 45 ? 'D' : 'E'
   const [tab, setTab] = useState<'national' | 'league' | 'rpg'>('national')
-  const seasonState = loadSeasonState(today)
+  const seasonState = useMemo(() => loadSeasonState(today), [today])
   const leagueDay = seasonDayIndex(today)
-  const prevDate = new Date(Date.parse(today + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10)
-  const myLeaguePages = scoreActivityOnDate(today, records)
-  const myPrevPages = scoreActivityOnDate(prevDate, records)
-  const leagueRows = [
-    { id: 'you', name: 'あなた', pages: myLeaguePages, prev: myPrevPages, you: true },
-    ...generateRivals(seasonIdForDate(today), seasonState.div).map((r) => ({
-      id: r.id,
-      name: r.name,
-      pages: rivalPagesForDay(r, leagueDay),
-      prev: leagueDay > 0 ? rivalPagesForDay(r, leagueDay - 1) : rivalPagesForDay(r, leagueDay),
-      you: false as const,
-    })),
-  ].sort((a, b) => b.pages - a.pages)
+  const leagueRows = useMemo(() => {
+    const prevDate = new Date(Date.parse(today + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10)
+    const myLeaguePages = scoreActivityOnDate(today, records)
+    const myPrevPages = leagueDay > 0 ? scoreActivityOnDate(prevDate, records) : myLeaguePages
+    return [
+      { id: 'you', name: 'あなた', pages: myLeaguePages, prev: myPrevPages, you: true },
+      ...generateRivals(seasonIdForDate(today), seasonState.div).map((r) => ({
+        id: r.id,
+        name: r.name,
+        pages: rivalPagesForDay(r, leagueDay),
+        prev: leagueDay > 0 ? rivalPagesForDay(r, leagueDay - 1) : rivalPagesForDay(r, leagueDay),
+        you: false as const,
+      })),
+    ].sort((a, b) => b.pages - a.pages)
+  }, [today, records, leagueDay, seasonState.div])
   const leagueLevel = levelForExp(seasonState.exp)
   return (
     <div data-testid="ranking-page" style={{ padding: 16 }}>
