@@ -228,12 +228,12 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               <div
                 key={row.id}
                 data-testid={row.you ? 'league-row-you' : `league-row-${row.id}`}
-                style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14, fontWeight: row.you ? 800 : undefined }}
+                style={{ display: 'grid', gridTemplateColumns: '3em minmax(0,1fr) 9em 3.5em', columnGap: 8, alignItems: 'center', fontSize: 14, fontWeight: row.you ? 800 : undefined }}
               >
-                <span style={{ minWidth: '3em', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{i + 1}位</span>
+                <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{i + 1}位</span>
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
-                <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>{row.cum}pt（今日{row.pages}）</span>
-                <span style={{ minWidth: '3em', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{mark}</span>
+                <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{row.cum}pt（今日{row.pages}）</span>
+                <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{mark}</span>
               </div>
             )
           })}
