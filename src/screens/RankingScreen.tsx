@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRecords } from '../hooks/useRecords'
 import { scoreActivityOnDate, todayStr } from '../lib/progress'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
+import { seasonDayIndex, seasonIdForDate } from '../lib/seasonLeague'
+import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
+import { loadSeasonState } from '../data/seasonStore'
+import { levelForExp } from '../lib/seasonExp'
 
 type Props = { onBack: () => void; today?: string }
 
@@ -31,9 +35,39 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const dayOfMonth = Number(today.slice(8, 10))
   const isMockWeek = dayOfMonth >= 1 && dayOfMonth <= 7
   const level = deviation >= 60 ? 'A' : deviation >= 55 ? 'B' : deviation >= 50 ? 'C' : deviation >= 45 ? 'D' : 'E'
+  const [tab, setTab] = useState<'national' | 'league' | 'rpg'>('national')
+  const seasonState = loadSeasonState(today)
+  const leagueDay = seasonDayIndex(today)
+  const prevDate = new Date(Date.parse(today + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10)
+  const myLeaguePages = scoreActivityOnDate(today, records)
+  const myPrevPages = scoreActivityOnDate(prevDate, records)
+  const leagueRows = [
+    { id: 'you', name: 'あなた', pages: myLeaguePages, prev: myPrevPages, you: true },
+    ...generateRivals(seasonIdForDate(today), seasonState.div).map((r) => ({
+      id: r.id,
+      name: r.name,
+      pages: rivalPagesForDay(r, leagueDay),
+      prev: leagueDay > 0 ? rivalPagesForDay(r, leagueDay - 1) : rivalPagesForDay(r, leagueDay),
+      you: false as const,
+    })),
+  ].sort((a, b) => b.pages - a.pages)
+  const leagueLevel = levelForExp(seasonState.exp)
   return (
     <div data-testid="ranking-page" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>仮想全国ランキング</h1>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <button data-testid="national-tab" type="button" onClick={() => setTab('national')}>
+          全国
+        </button>
+        <button data-testid="league-tab" type="button" onClick={() => setTab('league')}>
+          リーグ
+        </button>
+        <button data-testid="rpg-tab" type="button" onClick={() => setTab('rpg')}>
+          RPG
+        </button>
+      </div>
+      {tab === 'national' && (
+        <>
       <p data-testid="ranking-summary" style={{ fontWeight: 700 }}>
         全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{rankToDeviation(rank)}） 累計{totalPages.toLocaleString()}ページ（今日{todayPages.toLocaleString()}ページ）
       </p>
@@ -112,6 +146,41 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       <section data-testid="ranking-sources" style={{ marginTop: 12, fontSize: 12, color: 'var(--text-dim)' }}>
         母集団の根拠：文部科学省「高等教育の現状について」／ベネッセ教育総合研究所（大学生130人調査）／代々木ゼミナール目安／坪田塾コラム／SFC公式合格体験記・合格者体験談
       </section>
+        </>
+      )}
+      {tab === 'league' && (
+        <div data-testid="league-board" style={{ marginTop: 8 }}>
+          <p style={{ fontWeight: 700 }}>
+            Div.{seasonState.div} 第{leagueDay + 1}節（全28節）
+          </p>
+          {leagueRows.map((row, i) => {
+            const diff = row.pages - row.prev
+            const mark = diff > 0 ? `▲${diff}` : diff < 0 ? `▼${-diff}` : '―'
+            return (
+              <div
+                key={row.id}
+                data-testid={row.you ? 'league-row-you' : `league-row-${row.id}`}
+                style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14, fontWeight: row.you ? 800 : undefined }}
+              >
+                <span style={{ minWidth: '3em', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{i + 1}位</span>
+                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
+                <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>{row.pages}ページ</span>
+                <span style={{ minWidth: '3em', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{mark}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      {tab === 'rpg' && (
+        <div style={{ marginTop: 8 }}>
+          <p data-testid="rpg-level" style={{ fontWeight: 700 }}>
+            Lv.{leagueLevel}
+          </p>
+          <p style={{ fontSize: 14 }}>
+            Div.{seasonState.div} EXP.{seasonState.exp}
+          </p>
+        </div>
+      )}
       <button data-testid="ranking-back" type="button" onClick={onBack}>
         戻る
       </button>
