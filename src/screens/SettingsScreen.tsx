@@ -9,6 +9,7 @@ import {
   publishPush,
 } from '../lib/notify'
 import { getAiSettings, setAiSettings, chatWithModel, pingEndpoint, isSafeAiEndpoint, GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL, GROQ_ENDPOINT, GROQ_EXAMPLE_MODEL, DEFAULT_ENDPOINT } from '../lib/ai'
+import { loadProfile, saveProfile, type PlayMode } from '../data/profileStore'
 
 type Props = {
   onDone: () => void
@@ -41,6 +42,7 @@ export default function SettingsScreen({ onDone }: Props) {
   const [editingAi, setEditingAi] = useState(false)
   const [aiPreset, setAiPreset] = useState(() => presetOf(getAiSettings().endpoint))
   const [autoSnapshot, setAutoSnapshot] = useState<AutoSnapshot | null>(null)
+  const [playMode, setPlayMode] = useState<PlayMode>(() => loadProfile().playMode)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
@@ -245,6 +247,28 @@ export default function SettingsScreen({ onDone }: Props) {
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>設定</h1>
+      <section style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 16 }}>楽しみ方</h2>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+          記録の手間は変わりません（1日の勉強1回分でリーグもRPGも同時に進みます）。表示だけ切り替えます。
+        </p>
+        <label htmlFor="play-mode">表示モード</label>
+        <select
+          id="play-mode"
+          data-testid="play-mode"
+          value={playMode}
+          onChange={(e) => {
+            const v = e.target.value as PlayMode
+            setPlayMode(v)
+            saveProfile({ ...loadProfile(), playMode: v })
+            setResult('楽しみ方を保存しました')
+          }}
+        >
+          <option value="league">リーグのみ</option>
+          <option value="rpg">RPGのみ</option>
+          <option value="both">両方</option>
+        </select>
+      </section>
       <section style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 16 }}>Google Books 検索</h2>
         <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>

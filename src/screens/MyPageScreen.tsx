@@ -187,7 +187,15 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
         </div>
         <div data-testid="mypage-total" style={{ fontSize: 14 }}>累計 {totalPages.toLocaleString()}ページ</div>
         <div data-testid="mypage-today" style={{ fontSize: 14 }}>今日 {todayPages.toLocaleString()}ページ</div>
-        <div data-testid="mypage-season">Lv.{levelForExp(season.exp)} Div.{season.div} EXP.{season.exp}</div>
+        <div data-testid="mypage-season">
+          {profile.playMode === 'league' ? (
+            <>Div.{season.div}</>
+          ) : profile.playMode === 'rpg' ? (
+            <>Lv.{levelForExp(season.exp)} EXP.{season.exp}</>
+          ) : (
+            <>Lv.{levelForExp(season.exp)} Div.{season.div} EXP.{season.exp}</>
+          )}
+        </div>
       </section>
       <section style={cardStyle}>
         <div data-testid="mypage-streak" style={{ fontWeight: 800, fontSize: 16 }}>

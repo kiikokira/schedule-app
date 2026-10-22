@@ -5,6 +5,7 @@ import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, ne
 import { seasonDayIndex, seasonIdForDate } from '../lib/seasonLeague'
 import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
 import { loadSeasonState } from '../data/seasonStore'
+import { loadProfile } from '../data/profileStore'
 import { levelForExp } from '../lib/seasonExp'
 
 type Props = { onBack: () => void; today?: string }
@@ -35,7 +36,10 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const dayOfMonth = Number(today.slice(8, 10))
   const isMockWeek = dayOfMonth >= 1 && dayOfMonth <= 7
   const level = deviation >= 60 ? 'A' : deviation >= 55 ? 'B' : deviation >= 50 ? 'C' : deviation >= 45 ? 'D' : 'E'
-  const [tab, setTab] = useState<'national' | 'league' | 'rpg'>('national')
+  const [tab, setTab] = useState<'national' | 'league' | 'rpg'>(() => {
+    const mode = loadProfile().playMode
+    return mode === 'league' ? 'league' : mode === 'rpg' ? 'rpg' : 'national'
+  })
   const seasonState = useMemo(() => {
     try {
       return loadSeasonState(today)

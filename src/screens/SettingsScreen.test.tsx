@@ -4,6 +4,7 @@ import SettingsScreen from './SettingsScreen'
 import { db } from '../db/database'
 import { getAiSettings } from '../lib/ai'
 import { takeAutoSnapshot } from '../data/autoBackup'
+import { loadProfile } from '../data/profileStore'
 
 beforeEach(async () => {
   vi.restoreAllMocks()
@@ -439,5 +440,12 @@ describe('settings UI hardening (task6)', () => {
     fireEvent.click(screen.getByTestId('ai-save'))
     expect(confirmSpy).not.toHaveBeenCalled()
     expect(getAiSettings().endpoint).toBe('https://custom.example.com/v1/chat/completions')
+  })
+
+  it('saves the play mode selection', () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    expect(screen.getByTestId('play-mode')).toHaveValue('both')
+    fireEvent.change(screen.getByTestId('play-mode'), { target: { value: 'league' } })
+    expect(loadProfile().playMode).toBe('league')
   })
 })

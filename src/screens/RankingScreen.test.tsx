@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import RankingScreen from './RankingScreen'
 import { db } from '../db/database'
 import { todayStr } from '../lib/progress'
+import { saveProfile } from '../data/profileStore'
 
 describe('RankingScreen', () => {
   beforeEach(async () => {
@@ -201,5 +202,17 @@ describe('RankingScreen', () => {
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('rpg-tab'))
     expect(screen.getByTestId('rpg-level')).toHaveTextContent('Lv.1')
+  })
+  it('リーグのみモードはリーグタブから始まる', () => {
+    localStorage.clear()
+    saveProfile({ nickname: '', grade: '', university: '', faculty: '', department: '', playMode: 'league' })
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    expect(screen.getByTestId('league-board')).toBeInTheDocument()
+  })
+  it('RPGのみモードはRPGタブから始まる', () => {
+    localStorage.clear()
+    saveProfile({ nickname: '', grade: '', university: '', faculty: '', department: '', playMode: 'rpg' })
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    expect(screen.getByTestId('rpg-hero')).toBeInTheDocument()
   })
 })
