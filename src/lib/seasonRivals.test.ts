@@ -15,4 +15,15 @@ describe('seasonRivals', () => {
     const avg = (rs: { id: string }[]) => rs.reduce((s, r, i) => s + rivalPagesForDay(r as never, i), 0) / rs.length
     expect(avg(strong)).toBeGreaterThan(avg(weak))
   })
+  it('名前はAI接頭辞なしの大学＋実在学部で重複なし', () => {
+    for (const div of [1, 5, 10]) {
+      const names = generateRivals('2026-09-01', div).map((r) => r.name)
+      expect(names.length).toBe(7)
+      for (const n of names) {
+        expect(n.startsWith('AI')).toBe(false)
+        expect(n).toMatch(/学部|学群|学域|学院|学環|類/)
+      }
+      expect(new Set(names).size).toBe(7)
+    }
+  })
 })

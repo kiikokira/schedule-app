@@ -421,17 +421,21 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             </p>
           {leagueRows.map((row, i) => {
             const diff = row.pages - row.prev
-            const mark = diff > 0 ? `▲${diff}` : diff < 0 ? `▼${-diff}` : '―'
+            const sym = diff > 0 ? '▲' : diff < 0 ? '▼' : '―'
+            const val = diff !== 0 ? String(Math.abs(diff)) : ''
             return (
               <div
                 key={row.id}
                 data-testid={row.you ? 'league-row-you' : `league-row-${row.id}`}
-                style={{ display: 'grid', gridTemplateColumns: '3em minmax(0,1fr) 9em 3.5em', columnGap: 8, alignItems: 'center', fontSize: 14, fontWeight: row.you ? 800 : undefined, color: '#fff' }}
+                style={{ display: 'grid', gridTemplateColumns: '3em minmax(0,1fr) 9em 4.5em', columnGap: 8, alignItems: 'center', fontSize: 14, fontWeight: row.you ? 800 : undefined, color: '#fff' }}
               >
                 <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{i + 1}位</span>
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
                 <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{row.cum}pt（今日{row.pages}）</span>
-                <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{mark}</span>
+                <span style={{ display: 'inline-flex', justifyContent: 'flex-end', alignItems: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  <span data-testid="league-mark-sym" style={{ width: '1.2em', textAlign: 'center' }}>{sym}</span>
+                  <span data-testid="league-mark-val" style={{ minWidth: '2em', textAlign: 'right' }}>{val}</span>
+                </span>
               </div>
             )
           })}

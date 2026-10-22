@@ -278,6 +278,16 @@ describe('RankingScreen', () => {
     fireEvent.click(screen.getByTestId('league-tab'))
     expect(screen.getByTestId('league-rating-icon').tagName.toLowerCase()).toBe('svg')
   })
+  it('リーグ表の変動列は記号と数値が分かれて縦に揃う', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    const youRow = screen.getByTestId('league-row-you')
+    const sym = within(youRow).getByTestId('league-mark-sym')
+    const val = within(youRow).getByTestId('league-mark-val')
+    expect(sym).toHaveStyle({ width: '1.2em', textAlign: 'center' })
+    expect(val).toHaveStyle({ minWidth: '2em', textAlign: 'right' })
+  })
   it('リーグのみモードはリーグタブから始まる', () => {
     localStorage.clear()
     saveProfile({ nickname: '', grade: '', university: '', faculty: '', department: '', playMode: 'league' })
