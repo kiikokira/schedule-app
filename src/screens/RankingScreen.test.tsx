@@ -288,6 +288,37 @@ describe('RankingScreen', () => {
     expect(sym).toHaveStyle({ width: '1.2em', textAlign: 'center' })
     expect(val).toHaveStyle({ minWidth: '2em', textAlign: 'right' })
   })
+  it('リーグ表の変動矢印は上下で色分けされ見やすい', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    const syms = screen.getAllByTestId('league-mark-sym')
+    expect(syms.length).toBeGreaterThan(0)
+    // 全ての矢印に色が付いている（白一色のままはNG）
+    for (const s of syms) {
+      const text = s.textContent ?? ''
+      if (text === '▲' || text === '▼' || text === '―') {
+        expect(s.style.color).not.toBe('')
+      }
+    }
+    // 上昇と下降があれば色が違うこと
+    const up = syms.find((s) => s.textContent === '▲')
+    const down = syms.find((s) => s.textContent === '▼')
+    if (up && down) {
+      expect(up.style.color).not.toBe(down.style.color)
+    }
+  })
+  it('近傍ボードは自分±5件に絞られる', async () => {
+    const now = new Date().toISOString()
+    const today = todayStr()
+    await db.books.add({
+      id: 'b1', title: '単語帳', totalPages: 500,
+      startDate: today, deadline: today, createdAt: now, updatedAt: now,
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 50 })
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    await waitFor(() => expect(screen.getAllByTestId(/^ranking-rival-/).length).toBe(11))
+  })
   it('リーグのみモードはリーグタブから始まる', () => {
     localStorage.clear()
     saveProfile({ nickname: '', grade: '', university: '', faculty: '', department: '', playMode: 'league' })

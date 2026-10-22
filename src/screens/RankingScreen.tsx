@@ -29,7 +29,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const rank = totalPagesToRank(totalPages)
   const deviation = rankToDeviation(rank)
   void nowMin
-  const rivals = useMemo(() => sampleNearBoard(totalPages, rank, today, 15), [totalPages, rank, today])
+  const rivals = useMemo(() => sampleNearBoard(totalPages, rank, today, 5), [totalPages, rank, today])
   const topRivals = useMemo(() => sampleTopRivals(today, 10), [today])
   const milestone = nextRankMilestone(rank)
   const milestoneDiff = milestone == null ? 0 : Math.max(0, totalPagesForRank(milestone) - totalPages)
@@ -423,6 +423,8 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             const diff = row.pages - row.prev
             const sym = diff > 0 ? '▲' : diff < 0 ? '▼' : '―'
             const val = diff !== 0 ? String(Math.abs(diff)) : ''
+            const tone = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'
+            const markColor = tone === 'up' ? '#2fd44f' : tone === 'down' ? '#ff4d5e' : '#9aa3c0'
             return (
               <div
                 key={row.id}
@@ -433,8 +435,8 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
                 <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{row.cum}pt（今日{row.pages}）</span>
                 <span style={{ display: 'inline-flex', justifyContent: 'flex-end', alignItems: 'center', fontVariantNumeric: 'tabular-nums' }}>
-                  <span data-testid="league-mark-sym" style={{ width: '1.2em', textAlign: 'center' }}>{sym}</span>
-                  <span data-testid="league-mark-val" style={{ minWidth: '2em', textAlign: 'right' }}>{val}</span>
+                  <span data-testid="league-mark-sym" style={{ width: '1.2em', textAlign: 'center', color: markColor, fontWeight: 700, fontSize: 15 }}>{sym}</span>
+                  <span data-testid="league-mark-val" style={{ minWidth: '2em', textAlign: 'right', color: markColor }}>{val}</span>
                 </span>
               </div>
             )
