@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRecords } from '../hooks/useRecords'
 import { scoreActivityOnDate, todayStr } from '../lib/progress'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
-import { seasonDayIndex, seasonIdForDate } from '../lib/seasonLeague'
+import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leagueDayResults, type LeagueDayResult } from '../lib/seasonLeague'
 import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
 import { loadSeasonState } from '../data/seasonStore'
 import { loadProfile } from '../data/profileStore'
@@ -117,6 +117,49 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     const mine = leagueRows.find((r) => r.you)?.cum ?? 0
     return leagueRows.filter((r) => !r.you && r.cum < mine).length
   }, [leagueRows])
+  const myLeagueRank = useMemo(() => leagueRows.findIndex((r) => r.you) + 1, [leagueRows])
+  const myLeagueCum = useMemo(() => leagueRows.find((r) => r.you)?.cum ?? 0, [leagueRows])
+  const phaseNo = useMemo(() => {
+    try {
+      const diff = Math.floor((Date.parse(today + 'T00:00:00Z') - Date.parse('2026-09-01T00:00:00Z')) / 86400000)
+      if (!Number.isFinite(diff) || diff < 0) return 1
+      return Math.floor(diff / 28) + 1
+    } catch {
+      return 1
+    }
+  }, [today])
+  const phaseRange = useMemo(() => {
+    try {
+      const fmt = (d: string) => d.replaceAll('-', '/')
+      return { start: fmt(seasonStartForDate(today)), end: fmt(seasonEndForDate(today)) }
+    } catch {
+      return { start: today.replaceAll('-', '/'), end: today.replaceAll('-', '/') }
+    }
+  }, [today])
+  const leagueDaily = useMemo(() => {
+    try {
+      const start = seasonStartForDate(today)
+      const base = Date.parse(start + 'T00:00:00Z')
+      const out: { date: string; pages: number; result: LeagueDayResult }[] = []
+      const mine: number[] = []
+      for (let d = 0; d <= leagueDay; d++) {
+        const date = new Date(base + d * 86400000).toISOString().slice(0, 10)
+        mine.push(scoreActivityOnDate(date, records))
+        out.push({ date, pages: mine[d], result: 'draw' })
+      }
+      const results = leagueDayResults(seasonIdForDate(today), seasonState.div, mine)
+      return out.map((o, i) => ({ ...o, result: results[i] ?? ('draw' as const) }))
+    } catch {
+      return [] as { date: string; pages: number; result: LeagueDayResult }[]
+    }
+  }, [today, records, leagueDay, seasonState.div])
+  const leagueRecord = useMemo(() => {
+    const wins = leagueDaily.filter((d) => d.result === 'win').length
+    const draws = leagueDaily.filter((d) => d.result === 'draw').length
+    const losses = leagueDaily.filter((d) => d.result === 'loss').length
+    const total = Math.max(1, wins + draws + losses)
+    return { wins, draws, losses, rate: Math.round((wins / total) * 100) }
+  }, [leagueDaily])
   const leagueLevel = (() => {
     try {
       return levelForExp(seasonState.exp)
@@ -151,11 +194,11 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
         background: isRpg
           ? 'linear-gradient(180deg, #1e2a5a 0%, #3f56a8 45%, #9fb8ff 100%)'
           : isLeague
-            ? 'linear-gradient(180deg, #dbe7ff 0%, #eef4ff 38%, #f2f4f8 100%)'
+            ? 'linear-gradient(180deg, #05070f 0%, #0d1330 60%, #131a45 100%)'
             : undefined,
       }}
     >
-      <h1 style={{ fontSize: 20, color: isRpg ? '#fff' : undefined, textShadow: isRpg ? '0 1px 4px rgba(0,0,0,0.4)' : undefined }}>仮想全国ランキング</h1>
+      <h1 style={{ fontSize: 20, color: isRpg || isLeague ? '#fff' : undefined, textShadow: isRpg || isLeague ? '0 1px 4px rgba(0,0,0,0.4)' : undefined }}>仮想全国ランキング</h1>
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
         <button data-testid="national-tab" type="button" onClick={() => setTab('national')}>
           全国
@@ -250,10 +293,104 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
         </>
       )}
       {tab === 'league' && (
-        <div data-testid="league-board" style={{ marginTop: 8 }}>
-          <p style={{ fontWeight: 700 }}>
-            Div.{seasonState.div} 第{leagueDay + 1}節（全28節） <span data-testid="league-wins">○{leagueWins}勝</span>
-          </p>
+        <div data-testid="league-board" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <section
+            style={{ padding: '14px 12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 52, height: 60, borderRadius: '40% 40% 45% 45%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 26, fontWeight: 900, color: '#fff', background: 'linear-gradient(180deg, #2b3a8f, #10163a)', border: '2px solid #ffe600',
+                }}
+                role="img" aria-label={`Division ${seasonState.div}エンブレム`}
+              >
+                {seasonState.div}
+              </div>
+              <div>
+                <div data-testid="league-division" style={{ fontWeight: 900, fontSize: 24, color: '#ffe600', lineHeight: 1.1 }}>
+                  Division {seasonState.div}
+                </div>
+                <div data-testid="league-phase" style={{ fontSize: 13, color: '#ffe600', marginTop: 2 }}>
+                  フェーズ{phaseNo}: {phaseRange.start}〜{phaseRange.end}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, color: '#9aa3c0' }}>📈 レーティング</div>
+                <div data-testid="league-rating" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
+                  {myLeagueCum.toLocaleString()}
+                </div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, color: '#9aa3c0' }}>👑 順位</div>
+                <div data-testid="league-rank" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
+                  {myLeagueRank.toLocaleString()}位
+                </div>
+              </div>
+            </div>
+            <div data-testid="league-promotion" style={{ fontSize: 13, color: '#9aa3c0', marginTop: 8 }}>
+              {seasonState.div > 1
+                ? `2位以内でDivision ${seasonState.div - 1}に昇格します。`
+                : 'Division 1をキープ中！'}
+            </div>
+          </section>
+          <section
+            style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
+          >
+            <div data-testid="league-reward" style={{ fontSize: 14 }}>
+              <span style={{ fontWeight: 800 }}>🏆 メイン報酬　</span>
+              {seasonState.div > 1 ? `Division ${seasonState.div - 1}への昇格` : 'Div.1制覇の称号'}
+            </div>
+          </section>
+          <section
+            data-testid="league-record"
+            style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontWeight: 800 }}>成績</span>
+              <span style={{ fontSize: 12, color: '#9aa3c0' }}>（勝率 {leagueRecord.rate}%）</span>
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <div style={{ flex: Math.max(1, leagueRecord.wins), background: '#2fd44f', borderRadius: 4, padding: '6px 0', textAlign: 'center', color: '#06210f', fontWeight: 800, fontSize: 13 }}>
+                勝利 {leagueRecord.wins}
+              </div>
+              <div style={{ flex: Math.max(1, leagueRecord.draws), background: '#6b7280', borderRadius: 4, padding: '6px 0', textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 13 }}>
+                引分 {leagueRecord.draws}
+              </div>
+              <div style={{ flex: Math.max(1, leagueRecord.losses), background: '#ff4d5e', borderRadius: 4, padding: '6px 0', textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 13 }}>
+                敗戦 {leagueRecord.losses}
+              </div>
+            </div>
+          </section>
+          <section
+            data-testid="league-history"
+            style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
+          >
+            <div style={{ fontWeight: 800, marginBottom: 8 }}>対戦履歴（直近{Math.min(5, leagueDaily.length)}節）</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {leagueDaily.slice(-5).map((d, i) => (
+                <div key={`${d.date}-${i}`} data-testid={`league-history-${i}`} style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: '#9aa3c0' }}>{d.date.slice(5).replace('-', '/')}</div>
+                  <div style={{ fontSize: 12, margin: '2px 0' }}>{d.pages}pt</div>
+                  <div
+                    style={{
+                      borderRadius: 4, padding: '4px 0', fontWeight: 900,
+                      background: d.result === 'win' ? '#2fd44f' : d.result === 'loss' ? '#ff4d5e' : '#6b7280',
+                      color: d.result === 'win' ? '#06210f' : '#fff',
+                    }}
+                  >
+                    {d.result === 'win' ? '○' : d.result === 'loss' ? '●' : '―'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+          <section style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}>
+            <p style={{ fontWeight: 700, margin: '0 0 8px' }}>
+              第{leagueDay + 1}節（全28節） <span data-testid="league-wins">○{leagueWins}勝</span>
+            </p>
           {leagueRows.map((row, i) => {
             const diff = row.pages - row.prev
             const mark = diff > 0 ? `▲${diff}` : diff < 0 ? `▼${-diff}` : '―'
@@ -261,7 +398,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               <div
                 key={row.id}
                 data-testid={row.you ? 'league-row-you' : `league-row-${row.id}`}
-                style={{ display: 'grid', gridTemplateColumns: '3em minmax(0,1fr) 9em 3.5em', columnGap: 8, alignItems: 'center', fontSize: 14, fontWeight: row.you ? 800 : undefined }}
+                style={{ display: 'grid', gridTemplateColumns: '3em minmax(0,1fr) 9em 3.5em', columnGap: 8, alignItems: 'center', fontSize: 14, fontWeight: row.you ? 800 : undefined, color: '#fff' }}
               >
                 <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{i + 1}位</span>
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
@@ -270,6 +407,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               </div>
             )
           })}
+          </section>
         </div>
       )}
       {tab === 'rpg' && (

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { seasonIdForDate, seasonDayIndex, isSeasonFinalDay, decidePromotion } from './seasonLeague'
+import { seasonIdForDate, seasonDayIndex, isSeasonFinalDay, decidePromotion, leagueDayResults, seasonEndForDate } from './seasonLeague'
+import { generateRivals, rivalPagesForDay } from './seasonRivals'
 
 describe('seasonLeague', () => {
   it('anchor 2026-09-01から28日ブロックでseasonIdが決まる', () => {
@@ -16,5 +17,23 @@ describe('seasonLeague', () => {
   it('8人中上位2昇格・下位2降格', () => {
     const ids = ['a','b','c','d','e','f','g','h']
     expect(decidePromotion(ids)).toEqual({ promote: ['a','b'], demote: ['g','h'] })
+  })
+  it('シーズン終了日は開始+27日', () => {
+    expect(seasonEndForDate('2026-09-01')).toBe('2026-09-28')
+    expect(seasonEndForDate('2026-09-29')).toBe('2026-10-26')
+  })
+  it('日次平均を上回れば勝ち・下回れば負け', () => {
+    const wins = leagueDayResults('2026-09-01', 10, [10000, 10000, 10000])
+    expect(wins).toEqual(['win', 'win', 'win'])
+  })
+  it('日次平均と同点なら引分', () => {
+    const rivals = generateRivals('2026-09-01', 10)
+    const avg = Math.round(rivals.reduce((s, r) => s + rivalPagesForDay(r, 0), 0) / rivals.length)
+    const results = leagueDayResults('2026-09-01', 10, [avg])
+    expect(results).toEqual(['draw'])
+  })
+  it('入力日数分の結果を返す', () => {
+    expect(leagueDayResults('2026-09-01', 10, [])).toEqual([])
+    expect(leagueDayResults('2026-09-01', 10, [10000, 0]).length).toBe(2)
   })
 })

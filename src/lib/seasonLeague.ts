@@ -1,3 +1,5 @@
+import { generateRivals, rivalPagesForDay } from './seasonRivals'
+
 const ANCHOR = '2026-09-01'
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 function isValidDateString(d: unknown): d is string {
@@ -56,4 +58,30 @@ export function isSeasonFinalDay(date: string): boolean {
 export function decidePromotion(sortedIds: string[]): { promote: string[]; demote: string[] } {
   if (!Array.isArray(sortedIds) || sortedIds.length < 4) return { promote: [], demote: [] }
   return { promote: sortedIds.slice(0, 2), demote: sortedIds.slice(-2) }
+}
+export function seasonEndForDate(date: string): string {
+  try {
+    const start = seasonStartForDate(date)
+    const t = toUTC(start) + 27 * 86400000
+    if (!Number.isFinite(t)) return start
+    return new Date(t).toISOString().slice(0, 10)
+  } catch {
+    return seasonStartForDate(date)
+  }
+}
+export type LeagueDayResult = 'win' | 'draw' | 'loss'
+// 1日1節として当日の自分pt vs リーグ当日平均で勝敗を判定する
+export function leagueDayResults(seasonId: string, div: number, myDaily: number[]): LeagueDayResult[] {
+  try {
+    const rivals = generateRivals(seasonId, div)
+    if (rivals.length === 0) return myDaily.map(() => 'draw' as const)
+    return myDaily.map((mine, i) => {
+      const avg = Math.round(rivals.reduce((s, r) => s + rivalPagesForDay(r, i), 0) / rivals.length)
+      if (mine > avg) return 'win' as const
+      if (mine < avg) return 'loss' as const
+      return 'draw' as const
+    })
+  } catch {
+    return myDaily.map(() => 'draw' as const)
+  }
 }

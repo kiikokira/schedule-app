@@ -197,6 +197,23 @@ describe('RankingScreen', () => {
     expect(screen.getByTestId('league-board')).toBeInTheDocument()
     expect(screen.getByTestId('league-row-you')).toBeInTheDocument()
   })
+  it('リーグタブにDivision見出しとフェーズ期間が出る', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.getByTestId('league-division')).toHaveTextContent('Division 10')
+    expect(screen.getByTestId('league-phase')).toHaveTextContent('2026/09/01')
+    expect(screen.getByTestId('league-phase')).toHaveTextContent('2026/09/28')
+  })
+  it('リーグタブに成績バーと直近履歴が出る', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.getByTestId('league-record')).toHaveTextContent('勝利')
+    expect(screen.getByTestId('league-record')).toHaveTextContent('敗戦')
+    expect(screen.getByTestId('league-history')).toBeInTheDocument()
+    expect(screen.getByTestId('league-promotion')).toHaveTextContent('昇格')
+  })
   it('RPGタブでレベルが表示される', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
