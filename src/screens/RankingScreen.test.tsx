@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import RankingScreen from './RankingScreen'
 import { db } from '../db/database'
@@ -214,26 +214,40 @@ describe('RankingScreen', () => {
     expect(screen.getByTestId('league-history')).toBeInTheDocument()
     expect(screen.getByTestId('league-promotion')).toHaveTextContent('昇格')
   })
-  it('リーグタブのメニューから各画面へ飛べる', () => {
+  it('リーグタブの履歴にスコア形式で出る', async () => {
+    const now = new Date().toISOString()
+    const today = '2026-09-02'
+    await db.books.add({
+      id: 'b1', title: '単語帳', totalPages: 500,
+      startDate: today, deadline: today, createdAt: now, updatedAt: now,
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 100 })
     localStorage.clear()
-    const onToday = vi.fn()
-    const onSettings = vi.fn()
-    const onAi = vi.fn()
-    render(<RankingScreen onBack={() => {}} onToday={onToday} onSettings={onSettings} onAi={onAi} today="2026-09-02" />)
-    fireEvent.click(screen.getByTestId('league-tab'))
-    fireEvent.click(screen.getByTestId('league-menu-today'))
-    expect(onToday).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByTestId('league-menu-settings'))
-    expect(onSettings).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByTestId('league-menu-ai'))
-    expect(onAi).toHaveBeenCalledTimes(1)
-  })
-  it('リーグタブの履歴にスコア形式で出る', () => {
-    localStorage.clear()
-    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
     const history = screen.getByTestId('league-history')
-    expect(within(history).getByTestId('league-history-0')).toHaveTextContent(/\d+-\d+/)
+    expect(await within(history).findByTestId('league-history-0')).toHaveTextContent(/\d+-\d+/)
+  })
+  it('記録がない日は勝敗に数えず敗戦0・履歴空・勝率―になる', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-20" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.getByTestId('league-record')).toHaveTextContent('敗戦')
+    expect(screen.getByTestId('league-record')).toHaveTextContent('勝率 ―')
+    expect(screen.getByTestId('league-history-empty')).toBeInTheDocument()
+  })
+  it('記録した日だけ勝敗に数えて勝率が動く', async () => {
+    const now = new Date().toISOString()
+    const today = '2026-09-02'
+    await db.books.add({
+      id: 'b1', title: '単語帳', totalPages: 500,
+      startDate: today, deadline: today, createdAt: now, updatedAt: now,
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 100 })
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    await waitFor(() => expect(screen.getByTestId('league-record')).toHaveTextContent('勝率 100%'))
   })
   it('RPGタブでレベルが表示される', () => {
     localStorage.clear()

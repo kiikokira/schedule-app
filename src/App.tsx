@@ -145,8 +145,6 @@ export default function App() {
           <RankingScreen
             onBack={() => setRoute({ name: 'home' })}
             onToday={() => setRoute({ name: 'today' })}
-            onSettings={() => setRoute({ name: 'settings' })}
-            onAi={() => setRoute({ name: 'ai' })}
           />
         )}
         {route.name === 'mypage' && (

@@ -8,9 +8,9 @@ import { loadSeasonState } from '../data/seasonStore'
 import { loadProfile } from '../data/profileStore'
 import { levelForExp } from '../lib/seasonExp'
 
-type Props = { onBack: () => void; today?: string; onToday?: () => void; onSettings?: () => void; onAi?: () => void }
+type Props = { onBack: () => void; today?: string; onToday?: () => void }
 
-export default function RankingScreen({ onBack, today: todayProp, onToday, onSettings, onAi }: Props) {
+export default function RankingScreen({ onBack, today: todayProp, onToday }: Props) {
   const { records } = useRecords()
   const today = todayProp ?? todayStr()
   const [nowMin, setNowMin] = useState(() => {
@@ -141,12 +141,13 @@ export default function RankingScreen({ onBack, today: todayProp, onToday, onSet
       const start = seasonStartForDate(today)
       const base = Date.parse(start + 'T00:00:00Z')
       const seasonId = seasonIdForDate(today)
+      // 記録した日だけを対戦として数える（戦っていない日は勝敗に含めない）
       return Array.from({ length: leagueDay + 1 }, (_, d) => {
         const date = new Date(base + d * 86400000).toISOString().slice(0, 10)
         const pages = scoreActivityOnDate(date, records)
         const info = leagueDayInfo(seasonId, seasonState.div, d, pages)
         return { date, pages, ...info }
-      })
+      }).filter((o) => o.pages > 0)
     } catch {
       return [] as { date: string; pages: number; average: number; opponent: string; opponentPages: number; result: LeagueDayResult }[]
     }
@@ -155,8 +156,8 @@ export default function RankingScreen({ onBack, today: todayProp, onToday, onSet
     const wins = leagueDaily.filter((d) => d.result === 'win').length
     const draws = leagueDaily.filter((d) => d.result === 'draw').length
     const losses = leagueDaily.filter((d) => d.result === 'loss').length
-    const total = Math.max(1, wins + draws + losses)
-    return { wins, draws, losses, rate: Math.round((wins / total) * 100) }
+    const played = wins + draws + losses
+    return { wins, draws, losses, played, rate: played > 0 ? Math.round((wins / played) * 100) : 0 }
   }, [leagueDaily])
   const leagueLevel = (() => {
     try {
@@ -292,25 +293,6 @@ export default function RankingScreen({ onBack, today: todayProp, onToday, onSet
       )}
       {tab === 'league' && (
         <div data-testid="league-board" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {[
-              { id: 'league-menu-today', icon: '📅', label: '今日の記録', onClick: () => onToday?.() },
-              { id: 'league-menu-table', icon: '📊', label: '順位表', onClick: () => document.getElementById('league-table')?.scrollIntoView?.() },
-              { id: 'league-menu-settings', icon: '⚙️', label: '設定', onClick: () => onSettings?.() },
-              { id: 'league-menu-ai', icon: '💡', label: 'アドバイス', onClick: () => onAi?.() },
-            ].map((m) => (
-              <button
-                key={m.id}
-                data-testid={m.id}
-                type="button"
-                onClick={m.onClick}
-                style={{ background: '#fff', color: '#111', borderRadius: 14, border: 'none', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 10px', fontWeight: 700, fontSize: 15 }}
-              >
-                <span style={{ color: '#0a84ff', fontSize: 26, lineHeight: 1 }}>{m.icon}</span>
-                {m.label}
-              </button>
-            ))}
-          </div>
           <section
             style={{ padding: '14px 12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
           >
@@ -373,7 +355,7 @@ export default function RankingScreen({ onBack, today: todayProp, onToday, onSet
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span style={{ fontWeight: 800 }}>成績</span>
-              <span style={{ fontSize: 12, color: '#9aa3c0' }}>（勝率 {leagueRecord.rate}%）</span>
+              <span style={{ fontSize: 12, color: '#9aa3c0' }}>（勝率 {leagueRecord.played > 0 ? `${leagueRecord.rate}%` : '―'}）</span>
             </div>
             <div style={{ display: 'flex', gap: 6, marginTop: 8, textAlign: 'center' }}>
               {[
@@ -395,6 +377,11 @@ export default function RankingScreen({ onBack, today: todayProp, onToday, onSet
             style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
           >
             <div style={{ fontWeight: 800, marginBottom: 8 }}>対戦履歴（直近{Math.min(5, leagueDaily.length)}節）</div>
+            {leagueDaily.length === 0 ? (
+              <div data-testid="league-history-empty" style={{ fontSize: 13, color: '#9aa3c0' }}>
+                まだ対戦がありません。記録すると反映されます。
+              </div>
+            ) : (
             <div style={{ display: 'flex', gap: 8 }}>
               {leagueDaily.slice(-5).map((d, i) => (
                 <div key={`${d.date}-${i}`} data-testid={`league-history-${i}`} style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
@@ -411,6 +398,7 @@ export default function RankingScreen({ onBack, today: todayProp, onToday, onSet
                 </div>
               ))}
             </div>
+            )}
           </section>
           <section id="league-table" style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}>
             <p style={{ fontWeight: 700, margin: '0 0 8px' }}>
