@@ -22,6 +22,7 @@ import {
   cycleGrandTotal,
   calcCycleDailyTarget,
   currentCycleRound,
+  suggestCycleRound,
   type BookData,
   type ProgressRecordData,
   type CycleRecordData,
@@ -333,6 +334,37 @@ describe('cycle progress', () => {
     const book = { totalUnits: 5, targetRounds: 3 }
     const records = [rec('r1', 1, 5, 1), rec('r2', 1, 2, 2)]
     expect(currentCycleRound(book, records)).toBe(2)
+  })
+
+  it('完全一致の範囲は過去最大周回の次を提案する', () => {
+    const book = { totalUnits: 2300, targetRounds: 3 }
+    const records = [rec('r1', 1, 400, 1)]
+    expect(suggestCycleRound(book, records, 1, 400)).toBe(2)
+  })
+
+  it('逆順の範囲も正順と同じく加算する', () => {
+    const records = [rec('r1', 1254, 1212, 1)]
+    expect(expandCyclePairs(records).size).toBe(43)
+    expect(calcCycleDonePairs({}, records)).toBe(43)
+  })
+
+  it('逆順の再記録も次周回を提案する', () => {
+    const book = { totalUnits: 2300, targetRounds: 3 }
+    const records = [rec('r1', 1254, 1212, 1)]
+    expect(suggestCycleRound(book, records, 1254, 1212)).toBe(2)
+    expect(suggestCycleRound(book, records, 1212, 1254)).toBe(2)
+  })
+
+  it('未記録の範囲は最小未完周回を提案する', () => {
+    const book = { totalUnits: 2300, targetRounds: 3 }
+    const records = [rec('r1', 1, 400, 1)]
+    expect(suggestCycleRound(book, records, 401, 500)).toBe(1)
+  })
+
+  it('目標周回を超えない', () => {
+    const book = { totalUnits: 2300, targetRounds: 3 }
+    const records = [rec('r1', 1, 400, 3)]
+    expect(suggestCycleRound(book, records, 1, 400)).toBe(3)
   })
 
   it('完了時は0、期限切れ時は残り全部を返す', () => {

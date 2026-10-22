@@ -155,7 +155,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       if (cycleFrom.trim() === '' || cycleTo.trim() === '' || !Number.isInteger(f) || !Number.isInteger(t)) {
         return isLeap ? String(round) : ''
       }
-      return String(suggestCycleRound(book, mine, Math.min(f, t), Math.max(f, t)))
+      return String(suggestCycleRound(book, mine, f, t))
     })()
     const roundFieldValue = cycleRoundInput !== '' ? cycleRoundInput : autoSuggestedRound
     const effectiveDate = isLeap ? today : cycleDate || today
@@ -170,18 +170,16 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     })
 
     const handleCycleRecord = async () => {
-      let from = Number(normalizeNumericInput(cycleFrom.trim()))
-      let to = Number(normalizeNumericInput(cycleTo.trim()))
-      // 逆順（開始＞終了）でも記録できるよう正規化する
-      if (from > to) [from, to] = [to, from]
+      const from = Number(normalizeNumericInput(cycleFrom.trim()))
+      const to = Number(normalizeNumericInput(cycleTo.trim()))
       const roundNum = Number(normalizeNumericInput(String(roundFieldValue).trim()))
-      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to > (book.totalUnits ?? 0)) {
+      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || from > (book.totalUnits ?? 0) || to < 1 || to > (book.totalUnits ?? 0)) {
         setCycleError(`${unit}の範囲を正しく入力してください`)
         return
       }
       if (isLeap && leapBlock != null) {
         const block = LEAP_WORD_RANGES[leapBlock]
-        if (from < block.from || to > block.to) {
+        if (Math.min(from, to) < block.from || Math.max(from, to) > block.to) {
           setCycleError(`選択中の範囲（${block.from}-${block.to}語）の中で入力してください`)
           return
         }
@@ -247,12 +245,10 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     }
 
     const handleCycleSaveEdit = async (record: CycleRecordData) => {
-      let from = Number(normalizeNumericInput(cycleEditFrom.trim()))
-      let to = Number(normalizeNumericInput(cycleEditTo.trim()))
-      // 逆順（開始＞終了）でも保存できるよう正規化する
-      if (from > to) [from, to] = [to, from]
+      const from = Number(normalizeNumericInput(cycleEditFrom.trim()))
+      const to = Number(normalizeNumericInput(cycleEditTo.trim()))
       const roundNum = Number(normalizeNumericInput(cycleEditRound.trim()))
-      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to > (book.totalUnits ?? 0)) {
+      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || from > (book.totalUnits ?? 0) || to < 1 || to > (book.totalUnits ?? 0)) {
         setCycleEditError(`${unit}の範囲を正しく入力してください`)
         return
       }

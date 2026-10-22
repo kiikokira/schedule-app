@@ -237,8 +237,10 @@ export function expandCyclePairs(records: CycleRecordData[]): Set<string> {
   for (const r of records) {
     if (!Number.isInteger(r.unitFrom) || !Number.isInteger(r.unitTo)) continue
     if (!Number.isInteger(r.round) || r.round < 1) continue
-    if (r.unitFrom < 1 || r.unitTo < r.unitFrom) continue
-    for (let u = r.unitFrom; u <= r.unitTo; u++) pairs.add(`${u}:${r.round}`)
+    if (r.unitFrom < 1 || r.unitTo < 1) continue
+    const lo = Math.min(r.unitFrom, r.unitTo)
+    const hi = Math.max(r.unitFrom, r.unitTo)
+    for (let u = lo; u <= hi; u++) pairs.add(`${u}:${r.round}`)
   }
   return pairs
 }
@@ -251,8 +253,8 @@ export function calcCycleDonePairs(
   for (const r of records) {
     if (!Number.isInteger(r.unitFrom) || !Number.isInteger(r.unitTo)) continue
     if (!Number.isInteger(r.round) || r.round < 1) continue
-    if (r.unitFrom < 1 || r.unitTo < r.unitFrom) continue
-    done += r.unitTo - r.unitFrom + 1
+    if (r.unitFrom < 1 || r.unitTo < 1) continue
+    done += Math.abs(r.unitTo - r.unitFrom) + 1
   }
   return done
 }
@@ -290,4 +292,26 @@ export function currentCycleRound(
     if (covered < total) return r
   }
   return rounds
+}
+
+export function suggestCycleRound(
+  book: { totalUnits?: number; targetRounds?: number },
+  records: CycleRecordData[],
+  from: number,
+  to: number,
+): number {
+  const fallback = currentCycleRound(book, records)
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < 1) return fallback
+  const lo = Math.min(from, to)
+  const hi = Math.max(from, to)
+  const rounds = book.targetRounds ?? 0
+  if (!Number.isInteger(rounds) || rounds <= 0) return fallback
+  let max = 0
+  for (const r of records) {
+    if (Math.min(r.unitFrom, r.unitTo) === lo && Math.max(r.unitFrom, r.unitTo) === hi && Number.isInteger(r.round) && r.round >= 1) {
+      if (r.round > max) max = r.round
+    }
+  }
+  if (max === 0) return fallback
+  return Math.min(max + 1, rounds)
 }

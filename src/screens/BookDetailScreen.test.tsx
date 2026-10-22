@@ -204,7 +204,7 @@ describe('BookDetailScreen', () => {
     expect(screen.getByTestId('cycle-from-display')).toHaveTextContent('例: 1')
   })
 
-  it('From＞To の範囲は正規化して記録する', async () => {
+  it('From＞To の範囲はそのまま記録する', async () => {
     await db.books.add({
       ...book,
       studyMode: 'cycles',
@@ -221,8 +221,8 @@ describe('BookDetailScreen', () => {
     expect(screen.queryByTestId('cycle-error')).not.toBeInTheDocument()
     const recs = await db.cycleRecords.toArray()
     expect(recs).toHaveLength(1)
-    expect(recs[0].unitFrom).toBe(2)
-    expect(recs[0].unitTo).toBe(5)
+    expect(recs[0].unitFrom).toBe(5)
+    expect(recs[0].unitTo).toBe(2)
   })
 
   it('周回別の完了区画数を表示する', async () => {
@@ -419,7 +419,7 @@ describe('BookDetailScreen', () => {
     expect(screen.getByTestId('cycle-error')).toHaveTextContent(/選択中の範囲/)
   })
 
-  it('LEAPは逆順の範囲（開始語＞終了語）でも正規化して記録できる', async () => {
+  it('LEAPは逆順の範囲（開始語＞終了語）でもそのまま記録できる', async () => {
     await db.books.add({
       ...book,
       title: '改訂版 必携 英単語 LEAP',
@@ -440,8 +440,8 @@ describe('BookDetailScreen', () => {
     await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('43 / 6900'))
     const recs = await db.cycleRecords.toArray()
     expect(recs).toHaveLength(1)
-    expect(recs[0].unitFrom).toBe(1212)
-    expect(recs[0].unitTo).toBe(1254)
+    expect(recs[0].unitFrom).toBe(1254)
+    expect(recs[0].unitTo).toBe(1212)
   })
 
   it('LEAPは日付欄なし・目標周回に今の周回が入った状態で記録できる', async () => {
