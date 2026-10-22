@@ -417,8 +417,17 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
           </section>
           <section id="league-table" style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}>
             <p style={{ fontWeight: 700, margin: '0 0 8px' }}>
-              第{leagueDay + 1}節（全28節） <span data-testid="league-wins">○{leagueWins}勝</span>
+              第{leagueDay + 1}節（全28節） <span data-testid="league-wins">○{leagueWins}勝（{leagueRows.length}人中{myLeagueRank}位）</span>
             </p>
+            <div
+              data-testid="league-mark-header"
+              style={{ display: 'grid', gridTemplateColumns: '3em minmax(0,1fr) 9em 4.5em', columnGap: 8, alignItems: 'center', fontSize: 12, color: '#9aa3c0' }}
+            >
+              <span />
+              <span />
+              <span />
+              <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>前日比</span>
+            </div>
           {leagueRows.map((row, i) => {
             const diff = row.pages - row.prev
             const sym = diff > 0 ? '▲' : diff < 0 ? '▼' : '―'

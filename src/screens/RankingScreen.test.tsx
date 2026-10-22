@@ -308,6 +308,22 @@ describe('RankingScreen', () => {
       expect(up.style.color).not.toBe(down.style.color)
     }
   })
+  it('リーグ表の○勝に順位と人数を併記する', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    const wins = screen.getByTestId('league-wins')
+    expect(wins).toHaveTextContent(/○\d+勝/)
+    expect(wins).toHaveTextContent(/8人中/)
+    expect(wins).toHaveTextContent(/位/)
+  })
+  it('リーグ表の右列の一番上に前日比と表示する', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    const table = document.getElementById('league-table')!
+    expect(table).toHaveTextContent('前日比')
+  })
   it('近傍ボードは自分±5件に絞られる', async () => {
     const now = new Date().toISOString()
     const today = todayStr()
