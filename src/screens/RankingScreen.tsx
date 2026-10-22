@@ -327,7 +327,12 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             </div>
             <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 44, height: 44, borderRadius: '50%', background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }} role="img" aria-label="レーティング">↗</span>
+                <span style={{ width: 44, height: 44, borderRadius: '50%', background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} role="img" aria-label="レーティング">
+                  <svg data-testid="league-rating-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="3,19 9,13 13,16 19,7" />
+                    <polyline points="14,7 19,7 19,12" />
+                  </svg>
+                </span>
                 <span>
                   <span style={{ display: 'block', fontSize: 12, color: '#9aa3c0' }}>レーティング</span>
                   <span data-testid="league-rating" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>

@@ -272,6 +272,12 @@ describe('RankingScreen', () => {
     expect(screen.queryByTestId('league-to-table')).toBeNull()
     expect(screen.queryByTestId('league-to-record')).toBeNull()
   })
+  it('リーグタブのレーティングアイコンはSVGの矢印で表示される', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.getByTestId('league-rating-icon').tagName.toLowerCase()).toBe('svg')
+  })
   it('リーグのみモードはリーグタブから始まる', () => {
     localStorage.clear()
     saveProfile({ nickname: '', grade: '', university: '', faculty: '', department: '', playMode: 'league' })
