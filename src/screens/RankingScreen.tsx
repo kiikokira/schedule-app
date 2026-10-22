@@ -36,10 +36,16 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const dayOfMonth = Number(today.slice(8, 10))
   const isMockWeek = dayOfMonth >= 1 && dayOfMonth <= 7
   const level = deviation >= 60 ? 'A' : deviation >= 55 ? 'B' : deviation >= 50 ? 'C' : deviation >= 45 ? 'D' : 'E'
+  const [playMode] = useState(() => loadProfile().playMode)
+  const showLeague = playMode !== 'rpg'
+  const showRpg = playMode !== 'league'
   const [tab, setTab] = useState<'national' | 'league' | 'rpg'>(() => {
-    const mode = loadProfile().playMode
-    return mode === 'league' ? 'league' : mode === 'rpg' ? 'rpg' : 'national'
+    return playMode === 'league' ? 'league' : playMode === 'rpg' ? 'rpg' : 'national'
   })
+  useEffect(() => {
+    if (!showLeague && tab === 'league') setTab('rpg')
+    else if (!showRpg && tab === 'rpg') setTab('league')
+  }, [showLeague, showRpg, tab])
   const seasonState = useMemo(() => {
     try {
       return loadSeasonState(today)
@@ -166,8 +172,8 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       return 1
     }
   })()
-  const isRpg = tab === 'rpg'
-  const isLeague = tab === 'league'
+  const isRpg = tab === 'rpg' && showRpg
+  const isLeague = tab === 'league' && showLeague
   const expInLevel = ((seasonState.exp % 1000) + 1000) % 1000
   const expToNext = 1000 - expInLevel
   const expPct = Math.min(100, Math.max(0, Math.round((expInLevel / 1000) * 100)))
@@ -202,12 +208,16 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
         <button data-testid="national-tab" type="button" onClick={() => setTab('national')}>
           全国
         </button>
-        <button data-testid="league-tab" type="button" onClick={() => setTab('league')}>
-          リーグ
-        </button>
-        <button data-testid="rpg-tab" type="button" onClick={() => setTab('rpg')}>
-          RPG
-        </button>
+        {showLeague && (
+          <button data-testid="league-tab" type="button" onClick={() => setTab('league')}>
+            リーグ
+          </button>
+        )}
+        {showRpg && (
+          <button data-testid="rpg-tab" type="button" onClick={() => setTab('rpg')}>
+            RPG
+          </button>
+        )}
       </div>
       {tab === 'national' && (
         <>
@@ -291,7 +301,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       </section>
         </>
       )}
-      {tab === 'league' && (
+      {tab === 'league' && showLeague && (
         <div data-testid="league-board" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <section
             style={{ padding: '14px 12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
@@ -428,7 +438,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
           </div>
         </div>
       )}
-      {tab === 'rpg' && (
+      {tab === 'rpg' && showRpg && (
         <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <section
             data-testid="rpg-hero"
@@ -483,7 +493,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
           </section>
         </div>
       )}
-      {tab !== 'league' && (
+      {!isLeague && (
         <button data-testid="ranking-back" type="button" onClick={onBack}>
           戻る
         </button>
