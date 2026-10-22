@@ -516,8 +516,10 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     const totalUnits = book.totalUnits ?? 0
     const targetRounds = book.targetRounds ?? 0
     const unit = isLeapBook(book) ? '語' : '区画'
-    const from = Number(normalizeNumericInput((cycleInputs[`${slotKey}-from`] ?? '').trim()))
-    const to = Number(normalizeNumericInput((cycleInputs[`${slotKey}-to`] ?? '').trim()))
+    let from = Number(normalizeNumericInput((cycleInputs[`${slotKey}-from`] ?? '').trim()))
+    let to = Number(normalizeNumericInput((cycleInputs[`${slotKey}-to`] ?? '').trim()))
+    // 逆順（開始＞終了）でも記録できるよう正規化する
+    if (from > to) [from, to] = [to, from]
     const roundInput = normalizeNumericInput((cycleInputs[`${slotKey}-round`] ?? '').trim())
     const mine = cycleRecords.filter((r) => r.bookId === book.id)
     const round = roundInput === '' ? currentCycleRound(book, mine) : Number(roundInput)
@@ -525,7 +527,6 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       !Number.isInteger(from) ||
       !Number.isInteger(to) ||
       from < 1 ||
-      to < from ||
       to > totalUnits
     ) {
       setCycleErrors((p) => ({ ...p, [slotKey]: `${unit}の範囲を正しく入力してください` }))

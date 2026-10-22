@@ -17,6 +17,7 @@ import {
   calcCycleDailyTarget,
   cycleGrandTotal,
   currentCycleRound,
+  suggestCycleRound,
   expandCyclePairs,
   type BookData,
   type ProgressRecordData,
@@ -148,7 +149,15 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     const cycleTargetRounds = book.targetRounds ?? 0
     const isLeap = isLeapBook(book)
     const unit = isLeap ? '語' : '区画'
-    const roundFieldValue = cycleRoundInput !== '' ? cycleRoundInput : isLeap ? String(round) : ''
+    const autoSuggestedRound = (() => {
+      const f = Number(normalizeNumericInput(cycleFrom.trim()))
+      const t = Number(normalizeNumericInput(cycleTo.trim()))
+      if (cycleFrom.trim() === '' || cycleTo.trim() === '' || !Number.isInteger(f) || !Number.isInteger(t)) {
+        return isLeap ? String(round) : ''
+      }
+      return String(suggestCycleRound(book, mine, Math.min(f, t), Math.max(f, t)))
+    })()
+    const roundFieldValue = cycleRoundInput !== '' ? cycleRoundInput : autoSuggestedRound
     const effectiveDate = isLeap ? today : cycleDate || today
     const dateOutOfRange = effectiveDate < book.startDate || effectiveDate > book.deadline
     const cycleRoundCoverage = Array.from({ length: cycleTargetRounds }, (_, i) => {
@@ -161,10 +170,12 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     })
 
     const handleCycleRecord = async () => {
-      const from = Number(normalizeNumericInput(cycleFrom.trim()))
-      const to = Number(normalizeNumericInput(cycleTo.trim()))
+      let from = Number(normalizeNumericInput(cycleFrom.trim()))
+      let to = Number(normalizeNumericInput(cycleTo.trim()))
+      // 逆順（開始＞終了）でも記録できるよう正規化する
+      if (from > to) [from, to] = [to, from]
       const roundNum = Number(normalizeNumericInput(String(roundFieldValue).trim()))
-      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from || to > (book.totalUnits ?? 0)) {
+      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to > (book.totalUnits ?? 0)) {
         setCycleError(`${unit}の範囲を正しく入力してください`)
         return
       }
@@ -236,10 +247,12 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     }
 
     const handleCycleSaveEdit = async (record: CycleRecordData) => {
-      const from = Number(normalizeNumericInput(cycleEditFrom.trim()))
-      const to = Number(normalizeNumericInput(cycleEditTo.trim()))
+      let from = Number(normalizeNumericInput(cycleEditFrom.trim()))
+      let to = Number(normalizeNumericInput(cycleEditTo.trim()))
+      // 逆順（開始＞終了）でも保存できるよう正規化する
+      if (from > to) [from, to] = [to, from]
       const roundNum = Number(normalizeNumericInput(cycleEditRound.trim()))
-      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to < from || to > (book.totalUnits ?? 0)) {
+      if (!Number.isInteger(from) || !Number.isInteger(to) || from < 1 || to > (book.totalUnits ?? 0)) {
         setCycleEditError(`${unit}の範囲を正しく入力してください`)
         return
       }
@@ -369,7 +382,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
               </button>
             ))}
           </div>
-          <label htmlFor="cycle-round">{isLeap ? '目標周回' : '周回'}</label>
+          <label htmlFor="cycle-round">{`記録する周回（今は${round}周目）`}</label>
           <input
             id="cycle-round"
             data-testid="cycle-round"

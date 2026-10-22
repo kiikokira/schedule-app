@@ -199,12 +199,12 @@ describe('BookDetailScreen', () => {
     await screen.findByTestId('cycle-record')
     expect(screen.getByText('開始区画')).toBeInTheDocument()
     expect(screen.getByText('終了区画')).toBeInTheDocument()
-    expect(screen.getByText('周回')).toBeInTheDocument()
+    expect(screen.getByText('記録する周回（今は1周目）')).toBeInTheDocument()
     expect(screen.getByText('日付')).toBeInTheDocument()
     expect(screen.getByTestId('cycle-from-display')).toHaveTextContent('例: 1')
   })
 
-  it('From＞To の範囲は拒否する', async () => {
+  it('From＞To の範囲は正規化して記録する', async () => {
     await db.books.add({
       ...book,
       studyMode: 'cycles',
@@ -218,7 +218,11 @@ describe('BookDetailScreen', () => {
     fireEvent.click(screen.getByTestId('numpad-tab-to'))
     fireEvent.click(screen.getByTestId('numpad-2'))
     fireEvent.click(screen.getByTestId('cycle-record'))
-    expect(screen.getByTestId('cycle-error')).toHaveTextContent(/範囲/)
+    expect(screen.queryByTestId('cycle-error')).not.toBeInTheDocument()
+    const recs = await db.cycleRecords.toArray()
+    expect(recs).toHaveLength(1)
+    expect(recs[0].unitFrom).toBe(2)
+    expect(recs[0].unitTo).toBe(5)
   })
 
   it('周回別の完了区画数を表示する', async () => {
@@ -415,6 +419,31 @@ describe('BookDetailScreen', () => {
     expect(screen.getByTestId('cycle-error')).toHaveTextContent(/選択中の範囲/)
   })
 
+  it('LEAPは逆順の範囲（開始語＞終了語）でも正規化して記録できる', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('leap-preset-1001-1400'))
+    for (const d of ['1', '2', '5', '4']) fireEvent.click(screen.getByTestId('numpad-' + d))
+    fireEvent.click(screen.getByTestId('numpad-tab-to'))
+    for (const d of ['1', '2', '1', '2']) fireEvent.click(screen.getByTestId('numpad-' + d))
+    fireEvent.click(screen.getByTestId('cycle-record'))
+    await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('43 / 6900'))
+    const recs = await db.cycleRecords.toArray()
+    expect(recs).toHaveLength(1)
+    expect(recs[0].unitFrom).toBe(1212)
+    expect(recs[0].unitTo).toBe(1254)
+  })
+
   it('LEAPは日付欄なし・目標周回に今の周回が入った状態で記録できる', async () => {
     await db.books.add({
       ...book,
@@ -457,6 +486,45 @@ describe('BookDetailScreen', () => {
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     expect(await screen.findByTestId('cycle-round-badge')).toHaveTextContent('今1周目')
+  })
+
+  it('周回ラベルは今の周回を表示する', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByTestId('cycle-record')).toBeInTheDocument()
+    expect(screen.getByText('記録する周回（今は1周目）')).toBeInTheDocument()
+  })
+
+  it('完全一致の範囲を入れると次周回を提案する', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(0),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: daysFromNow(0), unitFrom: 12, unitTo: 13, round: 1 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByTestId('cycle-record')).toBeInTheDocument()
+    expect(screen.getByTestId('cycle-round')).toHaveValue('1')
+    for (const d of ['1', '2']) fireEvent.click(screen.getByTestId('numpad-' + d))
+    fireEvent.click(screen.getByTestId('numpad-tab-to'))
+    for (const d of ['1', '3']) fireEvent.click(screen.getByTestId('numpad-' + d))
+    expect(screen.getByTestId('cycle-round')).toHaveValue('2')
   })
 
   it('反復の今日の目標は当日分を差し引いて表示する', async () => {
