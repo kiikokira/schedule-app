@@ -53,36 +53,11 @@ describe('HomeScreen', () => {
     expect(heading).toHaveStyle({ fontSize: '24px' })
   })
 
-  it('hides the streak caption to keep the section uncluttered', async () => {
+  it('does not show the streak section', async () => {
     await db.books.add({ ...book, startDate: daysAgo(30), deadline: daysAhead(100) })
     render(<HomeScreen onOpenBook={() => {}} />)
-    await screen.findByTestId('streak-dots')
-    expect(screen.queryByTestId('streak-caption')).not.toBeInTheDocument()
-  })
-
-  it('shows consecutive record days with last-7 dots', async () => {
-    await db.books.add({ ...book, startDate: daysAgo(30), deadline: daysAhead(100) })
-    await db.records.add({ id: 'r1', bookId: 'b1', date: daysAgo(1), pages: 10 })
-    await db.records.add({ id: 'r2', bookId: 'b1', date: localDateStr(new Date()), pages: 10 })
-    render(<HomeScreen onOpenBook={() => {}} />)
-    await waitFor(() => expect(screen.getByTestId('streak-section')).toHaveTextContent('連続2日'))
-    expect(screen.getByTestId('streak-dots')).toBeInTheDocument()
-  })
-
-  it('shows 7 date labels with today marked at the right end', async () => {
-    await db.books.add({ ...book, startDate: daysAgo(30), deadline: daysAhead(100) })
-    render(<HomeScreen onOpenBook={() => {}} />)
-    const dots = await screen.findByTestId('streak-dots')
-    // 左→右に6日前〜今日の日付が並ぶ
-    const today = new Date()
-    const oldest = new Date()
-    oldest.setDate(today.getDate() - 6)
-    const oldestLabel = `${oldest.getMonth() + 1}/${oldest.getDate()}`
-    const todayLabel = `${today.getMonth() + 1}/${today.getDate()}`
-    expect(dots).toHaveTextContent(oldestLabel)
-    expect(dots).toHaveTextContent(todayLabel)
-    // 右端が今日とわかる表示
-    expect(await screen.findByTestId('streak-today-label')).toHaveTextContent('今日')
+    expect(screen.queryByTestId('streak-section')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('streak-dots')).not.toBeInTheDocument()
   })
 
   it('shows a 学習スケジュール section with the default schedule books', () => {
@@ -755,89 +730,6 @@ describe('HomeScreen', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     // 1周目完了→2周目開始のためNOW進捗は0%
     expect(await screen.findByTestId('now-next-progress')).toHaveTextContent('0%')
-  })
-
-  it('ドットの意味（●達成／○未達）を表示する', async () => {
-    render(<HomeScreen onOpenBook={() => {}} />)
-    expect(await screen.findByTestId('streak-legend')).toHaveTextContent('●')
-    expect(screen.getByTestId('streak-legend')).toHaveTextContent('○')
-  })
-
-  it('反復のみの日は未達成（○）になる', async () => {
-    await db.cycleRecords.add({
-      id: 'c1',
-      bookId: 'b9',
-      date: localDateStr(new Date()),
-      unitFrom: 1,
-      unitTo: 100,
-      round: 1,
-    })
-    render(<HomeScreen onOpenBook={() => {}} />)
-    const dots = await screen.findByTestId('streak-dots')
-    expect(dots.textContent).not.toContain('●')
-  })
-
-  it('今日の目標の半分では達成にならない（満額で達成）', async () => {
-    const today = localDateStr(new Date())
-    saveSchedule([{ catalogId: 'porepore', startDate: daysAgo(30), deadline: daysAhead(10) }])
-    await db.books.add({
-      ...book,
-      id: 'b1',
-      catalogId: 'porepore',
-      totalPages: 100,
-      startDate: daysAgo(30),
-      deadline: daysAhead(10),
-    })
-    // 昨日は満額以上、今日は半分のみ。今日の目標に届かなければ連続は1日のままのはず
-    // 残り85ページ / 残り10日 = 9ページ/日。今日5ページは半分以上だが満額未満
-    await db.records.add({ id: 'r0', bookId: 'b1', date: daysAgo(1), pages: 10 })
-    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 5 })
-    render(<HomeScreen onOpenBook={() => {}} />)
-    await waitFor(() => expect(screen.getByTestId('streak-count')).toHaveTextContent('連続1日'))
-    const dots = screen.getByTestId('streak-dots')
-    // 今日（右端）は○のはず。全体に昨日分の●は1つだけ
-    expect(dots.textContent?.match(/●/g)?.length ?? 0).toBe(1)
-  })
-
-  it('今日の目標の満額では達成になる', async () => {
-    const today = localDateStr(new Date())
-    saveSchedule([{ catalogId: 'porepore', startDate: daysAgo(30), deadline: daysAhead(10) }])
-    await db.books.add({
-      ...book,
-      id: 'b1',
-      catalogId: 'porepore',
-      totalPages: 100,
-      startDate: daysAgo(30),
-      deadline: daysAhead(10),
-    })
-    // 残り90ページ / 残り10日 = 9ページ/日。10ページやれば達成のはず
-    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 10 })
-    render(<HomeScreen onOpenBook={() => {}} />)
-    await waitFor(() => expect(screen.getByTestId('streak-count')).toHaveTextContent('連続1日'))
-    const dots = screen.getByTestId('streak-dots')
-    expect(dots.textContent).toContain('●')
-  })
-
-  it('凡例は今日の目標達成を示す（半分ではない）', async () => {
-    render(<HomeScreen onOpenBook={() => {}} />)
-    const legend = await screen.findByTestId('streak-legend')
-    expect(legend).toHaveTextContent('1日の目安以上')
-    expect(legend).not.toHaveTextContent('半分')
-  })
-
-  it('継続までの残りはページ単位で表示する', async () => {
-    await db.books.add({
-      ...book,
-      id: 'b1',
-      totalPages: 100,
-      startDate: daysAgo(30),
-      deadline: daysAhead(10),
-    })
-    // 残り100ページ / 残り10日 = 10ページ/日。今日0ページなので残りはちょうど10ページ
-    render(<HomeScreen onOpenBook={() => {}} />)
-    await waitFor(() =>
-      expect(screen.getByTestId('streak-section')).toHaveTextContent('今日あと10ページで継続！'),
-    )
   })
 
   it('仮想全国ランキングカードに順位と偏差値を表示する', async () => {

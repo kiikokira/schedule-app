@@ -13,10 +13,8 @@ import {
   calcScheduleStatus,
   currentRound,
   daysBetween,
-  formatDate,
   formatJaDate,
   overallDiagnosis,
-  parseDate,
   scoreActivityOnDate,
   calcStreakDays,
   todayStr,
@@ -612,11 +610,6 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
       }
     } catch { /* national-only fallback */ }
   }, [records, today, streak.streak])
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = parseDate(today)
-    d.setDate(d.getDate() - (6 - i))
-    return formatDate(d)
-  })
 
   // 削除済みの参考書を指すbookIdエントリの残留を掃除する。
   // booksLoaded が false の間（DB読み込み前）は何もしない。
@@ -632,47 +625,6 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 24 }}>{headerUniv}</h1>
-      <section
-        data-testid="streak-section"
-        style={{
-          marginTop: 8,
-          marginBottom: 8,
-          padding: '10px 12px',
-          borderRadius: 8,
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-        }}
-      >
-        <div data-testid="streak-count" style={{ fontWeight: 800, fontSize: 16 }}>
-          連続{streak.streak}日
-        </div>
-        <div data-testid="streak-dots" style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-          {last7Days.map((d, i) => {
-            const done = (streakScores[d] ?? 0) >= dailyQuota
-            const isToday = i === last7Days.length - 1
-            const label = `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`
-            return (
-              <div key={d} style={{ flex: 1, textAlign: 'center', fontWeight: isToday ? 800 : 400 }}>
-                <div style={{ fontSize: 14, color: isToday ? 'var(--accent)' : undefined }}>
-                  {done ? '●' : '○'}
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>{label}</div>
-                {isToday && (
-                  <div data-testid="streak-today-label" style={{ fontSize: 10, fontWeight: 800, color: 'var(--accent)' }}>
-                    今日
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-        {streak.remaining > 0 && (
-          <div style={{ fontSize: 13, marginTop: 4 }}>今日あと{streak.remaining}ページで継続！</div>
-        )}
-        <div data-testid="streak-legend" style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-          ●：達成（1日の目安以上） ○：未達成
-        </div>
-      </section>
       <section data-testid="ranking-card" style={{ marginTop: 8, marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div style={{ fontWeight: 800, fontSize: 16 }}>仮想全国ランキング</div>
         <div data-testid="ranking-summary" style={{ fontSize: 14 }}>
