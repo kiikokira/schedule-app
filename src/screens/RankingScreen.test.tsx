@@ -255,6 +255,23 @@ describe('RankingScreen', () => {
     fireEvent.click(screen.getByTestId('rpg-tab'))
     expect(screen.getByTestId('rpg-level')).toHaveTextContent('Lv.1')
   })
+  it('リーグタブの青い戻るで全国タブに戻る', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.getByTestId('league-board')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('league-back'))
+    expect(screen.getByTestId('ranking-summary')).toBeInTheDocument()
+    expect(screen.queryByTestId('league-board')).toBeNull()
+  })
+  it('リーグタブに白い戻る・順位表・記録へボタンはない', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.queryByTestId('ranking-back')).toBeNull()
+    expect(screen.queryByTestId('league-to-table')).toBeNull()
+    expect(screen.queryByTestId('league-to-record')).toBeNull()
+  })
   it('リーグのみモードはリーグタブから始まる', () => {
     localStorage.clear()
     saveProfile({ nickname: '', grade: '', university: '', faculty: '', department: '', playMode: 'league' })

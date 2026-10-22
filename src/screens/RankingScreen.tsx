@@ -8,9 +8,9 @@ import { loadSeasonState } from '../data/seasonStore'
 import { loadProfile } from '../data/profileStore'
 import { levelForExp } from '../lib/seasonExp'
 
-type Props = { onBack: () => void; today?: string; onToday?: () => void }
+type Props = { onBack: () => void; today?: string }
 
-export default function RankingScreen({ onBack, today: todayProp, onToday }: Props) {
+export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const { records } = useRecords()
   const today = todayProp ?? todayStr()
   const [nowMin, setNowMin] = useState(() => {
@@ -422,14 +422,8 @@ export default function RankingScreen({ onBack, today: todayProp, onToday }: Pro
           })}
           </section>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button data-testid="league-back" type="button" onClick={onBack} style={{ flex: 1, background: 'linear-gradient(180deg, #29b6ff, #0a84ff)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800 }}>
+            <button data-testid="league-back" type="button" onClick={() => setTab('national')} style={{ flex: 1, background: 'linear-gradient(180deg, #29b6ff, #0a84ff)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800 }}>
               〈 戻る
-            </button>
-            <button data-testid="league-to-table" type="button" onClick={() => document.getElementById('league-table')?.scrollIntoView?.()} style={{ flex: 1, background: 'linear-gradient(180deg, #29b6ff, #0a84ff)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800 }}>
-              順位表
-            </button>
-            <button data-testid="league-to-record" type="button" onClick={() => onToday?.()} style={{ flex: 1, background: 'linear-gradient(180deg, #29b6ff, #0a84ff)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800 }}>
-              記録へ 〉
             </button>
           </div>
         </div>
@@ -489,9 +483,11 @@ export default function RankingScreen({ onBack, today: todayProp, onToday }: Pro
           </section>
         </div>
       )}
-      <button data-testid="ranking-back" type="button" onClick={onBack}>
-        戻る
-      </button>
+      {tab !== 'league' && (
+        <button data-testid="ranking-back" type="button" onClick={onBack}>
+          戻る
+        </button>
+      )}
     </div>
   )
 }
