@@ -2,15 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRecords } from '../hooks/useRecords'
 import { scoreActivityOnDate, todayStr } from '../lib/progress'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
-import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leagueDayResults, type LeagueDayResult } from '../lib/seasonLeague'
+import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leagueDayInfo, type LeagueDayResult } from '../lib/seasonLeague'
 import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
 import { loadSeasonState } from '../data/seasonStore'
 import { loadProfile } from '../data/profileStore'
 import { levelForExp } from '../lib/seasonExp'
 
-type Props = { onBack: () => void; today?: string }
+type Props = { onBack: () => void; today?: string; onToday?: () => void; onSettings?: () => void; onAi?: () => void }
 
-export default function RankingScreen({ onBack, today: todayProp }: Props) {
+export default function RankingScreen({ onBack, today: todayProp, onToday, onSettings, onAi }: Props) {
   const { records } = useRecords()
   const today = todayProp ?? todayStr()
   const [nowMin, setNowMin] = useState(() => {
@@ -140,17 +140,15 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     try {
       const start = seasonStartForDate(today)
       const base = Date.parse(start + 'T00:00:00Z')
-      const out: { date: string; pages: number; result: LeagueDayResult }[] = []
-      const mine: number[] = []
-      for (let d = 0; d <= leagueDay; d++) {
+      const seasonId = seasonIdForDate(today)
+      return Array.from({ length: leagueDay + 1 }, (_, d) => {
         const date = new Date(base + d * 86400000).toISOString().slice(0, 10)
-        mine.push(scoreActivityOnDate(date, records))
-        out.push({ date, pages: mine[d], result: 'draw' })
-      }
-      const results = leagueDayResults(seasonIdForDate(today), seasonState.div, mine)
-      return out.map((o, i) => ({ ...o, result: results[i] ?? ('draw' as const) }))
+        const pages = scoreActivityOnDate(date, records)
+        const info = leagueDayInfo(seasonId, seasonState.div, d, pages)
+        return { date, pages, ...info }
+      })
     } catch {
-      return [] as { date: string; pages: number; result: LeagueDayResult }[]
+      return [] as { date: string; pages: number; average: number; opponent: string; opponentPages: number; result: LeagueDayResult }[]
     }
   }, [today, records, leagueDay, seasonState.div])
   const leagueRecord = useMemo(() => {
@@ -194,7 +192,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
         background: isRpg
           ? 'linear-gradient(180deg, #1e2a5a 0%, #3f56a8 45%, #9fb8ff 100%)'
           : isLeague
-            ? 'linear-gradient(180deg, #05070f 0%, #0d1330 60%, #131a45 100%)'
+            ? 'linear-gradient(160deg, #000 55%, #0b1e78 140%)'
             : undefined,
       }}
     >
@@ -294,6 +292,25 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       )}
       {tab === 'league' && (
         <div data-testid="league-board" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {[
+              { id: 'league-menu-today', icon: '📅', label: '今日の記録', onClick: () => onToday?.() },
+              { id: 'league-menu-table', icon: '📊', label: '順位表', onClick: () => document.getElementById('league-table')?.scrollIntoView?.() },
+              { id: 'league-menu-settings', icon: '⚙️', label: '設定', onClick: () => onSettings?.() },
+              { id: 'league-menu-ai', icon: '💡', label: 'アドバイス', onClick: () => onAi?.() },
+            ].map((m) => (
+              <button
+                key={m.id}
+                data-testid={m.id}
+                type="button"
+                onClick={m.onClick}
+                style={{ background: '#fff', color: '#111', borderRadius: 14, border: 'none', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 10px', fontWeight: 700, fontSize: 15 }}
+              >
+                <span style={{ color: '#0a84ff', fontSize: 26, lineHeight: 1 }}>{m.icon}</span>
+                {m.label}
+              </button>
+            ))}
+          </div>
           <section
             style={{ padding: '14px 12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
           >
@@ -317,22 +334,28 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, color: '#9aa3c0' }}>📈 レーティング</div>
-                <div data-testid="league-rating" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
-                  {myLeagueCum.toLocaleString()}
-                </div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 44, height: 44, borderRadius: '50%', background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }} role="img" aria-label="レーティング">↗</span>
+                <span>
+                  <span style={{ display: 'block', fontSize: 12, color: '#9aa3c0' }}>レーティング</span>
+                  <span data-testid="league-rating" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
+                    {myLeagueCum.toLocaleString()}
+                  </span>
+                </span>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, color: '#9aa3c0' }}>👑 順位</div>
-                <div data-testid="league-rank" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
-                  {myLeagueRank.toLocaleString()}位
-                </div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 44, height: 44, borderRadius: '50%', background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }} role="img" aria-label="順位">👑</span>
+                <span>
+                  <span style={{ display: 'block', fontSize: 12, color: '#9aa3c0' }}>順位</span>
+                  <span data-testid="league-rank" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
+                    {myLeagueRank.toLocaleString()}位
+                  </span>
+                </span>
               </div>
             </div>
             <div data-testid="league-promotion" style={{ fontSize: 13, color: '#9aa3c0', marginTop: 8 }}>
               {seasonState.div > 1
-                ? `2位以内でDivision ${seasonState.div - 1}に昇格します。`
+                ? `レーティングが上位2位以内でDivision ${seasonState.div - 1}に昇格します。`
                 : 'Division 1をキープ中！'}
             </div>
           </section>
@@ -352,16 +375,19 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               <span style={{ fontWeight: 800 }}>成績</span>
               <span style={{ fontSize: 12, color: '#9aa3c0' }}>（勝率 {leagueRecord.rate}%）</span>
             </div>
-            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-              <div style={{ flex: Math.max(1, leagueRecord.wins), background: '#2fd44f', borderRadius: 4, padding: '6px 0', textAlign: 'center', color: '#06210f', fontWeight: 800, fontSize: 13 }}>
-                勝利 {leagueRecord.wins}
-              </div>
-              <div style={{ flex: Math.max(1, leagueRecord.draws), background: '#6b7280', borderRadius: 4, padding: '6px 0', textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 13 }}>
-                引分 {leagueRecord.draws}
-              </div>
-              <div style={{ flex: Math.max(1, leagueRecord.losses), background: '#ff4d5e', borderRadius: 4, padding: '6px 0', textAlign: 'center', color: '#fff', fontWeight: 800, fontSize: 13 }}>
-                敗戦 {leagueRecord.losses}
-              </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 8, textAlign: 'center' }}>
+              {[
+                { label: '勝利', n: leagueRecord.wins, bg: '#2fd44f', fg: '#06210f' },
+                { label: '引分', n: leagueRecord.draws, bg: '#6b7280', fg: '#fff' },
+                { label: '敗戦', n: leagueRecord.losses, bg: '#ff4d5e', fg: '#fff' },
+              ].map((c) => (
+                <div key={c.label} style={{ flex: 1 }}>
+                  <div style={{ background: c.bg, color: c.fg, borderRadius: 4, padding: '6px 0', fontWeight: 800, fontSize: 13 }}>
+                    {c.label}
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{c.n}</div>
+                </div>
+              ))}
             </div>
           </section>
           <section
@@ -371,23 +397,22 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             <div style={{ fontWeight: 800, marginBottom: 8 }}>対戦履歴（直近{Math.min(5, leagueDaily.length)}節）</div>
             <div style={{ display: 'flex', gap: 8 }}>
               {leagueDaily.slice(-5).map((d, i) => (
-                <div key={`${d.date}-${i}`} data-testid={`league-history-${i}`} style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: 11, color: '#9aa3c0' }}>{d.date.slice(5).replace('-', '/')}</div>
-                  <div style={{ fontSize: 12, margin: '2px 0' }}>{d.pages}pt</div>
+                <div key={`${d.date}-${i}`} data-testid={`league-history-${i}`} style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+                  <div style={{ fontSize: 11, color: '#9aa3c0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.opponent}</div>
                   <div
                     style={{
-                      borderRadius: 4, padding: '4px 0', fontWeight: 900,
+                      borderRadius: 4, padding: '6px 0', fontWeight: 900, fontSize: 15, marginTop: 2, fontVariantNumeric: 'tabular-nums',
                       background: d.result === 'win' ? '#2fd44f' : d.result === 'loss' ? '#ff4d5e' : '#6b7280',
                       color: d.result === 'win' ? '#06210f' : '#fff',
                     }}
                   >
-                    {d.result === 'win' ? '○' : d.result === 'loss' ? '●' : '―'}
+                    {d.pages}-{d.opponentPages}
                   </div>
                 </div>
               ))}
             </div>
           </section>
-          <section style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}>
+          <section id="league-table" style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}>
             <p style={{ fontWeight: 700, margin: '0 0 8px' }}>
               第{leagueDay + 1}節（全28節） <span data-testid="league-wins">○{leagueWins}勝</span>
             </p>
@@ -408,6 +433,17 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             )
           })}
           </section>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button data-testid="league-back" type="button" onClick={onBack} style={{ flex: 1, background: 'linear-gradient(180deg, #29b6ff, #0a84ff)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800 }}>
+              〈 戻る
+            </button>
+            <button data-testid="league-to-table" type="button" onClick={() => document.getElementById('league-table')?.scrollIntoView?.()} style={{ flex: 1, background: 'linear-gradient(180deg, #29b6ff, #0a84ff)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800 }}>
+              順位表
+            </button>
+            <button data-testid="league-to-record" type="button" onClick={() => onToday?.()} style={{ flex: 1, background: 'linear-gradient(180deg, #29b6ff, #0a84ff)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800 }}>
+              記録へ 〉
+            </button>
+          </div>
         </div>
       )}
       {tab === 'rpg' && (

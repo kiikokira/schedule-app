@@ -70,6 +70,24 @@ export function seasonEndForDate(date: string): string {
   }
 }
 export type LeagueDayResult = 'win' | 'draw' | 'loss'
+export type LeagueDayInfo = { average: number; opponent: string; opponentPages: number; result: LeagueDayResult }
+// 節ごとの対戦情報：リーグ平均・最接戦相手（当日ptが自分に最も近いライバル）・勝敗
+export function leagueDayInfo(seasonId: string, div: number, dayIndex: number, myPages: number): LeagueDayInfo {
+  try {
+    const rivals = generateRivals(seasonId, div)
+    if (rivals.length === 0) return { average: 0, opponent: '—', opponentPages: 0, result: 'draw' }
+    const pages = rivals.map((r) => ({ name: r.name, pages: rivalPagesForDay(r, dayIndex) }))
+    const average = Math.round(pages.reduce((s, p) => s + p.pages, 0) / pages.length)
+    let opponent = pages[0]
+    for (const p of pages) {
+      if (Math.abs(p.pages - myPages) < Math.abs(opponent.pages - myPages)) opponent = p
+    }
+    const result: LeagueDayResult = myPages > average ? 'win' : myPages < average ? 'loss' : 'draw'
+    return { average, opponent: opponent.name, opponentPages: opponent.pages, result }
+  } catch {
+    return { average: 0, opponent: '—', opponentPages: 0, result: 'draw' }
+  }
+}
 // 1日1節として当日の自分pt vs リーグ当日平均で勝敗を判定する
 export function leagueDayResults(seasonId: string, div: number, myDaily: number[]): LeagueDayResult[] {
   try {

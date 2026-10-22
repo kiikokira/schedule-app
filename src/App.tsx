@@ -142,7 +142,12 @@ export default function App() {
           <JapanMatchScreen onBack={() => setRoute({ name: 'plan' })} />
         )}
         {route.name === 'ranking' && (
-          <RankingScreen onBack={() => setRoute({ name: 'home' })} />
+          <RankingScreen
+            onBack={() => setRoute({ name: 'home' })}
+            onToday={() => setRoute({ name: 'today' })}
+            onSettings={() => setRoute({ name: 'settings' })}
+            onAi={() => setRoute({ name: 'ai' })}
+          />
         )}
         {route.name === 'mypage' && (
           <MyPageScreen onBack={() => setRoute({ name: 'home' })} onRanking={() => setRoute({ name: 'ranking' })} />
