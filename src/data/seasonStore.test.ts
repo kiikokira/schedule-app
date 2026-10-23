@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { loadSeasonState, recordSeasonDay, saveSeasonState, applyPromotionIfNeeded } from './seasonStore'
 import { seasonIdForDate } from '../lib/seasonLeague'
+import { loadLeagueBadges } from '../lib/leagueBadges'
 
 describe('seasonStore', () => {
   beforeEach(() => localStorage.clear())
@@ -73,5 +74,25 @@ describe('seasonStore', () => {
     const s2 = loadSeasonState('2026-09-01')
     expect(s2.div).toBe(1)
     expect(s2.days).toEqual({})
+  })
+  it('シーズン切替で新Div2ならバッジ付与', () => {
+    const s0 = loadSeasonState('2026-09-01')
+    saveSeasonState({ ...s0, div: 2, exp: 0, days: { '2026-09-01': 10, '2026-09-02': 10, '2026-09-03': 10 } })
+    const s1 = loadSeasonState('2026-09-29')
+    expect(s1.div).toBe(2)
+    expect(loadLeagueBadges().awards.map((a) => a.uid)).toContain('2026-09-29:div2')
+  })
+  it('昇格適用でDiv2に入ったら当季バッジ付与、Div4は付与なし', () => {
+    const base = loadSeasonState('2026-09-01')
+    saveSeasonState({ ...base, div: 3, exp: 0, days: {} })
+    const p = applyPromotionIfNeeded('2026-09-28', ['me', 'r2', 'r3', 'r4', 'r5'], 'me')
+    expect(p.div).toBe(2)
+    expect(loadLeagueBadges().awards.map((a) => a.uid)).toContain('2026-09-01:div2')
+    localStorage.clear()
+    const b2 = loadSeasonState('2026-09-01')
+    saveSeasonState({ ...b2, div: 5, exp: 0, days: {} })
+    const q = applyPromotionIfNeeded('2026-09-28', ['me', 'r2', 'r3', 'r4', 'r5'], 'me')
+    expect(q.div).toBe(4)
+    expect(loadLeagueBadges().awards).toHaveLength(0)
   })
 })

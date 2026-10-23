@@ -1,6 +1,7 @@
 import { seasonIdForDate, decidePromotion, isSeasonFinalDay } from '../lib/seasonLeague'
 import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
 import { pagesToExp } from '../lib/seasonExp'
+import { ensureLeagueBadgeForSeason } from '../lib/leagueBadges'
 export type SeasonState = { seasonId: string; div: number; exp: number; days: Record<string, number>; appliedSeasonId?: string }
 // NOTE: Dexie導入は見送り（完全オフライン/localStorageのみで運用）。将来Dexie化する場合は
 // seasons/seasonDays/rivals/player の4テーブル相当をこのモジュールのI/O境界に集約して移行する。
@@ -97,6 +98,9 @@ export function loadSeasonState(today: string): SeasonState {
         const rolled: SeasonState = { seasonId: currentId, div: pending.div, exp: 0, days: {} }
         if (pending.applied) rolled.appliedSeasonId = pending.applied
         try {
+          ensureLeagueBadgeForSeason(currentId, pending.div)
+        } catch { /* ignore */ }
+        try {
           localStorage.setItem(KEY, JSON.stringify(rolled))
         } catch { /* ignore */ }
         return rolled
@@ -150,6 +154,9 @@ export function applyPromotionIfNeeded(today: string, tableIds: string[], myId: 
     let div = s.div
     if (promote.includes(myId)) div = Math.max(1, div - 1)
     else if (demote.includes(myId)) div = Math.min(10, div + 1)
+    try {
+      ensureLeagueBadgeForSeason(s.seasonId, div)
+    } catch { /* ignore */ }
     const next: SeasonState = { seasonId: s.seasonId, div, exp: s.exp, days: s.days, appliedSeasonId: s.seasonId }
     saveSeasonState(next)
     return next

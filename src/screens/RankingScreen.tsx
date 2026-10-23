@@ -8,6 +8,7 @@ import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
 import { loadSeasonState } from '../data/seasonStore'
 import { loadProfile } from '../data/profileStore'
 import { levelForExp } from '../lib/seasonExp'
+import { ensureLeagueBadgeForSeason } from '../lib/leagueBadges'
 
 type Props = { onBack: () => void; today?: string }
 
@@ -55,6 +56,11 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       return { seasonId: '2026-09-01', div: 10, exp: 0, days: {} as Record<string, number> }
     }
   }, [today])
+  useEffect(() => {
+    try {
+      ensureLeagueBadgeForSeason(seasonIdForDate(today), seasonState.div)
+    } catch { /* ignore */ }
+  }, [today, seasonState.div])
   const leagueDay = useMemo(() => {
     try {
       return seasonDayIndex(today)
