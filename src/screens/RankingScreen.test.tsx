@@ -324,6 +324,27 @@ describe('RankingScreen', () => {
     const table = document.getElementById('league-table')!
     expect(table).toHaveTextContent('前日比')
   })
+  it('リーグ表の自分累計は今季のDB合計と一致する（キャッシュや全期間合計に依存しない）', async () => {
+    const now = new Date().toISOString()
+    const today = '2026-09-02'
+    await db.books.add({
+      id: 'b1', title: '単語帳', totalPages: 5000,
+      startDate: '2026-08-20', deadline: '2026-09-10', createdAt: now, updatedAt: now,
+    })
+    // 今季（2026-09-01〜）の記録: 9/01に10、今日9/02に100
+    await db.records.add({ id: 'r1', bookId: 'b1', date: '2026-09-01', pages: 10 })
+    await db.records.add({ id: 'r2', bookId: 'b1', date: today, pages: 100 })
+    // 前季の記録: 累計に混ざってはならない
+    await db.records.add({ id: 'r0', bookId: 'b1', date: '2026-08-20', pages: 500 })
+    // キャッシュは今日分のみ（スクショの「今日21だけ反映」と同じ欠け状態を再現）
+    localStorage.clear()
+    localStorage.setItem('schedule-app-season-v1', JSON.stringify({ seasonId: '2026-09-01', div: 10, exp: 0, days: { [today]: 100 } }))
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    const youRow = await screen.findByTestId('league-row-you')
+    // 今季合計110pt。今日分だけ（100pt）でも全期間合計（610pt）でもない
+    expect(youRow).toHaveTextContent('110pt')
+  })
   it('近傍ボードは自分±5件に絞られる', async () => {
     const now = new Date().toISOString()
     const today = todayStr()

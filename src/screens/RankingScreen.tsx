@@ -64,22 +64,30 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   }, [today])
   const leagueRows = useMemo(() => {
     try {
-      const prevDate = (() => {
+      // 自分の累計はDBから今季範囲で直接合計する。
+      // seasonState.days（ホーム画面の訪問時にしか書かれないキャッシュ）や
+      // 全期間合計に依存すると、表・履歴・成績の数字が食い違う。
+      const start = seasonStartForDate(today)
+      const base = Date.parse(start + 'T00:00:00Z')
+      const dateFor = (d: number) => {
+        if (!Number.isFinite(base)) return today
+        return new Date(base + d * 86400000).toISOString().slice(0, 10)
+      }
+      const dailyAt = (d: number) => {
         try {
-          const t = Date.parse(today + 'T00:00:00Z')
-          if (!Number.isFinite(t)) return today
-          return new Date(t - 86400000).toISOString().slice(0, 10)
+          return combinedActivityOnDate(dateFor(d), records, cycleRecords)
         } catch {
-          return today
+          return 0
         }
-      })()
-      const myDaily = combinedActivityOnDate(today, records, cycleRecords)
-      const myPrevDaily = leagueDay > 0 ? combinedActivityOnDate(prevDate, records, cycleRecords) : myDaily
-      const dayVals = Object.values(seasonState.days ?? {})
-      const combinedTotal = totalActivity(records) + totalCycleUnits(cycleRecords)
-      const myCum = dayVals.length > 0
-        ? dayVals.reduce((s, v) => s + v, 0)
-        : combinedTotal > 0 ? combinedTotal : myDaily
+      }
+      let myCum = 0
+      try {
+        for (let d = 0; d <= leagueDay; d++) myCum += dailyAt(d)
+      } catch {
+        myCum = 0
+      }
+      const myDaily = dailyAt(leagueDay)
+      const myPrevDaily = leagueDay > 0 ? dailyAt(leagueDay - 1) : myDaily
       let rivals: ReturnType<typeof generateRivals> = []
       try {
         rivals = generateRivals(seasonIdForDate(today), seasonState.div)
@@ -121,7 +129,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       const fallback = combinedActivityOnDate(today, records, cycleRecords)
       return [{ id: 'you', name: 'あなた', pages: fallback, prev: fallback, cum: fallback, prevCum: fallback, you: true as const }]
     }
-  }, [today, records, cycleRecords, leagueDay, seasonState.div, seasonState.days])
+  }, [today, records, cycleRecords, leagueDay, seasonState.div])
   const leagueWins = useMemo(() => {
     const mine = leagueRows.find((r) => r.you)?.cum ?? 0
     return leagueRows.filter((r) => !r.you && r.cum < mine).length
