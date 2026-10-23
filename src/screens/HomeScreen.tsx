@@ -15,7 +15,8 @@ import {
   daysBetween,
   formatJaDate,
   overallDiagnosis,
-  scoreActivityOnDate,
+  combinedActivityOnDate,
+  totalCycleUnits,
   calcStreakDays,
   todayStr,
   type BookData,
@@ -562,11 +563,11 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
   const dailyQuota = Math.max(1, diagnosis.requiredPerDay)
   const streakScores: Record<string, number> = {}
   for (const d of new Set([...records.map((r) => r.date), ...cycleRecords.map((r) => r.date)])) {
-    streakScores[d] = scoreActivityOnDate(d, records)
+    streakScores[d] = combinedActivityOnDate(d, records, cycleRecords)
   }
   const streak = calcStreakDays(streakScores, dailyQuota, today)
-  const todayPages = scoreActivityOnDate(today, records)
-  const totalPages = totalActivity(records)
+  const todayPages = combinedActivityOnDate(today, records, cycleRecords)
+  const totalPages = totalActivity(records) + totalCycleUnits(cycleRecords)
   const rank = totalPagesToRank(totalPages)
   const deviation = rankToDeviation(rank)
   const profile = loadProfile()
@@ -588,7 +589,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
 
   useEffect(() => {
     try {
-      const pages = scoreActivityOnDate(today, records)
+      const pages = combinedActivityOnDate(today, records, cycleRecords)
       recordSeasonDay(today, pages, streak.streak)
       if (isSeasonFinalDay(today)) {
         try {
@@ -609,7 +610,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
         } catch { /* national-only fallback */ }
       }
     } catch { /* national-only fallback */ }
-  }, [records, today, streak.streak])
+  }, [records, cycleRecords, today, streak.streak])
 
   // 削除済みの参考書を指すbookIdエントリの残留を掃除する。
   // booksLoaded が false の間（DB読み込み前）は何もしない。

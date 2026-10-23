@@ -59,7 +59,6 @@ export function formatJaFullDate(iso: string): string {
 }
 
 // その日に記録した通常のページ数を通算する。
-// 反復の区画・語数は単位が違うため含めない（目安はページ基準のため）。
 export function scoreActivityOnDate(
   date: string,
   records: ProgressRecordData[],
@@ -67,6 +66,39 @@ export function scoreActivityOnDate(
   return records
     .filter((r) => r.date === date)
     .reduce((sum, r) => sum + r.pages, 0)
+}
+
+// 反復（区画・語彙）の記録を通算する。1区画/1語=1としてページ換算する。
+// リーグ・ランキング・今日/累計の表示はページ記録と合算する。
+function scoreCycleRecord(r: CycleRecordData): number {
+  if (!Number.isInteger(r.unitFrom) || !Number.isInteger(r.unitTo)) return 0
+  if (r.unitFrom < 1 || r.unitTo < 1) return 0
+  if (!Number.isInteger(r.round) || r.round < 1) return 0
+  return Math.abs(r.unitTo - r.unitFrom) + 1
+}
+
+export function scoreCycleOnDate(date: string, records: CycleRecordData[]): number {
+  let sum = 0
+  for (const r of records) {
+    if (r.date !== date) continue
+    sum += scoreCycleRecord(r)
+  }
+  return sum
+}
+
+export function totalCycleUnits(records: CycleRecordData[]): number {
+  let sum = 0
+  for (const r of records) sum += scoreCycleRecord(r)
+  return sum
+}
+
+// ページ記録＋反復記録の合算（リーグ・ランキング・今日/累計用）。
+export function combinedActivityOnDate(
+  date: string,
+  records: ProgressRecordData[],
+  cycles: CycleRecordData[],
+): number {
+  return scoreActivityOnDate(date, records) + scoreCycleOnDate(date, cycles)
 }
 
 export type StreakResult = { streak: number; todayScore: number; remaining: number }

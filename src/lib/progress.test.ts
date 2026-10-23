@@ -23,6 +23,9 @@ import {
   calcCycleDailyTarget,
   currentCycleRound,
   suggestCycleRound,
+  scoreCycleOnDate,
+  totalCycleUnits,
+  combinedActivityOnDate,
   type BookData,
   type ProgressRecordData,
   type CycleRecordData,
@@ -388,6 +391,30 @@ describe('scoreActivityOnDate', () => {
 
   it('反復の記録は日次スコアに含めない（ページのみ）', () => {
     expect(scoreActivityOnDate('2026-10-05', [])).toBe(0)
+  })
+})
+
+describe('cycle activity', () => {
+  it('反復の区画数を日次・累計に数える（逆順もabsで数える）', () => {
+    const cycles: CycleRecordData[] = [
+      { id: 'c1', bookId: 'b1', date: '2026-10-23', unitFrom: 1371, unitTo: 1351, round: 1 },
+      { id: 'c2', bookId: 'b1', date: '2026-10-20', unitFrom: 1383, unitTo: 1400, round: 1 },
+    ]
+    expect(scoreCycleOnDate('2026-10-23', cycles)).toBe(21)
+    expect(scoreCycleOnDate('2026-10-20', cycles)).toBe(18)
+    expect(scoreCycleOnDate('2026-10-19', cycles)).toBe(0)
+    expect(totalCycleUnits(cycles)).toBe(39)
+  })
+
+  it('ページ記録と反復記録を合算する', () => {
+    const records: ProgressRecordData[] = [
+      { id: 'r1', bookId: 'b1', date: '2026-10-23', pages: 5 },
+    ]
+    const cycles: CycleRecordData[] = [
+      { id: 'c1', bookId: 'b1', date: '2026-10-23', unitFrom: 1, unitTo: 10, round: 1 },
+    ]
+    expect(combinedActivityOnDate('2026-10-23', records, cycles)).toBe(15)
+    expect(combinedActivityOnDate('2026-10-22', records, cycles)).toBe(0)
   })
 })
 

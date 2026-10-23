@@ -3,7 +3,8 @@ import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import {
-  scoreActivityOnDate,
+  combinedActivityOnDate,
+  totalCycleUnits,
   todayStr,
   formatDate,
   parseDate,
@@ -50,8 +51,8 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(profile)
 
-  const todayPages = scoreActivityOnDate(today, records)
-  const totalPages = totalActivity(records)
+  const todayPages = combinedActivityOnDate(today, records, cycleRecords)
+  const totalPages = totalActivity(records) + totalCycleUnits(cycleRecords)
   const rank = totalPagesToRank(totalPages)
   const [prevRank] = useState<number | null>(() => loadLastRank())
   useEffect(() => {
@@ -73,7 +74,7 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
   const dailyQuota = Math.max(1, diagnosis.requiredPerDay)
   const streakScores: Record<string, number> = {}
   for (const d of new Set([...records.map((r) => r.date), ...cycleRecords.map((r) => r.date)])) {
-    streakScores[d] = scoreActivityOnDate(d, records)
+    streakScores[d] = combinedActivityOnDate(d, records, cycleRecords)
   }
   const streak = calcStreakDays(streakScores, dailyQuota, today)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -81,7 +82,7 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
     d.setDate(d.getDate() - (6 - i))
     return formatDate(d)
   })
-  const last7Values = last7Days.map((d) => scoreActivityOnDate(d, records))
+  const last7Values = last7Days.map((d) => combinedActivityOnDate(d, records, cycleRecords))
 
   const startEdit = () => {
     setDraft(profile)
