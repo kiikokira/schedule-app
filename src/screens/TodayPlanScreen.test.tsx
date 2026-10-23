@@ -385,7 +385,7 @@ describe('TodayPlanScreen', () => {
     expect(screen.getByTestId('today-table')).toHaveTextContent('反復')
   })
 
-  it('上書き時も曜日設定の時間は未割当で必ず並ぶ', async () => {
+  it('上書き時は上書き前の曜日設定の時間は並ばない', async () => {
     await saveAvailabilitySlot(
       { id: 'w1', weekday: 2, date: null, start: '17:45', end: '19:00' },
       true,
@@ -397,11 +397,10 @@ describe('TodayPlanScreen', () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
     await screen.findByTestId('today-table')
     const rows = screen.getAllByTestId(/plan-row-\d+/)
-    const target = rows.find((r) => r.textContent?.includes('17:45-19:00'))
-    expect(target?.textContent).toContain('未割当')
+    expect(rows.some((r) => r.textContent?.includes('17:45-19:00'))).toBe(false)
   })
 
-  it('上書きで欠けた曜日設定の時間を通知し追加できる', async () => {
+  it('上書きで欠けても黄色い通知は出さない', async () => {
     await saveAvailabilitySlot(
       { id: 'w1', weekday: 2, date: null, start: '06:30', end: '07:00' },
       true,
@@ -415,12 +414,9 @@ describe('TodayPlanScreen', () => {
       true,
     )
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
-    expect(await screen.findByTestId('override-shadow-notice')).toHaveTextContent('17:45〜19:00')
-    fireEvent.click(screen.getByTestId('override-shadow-merge'))
-    await waitFor(async () => {
-      const all = await listAvailability()
-      expect(all.filter((a) => a.date === '2026-09-29')).toHaveLength(2)
-    })
+    await screen.findByTestId('today-table')
+    expect(screen.queryByTestId('override-shadow-notice')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('override-shadow-merge')).not.toBeInTheDocument()
   })
 
   it('上書きが曜日設定をすべて含む場合は通知しない', async () => {

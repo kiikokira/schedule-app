@@ -9,7 +9,7 @@ import {
   type AvailabilitySlot,
 } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
-import { todayStr, formatJaDate, daysBetween, parseDate, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData } from '../lib/progress'
+import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
@@ -247,48 +247,6 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     return [...byRange.values()]
   }, [savedPins, pinOverrides])
 
-  // 今日だけ上書きが曜日設定を隠している時間帯。上書きが優先される仕様のため、
-  // 欠けた分は通知してワンタップで上書きに追加できるようにする。
-  // 少しずらした上書きも置き換えとみなすため、完全一致ではなく重なりで判定する。
-  // （完全一致だと、ずらす前の時間が未割当として残って重複表示される）
-  const shadowedSlots = useMemo(() => {
-    const overrides = availability.filter((a) => a.date === today)
-    if (overrides.length === 0) return []
-    const todayWeekday = parseDate(today).getDay()
-    const toRange = (s: { start: string; end: string }) => ({
-      startMin: parseTimeToMin(s.start),
-      endMin: parseTimeToMin(s.end),
-    })
-    const overlaps = (x: { start: string; end: string }, y: { start: string; end: string }) => {
-      const a = toRange(x)
-      const b = toRange(y)
-      return a.startMin < b.endMin && b.startMin < a.endMin
-    }
-    return availability.filter(
-      (a) =>
-        a.weekday === todayWeekday &&
-        !overrides.some((d) => overlaps(d, a)),
-    )
-  }, [availability, today])
-
-  const handleMergeShadowed = async () => {
-    for (const s of shadowedSlots) {
-      await saveAvailabilitySlot(
-        {
-          id: crypto.randomUUID(),
-          weekday: null,
-          date: today,
-          start: s.start,
-          end: s.end,
-          bookId: s.bookId,
-          onTrain: s.onTrain,
-        },
-        true,
-      )
-    }
-    await refreshAvailability()
-  }
-
   const displayedRows: DisplayedRow[] = useMemo(() => {
     const savedByRange = new Map(savedPins.map((p) => [rangeKeyOf(p.startMin, p.endMin), p.bookId]))
     const merged = overlayCyclesPins(pageApplied, effectivePins, books)
@@ -311,15 +269,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     })
     // 設定にあるのに割当が付かなかった時間帯は未割当枠として並べる（欠落防止）。
     // 汽車しぼり等で割当先が無い時間もここに現れ、本を選び直せる。
-    // 表示上は上書きと曜日設定を統合する（計画分配自体は上書き優先のまま）。
     const covered = merged.map((s) => ({ startMin: s.startMin, endMin: s.endMin }))
     const displayBase = slotsForDate(availability, today)
-    for (const a of shadowedSlots) {
-      const startMin = parseTimeToMin(a.start)
-      const endMin = parseTimeToMin(a.end)
-      if (displayBase.some((b) => b.startMin === startMin && b.endMin === endMin)) continue
-      displayBase.push({ startMin, endMin, onTrain: a.onTrain })
-    }
     for (const s of displayBase) {
       let cur = s.startMin
       const blockers = covered
@@ -342,7 +293,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     }
     rows.sort((a, b) => a.slot.startMin - b.slot.startMin || a.slot.endMin - b.slot.endMin)
     return rows
-  }, [pageApplied, effectivePins, savedPins, books, availability, today, shadowedSlots])
+  }, [pageApplied, effectivePins, savedPins, books, availability, today])
 
   const displayedSlots: PlanSlot[] = useMemo(
     () => displayedRows.map((r) => r.slot),
@@ -646,27 +597,6 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
         <p data-testid="plan-notice" style={{ color: 'var(--text-dim)' }}>
           {planned.notice}
         </p>
-      )}
-      {shadowedSlots.length > 0 && (
-        <div
-          data-testid="override-shadow-notice"
-          style={{
-            marginBottom: 16,
-            padding: '10px 12px',
-            borderRadius: 8,
-            background: '#fff8e1',
-            border: '1px solid #f0d060',
-            fontSize: 13,
-          }}
-        >
-          <p style={{ margin: '0 0 8px' }}>
-            今日は上書き表示中のため、曜日設定の次の時間は表示されません：
-            {shadowedSlots.map((s) => `${s.start}〜${s.end}`).join('、')}
-          </p>
-          <button data-testid="override-shadow-merge" type="button" onClick={() => void handleMergeShadowed()}>
-            上書きに追加して表示する
-          </button>
-        </div>
       )}
       {displayedSlots.length === 0 ? (
         <p data-testid="empty-availability-notice" style={{ color: 'var(--text-dim)' }}>
