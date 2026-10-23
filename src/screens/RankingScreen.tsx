@@ -326,7 +326,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
                 style={{
-                  width: 52, height: 60, borderRadius: '40% 40% 45% 45%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 54, height: 54, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 26, fontWeight: 900, color: '#fff', background: 'linear-gradient(180deg, #2b3a8f, #10163a)', border: '2px solid #ffe600',
                 }}
                 role="img" aria-label={`Division ${seasonState.div}エンブレム`}
