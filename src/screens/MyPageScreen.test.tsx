@@ -162,4 +162,41 @@ describe('MyPageScreen', () => {
     expect(season).toHaveTextContent(/Lv\./)
     expect(season).not.toHaveTextContent(/Div\./)
   })
+  it('リーグバッジ棚に装着と一覧が出る', async () => {
+    const { saveLeagueBadges } = await import('../lib/leagueBadges')
+    saveLeagueBadges({
+      awards: [
+        { uid: '2026-09-01:div2', badgeId: 'div2', div: 2, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
+        { uid: '2026-09-29:div1', badgeId: 'div1', div: 1, seasonId: '2026-09-29', awardedAt: '2026-09-30T00:00:00.000Z' },
+      ],
+      equipped: ['2026-09-29:div1'],
+    })
+    render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today="2026-09-29" />)
+    const shelf = await screen.findByTestId('league-badge-shelf')
+    expect(shelf).toBeInTheDocument()
+    expect(screen.getByTitle(/Div2到達/)).toBeInTheDocument()
+    expect(screen.getAllByTestId('league-badge-cell')).toHaveLength(2)
+    expect(screen.getAllByTestId('league-badge-slot')[0]).toHaveTextContent('1')
+  })
+  it('リーグバッジ4つ目の装着はブロックされ警告が出る', async () => {
+    const { saveLeagueBadges } = await import('../lib/leagueBadges')
+    saveLeagueBadges({
+      awards: [
+        { uid: 'a:div1', badgeId: 'div1', div: 1, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
+        { uid: 'b:div1', badgeId: 'div1', div: 1, seasonId: '2026-09-29', awardedAt: '2026-09-30T00:00:00.000Z' },
+        { uid: 'c:div2', badgeId: 'div2', div: 2, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
+        { uid: 'd:div3', badgeId: 'div3', div: 3, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
+      ],
+      equipped: ['a:div1', 'b:div1', 'c:div2'],
+    })
+    render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('league-badge-shelf')
+    const cells = screen.getAllByTestId('league-badge-cell')
+    fireEvent.click(within(cells[3]).getByTestId('league-badge'))
+    expect(await screen.findByTestId('league-badge-limit')).toHaveTextContent('3つまで')
+  })
+  it('リーグバッジ未獲得時は案内が出る', async () => {
+    render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today="2026-09-29" />)
+    expect(await screen.findByTestId('league-badge-empty')).toHaveTextContent('Div3')
+  })
 })

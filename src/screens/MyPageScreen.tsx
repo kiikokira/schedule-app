@@ -28,6 +28,7 @@ import { loadMockHistory, recordMockIfNeeded, type MockRecord } from '../lib/moc
 import { loadSeasonState } from '../data/seasonStore'
 import { levelForExp } from '../lib/seasonExp'
 import MockHistoryChart from '../components/MockHistoryChart'
+import LeagueBadgeShelf from '../components/LeagueBadgeShelf'
 
 type Props = { onBack: () => void; onRanking: () => void; today?: string }
 
@@ -198,6 +199,7 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
           )}
         </div>
       </section>
+      <LeagueBadgeShelf seasonId={season.seasonId} div={season.div} />
       <section style={cardStyle}>
         <div data-testid="mypage-streak" style={{ fontWeight: 800, fontSize: 16 }}>
           連続{streak.streak}日
