@@ -182,12 +182,12 @@ describe('MyPageScreen', () => {
     const { saveLeagueBadges } = await import('../lib/leagueBadges')
     saveLeagueBadges({
       awards: [
-        { uid: 'a:div1', badgeId: 'div1', div: 1, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
-        { uid: 'b:div1', badgeId: 'div1', div: 1, seasonId: '2026-09-29', awardedAt: '2026-09-30T00:00:00.000Z' },
-        { uid: 'c:div2', badgeId: 'div2', div: 2, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
-        { uid: 'd:div3', badgeId: 'div3', div: 3, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
+        { uid: '2026-09-01:div1', badgeId: 'div1', div: 1, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
+        { uid: '2026-09-01:div2', badgeId: 'div2', div: 2, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
+        { uid: '2026-09-01:div3', badgeId: 'div3', div: 3, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
+        { uid: '2026-09-29:div1', badgeId: 'div1', div: 1, seasonId: '2026-09-29', awardedAt: '2026-09-30T00:00:00.000Z' },
       ],
-      equipped: ['a:div1', 'b:div1', 'c:div2'],
+      equipped: ['2026-09-01:div1', '2026-09-01:div2', '2026-09-01:div3'],
     })
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today="2026-09-29" />)
     await screen.findByTestId('league-badge-shelf')
@@ -198,5 +198,12 @@ describe('MyPageScreen', () => {
   it('リーグバッジ未獲得時は案内が出る', async () => {
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today="2026-09-29" />)
     expect(await screen.findByTestId('league-badge-empty')).toHaveTextContent('Div3')
+  })
+  it('無効なseasonIdではバッジ棚を非表示にする（Spec §8 hide-guard）', async () => {
+    // MyPageScreen経由では loadSeasonState/seasonIdForDate が不正todayを
+    // '2026-09-01' に正規化するためガードを観測できない。棚を直接検証する。
+    const { default: LeagueBadgeShelf } = await import('../components/LeagueBadgeShelf')
+    render(<LeagueBadgeShelf seasonId="not-a-date" div={1} />)
+    await waitFor(() => expect(screen.queryByTestId('league-badge-shelf')).toBeNull())
   })
 })

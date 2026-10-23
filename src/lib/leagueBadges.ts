@@ -35,7 +35,7 @@ export function loadLeagueBadges(): LeagueBadgeState {
     if (raw == null) return emptyState()
     const p = JSON.parse(raw) as Partial<LeagueBadgeState>
     const awards = Array.isArray(p.awards)
-      ? p.awards.filter((a) => a && typeof a.uid === 'string' && (a.div === 1 || a.div === 2 || a.div === 3) && typeof a.seasonId === 'string')
+      ? p.awards.filter((a) => a && typeof a.uid === 'string' && (a.div === 1 || a.div === 2 || a.div === 3) && typeof a.seasonId === 'string' && a.uid === `${a.seasonId}:div${a.div}` && a.badgeId === `div${a.div}`)
       : []
     const owned = new Set(awards.map((a) => a.uid))
     const equipped = Array.isArray(p.equipped) ? p.equipped.filter((u) => typeof u === 'string' && owned.has(u)).slice(0, MAX_EQUIPPED_BADGES) : []

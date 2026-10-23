@@ -12,7 +12,7 @@ type Props = {
 }
 
 export default function LeagueBadge({ div, seasonLabel, equipped, slotNumber, isNew, size = 64, onClick }: Props) {
-  const def = LEAGUE_BADGE_DEFS[div]
+  const def = LEAGUE_BADGE_DEFS[div] ?? LEAGUE_BADGE_DEFS[3]
   return (
     <button
       type="button"

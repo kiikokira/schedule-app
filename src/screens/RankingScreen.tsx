@@ -58,9 +58,9 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   }, [today])
   useEffect(() => {
     try {
-      ensureLeagueBadgeForSeason(seasonIdForDate(today), seasonState.div)
+      ensureLeagueBadgeForSeason(seasonState.seasonId, seasonState.div)
     } catch { /* ignore */ }
-  }, [today, seasonState.div])
+  }, [today, seasonState.seasonId, seasonState.div])
   const leagueDay = useMemo(() => {
     try {
       return seasonDayIndex(today)

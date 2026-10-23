@@ -33,6 +33,8 @@ export default function LeagueBadgeShelf({ seasonId, div }: Props) {
       setState(loadLeagueBadges())
     } catch { /* ignore */ }
   }, [seasonId, div])
+  // Spec §8: hide shelf on invalid date (after hooks to keep hook order stable).
+  if (typeof seasonId !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(seasonId)) return null
   const byUid = new Map(state.awards.map((a) => [a.uid, a]))
   const onToggle = (uid: string) => {
     try {
