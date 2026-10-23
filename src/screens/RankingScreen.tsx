@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { combinedActivityOnDate, totalCycleUnits, todayStr } from '../lib/progress'
@@ -11,6 +11,15 @@ import { levelForExp } from '../lib/seasonExp'
 import { ensureLeagueBadgeForSeason } from '../lib/leagueBadges'
 
 type Props = { onBack: () => void; today?: string }
+
+// リーグのレーティング表示倍率（1.0で等倍）。ページ数・順位・勝敗には影響しない。
+const LEAGUE_RATING_RATE = 0.5
+
+// 選択中のタブだけ青くする。非選択はブラウザ既定のままにして見た目を変えない。
+function tabStyle(active: boolean): CSSProperties | undefined {
+  if (!active) return undefined
+  return { background: '#29b6ff', color: '#fff', fontWeight: 800 }
+}
 
 export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const { records } = useRecords()
@@ -142,6 +151,9 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   }, [leagueRows])
   const myLeagueRank = useMemo(() => leagueRows.findIndex((r) => r.you) + 1, [leagueRows])
   const myLeagueCum = useMemo(() => leagueRows.find((r) => r.you)?.cum ?? 0, [leagueRows])
+  // レーティングの上り幅だけ緩やかにする（ページ数・順位表・勝敗は不変）。
+  // 変更時はこの1箇所だけ変える。
+  const displayRating = Math.floor(myLeagueCum * LEAGUE_RATING_RATE)
   const phaseNo = useMemo(() => {
     try {
       const diff = Math.floor((Date.parse(today + 'T00:00:00Z') - Date.parse('2026-09-01T00:00:00Z')) / 86400000)
@@ -222,16 +234,16 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     >
       <h1 style={{ fontSize: 20, color: isRpg || isLeague ? '#fff' : undefined, textShadow: isRpg || isLeague ? '0 1px 4px rgba(0,0,0,0.4)' : undefined }}>仮想全国ランキング</h1>
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <button data-testid="national-tab" type="button" onClick={() => setTab('national')}>
+        <button data-testid="national-tab" type="button" onClick={() => setTab('national')} style={tabStyle(tab === 'national')} aria-current={tab === 'national' ? 'page' : undefined}>
           全国
         </button>
         {showLeague && (
-          <button data-testid="league-tab" type="button" onClick={() => setTab('league')}>
+          <button data-testid="league-tab" type="button" onClick={() => setTab('league')} style={tabStyle(tab === 'league')} aria-current={tab === 'league' ? 'page' : undefined}>
             リーグ
           </button>
         )}
         {showRpg && (
-          <button data-testid="rpg-tab" type="button" onClick={() => setTab('rpg')}>
+          <button data-testid="rpg-tab" type="button" onClick={() => setTab('rpg')} style={tabStyle(tab === 'rpg')} aria-current={tab === 'rpg' ? 'page' : undefined}>
             RPG
           </button>
         )}
@@ -353,7 +365,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                 <span>
                   <span style={{ display: 'block', fontSize: 12, color: '#9aa3c0' }}>レーティング</span>
                   <span data-testid="league-rating" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
-                    {myLeagueCum.toLocaleString()}
+                    {displayRating.toLocaleString()}
                   </span>
                 </span>
               </div>

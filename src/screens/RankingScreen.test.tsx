@@ -345,6 +345,32 @@ describe('RankingScreen', () => {
     // 今季合計110pt。今日分だけ（100pt）でも全期間合計（610pt）でもない
     expect(youRow).toHaveTextContent('110pt')
   })
+  it('レーティングはページ数の半分で表示する（順位表は不変）', async () => {
+    const now = new Date().toISOString()
+    const today = '2026-09-02'
+    await db.books.add({
+      id: 'b1', title: '単語帳', totalPages: 500,
+      startDate: today, deadline: today, createdAt: now, updatedAt: now,
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 100 })
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    // 今季累計100pt → レーティングは半分の50。順位表のpt・今日Pはそのまま
+    expect(await screen.findByTestId('league-rating')).toHaveTextContent('50')
+    expect(screen.getByTestId('league-row-you')).toHaveTextContent('100pt')
+    expect(screen.getByTestId('league-row-you')).toHaveTextContent('今日100P')
+  })
+  it('選択中のタブだけ青く表示する', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    // 初期は全国が選択中
+    expect(screen.getByTestId('national-tab')).toHaveStyle({ background: '#29b6ff' })
+    expect(screen.getByTestId('league-tab')).not.toHaveStyle({ background: '#29b6ff' })
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.getByTestId('league-tab')).toHaveStyle({ background: '#29b6ff' })
+    expect(screen.getByTestId('national-tab')).not.toHaveStyle({ background: '#29b6ff' })
+  })
   it('近傍ボードは自分±5件に絞られる', async () => {
     const now = new Date().toISOString()
     const today = todayStr()
