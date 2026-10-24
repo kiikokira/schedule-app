@@ -5,9 +5,9 @@ import { useCycleRecords } from '../hooks/useCycleRecords'
 import { totalsByBook, todayStr, pagesRecordsForTotals, cycleRecordsForTotals } from '../lib/progress'
 import CoverImage from '../components/CoverImage'
 
-type Props = { onBack: () => void; onOpenBook: (id: string) => void; today?: string }
+type Props = { onBack: () => void; today?: string }
 
-export default function BreakdownScreen({ onBack, onOpenBook, today: todayProp }: Props) {
+export default function BreakdownScreen({ onBack, today: todayProp }: Props) {
   const { books } = useBooks()
   const { records } = useRecords()
   const { cycleRecords } = useCycleRecords()
@@ -28,13 +28,13 @@ export default function BreakdownScreen({ onBack, onOpenBook, today: todayProp }
       )}
       {rows.length === 0 && <div>まだ記録がありません</div>}
       {rows.map((o) => (
-        <button key={o.bookId} data-testid={`breakdown-row-${o.bookId}`} type="button" onClick={() => onOpenBook(o.bookId)} style={{ display: 'flex', gap: 12, width: '100%', textAlign: 'left', marginTop: 8 }}>
+        <div key={o.bookId} data-testid={`breakdown-row-${o.bookId}`} style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
           <CoverImage src={o.coverUrl ?? null} width={40} height={56} />
           <span>
             <span style={{ fontWeight: 800 }}>{o.title}</span>
             <span>：{o.total.toLocaleString()}（ページ{o.pages.toLocaleString()}＋反復{o.units.toLocaleString()}）</span>
           </span>
-        </button>
+        </div>
       ))}
       <button data-testid="breakdown-back" type="button" onClick={onBack} style={{ marginTop: 12 }}>戻る</button>
     </div>

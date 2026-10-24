@@ -106,7 +106,7 @@ it('navigates mypage -> breakdown -> back', async () => {
   expect(await screen.findByTestId('mypage-page')).toBeInTheDocument()
 })
 
-it('navigates breakdown row -> book detail', async () => {
+it('breakdown rows are display-only (no book detail navigation)', async () => {
   await db.books.clear()
   await db.records.clear()
   await db.cycleRecords.clear()
@@ -117,8 +117,9 @@ it('navigates breakdown row -> book detail', async () => {
   render(<App />)
   fireEvent.click(await screen.findByTestId('mypage-open'))
   fireEvent.click(await screen.findByTestId('mypage-breakdown-open'))
-  fireEvent.click(await screen.findByTestId('breakdown-row-b1'))
-  expect(await screen.findByTestId('book-title')).toHaveTextContent('LEAP')
+  const row = await screen.findByTestId('breakdown-row-b1')
+  expect(row.tagName).toBe('DIV')
+  expect(screen.queryByTestId('book-title')).toBeNull()
   await db.books.clear()
   await db.records.clear()
   await db.cycleRecords.clear()

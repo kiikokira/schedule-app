@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, within } from '@testing-library/react'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, within } from '@testing-library/react'
+import { describe, it, expect, beforeEach } from 'vitest'
 import BreakdownScreen from './BreakdownScreen'
 import { db } from '../db/database'
 
@@ -15,31 +15,31 @@ describe('BreakdownScreen', () => {
     const now = new Date().toISOString()
     await db.books.add({ id: 'b1', title: 'LEAP', totalPages: 100, coverUrl: 'https://example.com/leap.jpg', startDate: today, deadline: today, createdAt: now, updatedAt: now })
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 5 })
-    render(<BreakdownScreen onBack={() => {}} onOpenBook={() => {}} today={today} />)
+    render(<BreakdownScreen onBack={() => {}} today={today} />)
     expect(await screen.findByTestId('breakdown-row-b1')).toHaveTextContent('LEAP')
     expect(screen.getByTestId('breakdown-row-b1')).toHaveTextContent('5')
   })
-  it('calls onOpenBook with bookId on row tap', async () => {
+  it('renders rows as display-only (no detail navigation)', async () => {
     const today = '2026-10-24'
     const now = new Date().toISOString()
     await db.books.add({ id: 'b1', title: 'LEAP', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 5 })
-    const onOpen = vi.fn()
-    render(<BreakdownScreen onBack={() => {}} onOpenBook={onOpen} today={today} />)
-    fireEvent.click(await screen.findByTestId('breakdown-row-b1'))
-    expect(onOpen).toHaveBeenCalledWith('b1')
+    render(<BreakdownScreen onBack={() => {}} today={today} />)
+    const row = await screen.findByTestId('breakdown-row-b1')
+    expect(row.tagName).toBe('DIV')
+    expect(row.querySelector('button')).toBeNull()
   })
   it('renders cover-placeholder for a book without coverUrl', async () => {
     const today = '2026-10-24'
     const now = new Date().toISOString()
     await db.books.add({ id: 'b2', title: 'NOCOVER', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
     await db.records.add({ id: 'r2', bookId: 'b2', date: today, pages: 5 })
-    render(<BreakdownScreen onBack={() => {}} onOpenBook={() => {}} today={today} />)
+    render(<BreakdownScreen onBack={() => {}} today={today} />)
     expect(within(await screen.findByTestId('breakdown-row-b2')).getByTestId('cover-placeholder')).toBeInTheDocument()
   })
   it('shows empty state when no records exist', async () => {
     const today = '2026-10-24'
-    render(<BreakdownScreen onBack={() => {}} onOpenBook={() => {}} today={today} />)
+    render(<BreakdownScreen onBack={() => {}} today={today} />)
     expect(await screen.findByTestId('breakdown-page')).toHaveTextContent(/まだ記録がありません/)
   })
   it('sorts books by total descending', async () => {
@@ -49,7 +49,7 @@ describe('BreakdownScreen', () => {
     await db.books.add({ id: 'b2', title: 'BIG', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 5 })
     await db.records.add({ id: 'r2', bookId: 'b2', date: today, pages: 50 })
-    render(<BreakdownScreen onBack={() => {}} onOpenBook={() => {}} today={today} />)
+    render(<BreakdownScreen onBack={() => {}} today={today} />)
     const rows = await screen.findAllByTestId(/^breakdown-row-/)
     expect(rows).toHaveLength(2)
     expect(rows[0].getAttribute('data-testid')).toBe('breakdown-row-b2')

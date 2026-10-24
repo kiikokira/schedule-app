@@ -7,7 +7,6 @@ import {
   totalCycleUnits,
   pagesRecordsForTotals,
   cycleRecordsForTotals,
-  totalsByBook,
   todayStr,
   formatDate,
   parseDate,
@@ -91,9 +90,6 @@ export default function MyPageScreen({ onBack, onRanking, onBreakdown, today: to
     return formatDate(d)
   })
   const last7Values = last7Days.map((d) => combinedActivityOnDate(d, validRecords, validCycles))
-  const breakdown = useMemo(() => totalsByBook(records, cycleRecords, books), [records, cycleRecords, books])
-  const excludedCount =
-    records.length - validRecords.length + (cycleRecords.length - validCycles.length)
 
   const startEdit = () => {
     setDraft(profile)
@@ -211,17 +207,12 @@ export default function MyPageScreen({ onBack, onRanking, onBreakdown, today: to
       </section>
       <LeagueBadgeShelf seasonId={season.seasonId} div={season.div} />
       <section data-testid="mypage-breakdown" style={cardStyle}>
-        <div style={{ fontWeight: 800, fontSize: 16 }}>累計の内訳</div>
-        {onBreakdown && (<button data-testid="mypage-breakdown-open" type="button" onClick={onBreakdown}>詳しく見る</button>)}
-        {breakdown.map((o) => (
-          <div key={o.bookId} data-testid="mypage-breakdown-row" data-book={o.bookId} style={{ fontSize: 14 }}>
-            {o.title}：{o.total.toLocaleString()}（ページ{o.pages.toLocaleString()}＋反復{o.units.toLocaleString()}）
-          </div>
-        ))}
-        {excludedCount > 0 && (
-          <div data-testid="mypage-breakdown-excluded" style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-            集計外 {excludedCount}件あり（削除済み本・形式違いは数えないよ）
-          </div>
+        {onBreakdown ? (
+          <button data-testid="mypage-breakdown-open" type="button" onClick={onBreakdown} style={{ fontWeight: 800, fontSize: 16, padding: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left' }}>
+            累計の内訳 ＞
+          </button>
+        ) : (
+          <div style={{ fontWeight: 800, fontSize: 16 }}>累計の内訳</div>
         )}
       </section>
       <section style={cardStyle}>

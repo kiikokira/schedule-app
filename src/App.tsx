@@ -150,7 +150,7 @@ export default function App() {
           <MyPageScreen onBack={() => setRoute({ name: 'home' })} onRanking={() => setRoute({ name: 'ranking' })} onBreakdown={() => setRoute({ name: 'breakdown' })} />
         )}
         {route.name === 'breakdown' && (
-          <BreakdownScreen onBack={() => setRoute({ name: 'mypage' })} onOpenBook={(id) => setRoute({ name: 'detail', bookId: id })} />
+          <BreakdownScreen onBack={() => setRoute({ name: 'mypage' })} />
         )}
       </main>
       <footer className="app-footer">
