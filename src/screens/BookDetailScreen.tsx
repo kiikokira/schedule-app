@@ -26,12 +26,21 @@ import {
 import { LEAP_WORD_RANGES, isLeapBook } from '../lib/leap'
 import { listAvailability, type AvailabilitySlot } from '../data/dayplanStore'
 
-function slotsForRecordDate(slots: AvailabilitySlot[], dateStr: string): AvailabilitySlot[] {
+export function slotsForRecordDate(slots: AvailabilitySlot[], dateStr: string): AvailabilitySlot[] {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return []
   const weekday = parseDate(dateStr).getDay()
-  return slots
+  const matched = slots
     .filter((s) => s.date === dateStr || (s.date === null && s.weekday === weekday))
     .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0))
+  // 日付指定と曜日指定の両方に同じ時刻があると選択肢に重複表示されるため、
+  // 開始・終了が同一の枠は最初の1つにまとめる（順序は開始時刻順のまま）。
+  const seen = new Set<string>()
+  return matched.filter((s) => {
+    const key = `${s.start}〜${s.end}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 function buildRecordedAt(dateStr: string, hhmm: string): string {

@@ -2,7 +2,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { db } from '../db/database'
 import { saveAvailabilitySlot } from '../data/dayplanStore'
-import BookDetailScreen from './BookDetailScreen'
+import BookDetailScreen, { slotsForRecordDate } from './BookDetailScreen'
+import { parseDate } from '../lib/progress'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const localDateStr = (d: Date) =>
@@ -29,6 +30,23 @@ beforeEach(async () => {
   await db.cycleRecords.clear()
   await db.availability.clear()
   vi.restoreAllMocks()
+})
+
+describe('slotsForRecordDate', () => {
+  it('dedupes identical time ranges from date and weekly slots', () => {
+    const date = '2026-10-24'
+    const weekday = parseDate(date).getDay()
+    const slots = [
+      { id: 'w1', weekday, date: null, start: '18:00', end: '19:00' },
+      { id: 'd1', weekday: null, date, start: '18:00', end: '19:00' },
+      { id: 'w2', weekday, date: null, start: '20:30', end: '21:45' },
+      { id: 'd2', weekday: null, date, start: '20:30', end: '21:45' },
+    ]
+    expect(slotsForRecordDate(slots, date).map((s) => `${s.start}〜${s.end}`)).toEqual([
+      '18:00〜19:00',
+      '20:30〜21:45',
+    ])
+  })
 })
 
 describe('BookDetailScreen', () => {
