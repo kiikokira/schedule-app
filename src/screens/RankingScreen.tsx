@@ -457,7 +457,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             </p>
             <div
               data-testid="league-mark-header"
-              style={{ display: 'grid', gridTemplateColumns: '3em minmax(0,1fr) 9em 4.5em', columnGap: 8, alignItems: 'center', fontSize: 12, color: '#9aa3c0' }}
+              style={{ display: 'grid', gridTemplateColumns: '42px minmax(0,1fr) 126px 63px', columnGap: 8, alignItems: 'center', fontSize: 12, color: '#9aa3c0' }}
             >
               <span />
               <span />
@@ -474,7 +474,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               <div
                 key={row.id}
                 data-testid={row.you ? 'league-row-you' : `league-row-${row.id}`}
-                style={{ display: 'grid', gridTemplateColumns: '3em minmax(0,1fr) 9em 4.5em', columnGap: 8, alignItems: 'center', fontSize: row.you ? 17 : 14, fontWeight: row.you ? 900 : undefined, padding: row.you ? '2px 0' : undefined, color: '#fff' }}
+                style={{ display: 'grid', gridTemplateColumns: '42px minmax(0,1fr) 126px 63px', columnGap: 8, alignItems: 'center', fontSize: row.you ? 17 : 14, fontWeight: row.you ? 900 : undefined, padding: row.you ? '2px 0' : undefined, color: '#fff' }}
               >
                 <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{i + 1}位</span>
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>

@@ -301,6 +301,18 @@ describe('RankingScreen', () => {
     expect(youRow).toHaveStyle({ fontSize: '17px', fontWeight: '900' })
     expect(Number.parseFloat(rivalRow.style.fontSize)).toBeLessThan(Number.parseFloat(youRow.style.fontSize))
   })
+  it('リーグ表の全行と見出しの列幅が統一されている', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    const template = '42px minmax(0,1fr) 126px 63px'
+    expect(screen.getByTestId('league-mark-header')).toHaveStyle({ gridTemplateColumns: template })
+    const rows = screen.getAllByTestId(/^league-row-/)
+    expect(rows.length).toBeGreaterThan(1)
+    for (const r of rows) {
+      expect(r).toHaveStyle({ gridTemplateColumns: template })
+    }
+  })
   it('リーグ表の変動矢印は上下で色分けされ見やすい', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
