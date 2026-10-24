@@ -55,6 +55,18 @@ describe('ranking', () => {
       expect(first[i - 1].pages).toBeGreaterThanOrEqual(first[i].pages)
     }
   })
+  it('上位ボードのメンバーは日が変わっても入れ替わらない', () => {
+    const d1 = sampleTopRivals('2026-10-18', 10)
+    const d2 = sampleTopRivals('2026-10-19', 10)
+    expect(d2.map((r) => r.name)).toEqual(d1.map((r) => r.name))
+  })
+  it('上位ボードのページは日ごとに微増し減らない', () => {
+    const d1 = sampleTopRivals('2026-10-18', 10)
+    const d2 = sampleTopRivals('2026-10-19', 10)
+    for (let i = 0; i < d1.length; i++) {
+      expect(d2[i].pages).toBeGreaterThanOrEqual(d1[i].pages)
+    }
+  })
   it('608ページ前後で偏差値54.5前後になる（実測・2年7月英語54.5相当の学習量）', () => {
     const dev = rankToDeviation(totalPagesToRank(608))
     expect(dev).toBeGreaterThan(53)

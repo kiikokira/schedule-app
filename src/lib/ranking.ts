@@ -176,16 +176,31 @@ export function sampleNearBoard(
   return raw
 }
 
-// 上位ボード（1位からの連番、ページ降順、日付シードで決定的）。
+// 上位ボード（1位からの連番、ページ降順）。
+// メンバーは固定シードで不変（日付で再抽選しない）。
+// ページだけが基準日からの経過日数×固定の伸びで微増する。
 // 累計スケール（約4000〜6500ページ帯）。
+const TOP_BOARD_ANCHOR = '2026-09-01'
+
+function daysSinceTopAnchor(dateIso: string): number {
+  const t = Date.parse(dateIso + 'T00:00:00Z')
+  const a = Date.parse(TOP_BOARD_ANCHOR + 'T00:00:00Z')
+  if (!Number.isFinite(t) || !Number.isFinite(a)) return 0
+  return Math.max(0, Math.floor((t - a) / 86400000))
+}
+
 export function sampleTopRivals(dateIso: string, count = 10): BoardEntry[] {
-  const rand = mulberry32(hashSeed(`top-${dateIso}`))
+  // メンバー・基準ページ・1日あたりの伸びは固定シードで決定的（日付に依存しない）。
+  const rand = mulberry32(hashSeed('top-board'))
+  const days = daysSinceTopAnchor(dateIso)
   const out: BoardEntry[] = []
-  let pages = 6000 + Math.floor(rand() * 800)
+  let base = 6000 + Math.floor(rand() * 800)
   for (let rank = 1; rank <= count; rank++) {
     const label = rivalLabel(rand, rank)
-    out.push({ rank, boardRank: rank, name: label.univ, faculty: label.faculty, grade: label.grade, pages, you: false })
-    pages = Math.max(0, pages - (150 + Math.floor(rand() * 250)))
+    const gain = 10 + Math.floor(rand() * 8)
+    out.push({ rank, boardRank: rank, name: label.univ, faculty: label.faculty, grade: label.grade, pages: base + gain * days, you: false })
+    base = Math.max(0, base - (150 + Math.floor(rand() * 250)))
   }
-  return out
+  out.sort((a, b) => b.pages - a.pages)
+  return out.map((r, i) => ({ ...r, rank: i + 1, boardRank: i + 1 }))
 }
