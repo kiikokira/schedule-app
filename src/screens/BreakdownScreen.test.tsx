@@ -37,6 +37,20 @@ describe('BreakdownScreen', () => {
     render(<BreakdownScreen onBack={() => {}} today={today} />)
     expect(within(await screen.findByTestId('breakdown-row-b2')).getByTestId('cover-placeholder')).toBeInTheDocument()
   })
+  it('shows grand total summary with pages, units and book count', async () => {
+    const today = '2026-10-24'
+    const now = new Date().toISOString()
+    await db.books.add({ id: 'b1', title: 'SMALL', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
+    await db.books.add({ id: 'b2', title: 'BIG', totalPages: 100, studyMode: 'cycles', startDate: today, deadline: today, createdAt: now, updatedAt: now })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 5 })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b2', date: today, unitFrom: 1, unitTo: 10, round: 1 })
+    render(<BreakdownScreen onBack={() => {}} today={today} />)
+    const summary = await screen.findByTestId('breakdown-summary')
+    expect(summary).toHaveTextContent('合計 15')
+    expect(summary).toHaveTextContent('ページ5')
+    expect(summary).toHaveTextContent('反復10')
+    expect(summary).toHaveTextContent('2冊')
+  })
   it('shows empty state when no records exist', async () => {
     const today = '2026-10-24'
     render(<BreakdownScreen onBack={() => {}} today={today} />)

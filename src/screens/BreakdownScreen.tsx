@@ -15,12 +15,20 @@ export default function BreakdownScreen({ onBack, today: todayProp }: Props) {
   // today は将来の期間絞り込み用の予約prop（現行は全期間集計）
   void today
   const rows = useMemo(() => totalsByBook(records, cycleRecords, books), [records, cycleRecords, books])
+  const grandPages = rows.reduce((s, o) => s + o.pages, 0)
+  const grandUnits = rows.reduce((s, o) => s + o.units, 0)
+  const grandTotal = rows.reduce((s, o) => s + o.total, 0)
   const validRecords = pagesRecordsForTotals(records, books)
   const validCycles = cycleRecordsForTotals(cycleRecords, books)
   const excludedCount = records.length - validRecords.length + (cycleRecords.length - validCycles.length)
   return (
     <div data-testid="breakdown-page" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>累計の内訳</h1>
+      {rows.length > 0 && (
+        <div data-testid="breakdown-summary" style={{ marginTop: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', fontWeight: 800, fontSize: 16 }}>
+          合計 {grandTotal.toLocaleString()}ページ（ページ{grandPages.toLocaleString()}＋反復{grandUnits.toLocaleString()}）・{rows.length}冊
+        </div>
+      )}
       {excludedCount > 0 && (
         <div data-testid="breakdown-excluded" style={{ fontSize: 12, color: 'var(--text-dim)' }}>
           集計外 {excludedCount}件あり（削除済み本・形式違いは数えないよ）
