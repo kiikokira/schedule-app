@@ -1,0 +1,145 @@
+git : warning: in the working copy of 'src/App.test.tsx', LF will be replaced by CRLF the next time Git touches it
+発生場所 行:1 文字:6
++ $d = git diff 2>&1 | Out-String; [System.IO.File]::WriteAllText("$PWD ...
++      ~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (warning: in the... Git touches it:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+warning: in the working copy of 'src/App.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/data/dayplanStore.test.ts', LF will be replaced by CRLF the next time Git touches 
+it
+warning: in the working copy of 'src/data/dayplanStore.ts', LF will be replaced by CRLF the next time Git touches it
+diff --git a/src/App.test.tsx b/src/App.test.tsx
+index 35d52b6..f922ce3 100644
+--- a/src/App.test.tsx
++++ b/src/App.test.tsx
+@@ -1,4 +1,7 @@
+ import { render, screen, fireEvent } from '@testing-library/react'
++import { db } from './db/database'
++import { prunePastOverrides } from './data/dayplanStore'
++import { todayStr } from './lib/progress'
+ import App from './App'
+ 
+ it('renders app title', () => {
+@@ -11,4 +14,26 @@ it('navigates to the today plan screen from home', async () => {
+   // 遨ｺ縺肴凾髢薙′辟｡縺・・縺ｧ empty 陦ｨ遉ｺ縺ｧ繧る・遘ｻ閾ｪ菴薙ｒ遒ｺ隱・   fireEvent.click(screen.getByTestId('nav-today'))
+   expect(await screen.findByTestId('today-plan-screen')).toBeInTheDocument()
++})
++
++it('prunes past overrides before rendering the availability screens', async () => {
++  await db.availability.add({
++    id: 'today-a',
++    weekday: null,
++    date: todayStr(),
++    start: '21:00',
++    end: '23:00',
++  })
++  await db.availability.add({
++    id: 'past-b',
++    weekday: null,
++    date: '2020-01-01',
++    start: '21:00',
++    end: '23:00',
++  })
++  render(<App />)
++  await waitFor(async () => {
++    const ids = (await db.availability.toArray()).map((s) => s.id).sort()
++    expect(ids).toEqual(['today-a'])
++  })
+ })
+\ No newline at end of file
+diff --git a/src/App.tsx b/src/App.tsx
+index 7950691..5d4cbf2 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1,4 +1,4 @@
+-import { useState } from 'react'
++import { useState, useEffect } from 'react'
+ import HomeScreen from './screens/HomeScreen'
+ import BookDetailScreen from './screens/BookDetailScreen'
+ import BookFormScreen from './screens/BookFormScreen'
+@@ -7,6 +7,8 @@ import PlanScreen from './screens/PlanScreen'
+ import TodayPlanScreen from './screens/TodayPlanScreen'
+ import RebalanceScreen from './screens/RebalanceScreen'
+ import { useBooks } from './hooks/useBooks'
++import { prunePastOverrides } from './data/dayplanStore'
++import { todayStr } from './lib/progress'
+ import './styles.css'
+ 
+ type Route =
+diff --git a/src/data/dayplanStore.test.ts b/src/data/dayplanStore.test.ts
+index d6618d3..be55736 100644
+--- a/src/data/dayplanStore.test.ts
++++ b/src/data/dayplanStore.test.ts
+@@ -4,6 +4,7 @@ import {
+   listAvailability,
+   saveAvailabilitySlot,
+   deleteAvailabilitySlot,
++  prunePastOverrides,
+   listAdjustments,
+   addAdjustment,
+   type AvailabilitySlot,
+@@ -52,6 +53,44 @@ describe('availability store', () => {
+   })
+ })
+ 
++describe('prune past overrides', () => {
++  beforeEach(async () => {
++    await db.availability.clear()
++  })
++
++  it('deletes overrides whose date is before today only', async () => {
++    await saveAvailabilitySlot(
++      { id: 'past', weekday: null, date: '2026-09-20', start: '21:00', end: '23:00' },
++      true,
++    )
++    await saveAvailabilitySlot(
++      { id: 'today', weekday: null, date: '2026-09-22', start: '21:00', end: '23:00' },
++      true,
++    )
++    await saveAvailabilitySlot(
++      { id: 'future', weekday: null, date: '2026-09-23', start: '21:00', end: '23:00' },
++      true,
++    )
++    await prunePastOverrides('2026-09-22')
++    const slots = await listAvailability()
++    expect(slots.map((s) => s.id).sort()).toEqual(['future', 'today'])
++  })
++
++  it('keeps weekday slots unaffected', async () => {
++    await saveAvailabilitySlot(
++      { id: 'wd', weekday: 2, date: null, start: '21:00', end: '23:00' },
++      true,
++    )
++    await prunePastOverrides('2026-09-22')
++    expect(await listAvailability()).toHaveLength(1)
++  })
++
++  it('does not delete when today has no past overrides', async () => {
++    await prunePastOverrides('2026-09-22')
++    expect(await listAvailability()).toEqual([])
++  })
++})
++
+ describe('adjustments store', () => {
+   it('adds and lists an adjustment', async () => {
+     await addAdjustment({
+diff --git a/src/data/dayplanStore.ts b/src/data/dayplanStore.ts
+index 49e9ae4..b6e5e07 100644
+--- a/src/data/dayplanStore.ts
++++ b/src/data/dayplanStore.ts
+@@ -35,6 +35,16 @@ export async function deleteAvailabilitySlot(id: string): Promise<void> {
+   await db.availability.delete(id)
+ }
+ 
++// 繧｢繝励Μ襍ｷ蜍墓凾縺ｫ驕主悉譌･縺ｮ縲悟ｽ捺律荳頑嶌縺阪阪□縺代ｒ閾ｪ蜍募炎髯､縺吶ｋ縲・+// 譖懈律縺斐→(weekday)繧・date 縺・null 縺ｮ繧ｨ繝ｳ繝医Μ縺ｫ縺ｯ荳蛻・ｽｱ髻ｿ縺励↑縺・・+export async function prunePastOverrides(today: string): Promise<number> {
++  return db.availability
++    .filter(
++      (slot) => slot.date !== null && slot.date < today,
++    )
++    .delete()
++}
++
+ export async function listAdjustments(): Promise<Adjustment[]> {
+   return db.adjustments.orderBy('id').toArray()
+ }
