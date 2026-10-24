@@ -521,6 +521,21 @@ describe('HomeScreen', () => {
     })
   })
 
+  it('does not offer page recording for cycles books on the schedule row', async () => {
+    const custom: ScheduleEntry[] = [
+      { bookId: 'b1', startDate: '2026-01-01', deadline: daysAhead(6) },
+    ]
+    saveSchedule(custom)
+    await db.books.add({ ...book, id: 'b1', studyMode: 'cycles', totalUnits: 100, targetRounds: 3, deadline: daysAhead(6) })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const row = await screen.findByTestId('schedule-row-b1')
+    expect(row).toHaveTextContent('範囲の記録は本の画面で')
+    expect(screen.queryByTestId('row-progress-input-b1')).toBeNull()
+    expect(screen.queryByTestId('row-record-b1')).toBeNull()
+    const recs = await db.records.toArray()
+    expect(recs).toHaveLength(0)
+  })
+
   it('shows the NOW card for a bookId entry', async () => {
     const custom: ScheduleEntry[] = [
       { bookId: 'b1', startDate: '2026-01-01', deadline: daysAhead(6) },

@@ -26,6 +26,8 @@ import {
   scoreCycleOnDate,
   totalCycleUnits,
   combinedActivityOnDate,
+  pagesRecordsForTotals,
+  cycleRecordsForTotals,
   type BookData,
   type ProgressRecordData,
   type CycleRecordData,
@@ -415,6 +417,29 @@ describe('cycle activity', () => {
     ]
     expect(combinedActivityOnDate('2026-10-23', records, cycles)).toBe(15)
     expect(combinedActivityOnDate('2026-10-22', records, cycles)).toBe(0)
+  })
+})
+
+describe('totals filtering', () => {
+  const books: BookData[] = [
+    { ...makeBook({ id: 'pages1' }), studyMode: 'pages' },
+    { ...makeBook({ id: 'cyc1' }), studyMode: 'cycles', totalUnits: 100, targetRounds: 3 },
+  ]
+  it('反復本へのページ記録と削除済み本の反復記録を集計から除外する', () => {
+    const records: ProgressRecordData[] = [
+      { id: 'r1', bookId: 'pages1', date: '2026-10-23', pages: 10 },
+      // 反復本に誤って書かれたページ記録は数えない
+      { id: 'r2', bookId: 'cyc1', date: '2026-10-23', pages: 50 },
+      // 未知の本のページ記録は含める（読み込み途中対策）
+      { id: 'r3', bookId: 'gone', date: '2026-10-23', pages: 5 },
+    ]
+    const cycles: CycleRecordData[] = [
+      { id: 'c1', bookId: 'cyc1', date: '2026-10-23', unitFrom: 1, unitTo: 20, round: 1 },
+      // 削除済み本の残留は数えない
+      { id: 'c2', bookId: 'gone', date: '2026-10-23', unitFrom: 1, unitTo: 30, round: 1 },
+    ]
+    expect(pagesRecordsForTotals(records, books).map((r) => r.id).sort()).toEqual(['r1', 'r3'])
+    expect(cycleRecordsForTotals(cycles, books).map((r) => r.id)).toEqual(['c1'])
   })
 })
 

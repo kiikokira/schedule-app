@@ -101,6 +101,30 @@ export function combinedActivityOnDate(
   return scoreActivityOnDate(date, records) + scoreCycleOnDate(date, cycles)
 }
 
+// 集計対象の正規化（二重計上と残留ゴミの除外）。
+// - pages記録：studyMode==='cycles'の本に属する行を除外する（反復は区画で数えるため）。
+//   本が不明な行は含める（本の読み込み前の一時状態で0に潰さないため）。
+// - 反復記録：studyMode==='cycles'の本に属する行だけ数える（削除済み本の残留を除外）。
+export function pagesRecordsForTotals(
+  records: ProgressRecordData[],
+  books: Pick<BookData, 'id' | 'studyMode'>[],
+): ProgressRecordData[] {
+  const cycleIds = new Set(
+    books.filter((b) => b.studyMode === 'cycles').map((b) => b.id),
+  )
+  return records.filter((r) => !cycleIds.has(r.bookId))
+}
+
+export function cycleRecordsForTotals(
+  records: CycleRecordData[],
+  books: Pick<BookData, 'id' | 'studyMode'>[],
+): CycleRecordData[] {
+  const cycleIds = new Set(
+    books.filter((b) => b.studyMode === 'cycles').map((b) => b.id),
+  )
+  return records.filter((r) => cycleIds.has(r.bookId))
+}
+
 export type StreakResult = { streak: number; todayScore: number; remaining: number }
 
 // 目安（quota）以上の記録がある日が何日連続しているかを数える。

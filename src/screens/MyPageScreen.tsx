@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import {
   combinedActivityOnDate,
   totalCycleUnits,
+  pagesRecordsForTotals,
+  cycleRecordsForTotals,
   todayStr,
   formatDate,
   parseDate,
@@ -52,8 +54,11 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(profile)
 
-  const todayPages = combinedActivityOnDate(today, records, cycleRecords)
-  const totalPages = totalActivity(records) + totalCycleUnits(cycleRecords)
+  // 集計は現存する本に属する行だけにする（反復本への誤ページ記録・削除済み本の残留を除外）。
+  const validRecords = useMemo(() => pagesRecordsForTotals(records, books), [records, books])
+  const validCycles = useMemo(() => cycleRecordsForTotals(cycleRecords, books), [cycleRecords, books])
+  const todayPages = combinedActivityOnDate(today, validRecords, validCycles)
+  const totalPages = totalActivity(validRecords) + totalCycleUnits(validCycles)
   const rank = totalPagesToRank(totalPages)
   const [prevRank] = useState<number | null>(() => loadLastRank())
   useEffect(() => {
@@ -74,8 +79,8 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
   const diagnosis = overallDiagnosis(books, records, today)
   const dailyQuota = Math.max(1, diagnosis.requiredPerDay)
   const streakScores: Record<string, number> = {}
-  for (const d of new Set([...records.map((r) => r.date), ...cycleRecords.map((r) => r.date)])) {
-    streakScores[d] = combinedActivityOnDate(d, records, cycleRecords)
+  for (const d of new Set([...validRecords.map((r) => r.date), ...validCycles.map((r) => r.date)])) {
+    streakScores[d] = combinedActivityOnDate(d, validRecords, validCycles)
   }
   const streak = calcStreakDays(streakScores, dailyQuota, today)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -83,7 +88,7 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
     d.setDate(d.getDate() - (6 - i))
     return formatDate(d)
   })
-  const last7Values = last7Days.map((d) => combinedActivityOnDate(d, records, cycleRecords))
+  const last7Values = last7Days.map((d) => combinedActivityOnDate(d, validRecords, validCycles))
 
   const startEdit = () => {
     setDraft(profile)

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import CoverImage from '../components/CoverImage'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
@@ -17,6 +17,8 @@ import {
   overallDiagnosis,
   combinedActivityOnDate,
   totalCycleUnits,
+  pagesRecordsForTotals,
+  cycleRecordsForTotals,
   calcStreakDays,
   todayStr,
   type BookData,
@@ -397,22 +399,30 @@ function ScheduleRow({
           flexWrap: 'wrap',
         }}
       >
-        <input
-          data-testid={`row-progress-input-${key}`}
-          type="number"
-          inputMode="numeric"
-          value={pagesInput}
-          onChange={(e) => setPagesInput(e.target.value)}
-          placeholder="今日のページ数"
-          style={{ flex: 1, minWidth: 96 }}
-        />
-        <button
-          data-testid={recordTestId}
-          type="button"
-          onClick={() => void handleRecord()}
-        >
-          記録
-        </button>
+        {isCycle ? (
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', flex: 1 }}>
+            範囲の記録は本の画面で（{requiredUnit}）
+          </div>
+        ) : (
+          <>
+            <input
+              data-testid={`row-progress-input-${key}`}
+              type="number"
+              inputMode="numeric"
+              value={pagesInput}
+              onChange={(e) => setPagesInput(e.target.value)}
+              placeholder="今日のページ数"
+              style={{ flex: 1, minWidth: 96 }}
+            />
+            <button
+              data-testid={recordTestId}
+              type="button"
+              onClick={() => void handleRecord()}
+            >
+              記録
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
@@ -529,8 +539,10 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
   const handleRowRecord = async (key: string, pages: number) => {    const entry = schedule.find((e) => entryKey(e) === key)
     if (!entry) return
     if (entry.bookId) {
-      const registeredBook = books.find((b) => b.id === entry.bookId)
+      const registeredBook = schedule.find((e) => entryKey(e) === key) && books.find((b) => b.id === entry.bookId)
       if (!registeredBook) return
+      // 反復本は区画で数えるため、ホーム行からのページ記録は受け付けない。
+      if (registeredBook.studyMode === 'cycles') return
       await addProgress(registeredBook.id, today, pages)
       return
     }
@@ -561,13 +573,16 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
   const diagnosis = overallDiagnosis(books, records, today)
 
   const dailyQuota = Math.max(1, diagnosis.requiredPerDay)
+  // 集計は現存する本に属する行だけにする（反復本への誤ページ記録・削除済み本の残留を除外）。
+  const validRecords = useMemo(() => pagesRecordsForTotals(records, books), [records, books])
+  const validCycles = useMemo(() => cycleRecordsForTotals(cycleRecords, books), [cycleRecords, books])
   const streakScores: Record<string, number> = {}
-  for (const d of new Set([...records.map((r) => r.date), ...cycleRecords.map((r) => r.date)])) {
-    streakScores[d] = combinedActivityOnDate(d, records, cycleRecords)
+  for (const d of new Set([...validRecords.map((r) => r.date), ...validCycles.map((r) => r.date)])) {
+    streakScores[d] = combinedActivityOnDate(d, validRecords, validCycles)
   }
   const streak = calcStreakDays(streakScores, dailyQuota, today)
-  const todayPages = combinedActivityOnDate(today, records, cycleRecords)
-  const totalPages = totalActivity(records) + totalCycleUnits(cycleRecords)
+  const todayPages = combinedActivityOnDate(today, validRecords, validCycles)
+  const totalPages = totalActivity(validRecords) + totalCycleUnits(validCycles)
   const rank = totalPagesToRank(totalPages)
   const deviation = rankToDeviation(rank)
   const profile = loadProfile()
@@ -589,7 +604,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
 
   useEffect(() => {
     try {
-      const pages = combinedActivityOnDate(today, records, cycleRecords)
+      const pages = combinedActivityOnDate(today, validRecords, validCycles)
       recordSeasonDay(today, pages, streak.streak)
       if (isSeasonFinalDay(today)) {
         try {
@@ -610,7 +625,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
         } catch { /* national-only fallback */ }
       }
     } catch { /* national-only fallback */ }
-  }, [records, cycleRecords, today, streak.streak])
+  }, [validRecords, validCycles, today, streak.streak])
 
   // 削除済みの参考書を指すbookIdエントリの残留を掃除する。
   // booksLoaded が false の間（DB読み込み前）は何もしない。

@@ -22,6 +22,7 @@ const book: DexieBook = {
 beforeEach(async () => {
   await db.books.clear()
   await db.records.clear()
+  await db.cycleRecords.clear()
 })
 
 describe('upsertProgress', () => {
@@ -48,6 +49,12 @@ describe('deleteBookCascade', () => {
     expect(await db.books.get('b1')).toBeUndefined()
     const records = await db.records.toArray()
     expect(records).toHaveLength(0)
+  })
+  it('deletes cycle records together (no orphans left in totals)', async () => {
+    await db.books.add(book)
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: '2026-01-05', unitFrom: 1, unitTo: 10, round: 1 })
+    await deleteBookCascade('b1')
+    expect(await db.cycleRecords.toArray()).toHaveLength(0)
   })
 })
 

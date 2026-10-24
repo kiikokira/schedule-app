@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
-import { combinedActivityOnDate, totalCycleUnits, todayStr } from '../lib/progress'
+import { combinedActivityOnDate, totalCycleUnits, pagesRecordsForTotals, cycleRecordsForTotals, todayStr } from '../lib/progress'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
 import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leagueDayInfo, type LeagueDayResult } from '../lib/seasonLeague'
 import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
@@ -22,9 +23,13 @@ function tabStyle(active: boolean): CSSProperties | undefined {
 }
 
 export default function RankingScreen({ onBack, today: todayProp }: Props) {
+  const { books } = useBooks()
   const { records } = useRecords()
   const { cycleRecords } = useCycleRecords()
   const today = todayProp ?? todayStr()
+  // 集計は現存する本に属する行だけにする（反復本への誤ページ記録・削除済み本の残留を除外）。
+  const validRecords = useMemo(() => pagesRecordsForTotals(records, books), [records, books])
+  const validCycles = useMemo(() => cycleRecordsForTotals(cycleRecords, books), [cycleRecords, books])
   const [nowMin, setNowMin] = useState(() => {
     const n = new Date()
     return n.getHours() * 60 + n.getMinutes()
@@ -36,8 +41,8 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     }, 60000)
     return () => clearInterval(id)
   }, [])
-  const todayPages = combinedActivityOnDate(today, records, cycleRecords)
-  const totalPages = totalActivity(records) + totalCycleUnits(cycleRecords)
+  const todayPages = combinedActivityOnDate(today, validRecords, validCycles)
+  const totalPages = totalActivity(validRecords) + totalCycleUnits(validCycles)
   const rank = totalPagesToRank(totalPages)
   const deviation = rankToDeviation(rank)
   void nowMin
@@ -90,7 +95,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       }
       const dailyAt = (d: number) => {
         try {
-          return combinedActivityOnDate(dateFor(d), records, cycleRecords)
+          return combinedActivityOnDate(dateFor(d), validRecords, validCycles)
         } catch {
           return 0
         }
@@ -141,10 +146,10 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       ].sort((a, b) => b.cum - a.cum)
       return rows
     } catch {
-      const fallback = combinedActivityOnDate(today, records, cycleRecords)
+      const fallback = combinedActivityOnDate(today, validRecords, validCycles)
       return [{ id: 'you', name: 'あなた', pages: fallback, prev: fallback, cum: fallback, prevCum: fallback, you: true as const }]
     }
-  }, [today, records, cycleRecords, leagueDay, seasonState.div])
+  }, [today, validRecords, validCycles, leagueDay, seasonState.div])
   const leagueWins = useMemo(() => {
     const mine = leagueRows.find((r) => r.you)?.cum ?? 0
     return leagueRows.filter((r) => !r.you && r.cum < mine).length
@@ -179,14 +184,14 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       // 記録した日だけを対戦として数える（戦っていない日は勝敗に含めない）
       return Array.from({ length: leagueDay + 1 }, (_, d) => {
         const date = new Date(base + d * 86400000).toISOString().slice(0, 10)
-        const pages = combinedActivityOnDate(date, records, cycleRecords)
+        const pages = combinedActivityOnDate(date, validRecords, validCycles)
         const info = leagueDayInfo(seasonId, seasonState.div, d, pages)
         return { date, pages, ...info }
       }).filter((o) => o.pages > 0)
     } catch {
       return [] as { date: string; pages: number; average: number; opponent: string; opponentPages: number; result: LeagueDayResult }[]
     }
-  }, [today, records, cycleRecords, leagueDay, seasonState.div])
+  }, [today, validRecords, validCycles, leagueDay, seasonState.div])
   const leagueRecord = useMemo(() => {
     const wins = leagueDaily.filter((d) => d.result === 'win').length
     const draws = leagueDaily.filter((d) => d.result === 'draw').length

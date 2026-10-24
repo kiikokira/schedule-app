@@ -55,6 +55,11 @@ describe('ranking', () => {
       expect(first[i - 1].pages).toBeGreaterThanOrEqual(first[i].pages)
     }
   })
+  it('220ページ前後で偏差値52前後になる（実測51.7相当の学習量）', () => {
+    const dev = rankToDeviation(totalPagesToRank(220))
+    expect(dev).toBeGreaterThan(50)
+    expect(dev).toBeLessThan(54)
+  })
   it('累計0は最下位で貯めるほど順位が上がり下がらない', () => {
     expect(totalPagesToRank(0)).toBe(200000)
     const r10 = totalPagesToRank(10)

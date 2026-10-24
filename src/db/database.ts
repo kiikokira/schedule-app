@@ -77,8 +77,9 @@ export async function upsertProgress(
 }
 
 export async function deleteBookCascade(bookId: string): Promise<void> {
-  await db.transaction('rw', db.books, db.records, async () => {
+  await db.transaction('rw', db.books, db.records, db.cycleRecords, async () => {
     await db.records.where('bookId').equals(bookId).delete()
+    await db.cycleRecords.where('bookId').equals(bookId).delete()
     await db.books.delete(bookId)
   })
 }
