@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import MyPageScreen from './MyPageScreen'
 import { db } from '../db/database'
 import { todayStr } from '../lib/progress'
+import { saveLastRank } from '../data/lastRankStore'
 
 describe('MyPageScreen', () => {
   beforeEach(async () => {
@@ -89,7 +90,7 @@ describe('MyPageScreen', () => {
     expect(await screen.findByTestId('progress-chart')).toBeInTheDocument()
   })
   it('前回より順位が上がれば +N を強調表示する', async () => {
-    localStorage.setItem('schedule-app-last-rank', '199166')
+    saveLastRank(199166)
     const today = todayStr()
     const now = new Date().toISOString()
     await db.books.add({ id: 'b1', title: '単語帳', totalPages: 500, startDate: today, deadline: today, createdAt: now, updatedAt: now })
@@ -108,7 +109,7 @@ describe('MyPageScreen', () => {
     expect(screen.queryByTestId('mypage-rank-delta')).toBeNull()
   })
   it('順位下降は -N を大きなバッジで強調表示する', async () => {
-    localStorage.setItem('schedule-app-last-rank', '199510')
+    saveLastRank(199510)
     const today = todayStr()
     const now = new Date().toISOString()
     await db.books.add({ id: 'b1', title: '単語帳', totalPages: 500, startDate: today, deadline: today, createdAt: now, updatedAt: now })
@@ -120,7 +121,7 @@ describe('MyPageScreen', () => {
     expect(delta).toHaveTextContent('▼')
   })
   it('順位変化なしは±0を小さめに表示しキープ文言は出さない', async () => {
-    localStorage.setItem('schedule-app-last-rank', '199546')
+    saveLastRank(199546)
     const today = todayStr()
     const now = new Date().toISOString()
     await db.books.add({ id: 'b1', title: '単語帳', totalPages: 500, startDate: today, deadline: today, createdAt: now, updatedAt: now })
