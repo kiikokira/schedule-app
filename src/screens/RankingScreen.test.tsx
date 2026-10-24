@@ -149,7 +149,7 @@ describe('RankingScreen', () => {
       expect(ranks[i] - ranks[i - 1]).toBe(1)
     }
   })
-  it('節目までの差は累計基準で計算される（累計50なら100,000位まであと130ページ）', async () => {
+  it('節目までの差は累計基準で計算される（累計50なら100,000位まであと330ページ）', async () => {
     const now = new Date().toISOString()
     const today = todayStr()
     await db.books.add({
@@ -162,7 +162,7 @@ describe('RankingScreen', () => {
     // DB読み込み完了を待ってから検証する（初回描画は空データのため）。
     await waitFor(() => expect(screen.getByTestId('ranking-summary')).toHaveTextContent('今日50ページ'))
     expect(reach).toHaveTextContent('全国100,000位')
-    expect(reach).toHaveTextContent('あと130ページ')
+    expect(reach).toHaveTextContent('あと330ページ')
   })
   it('近傍とトップの全ライバルに学部名を表示する', async () => {
     const today = todayStr()

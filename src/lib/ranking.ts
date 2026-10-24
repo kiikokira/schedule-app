@@ -44,12 +44,13 @@ export function dailyPagesToRank(pages: number, _dateIso: string): number {
   return Math.min(Math.max(rank, 1), RANK_POPULATION)
 }
 
-// 累計分布のCDF（中央値180ページ、σ=0.9）。
-// 実測（進研模試偏差値51.7相当の学習量≒220ページ前後で偏差値52前後になるよう調整）。
+// 累計分布のCDF（中央値380ページ、σ=1.1）。
+// 実測（進研模試2年7月・英語偏差値54.5相当の学習量≒608ページで偏差値54前後になるよう調整）。
+// 国数英総合51.7・国語51.8・数学49.2・英語54.5の実力を反映し、序盤で跳ねないよう緩やかにした。
 function populationCdfTotal(pages: number): number {
   if (pages <= 0) return 0
-  const mu = Math.log(180)
-  const sigma = 0.9
+  const mu = Math.log(380)
+  const sigma = 1.1
   const z = (Math.log(pages) - mu) / sigma
   const t = 1 / (1 + 0.2316419 * Math.abs(z))
   const d = 0.3989423 * Math.exp((-z * z) / 2)
@@ -126,7 +127,7 @@ export function pagesForRank(rank: number): number {
   return Math.max(0, Math.round((lo + hi) / 2))
 }
 
-// 累計版の逆変換（二分法、上限20000、中央値180ページ基準）
+// 累計版の逆変換（二分法、上限20000、中央値380ページ基準）
 export function totalPagesForRank(rank: number): number {
   const clamped = Math.min(Math.max(rank, 1), RANK_POPULATION)
   const target = 1 - clamped / RANK_POPULATION

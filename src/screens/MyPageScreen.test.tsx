@@ -75,7 +75,7 @@ describe('MyPageScreen', () => {
     await waitFor(() => expect(goal).toHaveTextContent('累計 50ページ'))
     expect(goal).toHaveTextContent('全国100,000位')
     expect(goal).toHaveTextContent('偏差値')
-    expect(goal).toHaveTextContent('あと130ページ')
+    expect(goal).toHaveTextContent('あと330ページ')
   })
   it('累計の内訳を本ごとに表示する', async () => {
     const today = todayStr()
@@ -131,7 +131,7 @@ describe('MyPageScreen', () => {
     expect(screen.queryByTestId('mypage-rank-delta')).toBeNull()
   })
   it('順位下降は -N を大きなバッジで強調表示する', async () => {
-    saveLastRank(199510)
+    saveLastRank(199695)
     const today = todayStr()
     const now = new Date().toISOString()
     await db.books.add({ id: 'b1', title: '単語帳', totalPages: 500, startDate: today, deadline: today, createdAt: now, updatedAt: now })
@@ -143,7 +143,7 @@ describe('MyPageScreen', () => {
     expect(delta).toHaveTextContent('▼')
   })
   it('順位変化なしは±0を小さめに表示しキープ文言は出さない', async () => {
-    saveLastRank(199546)
+    saveLastRank(199731)
     const today = todayStr()
     const now = new Date().toISOString()
     await db.books.add({ id: 'b1', title: '単語帳', totalPages: 500, startDate: today, deadline: today, createdAt: now, updatedAt: now })

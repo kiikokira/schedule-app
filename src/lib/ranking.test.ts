@@ -55,10 +55,14 @@ describe('ranking', () => {
       expect(first[i - 1].pages).toBeGreaterThanOrEqual(first[i].pages)
     }
   })
-  it('220ページ前後で偏差値52前後になる（実測51.7相当の学習量）', () => {
-    const dev = rankToDeviation(totalPagesToRank(220))
-    expect(dev).toBeGreaterThan(50)
-    expect(dev).toBeLessThan(54)
+  it('608ページ前後で偏差値54.5前後になる（実測・2年7月英語54.5相当の学習量）', () => {
+    const dev = rankToDeviation(totalPagesToRank(608))
+    expect(dev).toBeGreaterThan(53)
+    expect(dev).toBeLessThan(56)
+  })
+  it('序盤は上がりにくい（100ページで偏差値40未満・300ページで50未満）', () => {
+    expect(rankToDeviation(totalPagesToRank(100))).toBeLessThan(40)
+    expect(rankToDeviation(totalPagesToRank(300))).toBeLessThan(50)
   })
   it('累計0は最下位で貯めるほど順位が上がり下がらない', () => {
     expect(totalPagesToRank(0)).toBe(200000)
