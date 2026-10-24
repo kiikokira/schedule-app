@@ -16,10 +16,10 @@ type Props = { onBack: () => void; today?: string }
 // リーグのレーティング表示倍率（1.0で等倍）。ページ数・順位・勝敗には影響しない。
 const LEAGUE_RATING_RATE = 0.5
 
-// 選択中のタブだけ青くする。非選択はブラウザ既定のままにして見た目を変えない。
+// 選択中のタブだけ周囲に調和するダークネイビー＋金文字にする。非選択はブラウザ既定のまま。
 function tabStyle(active: boolean): CSSProperties | undefined {
   if (!active) return undefined
-  return { background: '#29b6ff', color: '#fff', fontWeight: 800 }
+  return { background: '#151a30', color: '#ffe600', border: '1px solid #ffe600', fontWeight: 800 }
 }
 
 export default function RankingScreen({ onBack, today: todayProp }: Props) {

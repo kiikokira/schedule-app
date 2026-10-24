@@ -365,15 +365,15 @@ describe('RankingScreen', () => {
     expect(screen.getByTestId('league-row-you')).toHaveTextContent('100pt')
     expect(screen.getByTestId('league-row-you')).toHaveTextContent('今日100P')
   })
-  it('選択中のタブだけ青く表示する', () => {
+  it('選択中のタブだけ周囲調和色で表示する', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     // 初期は全国が選択中
-    expect(screen.getByTestId('national-tab')).toHaveStyle({ background: '#29b6ff' })
-    expect(screen.getByTestId('league-tab')).not.toHaveStyle({ background: '#29b6ff' })
+    expect(screen.getByTestId('national-tab')).toHaveStyle({ background: '#151a30' })
+    expect(screen.getByTestId('league-tab')).not.toHaveStyle({ background: '#151a30' })
     fireEvent.click(screen.getByTestId('league-tab'))
-    expect(screen.getByTestId('league-tab')).toHaveStyle({ background: '#29b6ff' })
-    expect(screen.getByTestId('national-tab')).not.toHaveStyle({ background: '#29b6ff' })
+    expect(screen.getByTestId('league-tab')).toHaveStyle({ background: '#151a30' })
+    expect(screen.getByTestId('national-tab')).not.toHaveStyle({ background: '#151a30' })
   })
   it('近傍ボードは自分±5件に絞られる', async () => {
     const now = new Date().toISOString()
