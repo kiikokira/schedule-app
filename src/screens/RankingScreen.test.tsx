@@ -292,6 +292,15 @@ describe('RankingScreen', () => {
     expect(sym).toHaveStyle({ width: '1.2em', textAlign: 'center' })
     expect(val).toHaveStyle({ minWidth: '2em', textAlign: 'right' })
   })
+  it('リーグ表の自分の行は他行より太く大きい', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    const youRow = screen.getByTestId('league-row-you')
+    const rivalRow = screen.getAllByTestId(/^league-row-/).find((r) => r !== youRow)!
+    expect(youRow).toHaveStyle({ fontSize: '17px', fontWeight: '900' })
+    expect(Number.parseFloat(rivalRow.style.fontSize)).toBeLessThan(Number.parseFloat(youRow.style.fontSize))
+  })
   it('リーグ表の変動矢印は上下で色分けされ見やすい', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)

@@ -474,7 +474,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               <div
                 key={row.id}
                 data-testid={row.you ? 'league-row-you' : `league-row-${row.id}`}
-                style={{ display: 'grid', gridTemplateColumns: '3em minmax(0,1fr) 9em 4.5em', columnGap: 8, alignItems: 'center', fontSize: 14, fontWeight: row.you ? 800 : undefined, color: '#fff' }}
+                style={{ display: 'grid', gridTemplateColumns: '3em minmax(0,1fr) 9em 4.5em', columnGap: 8, alignItems: 'center', fontSize: row.you ? 17 : 14, fontWeight: row.you ? 900 : undefined, padding: row.you ? '2px 0' : undefined, color: '#fff' }}
               >
                 <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{i + 1}位</span>
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
