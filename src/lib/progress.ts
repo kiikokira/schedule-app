@@ -143,7 +143,7 @@ export function totalsByBook(
       const units = validCycles
         .filter((r) => r.bookId === b.id)
         .reduce((s, r) => s + scoreCycleRecord(r), 0)
-      return { bookId: b.id, title: b.title, pages, units, total: pages + units, coverUrl: (b as { coverUrl?: string }).coverUrl }
+      return { bookId: b.id, title: b.title, pages, units, total: pages + units, coverUrl: b.coverUrl }
     })
     .filter((o) => o.total > 0)
     .sort((a, b) => b.total - a.total)

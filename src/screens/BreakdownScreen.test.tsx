@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import BreakdownScreen from './BreakdownScreen'
 import { db } from '../db/database'
@@ -28,5 +28,30 @@ describe('BreakdownScreen', () => {
     render(<BreakdownScreen onBack={() => {}} onOpenBook={onOpen} today={today} />)
     fireEvent.click(await screen.findByTestId('breakdown-row-b1'))
     expect(onOpen).toHaveBeenCalledWith('b1')
+  })
+  it('renders cover-placeholder for a book without coverUrl', async () => {
+    const today = '2026-10-24'
+    const now = new Date().toISOString()
+    await db.books.add({ id: 'b2', title: 'NOCOVER', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
+    await db.records.add({ id: 'r2', bookId: 'b2', date: today, pages: 5 })
+    render(<BreakdownScreen onBack={() => {}} onOpenBook={() => {}} today={today} />)
+    expect(within(await screen.findByTestId('breakdown-row-b2')).getByTestId('cover-placeholder')).toBeInTheDocument()
+  })
+  it('shows empty state when no records exist', async () => {
+    const today = '2026-10-24'
+    render(<BreakdownScreen onBack={() => {}} onOpenBook={() => {}} today={today} />)
+    expect(await screen.findByTestId('breakdown-page')).toHaveTextContent(/まだ記録がありません/)
+  })
+  it('sorts books by total descending', async () => {
+    const today = '2026-10-24'
+    const now = new Date().toISOString()
+    await db.books.add({ id: 'b1', title: 'SMALL', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
+    await db.books.add({ id: 'b2', title: 'BIG', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 5 })
+    await db.records.add({ id: 'r2', bookId: 'b2', date: today, pages: 50 })
+    render(<BreakdownScreen onBack={() => {}} onOpenBook={() => {}} today={today} />)
+    const rows = await screen.findAllByTestId(/^breakdown-row-/)
+    expect(rows).toHaveLength(2)
+    expect(rows[0].getAttribute('data-testid')).toBe('breakdown-row-b2')
   })
 })

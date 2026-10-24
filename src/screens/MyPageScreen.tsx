@@ -33,6 +33,7 @@ import { levelForExp } from '../lib/seasonExp'
 import MockHistoryChart from '../components/MockHistoryChart'
 import LeagueBadgeShelf from '../components/LeagueBadgeShelf'
 
+// Appは必ずonBreakdownを渡す。任意化は既存テスト互換のため
 type Props = { onBack: () => void; onRanking: () => void; onBreakdown?: () => void; today?: string }
 
 const GRADES = ['高1', '高2', '高3', '浪人']
