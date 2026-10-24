@@ -7,6 +7,7 @@ import {
   totalCycleUnits,
   pagesRecordsForTotals,
   cycleRecordsForTotals,
+  totalsByBook,
   todayStr,
   formatDate,
   parseDate,
@@ -89,6 +90,9 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
     return formatDate(d)
   })
   const last7Values = last7Days.map((d) => combinedActivityOnDate(d, validRecords, validCycles))
+  const breakdown = useMemo(() => totalsByBook(records, cycleRecords, books), [records, cycleRecords, books])
+  const excludedCount =
+    records.length - validRecords.length + (cycleRecords.length - validCycles.length)
 
   const startEdit = () => {
     setDraft(profile)
@@ -205,6 +209,19 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
         </div>
       </section>
       <LeagueBadgeShelf seasonId={season.seasonId} div={season.div} />
+      <section data-testid="mypage-breakdown" style={cardStyle}>
+        <div style={{ fontWeight: 800, fontSize: 16 }}>累計の内訳</div>
+        {breakdown.map((o) => (
+          <div key={o.bookId} data-testid="mypage-breakdown-row" data-book={o.bookId} style={{ fontSize: 14 }}>
+            {o.title}：{o.total.toLocaleString()}（ページ{o.pages.toLocaleString()}＋反復{o.units.toLocaleString()}）
+          </div>
+        ))}
+        {excludedCount > 0 && (
+          <div data-testid="mypage-breakdown-excluded" style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+            集計外 {excludedCount}件あり（削除済み本・形式違いは数えないよ）
+          </div>
+        )}
+      </section>
       <section style={cardStyle}>
         <div data-testid="mypage-streak" style={{ fontWeight: 800, fontSize: 16 }}>
           連続{streak.streak}日

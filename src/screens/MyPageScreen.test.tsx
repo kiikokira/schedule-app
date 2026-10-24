@@ -10,6 +10,7 @@ describe('MyPageScreen', () => {
     localStorage.clear()
     await db.books.clear()
     await db.records.clear()
+    await db.cycleRecords.clear()
   })
   it('初期はロック表示で編集ボタンがある', async () => {
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today={todayStr()} />)
@@ -75,6 +76,27 @@ describe('MyPageScreen', () => {
     expect(goal).toHaveTextContent('全国100,000位')
     expect(goal).toHaveTextContent('偏差値')
     expect(goal).toHaveTextContent('あと130ページ')
+  })
+  it('累計の内訳を本ごとに表示する', async () => {
+    const today = todayStr()
+    const now = new Date().toISOString()
+    await db.books.add({ id: 'b1', title: '単語帳', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 12 })
+    render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today={today} />)
+    const shelf = await screen.findByTestId('mypage-breakdown')
+    await waitFor(() => expect(shelf).toHaveTextContent('単語帳'))
+    expect(shelf).toHaveTextContent('12')
+    expect(screen.getAllByTestId('mypage-breakdown-row')).toHaveLength(1)
+    expect(screen.queryByTestId('mypage-breakdown-excluded')).toBeNull()
+  })
+  it('集計外の記録があると件数を表示する', async () => {
+    const today = todayStr()
+    const now = new Date().toISOString()
+    await db.books.add({ id: 'b1', title: '単語帳', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
+    // 削除済み本の残留に相当する反復記録は集計外になる
+    await db.cycleRecords.add({ id: 'c9', bookId: 'gone', date: today, unitFrom: 1, unitTo: 10, round: 1 })
+    render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today={today} />)
+    await waitFor(() => expect(screen.getByTestId('mypage-breakdown-excluded')).toHaveTextContent('集計外 1件'))
   })
   it('継続カードに連続日数と7日グラフを表示する', async () => {
     const today = todayStr()

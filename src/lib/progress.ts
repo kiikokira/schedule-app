@@ -125,6 +125,30 @@ export function cycleRecordsForTotals(
   return records.filter((r) => cycleIds.has(r.bookId))
 }
 
+export type BookTotals = { bookId: string; title: string; pages: number; units: number; total: number }
+
+// 累計の内訳（本ごと・降順）。0の本は除く。集計対象の正規化は totals 系と同一。
+export function totalsByBook(
+  records: ProgressRecordData[],
+  cycles: CycleRecordData[],
+  books: Pick<BookData, 'id' | 'title' | 'studyMode'>[],
+): BookTotals[] {
+  const validPages = pagesRecordsForTotals(records, books)
+  const validCycles = cycleRecordsForTotals(cycles, books)
+  return books
+    .map((b) => {
+      const pages = validPages
+        .filter((r) => r.bookId === b.id)
+        .reduce((s, r) => s + r.pages, 0)
+      const units = validCycles
+        .filter((r) => r.bookId === b.id)
+        .reduce((s, r) => s + scoreCycleRecord(r), 0)
+      return { bookId: b.id, title: b.title, pages, units, total: pages + units }
+    })
+    .filter((o) => o.total > 0)
+    .sort((a, b) => b.total - a.total)
+}
+
 export type StreakResult = { streak: number; todayScore: number; remaining: number }
 
 // 目安（quota）以上の記録がある日が何日連続しているかを数える。
