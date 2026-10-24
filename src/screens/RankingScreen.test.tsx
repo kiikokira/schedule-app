@@ -289,8 +289,8 @@ describe('RankingScreen', () => {
     const youRow = screen.getByTestId('league-row-you')
     const sym = within(youRow).getByTestId('league-mark-sym')
     const val = within(youRow).getByTestId('league-mark-val')
-    expect(sym).toHaveStyle({ width: '1.2em', textAlign: 'center' })
-    expect(val).toHaveStyle({ minWidth: '2em', textAlign: 'right' })
+    expect(sym).toHaveStyle({ width: '18px', textAlign: 'center' })
+    expect(val).toHaveStyle({ minWidth: '28px', textAlign: 'right' })
   })
   it('リーグ表の自分の行は他行より太く大きい', () => {
     localStorage.clear()
@@ -311,6 +311,17 @@ describe('RankingScreen', () => {
     expect(rows.length).toBeGreaterThan(1)
     for (const r of rows) {
       expect(r).toHaveStyle({ gridTemplateColumns: template })
+    }
+  })
+  it('リーグ表の変動マークの幅は全行で統一されている', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    for (const s of screen.getAllByTestId('league-mark-sym')) {
+      expect(s).toHaveStyle({ width: '18px' })
+    }
+    for (const v of screen.getAllByTestId('league-mark-val')) {
+      expect(v).toHaveStyle({ minWidth: '28px' })
     }
   })
   it('リーグ表の変動矢印は上下で色分けされ見やすい', () => {

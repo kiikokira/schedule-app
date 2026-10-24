@@ -479,9 +479,9 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                 <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{i + 1}位</span>
                 <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
                 <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{row.cum}pt（今日{row.pages}P）</span>
-                <span style={{ display: 'inline-flex', justifyContent: 'flex-end', alignItems: 'center', fontVariantNumeric: 'tabular-nums' }}>
-                  <span data-testid="league-mark-sym" style={{ width: '1.2em', textAlign: 'center', color: markColor, fontWeight: 700, fontSize: 15 }}>{sym}</span>
-                  <span data-testid="league-mark-val" style={{ minWidth: '2em', textAlign: 'right', color: markColor }}>{val}</span>
+                <span style={{ display: 'inline-flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%', fontVariantNumeric: 'tabular-nums' }}>
+                  <span data-testid="league-mark-sym" style={{ width: '18px', textAlign: 'center', color: markColor, fontWeight: 700, fontSize: 15 }}>{sym}</span>
+                  <span data-testid="league-mark-val" style={{ minWidth: '28px', textAlign: 'right', color: markColor }}>{val}</span>
                 </span>
               </div>
             )
