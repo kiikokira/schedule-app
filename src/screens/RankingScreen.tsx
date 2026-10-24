@@ -16,10 +16,12 @@ type Props = { onBack: () => void; today?: string }
 // リーグのレーティング表示倍率（1.0で等倍）。ページ数・順位・勝敗には影響しない。
 const LEAGUE_RATING_RATE = 0.5
 
-// 選択中のタブだけ周囲に調和するダークネイビー＋金文字にする。非選択はブラウザ既定のまま。
-function tabStyle(active: boolean): CSSProperties | undefined {
+// 選択中のタブだけ種別に調和する色にする。全国は白背景用（白＋濃枠）、リーグ/RPGはダーク背景用。非選択は既定のまま。
+function tabStyle(active: boolean, variant: 'national' | 'league' | 'rpg' = 'national'): CSSProperties | undefined {
   if (!active) return undefined
-  return { background: '#151a30', color: '#ffe600', border: '1px solid #ffe600', fontWeight: 800 }
+  if (variant === 'league') return { background: '#151a30', color: '#ffe600', border: '1px solid #ffe600', fontWeight: 800 }
+  if (variant === 'rpg') return { background: '#1e2a5a', color: '#fff', border: '1px solid #fff', fontWeight: 800 }
+  return { background: '#ffffff', color: '#111111', border: '2px solid #111111', fontWeight: 800 }
 }
 
 export default function RankingScreen({ onBack, today: todayProp }: Props) {
@@ -239,16 +241,16 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     >
       <h1 style={{ fontSize: 20, color: isRpg || isLeague ? '#fff' : undefined, textShadow: isRpg || isLeague ? '0 1px 4px rgba(0,0,0,0.4)' : undefined }}>仮想全国ランキング</h1>
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <button data-testid="national-tab" type="button" onClick={() => setTab('national')} style={tabStyle(tab === 'national')} aria-current={tab === 'national' ? 'page' : undefined}>
+        <button data-testid="national-tab" type="button" onClick={() => setTab('national')} style={tabStyle(tab === 'national', 'national')} aria-current={tab === 'national' ? 'page' : undefined}>
           全国
         </button>
         {showLeague && (
-          <button data-testid="league-tab" type="button" onClick={() => setTab('league')} style={tabStyle(tab === 'league')} aria-current={tab === 'league' ? 'page' : undefined}>
+          <button data-testid="league-tab" type="button" onClick={() => setTab('league')} style={tabStyle(tab === 'league', 'league')} aria-current={tab === 'league' ? 'page' : undefined}>
             リーグ
           </button>
         )}
         {showRpg && (
-          <button data-testid="rpg-tab" type="button" onClick={() => setTab('rpg')} style={tabStyle(tab === 'rpg')} aria-current={tab === 'rpg' ? 'page' : undefined}>
+          <button data-testid="rpg-tab" type="button" onClick={() => setTab('rpg')} style={tabStyle(tab === 'rpg', 'rpg')} aria-current={tab === 'rpg' ? 'page' : undefined}>
             RPG
           </button>
         )}
