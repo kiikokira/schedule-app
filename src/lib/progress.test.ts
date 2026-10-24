@@ -488,3 +488,10 @@ describe('calcStreakDays', () => {
     expect(calcStreakDays({}, 5, '2026-10-06')).toEqual({ streak: 0, todayScore: 0, remaining: 5 })
   })
 })
+
+it('totalsByBook carries coverUrl', () => {
+  const books = [{ id: 'b1', title: 'LEAP', studyMode: 'pages' as const, coverUrl: 'https://example.com/leap.jpg' }]
+  const records = [{ id: 'r1', bookId: 'b1', date: '2026-10-24', pages: 5 }]
+  const rows = totalsByBook(records as never, [], books as never)
+  expect(rows[0]).toMatchObject({ bookId: 'b1', total: 5, coverUrl: 'https://example.com/leap.jpg' })
+})

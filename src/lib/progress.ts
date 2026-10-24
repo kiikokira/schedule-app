@@ -125,13 +125,13 @@ export function cycleRecordsForTotals(
   return records.filter((r) => cycleIds.has(r.bookId))
 }
 
-export type BookTotals = { bookId: string; title: string; pages: number; units: number; total: number }
+export type BookTotals = { bookId: string; title: string; pages: number; units: number; total: number; coverUrl?: string }
 
 // 累計の内訳（本ごと・降順）。0の本は除く。集計対象の正規化は totals 系と同一。
 export function totalsByBook(
   records: ProgressRecordData[],
   cycles: CycleRecordData[],
-  books: Pick<BookData, 'id' | 'title' | 'studyMode'>[],
+  books: Pick<BookData, 'id' | 'title' | 'studyMode' | 'coverUrl'>[],
 ): BookTotals[] {
   const validPages = pagesRecordsForTotals(records, books)
   const validCycles = cycleRecordsForTotals(cycles, books)
@@ -143,7 +143,7 @@ export function totalsByBook(
       const units = validCycles
         .filter((r) => r.bookId === b.id)
         .reduce((s, r) => s + scoreCycleRecord(r), 0)
-      return { bookId: b.id, title: b.title, pages, units, total: pages + units }
+      return { bookId: b.id, title: b.title, pages, units, total: pages + units, coverUrl: (b as { coverUrl?: string }).coverUrl }
     })
     .filter((o) => o.total > 0)
     .sort((a, b) => b.total - a.total)
