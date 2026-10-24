@@ -96,3 +96,12 @@ it('shows no update dot', () => {
   render(<App />)
   expect(screen.queryByTestId('update-dot')).not.toBeInTheDocument()
 })
+
+it('navigates mypage -> breakdown -> back', async () => {
+  render(<App />)
+  fireEvent.click(await screen.findByTestId('mypage-open'))
+  fireEvent.click(await screen.findByTestId('mypage-breakdown-open'))
+  expect(await screen.findByTestId('breakdown-page')).toBeInTheDocument()
+  fireEvent.click(screen.getByTestId('breakdown-back'))
+  expect(await screen.findByTestId('mypage-page')).toBeInTheDocument()
+})

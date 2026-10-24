@@ -33,7 +33,7 @@ import { levelForExp } from '../lib/seasonExp'
 import MockHistoryChart from '../components/MockHistoryChart'
 import LeagueBadgeShelf from '../components/LeagueBadgeShelf'
 
-type Props = { onBack: () => void; onRanking: () => void; today?: string }
+type Props = { onBack: () => void; onRanking: () => void; onBreakdown?: () => void; today?: string }
 
 const GRADES = ['高1', '高2', '高3', '浪人']
 
@@ -46,7 +46,7 @@ const cardStyle = {
   border: '1px solid var(--border)',
 } as const
 
-export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Props) {
+export default function MyPageScreen({ onBack, onRanking, onBreakdown, today: todayProp }: Props) {
   const { books } = useBooks()
   const { records } = useRecords()
   const { cycleRecords } = useCycleRecords()
@@ -211,6 +211,7 @@ export default function MyPageScreen({ onBack, onRanking, today: todayProp }: Pr
       <LeagueBadgeShelf seasonId={season.seasonId} div={season.div} />
       <section data-testid="mypage-breakdown" style={cardStyle}>
         <div style={{ fontWeight: 800, fontSize: 16 }}>累計の内訳</div>
+        {onBreakdown && (<button data-testid="mypage-breakdown-open" type="button" onClick={onBreakdown}>詳しく見る</button>)}
         {breakdown.map((o) => (
           <div key={o.bookId} data-testid="mypage-breakdown-row" data-book={o.bookId} style={{ fontSize: 14 }}>
             {o.title}：{o.total.toLocaleString()}（ページ{o.pages.toLocaleString()}＋反復{o.units.toLocaleString()}）

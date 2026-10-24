@@ -13,6 +13,7 @@ import SchoolScreen from './screens/SchoolScreen'
 import JapanMatchScreen from './screens/JapanMatchScreen'
 import RankingScreen from './screens/RankingScreen'
 import MyPageScreen from './screens/MyPageScreen'
+import BreakdownScreen from './screens/BreakdownScreen'
 import { useBooks } from './hooks/useBooks'
 import { listAvailability, prunePastOverrides } from './data/dayplanStore'
 import { todayStr, formatDate } from './lib/progress'
@@ -39,6 +40,7 @@ type Route =
   | { name: 'japan' }
   | { name: 'ranking' }
   | { name: 'mypage' }
+  | { name: 'breakdown' }
 
 export default function App() {
   const { books, refresh } = useBooks()
@@ -145,7 +147,10 @@ export default function App() {
           <RankingScreen onBack={() => setRoute({ name: 'home' })} />
         )}
         {route.name === 'mypage' && (
-          <MyPageScreen onBack={() => setRoute({ name: 'home' })} onRanking={() => setRoute({ name: 'ranking' })} />
+          <MyPageScreen onBack={() => setRoute({ name: 'home' })} onRanking={() => setRoute({ name: 'ranking' })} onBreakdown={() => setRoute({ name: 'breakdown' })} />
+        )}
+        {route.name === 'breakdown' && (
+          <BreakdownScreen onBack={() => setRoute({ name: 'mypage' })} onOpenBook={(id) => setRoute({ name: 'detail', bookId: id })} />
         )}
       </main>
       <footer className="app-footer">
