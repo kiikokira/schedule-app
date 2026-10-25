@@ -61,6 +61,9 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const [tab, setTab] = useState<'national' | 'league' | 'rpg'>(() => {
     return playMode === 'league' ? 'league' : playMode === 'rpg' ? 'rpg' : 'national'
   })
+  // リーグ内の表示切替：info（レーティング・順位・メイン報酬）⇄ record（成績・対戦履歴）
+  const [leaguePanel, setLeaguePanel] = useState<'info' | 'record'>('info')
+  const leagueToggleStyle = { flex: 1, background: '#0b1026', color: '#29b6ff', border: '1px solid #2a3358', borderRadius: 10, fontWeight: 800, padding: '10px 0' } as const
   useEffect(() => {
     if (!showLeague && tab === 'league') setTab('rpg')
     else if (!showRpg && tab === 'rpg') setTab('league')
@@ -392,6 +395,8 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                 : 'Division 1をキープ中！'}
             </div>
           </section>
+          {leaguePanel === 'info' ? (
+            <div data-testid="league-panel-info" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <section
             style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
           >
@@ -400,6 +405,12 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               {seasonState.div > 1 ? `Division ${seasonState.div - 1}への昇格` : 'Div.1制覇の称号'}
             </div>
           </section>
+          <button data-testid="league-panel-toggle" type="button" onClick={() => setLeaguePanel('record')} style={leagueToggleStyle}>
+            対戦履歴
+          </button>
+            </div>
+          ) : (
+            <div data-testid="league-panel-record" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <section
             data-testid="league-record"
             style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
@@ -451,6 +462,11 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             </div>
             )}
           </section>
+          <button data-testid="league-panel-toggle" type="button" onClick={() => setLeaguePanel('info')} style={leagueToggleStyle}>
+            成績
+          </button>
+            </div>
+          )}
           <section id="league-table" style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}>
             <p style={{ fontWeight: 700, margin: '0 0 8px' }}>
               第{leagueDay + 1}節（全28節） <span data-testid="league-wins">○{leagueWins}勝（{leagueRows.length}人中{myLeagueRank}位）</span>
