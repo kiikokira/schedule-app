@@ -1,12 +1,12 @@
 export type Rival = { id: string; name: string; div: number; basePages: number }
 export const DIV_BASE_PAGES: Record<number, number> = { 10: 20, 9: 30, 8: 40, 7: 50, 6: 60, 5: 75, 4: 90, 3: 110, 2: 130, 1: 150 }
 const NAMES = ['かなた', 'みれい', 'そうた', 'ゆず', 'はる', 'あおい', 'れん']
-function hashSeed(s: string): number {
+export function hashSeed(s: string): number {
   let h = 2166136261
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) }
   return h >>> 0
 }
-function mulberry32(seed: number): () => number {
+export function mulberry32(seed: number): () => number {
   let a = seed >>> 0
   return () => {
     a |= 0; a = (a + 0x6d2b79f5) | 0
