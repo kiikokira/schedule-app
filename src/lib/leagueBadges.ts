@@ -69,19 +69,6 @@ export function awardPhaseBadge(seasonId: string, info: { bestDiv: number; final
   return [uid]
 }
 
-/**
- * @deprecated Task 5（リーグ制度改修のロールオーバー）で削除予定。
- * 旧表示時付与の互換シム。Div到達分のみ即時付与する旧挙動を新uid形式で再現する。
- */
-export function ensureLeagueBadgeForSeason(seasonId: string, div: number): string[] {
-  try {
-    if (typeof div !== 'number' || div < 1 || div > 3) return []
-    return awardPhaseBadge(seasonId, { bestDiv: div, finalRank: Number.MAX_SAFE_INTEGER, played: 1 })
-  } catch {
-    return []
-  }
-}
-
 export function toggleBadgeEquipped(uid: string): { ok: boolean; reason?: 'missing' | 'full'; equipped: string[] } {
   try {
     const s = loadLeagueBadges()

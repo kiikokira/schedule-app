@@ -33,9 +33,8 @@ import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
 import { quoteOf } from '../data/quotes'
 import { loadSchedule, saveSchedule, syncEntryDatesForBook } from '../data/scheduleStore'
-import { loadSeasonState, recordSeasonDay, applyPromotionIfNeeded } from '../data/seasonStore'
-import { seasonDayIndex, isSeasonFinalDay, seasonIdForDate } from '../lib/seasonLeague'
-import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
+import { loadSeasonState, recordSeasonDay, syncLeagueDay } from '../data/seasonStore'
+import { seasonDayIndex, seasonIdForDate } from '../lib/seasonLeague'
 import { listAvailability } from '../data/dayplanStore'
 import { earliestFeasibleDeadline, effectiveSpeed } from '../lib/dayplan'
 import {
@@ -606,24 +605,10 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
     try {
       const pages = combinedActivityOnDate(today, validRecords, validCycles)
       recordSeasonDay(today, pages, streak.streak)
-      if (isSeasonFinalDay(today)) {
-        try {
-          const st = loadSeasonState(today)
-          const dayIdx = seasonDayIndex(today)
-          const vals = Object.values(st.days ?? {})
-          const myCum = vals.length > 0 ? vals.reduce((s, v) => s + v, 0) : pages
-          const rivals = generateRivals(seasonIdForDate(today), st.div)
-          const rows = [
-            { id: 'you', cum: myCum },
-            ...rivals.map((r) => {
-              let cum = 0
-              for (let d = 0; d <= dayIdx; d++) cum += rivalPagesForDay(r, d)
-              return { id: r.id, cum }
-            }),
-          ].sort((a, b) => b.cum - a.cum)
-          applyPromotionIfNeeded(today, rows.map((r) => r.id), 'you')
-        } catch { /* national-only fallback */ }
-      }
+      try {
+        const st = loadSeasonState(today)
+        syncLeagueDay(today, { ...(st.days ?? {}), [today]: pages }, st.div, seasonIdForDate(today))
+      } catch { /* national-only fallback */ }
     } catch { /* national-only fallback */ }
   }, [validRecords, validCycles, today, streak.streak])
 

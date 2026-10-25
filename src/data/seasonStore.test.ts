@@ -1,7 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { loadSeasonState, recordSeasonDay, saveSeasonState, applyPromotionIfNeeded } from './seasonStore'
+import { loadSeasonState, recordSeasonDay } from './seasonStore'
 import { seasonIdForDate } from '../lib/seasonLeague'
-import { loadLeagueBadges } from '../lib/leagueBadges'
 
 describe('seasonStore', () => {
   beforeEach(() => localStorage.clear())
@@ -12,14 +11,16 @@ describe('seasonStore', () => {
     expect(s1.exp).toBe(100)
     expect(s1.days['2026-09-01']).toBe(10)
   })
-  it('シーズン切替でdivを引き継ぐ(初回のみDiv10)', () => {
-    const s0 = loadSeasonState('2026-09-01')
-    saveSeasonState({ ...s0, div: 8, exp: 500, days: { '2026-09-01': 10 } })
-    const s1 = loadSeasonState('2026-09-29')
-    expect(s1.seasonId).toBe(seasonIdForDate('2026-09-29'))
-    expect(s1.div).toBe(8)
-    expect(s1.exp).toBe(0)
-    expect(s1.days).toEqual({})
+  it('開始Divは過去最高Divで決まる', async () => {
+    const { startDivForHighest } = await import('./seasonStore')
+    expect(startDivForHighest(1)).toBe(3)
+    expect(startDivForHighest(2)).toBe(4)
+    expect(startDivForHighest(3)).toBe(5)
+    expect(startDivForHighest(4)).toBe(6)
+    expect(startDivForHighest(5)).toBe(7)
+    expect(startDivForHighest(6)).toBe(8)
+    expect(startDivForHighest(7)).toBe(10)
+    expect(startDivForHighest(10)).toBe(10)
   })
   it('同日再記録は二重加算しない(差分付け替え)', () => {
     const s1 = recordSeasonDay('2026-09-01', 10, 0)
@@ -28,36 +29,30 @@ describe('seasonStore', () => {
     expect(s2.exp).toBe(200)
     expect(s2.days['2026-09-01']).toBe(20)
   })
-  it('最終日に昇格し、繰り返し適用は冪等', () => {
-    const base = loadSeasonState('2026-09-01')
-    saveSeasonState({ ...base, div: 5, exp: 1000, days: {} })
-    const table = ['me', 'r2', 'r3', 'r4', 'r5']
-    const p1 = applyPromotionIfNeeded('2026-09-28', table, 'me')
-    expect(p1.div).toBe(4)
-    const p2 = applyPromotionIfNeeded('2026-09-28', table, 'me')
-    expect(p2.div).toBe(4)
-  })
-  it('降格・クランプ(Div1昇格維持・Div10降格維持)', () => {
-    const base = loadSeasonState('2026-09-01')
-    // demote: myId at bottom
-    saveSeasonState({ ...base, div: 5, exp: 0, days: {} })
-    const table = ['r1', 'r2', 'r3', 'r4', 'me']
-    const d1 = applyPromotionIfNeeded('2026-09-28', table, 'me')
-    expect(d1.div).toBe(6)
-    // clamp top: Div1 promote stays 1
-    const b2 = loadSeasonState('2026-09-01')
-    saveSeasonState({ ...b2, div: 1, exp: 0, days: {}, appliedSeasonId: undefined })
-    localStorage.removeItem('schedule-app-season')
-    const b3 = loadSeasonState('2026-09-01')
-    saveSeasonState({ ...b3, div: 1, exp: 0, days: {} })
-    const c1 = applyPromotionIfNeeded('2026-09-28', ['me', 'r2', 'r3', 'r4', 'r5'], 'me')
-    expect(c1.div).toBe(1)
-    // clamp bottom: Div10 demote stays 10 (need fresh season to bypass idempotency guard)
+  it('10試合でラウンド確定しDiv4からDiv3へ昇格する', async () => {
+    const { loadSeasonState, saveSeasonState, syncLeagueDay } = await import('./seasonStore')
     localStorage.clear()
-    const b4 = loadSeasonState('2026-09-01')
-    saveSeasonState({ ...b4, div: 10, exp: 0, days: {} })
-    const c2 = applyPromotionIfNeeded('2026-09-28', ['r1', 'r2', 'r3', 'r4', 'me'], 'me')
-    expect(c2.div).toBe(10)
+    const s0 = loadSeasonState('2026-09-01')
+    saveSeasonState({ ...s0, div: 4, highestDiv: 4, phaseBestDiv: 4, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} })
+    const days: Record<string, number> = {}
+    for (let d = 1; d <= 10; d++) days[`2026-09-${String(d).padStart(2, '0')}`] = 150
+    const s1 = syncLeagueDay('2026-09-10', days, 4, '2026-09-01')
+    expect(s1.div).toBe(3)
+    expect(s1.highestDiv).toBe(3)
+    expect(s1.phaseBestDiv).toBe(3)
+    expect(s1.round.w + s1.round.d + s1.round.l).toBe(0)
+    expect(s1.rating).toBe(1200)
+  })
+  it('昇格確定前にスキップすると即昇格し新ラウンドになる', async () => {
+    const { loadSeasonState, saveSeasonState, syncLeagueDay, finalizeRoundEarly } = await import('./seasonStore')
+    localStorage.clear()
+    const s0 = loadSeasonState('2026-09-01')
+    saveSeasonState({ ...s0, div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} })
+    const s1 = syncLeagueDay('2026-09-01', { '2026-09-01': 100 }, 10, '2026-09-01')
+    expect(s1.div).toBe(10)
+    expect(s1.round.w + s1.round.d + s1.round.l).toBe(1)
+    const s2 = finalizeRoundEarly(s1, '2026-09-01')
+    expect(s2.div).toBe(9)
   })
   it('破損入力ガード(div範囲外はクランプ・days nullは空)', () => {
     localStorage.setItem(
@@ -75,24 +70,15 @@ describe('seasonStore', () => {
     expect(s2.div).toBe(1)
     expect(s2.days).toEqual({})
   })
-  it('シーズン切替で新Div2ならバッジ付与', () => {
-    const s0 = loadSeasonState('2026-09-01')
-    saveSeasonState({ ...s0, div: 2, exp: 0, days: { '2026-09-01': 10, '2026-09-02': 10, '2026-09-03': 10 } })
-    const s1 = loadSeasonState('2026-09-29')
-    expect(s1.div).toBe(2)
-    expect(loadLeagueBadges().awards.map((a) => a.uid)).toContain('2026-09-29:div2')
-  })
-  it('昇格適用でDiv2に入ったら当季バッジ付与、Div4は付与なし', () => {
-    const base = loadSeasonState('2026-09-01')
-    saveSeasonState({ ...base, div: 3, exp: 0, days: {} })
-    const p = applyPromotionIfNeeded('2026-09-28', ['me', 'r2', 'r3', 'r4', 'r5'], 'me')
-    expect(p.div).toBe(2)
-    expect(loadLeagueBadges().awards.map((a) => a.uid)).toContain('2026-09-01:div2')
+  it('シーズン切替で開始Divとバッジが決まる', async () => {
+    const { loadSeasonState, saveSeasonState } = await import('./seasonStore')
+    const { loadLeagueBadges } = await import('../lib/leagueBadges')
     localStorage.clear()
-    const b2 = loadSeasonState('2026-09-01')
-    saveSeasonState({ ...b2, div: 5, exp: 0, days: {} })
-    const q = applyPromotionIfNeeded('2026-09-28', ['me', 'r2', 'r3', 'r4', 'r5'], 'me')
-    expect(q.div).toBe(4)
-    expect(loadLeagueBadges().awards).toHaveLength(0)
+    const s0 = loadSeasonState('2026-09-01')
+    saveSeasonState({ ...s0, div: 2, highestDiv: 1, phaseBestDiv: 1, rating: 1300, ratedUpTo: '2026-09-28', round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: { '2026-09-01': 10 } })
+    const s1 = loadSeasonState('2026-09-29')
+    expect(s1.div).toBe(3)
+    expect(s1.highestDiv).toBe(1)
+    expect(loadLeagueBadges().awards.map((a) => a.badgeId)).toEqual(['div1'])
   })
 })
