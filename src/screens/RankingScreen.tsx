@@ -17,7 +17,7 @@ const LEAGUE_RATING_RATE = 0.5
 // Divロゴ画像（添付の10枚を public/divs/div-1.jpg〜div-10.jpg として配置して使用）
 export function divEmblemSrc(div: number): string {
   const n = Math.min(10, Math.max(1, Math.round(div)))
-  return `./divs/div-${n}.jpg?v=2`
+  return `./divs/div-${n}.png?v=3`
 }
 
 // 選択中のタブだけ種別に調和する色にする。全国は白背景用（白＋濃枠）、リーグ/RPGはダーク背景用。非選択は既定のまま。
