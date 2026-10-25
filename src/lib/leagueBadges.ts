@@ -1,23 +1,20 @@
-export type LeagueBadgeDiv = 1 | 2 | 3
-export type LeagueBadgeId = 'div1' | 'div2' | 'div3'
-export type LeagueBadgeAward = { uid: string; badgeId: LeagueBadgeId; div: LeagueBadgeDiv; seasonId: string; awardedAt: string }
+export type LeagueBadgeId = 'div3' | 'div2' | 'div1' | 'top1000' | 'top100' | 'top10'
+export type LeagueBadgeAward = { uid: string; badgeId: LeagueBadgeId; seasonId: string; awardedAt: string }
 export type LeagueBadgeState = { awards: LeagueBadgeAward[]; equipped: string[] }
 
 export const MAX_EQUIPPED_BADGES = 3
 const KEY = 'schedule-app-league-badges-v1'
 const SEASON_RE = /^\d{4}-\d{2}-\d{2}$/
 
-export const LEAGUE_BADGE_DEFS: Record<LeagueBadgeDiv, { badgeId: LeagueBadgeId; name: string; from: string; to: string; rim: string }> = {
-  1: { badgeId: 'div1', name: 'Div1到達', from: '#ff5a52', to: '#b81f1f', rim: '#e8c47a' },
-  2: { badgeId: 'div2', name: 'Div2到達', from: '#ffb020', to: '#c96a00', rim: '#e8c47a' },
-  3: { badgeId: 'div3', name: 'Div3到達', from: '#3ddc74', to: '#0f8a3d', rim: '#c0c0c0' },
-}
+const GRADE_ORDER: LeagueBadgeId[] = ['div3', 'div2', 'div1', 'top1000', 'top100', 'top10']
 
-export function badgeIdForDiv(div: number): LeagueBadgeId | null {
-  if (div === 1) return 'div1'
-  if (div === 2) return 'div2'
-  if (div === 3) return 'div3'
-  return null
+export const LEAGUE_BADGE_DEFS: Record<LeagueBadgeId, { badgeId: LeagueBadgeId; name: string; img: string }> = {
+  div3: { badgeId: 'div3', name: 'Division 3に到達する', img: './badges/badge-div3.jpg' },
+  div2: { badgeId: 'div2', name: 'Division 2に到達する', img: './badges/badge-div2.jpg' },
+  div1: { badgeId: 'div1', name: 'Division 1に到達する', img: './badges/badge-div1.jpg' },
+  top1000: { badgeId: 'top1000', name: '最終順位 Top 1,000に入賞する', img: './badges/badge-top1000.jpg' },
+  top100: { badgeId: 'top100', name: '最終順位 Top 100に入賞する', img: './badges/badge-top100.jpg' },
+  top10: { badgeId: 'top10', name: '最終順位 Top 10に入賞する', img: './badges/badge-top10.jpg' },
 }
 
 export function seasonLabel(seasonId: string): string {
@@ -35,7 +32,7 @@ export function loadLeagueBadges(): LeagueBadgeState {
     if (raw == null) return emptyState()
     const p = JSON.parse(raw) as Partial<LeagueBadgeState>
     const awards = Array.isArray(p.awards)
-      ? p.awards.filter((a) => a && typeof a.uid === 'string' && (a.div === 1 || a.div === 2 || a.div === 3) && typeof a.seasonId === 'string' && a.uid === `${a.seasonId}:div${a.div}` && a.badgeId === `div${a.div}`)
+      ? p.awards.filter((a) => a && typeof a.uid === 'string' && typeof a.seasonId === 'string' && GRADE_ORDER.includes(a.badgeId) && a.uid === `${a.seasonId}:${a.badgeId}`)
       : []
     const owned = new Set(awards.map((a) => a.uid))
     const equipped = Array.isArray(p.equipped) ? p.equipped.filter((u) => typeof u === 'string' && owned.has(u)).slice(0, MAX_EQUIPPED_BADGES) : []
@@ -51,17 +48,35 @@ export function saveLeagueBadges(s: LeagueBadgeState): void {
   } catch { /* ignore */ }
 }
 
-// 条件を満たすシーズンにバッジを付与（冪等）。新規付与したuidを返す。
+// そのフェーズで条件を満たしたうち最も高いグレード1個のみ付与（冪等）。新規付与したuidを返す。
+export function awardPhaseBadge(seasonId: string, info: { bestDiv: number; finalRank: number; played: number }): string[] {
+  if (!SEASON_RE.test(seasonId)) return []
+  if (!Number.isInteger(info.played) || info.played < 1) return []
+  const earned: LeagueBadgeId[] = []
+  if (info.bestDiv <= 3) earned.push('div3')
+  if (info.bestDiv <= 2) earned.push('div2')
+  if (info.bestDiv <= 1) earned.push('div1')
+  if (info.finalRank <= 1000) earned.push('top1000')
+  if (info.finalRank <= 100) earned.push('top100')
+  if (info.finalRank <= 10) earned.push('top10')
+  if (earned.length === 0) return []
+  const top = earned[earned.length - 1]
+  const uid = `${seasonId}:${top}`
+  const s = loadLeagueBadges()
+  if (s.awards.some((a) => a.uid === uid)) return []
+  s.awards.push({ uid, badgeId: top, seasonId, awardedAt: new Date().toISOString() })
+  saveLeagueBadges(s)
+  return [uid]
+}
+
+/**
+ * @deprecated Task 5（リーグ制度改修のロールオーバー）で削除予定。
+ * 旧表示時付与の互換シム。Div到達分のみ即時付与する旧挙動を新uid形式で再現する。
+ */
 export function ensureLeagueBadgeForSeason(seasonId: string, div: number): string[] {
   try {
-    if (typeof seasonId !== 'string' || !SEASON_RE.test(seasonId)) return []
-    if (div !== 1 && div !== 2 && div !== 3) return []
-    const uid = `${seasonId}:div${div}`
-    const s = loadLeagueBadges()
-    if (s.awards.some((a) => a.uid === uid)) return []
-    s.awards.push({ uid, badgeId: `div${div}` as LeagueBadgeId, div, seasonId, awardedAt: new Date().toISOString() })
-    saveLeagueBadges(s)
-    return [uid]
+    if (typeof div !== 'number' || div < 1 || div > 3) return []
+    return awardPhaseBadge(seasonId, { bestDiv: div, finalRank: Number.MAX_SAFE_INTEGER, played: 1 })
   } catch {
     return []
   }

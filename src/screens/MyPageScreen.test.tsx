@@ -183,15 +183,15 @@ describe('MyPageScreen', () => {
     const { saveLeagueBadges } = await import('../lib/leagueBadges')
     saveLeagueBadges({
       awards: [
-        { uid: '2026-09-01:div2', badgeId: 'div2', div: 2, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
-        { uid: '2026-09-29:div1', badgeId: 'div1', div: 1, seasonId: '2026-09-29', awardedAt: '2026-09-30T00:00:00.000Z' },
+        { uid: '2026-09-01:div2', badgeId: 'div2', seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
+        { uid: '2026-09-29:div1', badgeId: 'div1', seasonId: '2026-09-29', awardedAt: '2026-09-30T00:00:00.000Z' },
       ],
       equipped: ['2026-09-29:div1'],
     })
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today="2026-09-29" />)
     const shelf = await screen.findByTestId('league-badge-shelf')
     expect(shelf).toBeInTheDocument()
-    expect(screen.getByTitle(/Div2到達/)).toBeInTheDocument()
+    expect(screen.getByAltText('Division 2に到達する')).toBeInTheDocument()
     expect(screen.getAllByTestId('league-badge-cell')).toHaveLength(2)
     expect(screen.getAllByTestId('league-badge-slot')[0]).toHaveTextContent('1')
   })
@@ -199,10 +199,10 @@ describe('MyPageScreen', () => {
     const { saveLeagueBadges } = await import('../lib/leagueBadges')
     saveLeagueBadges({
       awards: [
-        { uid: '2026-09-01:div1', badgeId: 'div1', div: 1, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
-        { uid: '2026-09-01:div2', badgeId: 'div2', div: 2, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
-        { uid: '2026-09-01:div3', badgeId: 'div3', div: 3, seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
-        { uid: '2026-09-29:div1', badgeId: 'div1', div: 1, seasonId: '2026-09-29', awardedAt: '2026-09-30T00:00:00.000Z' },
+        { uid: '2026-09-01:div1', badgeId: 'div1', seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
+        { uid: '2026-09-01:div2', badgeId: 'div2', seasonId: '2026-09-01', awardedAt: '2026-09-02T00:00:00.000Z' },
+        { uid: '2026-09-01:div3', badgeId: 'div3', seasonId: '2026-09-01', awardedAt: '2026-09-30T00:00:00.000Z' },
+        { uid: '2026-09-29:div1', badgeId: 'div1', seasonId: '2026-09-29', awardedAt: '2026-09-30T00:00:00.000Z' },
       ],
       equipped: ['2026-09-01:div1', '2026-09-01:div2', '2026-09-01:div3'],
     })
@@ -214,7 +214,7 @@ describe('MyPageScreen', () => {
   })
   it('リーグバッジ未獲得時は案内が出る', async () => {
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today="2026-09-29" />)
-    expect(await screen.findByTestId('league-badge-empty')).toHaveTextContent('Div3')
+    expect(await screen.findByTestId('league-badge-empty')).toHaveTextContent('1試合以上が条件')
   })
   it('無効なseasonIdではバッジ棚を非表示にする（Spec §8 hide-guard）', async () => {
     // MyPageScreen経由では loadSeasonState/seasonIdForDate が不正todayを
