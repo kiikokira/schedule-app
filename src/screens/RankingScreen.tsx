@@ -4,9 +4,9 @@ import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { combinedActivityOnDate, totalCycleUnits, pagesRecordsForTotals, cycleRecordsForTotals, todayStr } from '../lib/progress'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
-import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leagueDayInfo, leaguePointsForPages, type LeagueDayResult } from '../lib/seasonLeague'
+import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leagueDayInfo, leaguePointsForPages, decideRoundOutcome, tallyToResults, PROMOTION_LINES, STAY_LINES, type LeagueDayResult } from '../lib/seasonLeague'
 import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
-import { loadSeasonState } from '../data/seasonStore'
+import { loadSeasonState, saveSeasonState, finalizeRoundEarly } from '../data/seasonStore'
 import { loadProfile } from '../data/profileStore'
 import { levelForExp } from '../lib/seasonExp'
 
@@ -67,13 +67,14 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     if (!showLeague && tab === 'league') setTab('rpg')
     else if (!showRpg && tab === 'rpg') setTab('league')
   }, [showLeague, showRpg, tab])
+  const [seasonTick, setSeasonTick] = useState(0)
   const seasonState = useMemo(() => {
     try {
       return loadSeasonState(today)
     } catch {
-      return { seasonId: '2026-09-01', div: 10, exp: 0, days: {} as Record<string, number> }
+      return { seasonId: '2026-09-01', div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} as Record<string, number> }
     }
-  }, [today])
+  }, [today, seasonTick])
   const leagueDay = useMemo(() => {
     try {
       return seasonDayIndex(today)
@@ -383,11 +384,28 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                 </span>
               </div>
             </div>
-            <div data-testid="league-promotion" style={{ fontSize: 13, color: '#9aa3c0', marginTop: 8 }}>
-              {seasonState.div > 1
-                ? `レーティングが上位2位以内でDivision ${seasonState.div - 1}に昇格します。`
-                : 'Division 1をキープ中！'}
+            <div data-testid="league-round-status" style={{ fontSize: 13, color: '#9aa3c0', marginTop: 8 }}>
+              {(() => {
+                const t = seasonState.round ?? { w: 0, d: 0, l: 0, lastDate: null }
+                const played = t.w + t.d + t.l
+                const pts = t.w * 3 + t.d
+                const promo = PROMOTION_LINES[seasonState.div]
+                const stay = STAY_LINES[seasonState.div]
+                if (promo === undefined) return `レーティング勝負中（現在${seasonState.rating}）`
+                return `ラウンド${played + 1}試合目 勝ち点${pts}（昇格${promo}${stay == null ? '' : `・残留${stay}`}）`
+              })()}
             </div>
+            {(() => {
+              const t = seasonState.round ?? { w: 0, d: 0, l: 0, lastDate: null }
+              const played = t.w + t.d + t.l
+              const outcome = decideRoundOutcome(seasonState.div, tallyToResults(t))
+              if (outcome !== 'promote' || played >= 10 || seasonState.div < 4 || seasonState.div > 10) return null
+              return (
+                <button data-testid="league-skip" type="button" onClick={() => { try { saveSeasonState(finalizeRoundEarly(loadSeasonState(today), today)); setSeasonTick((v) => v + 1) } catch { /* ignore */ } }} style={{ flex: 1, background: '#ffe600', color: '#111', border: 'none', borderRadius: 10, fontWeight: 800, padding: '10px 0' }}>
+                  スキップして昇格
+                </button>
+              )
+            })()}
           </section>
           {leaguePanel === 'info' ? (
             <div data-testid="league-panel-info" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
