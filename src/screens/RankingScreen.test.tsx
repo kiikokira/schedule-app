@@ -220,7 +220,7 @@ describe('RankingScreen', () => {
     fireEvent.click(screen.getByTestId('league-tab'))
     const img = screen.getByTestId('league-div-emblem') as HTMLImageElement
     expect(img.tagName).toBe('IMG')
-    expect(img.getAttribute('src')).toContain('div-10.jpg')
+    expect(img.getAttribute('src')).toContain('div-10.jpg?v=2')
     expect(img.getAttribute('alt')).toContain('Division 10')
   })
   it('報酬・成績・履歴が一気に見れて切替ボタンはない', () => {
