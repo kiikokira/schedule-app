@@ -194,7 +194,7 @@ describe('RankingScreen', () => {
       expect(within(row).getByTestId('top-pages')).toBeInTheDocument()
     }
   })
-  it('リーグ順位は母集団つきの自分の順位で8人表は出ない', async () => {
+  it('リーグ順位は自分の順位が一行で出て8人表は出ない', async () => {
     const now = new Date().toISOString()
     const today = '2026-09-02'
     await db.books.add({ id: 'b1', title: '単語帳', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
@@ -204,8 +204,7 @@ describe('RankingScreen', () => {
     fireEvent.click(screen.getByTestId('league-tab'))
     expect(document.getElementById('league-table')).toBeNull()
     expect(screen.queryByTestId('league-row-you')).toBeNull()
-    expect(screen.getByTestId('league-rank')).toHaveTextContent(/万人中/)
-    expect(screen.getByTestId('league-rank')).toHaveTextContent(/位/)
+    expect(screen.getByTestId('league-rank')).toHaveTextContent(/^[0-9,]+位$/)
   })
   it('リーグタブにDivision見出しとフェーズ期間が出る', () => {
     localStorage.clear()
@@ -224,27 +223,19 @@ describe('RankingScreen', () => {
     expect(img.getAttribute('src')).toContain('div-10.jpg')
     expect(img.getAttribute('alt')).toContain('Division 10')
   })
-  it('対戦履歴ボタンで成績・履歴表示に切り替わり成績ボタンで戻る', () => {
+  it('報酬・成績・履歴が一気に見れて切替ボタンはない', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
     expect(screen.getByTestId('league-reward')).toBeInTheDocument()
-    expect(screen.queryByTestId('league-record')).toBeNull()
-    expect(screen.getByTestId('league-panel-toggle')).toHaveTextContent('対戦履歴')
-    fireEvent.click(screen.getByTestId('league-panel-toggle'))
     expect(screen.getByTestId('league-record')).toBeInTheDocument()
     expect(screen.getByTestId('league-history')).toBeInTheDocument()
-    expect(screen.queryByTestId('league-reward')).toBeNull()
-    expect(screen.getByTestId('league-panel-toggle')).toHaveTextContent('成績')
-    fireEvent.click(screen.getByTestId('league-panel-toggle'))
-    expect(screen.getByTestId('league-reward')).toBeInTheDocument()
-    expect(screen.queryByTestId('league-record')).toBeNull()
+    expect(screen.queryByTestId('league-panel-toggle')).toBeNull()
   })
   it('リーグタブに成績バーと直近履歴が出る', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    fireEvent.click(screen.getByTestId('league-panel-toggle'))
     expect(screen.getByTestId('league-record')).toHaveTextContent('勝利')
     expect(screen.getByTestId('league-record')).toHaveTextContent('敗戦')
     expect(screen.getByTestId('league-history')).toBeInTheDocument()
@@ -261,7 +252,6 @@ describe('RankingScreen', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    fireEvent.click(screen.getByTestId('league-panel-toggle'))
     const history = screen.getByTestId('league-history')
     expect(await within(history).findByTestId('league-history-0')).toHaveTextContent(/\d+-\d+/)
   })
@@ -269,7 +259,6 @@ describe('RankingScreen', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-20" />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    fireEvent.click(screen.getByTestId('league-panel-toggle'))
     expect(screen.getByTestId('league-record')).toHaveTextContent('敗戦')
     expect(screen.getByTestId('league-record')).toHaveTextContent('勝率 ―')
     expect(screen.getByTestId('league-history-empty')).toBeInTheDocument()
@@ -285,7 +274,6 @@ describe('RankingScreen', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    fireEvent.click(screen.getByTestId('league-panel-toggle'))
     await waitFor(() => expect(screen.getByTestId('league-record')).toHaveTextContent('勝率 100%'))
   })
   it('RPGタブでレベルが表示される', () => {
@@ -414,7 +402,6 @@ describe('RankingScreen', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    fireEvent.click(screen.getByTestId('league-panel-toggle'))
     expect(screen.getByTestId('league-round-status')).toHaveTextContent(/勝ち点/)
     expect(screen.getByTestId('league-round-status')).toHaveTextContent('昇格3')
     expect(screen.queryByTestId('league-skip')).toBeNull()
@@ -432,7 +419,6 @@ describe('RankingScreen', () => {
     syncLeagueDay('2026-09-02', { '2026-09-01': 100, '2026-09-02': 100 }, 10, '2026-09-01')
     render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    fireEvent.click(screen.getByTestId('league-panel-toggle'))
     await waitFor(() => expect(screen.getByTestId('league-skip')).toBeInTheDocument())
     fireEvent.click(screen.getByTestId('league-skip'))
     await waitFor(() => expect(screen.getByTestId('league-division')).toHaveTextContent('Division 9'))

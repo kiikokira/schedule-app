@@ -65,10 +65,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const [tab, setTab] = useState<'national' | 'league' | 'rpg'>(() => {
     return playMode === 'league' ? 'league' : playMode === 'rpg' ? 'rpg' : 'national'
   })
-  // リーグ内の表示切替：info（レーティング・順位・メイン報酬）⇄ record（成績・対戦履歴）
-  const [leaguePanel, setLeaguePanel] = useState<'info' | 'record'>('info')
   const [emblemBroken, setEmblemBroken] = useState(false)
-  const leagueToggleStyle = { flex: 1, background: '#0b1026', color: '#29b6ff', border: '1px solid #2a3358', borderRadius: 10, fontWeight: 800, padding: '10px 0' } as const
   useEffect(() => {
     if (!showLeague && tab === 'league') setTab('rpg')
     else if (!showRpg && tab === 'rpg') setTab('league')
@@ -138,7 +135,6 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     }
   }, [seasonState.seasonId, today])
   const leagueRankVal = leagueRankForPages(seasonCum, pop)
-  const popMan = Math.round(pop / 10000)
   const leagueWins = seasonState.round?.w ?? 0
   const phaseNo = useMemo(() => {
     try {
@@ -339,7 +335,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                   alt={`Division ${seasonState.div}エンブレム`}
                   width={54}
                   height={54}
-                  style={{ width: 54, height: 54, borderRadius: 16, border: '2px solid #ffe600', objectFit: 'cover', background: '#10163a' }}
+                  style={{ width: 54, height: 54, borderRadius: 16, border: 'none', objectFit: 'cover', background: 'transparent' }}
                   onError={() => setEmblemBroken(true)}
                 />
               )}
@@ -371,8 +367,8 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                 <span style={{ width: 44, height: 44, borderRadius: '50%', background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }} role="img" aria-label="順位">👑</span>
                 <span>
                   <span style={{ display: 'block', fontSize: 12, color: '#9aa3c0' }}>順位</span>
-                  <span data-testid="league-rank" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
-                    {`${popMan}万人中 ${leagueRankVal.toLocaleString()}位`}
+                  <span data-testid="league-rank" style={{ fontSize: 20, fontWeight: 900, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                    {`${leagueRankVal.toLocaleString()}位`}
                   </span>
                 </span>
               </div>
@@ -403,8 +399,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               )
             })()}
           </section>
-          {leaguePanel === 'info' ? (
-            <div data-testid="league-panel-info" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div data-testid="league-panel-info" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <section
             style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
           >
@@ -413,12 +408,8 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               {seasonState.div > 1 ? `Division ${seasonState.div - 1}への昇格` : 'Div.1制覇の称号'}
             </div>
           </section>
-          <button data-testid="league-panel-toggle" type="button" onClick={() => setLeaguePanel('record')} style={leagueToggleStyle}>
-            対戦履歴
-          </button>
-            </div>
-          ) : (
-            <div data-testid="league-panel-record" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          </div>
+          <div data-testid="league-panel-record" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <section
             data-testid="league-record"
             style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
@@ -470,11 +461,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             </div>
             )}
           </section>
-          <button data-testid="league-panel-toggle" type="button" onClick={() => setLeaguePanel('info')} style={leagueToggleStyle}>
-            成績
-          </button>
             </div>
-          )}
           <div style={{ display: 'flex', gap: 8 }}>
             <button data-testid="league-back" type="button" onClick={() => setTab('national')} style={{ flex: 1, background: 'linear-gradient(180deg, #29b6ff, #0a84ff)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800 }}>
               〈 戻る
