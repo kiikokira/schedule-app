@@ -4,8 +4,7 @@ import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { combinedActivityOnDate, totalCycleUnits, pagesRecordsForTotals, cycleRecordsForTotals, todayStr } from '../lib/progress'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
-import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leagueDayInfo, leaguePointsForPages, decideRoundOutcome, tallyToResults, PROMOTION_LINES, STAY_LINES, type LeagueDayResult } from '../lib/seasonLeague'
-import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
+import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leagueDayInfo, leaguePointsForPages, leaguePopulationFor, leagueRankForPages, decideRoundOutcome, tallyToResults, PROMOTION_LINES, STAY_LINES, type LeagueDayResult } from '../lib/seasonLeague'
 import { loadSeasonState, saveSeasonState, finalizeRoundEarly } from '../data/seasonStore'
 import { loadProfile } from '../data/profileStore'
 import { levelForExp } from '../lib/seasonExp'
@@ -82,11 +81,11 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       return 0
     }
   }, [today])
-  const leagueRows = useMemo(() => {
+  const mySeasonCumPages = useMemo(() => {
     try {
-      // 自分の累計はDBから今季範囲で直接合計する。
+      // 自分の今季累計はDBから今季範囲で直接合計する。
       // seasonState.days（ホーム画面の訪問時にしか書かれないキャッシュ）や
-      // 全期間合計に依存すると、表・履歴・成績の数字が食い違う。
+      // 全期間合計に依存すると、履歴・成績の数字が食い違う。
       const start = seasonStartForDate(today)
       const base = Date.parse(start + 'T00:00:00Z')
       const dateFor = (d: number) => {
@@ -106,59 +105,36 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       } catch {
         myCum = 0
       }
-      const myDaily = dailyAt(leagueDay)
-      const myPrevDaily = leagueDay > 0 ? dailyAt(leagueDay - 1) : myDaily
-      let rivals: ReturnType<typeof generateRivals> = []
-      try {
-        rivals = generateRivals(seasonIdForDate(today), seasonState.div)
-      } catch {
-        rivals = []
-      }
-      const rows = [
-        {
-          id: 'you', name: 'あなた', pages: leaguePointsForPages(myDaily), prev: leaguePointsForPages(myPrevDaily), cum: leaguePointsForPages(myCum),
-          prevCum: leaguePointsForPages(leagueDay > 0 ? Math.max(0, myCum - myDaily) : myCum), you: true as const,
-        },
-        ...rivals.map((r) => {
-          let cum = 0
-          try {
-            for (let d = 0; d <= leagueDay; d++) cum += rivalPagesForDay(r, d)
-          } catch {
-            cum = 0
-          }
-          const daily = (() => {
-            try {
-              return rivalPagesForDay(r, leagueDay)
-            } catch {
-              return 0
-            }
-          })()
-          const prevDaily = (() => {
-            try {
-              return leagueDay > 0 ? rivalPagesForDay(r, leagueDay - 1) : daily
-            } catch {
-              return daily
-            }
-          })()
-          const prevCum = leagueDay > 0 ? Math.max(0, cum - daily) : cum
-          return { id: r.id, name: r.name, pages: leaguePointsForPages(daily), prev: leaguePointsForPages(prevDaily), cum: leaguePointsForPages(cum), prevCum: leaguePointsForPages(prevCum), you: false as const }
-        }),
-      ].sort((a, b) => b.cum - a.cum)
-      return rows
+      return myCum
     } catch {
-      const fallback = combinedActivityOnDate(today, validRecords, validCycles)
-      return [{ id: 'you', name: 'あなた', pages: fallback, prev: fallback, cum: fallback, prevCum: fallback, you: true as const }]
+      try {
+        return combinedActivityOnDate(today, validRecords, validCycles)
+      } catch {
+        return 0
+      }
     }
-  }, [today, validRecords, validCycles, leagueDay, seasonState.div])
-  const leagueWins = useMemo(() => {
-    const mine = leagueRows.find((r) => r.you)?.cum ?? 0
-    return leagueRows.filter((r) => !r.you && r.cum < mine).length
-  }, [leagueRows])
-  const myLeagueRank = useMemo(() => leagueRows.findIndex((r) => r.you) + 1, [leagueRows])
-  const myLeagueCum = useMemo(() => leagueRows.find((r) => r.you)?.cum ?? 0, [leagueRows])
-  // レーティングの上り幅だけ緩やかにする（ページ数・順位表・勝敗は不変）。
+  }, [today, validRecords, validCycles, leagueDay])
+  const myLeagueCum = useMemo(() => leaguePointsForPages(mySeasonCumPages), [mySeasonCumPages])
+  // レーティングの上り幅だけ緩やかにする（ページ数・順位・勝敗には影響しない）。
   // 変更時はこの1箇所だけ変える。
   const displayRating = Math.floor(myLeagueCum * LEAGUE_RATING_RATE)
+  const seasonCum = useMemo(() => {
+    try {
+      return Object.values(seasonState.days ?? {}).reduce((a, b) => a + (typeof b === 'number' && Number.isFinite(b) ? b : 0), 0)
+    } catch {
+      return 0
+    }
+  }, [seasonState])
+  const pop = useMemo(() => {
+    try {
+      return leaguePopulationFor(seasonState.seasonId ?? seasonIdForDate(today))
+    } catch {
+      return 2000000
+    }
+  }, [seasonState.seasonId, today])
+  const leagueRankVal = leagueRankForPages(seasonCum, pop)
+  const popMan = Math.round(pop / 10000)
+  const leagueWins = seasonState.round?.w ?? 0
   const phaseNo = useMemo(() => {
     try {
       const diff = Math.floor((Date.parse(today + 'T00:00:00Z') - Date.parse('2026-09-01T00:00:00Z')) / 86400000)
@@ -379,7 +355,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                 <span>
                   <span style={{ display: 'block', fontSize: 12, color: '#9aa3c0' }}>順位</span>
                   <span data-testid="league-rank" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
-                    {myLeagueRank.toLocaleString()}位
+                    {`${popMan}万人中 ${leagueRankVal.toLocaleString()}位`}
                   </span>
                 </span>
               </div>
@@ -394,6 +370,9 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                 if (promo === undefined) return `レーティング勝負中（現在${seasonState.rating}）`
                 return `ラウンド${played + 1}試合目 勝ち点${pts}（昇格${promo}${stay == null ? '' : `・残留${stay}`}）`
               })()}
+            </div>
+            <div data-testid="league-wins" style={{ fontSize: 13, color: '#fff', marginTop: 4, fontWeight: 800 }}>
+              ○{leagueWins}勝
             </div>
             {(() => {
               const t = seasonState.round ?? { w: 0, d: 0, l: 0, lastDate: null }
@@ -479,42 +458,6 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
           </button>
             </div>
           )}
-          <section id="league-table" style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}>
-            <p style={{ fontWeight: 700, margin: '0 0 8px' }}>
-              第{leagueDay + 1}節（全28節） <span data-testid="league-wins">○{leagueWins}勝（{leagueRows.length}人中{myLeagueRank}位）</span>
-            </p>
-            <div
-              data-testid="league-mark-header"
-              style={{ display: 'grid', gridTemplateColumns: '42px minmax(0,1fr) 126px 63px', columnGap: 8, alignItems: 'center', fontSize: 12, color: '#9aa3c0' }}
-            >
-              <span />
-              <span />
-              <span />
-              <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>前日比</span>
-            </div>
-          {leagueRows.map((row, i) => {
-            const diff = row.pages - row.prev
-            const sym = diff > 0 ? '▲' : diff < 0 ? '▼' : '―'
-            const val = diff !== 0 ? String(Math.abs(diff)) : ''
-            const tone = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'
-            const markColor = tone === 'up' ? '#2fd44f' : tone === 'down' ? '#ff4d5e' : '#9aa3c0'
-            return (
-              <div
-                key={row.id}
-                data-testid={row.you ? 'league-row-you' : `league-row-${row.id}`}
-                style={{ display: 'grid', gridTemplateColumns: '42px minmax(0,1fr) 126px 63px', columnGap: 8, alignItems: 'center', fontSize: row.you ? 17 : 14, fontWeight: row.you ? 900 : undefined, padding: row.you ? '2px 0' : undefined, color: '#fff' }}
-              >
-                <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{i + 1}位</span>
-                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
-                <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{row.cum}pt（今日{row.pages}P）</span>
-                <span style={{ display: 'inline-flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%', fontVariantNumeric: 'tabular-nums' }}>
-                  <span data-testid="league-mark-sym" style={{ width: '18px', textAlign: 'center', color: markColor, fontWeight: 700, fontSize: 15 }}>{sym}</span>
-                  <span data-testid="league-mark-val" style={{ minWidth: '28px', textAlign: 'right', color: markColor }}>{val}</span>
-                </span>
-              </div>
-            )
-          })}
-          </section>
           <div style={{ display: 'flex', gap: 8 }}>
             <button data-testid="league-back" type="button" onClick={() => setTab('national')} style={{ flex: 1, background: 'linear-gradient(180deg, #29b6ff, #0a84ff)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800 }}>
               〈 戻る

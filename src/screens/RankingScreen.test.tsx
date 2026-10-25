@@ -194,12 +194,18 @@ describe('RankingScreen', () => {
       expect(within(row).getByTestId('top-pages')).toBeInTheDocument()
     }
   })
-  it('リーグタブでDiv10順位表が出る', () => {
+  it('リーグ順位は母集団つきの自分の順位で8人表は出ない', async () => {
+    const now = new Date().toISOString()
+    const today = '2026-09-02'
+    await db.books.add({ id: 'b1', title: '単語帳', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 100 })
     localStorage.clear()
-    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    expect(screen.getByTestId('league-board')).toBeInTheDocument()
-    expect(screen.getByTestId('league-row-you')).toBeInTheDocument()
+    expect(document.getElementById('league-table')).toBeNull()
+    expect(screen.queryByTestId('league-row-you')).toBeNull()
+    expect(screen.getByTestId('league-rank')).toHaveTextContent(/万人中/)
+    expect(screen.getByTestId('league-rank')).toHaveTextContent(/位/)
   })
   it('リーグタブにDivision見出しとフェーズ期間が出る', () => {
     localStorage.clear()
@@ -302,83 +308,12 @@ describe('RankingScreen', () => {
     fireEvent.click(screen.getByTestId('league-tab'))
     expect(screen.getByTestId('league-rating-icon').tagName.toLowerCase()).toBe('svg')
   })
-  it('リーグ表の変動列は記号と数値が分かれて縦に揃う', () => {
-    localStorage.clear()
-    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
-    fireEvent.click(screen.getByTestId('league-tab'))
-    const youRow = screen.getByTestId('league-row-you')
-    const sym = within(youRow).getByTestId('league-mark-sym')
-    const val = within(youRow).getByTestId('league-mark-val')
-    expect(sym).toHaveStyle({ width: '18px', textAlign: 'center' })
-    expect(val).toHaveStyle({ minWidth: '28px', textAlign: 'right' })
-  })
-  it('リーグ表の自分の行は他行より太く大きい', () => {
-    localStorage.clear()
-    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
-    fireEvent.click(screen.getByTestId('league-tab'))
-    const youRow = screen.getByTestId('league-row-you')
-    const rivalRow = screen.getAllByTestId(/^league-row-/).find((r) => r !== youRow)!
-    expect(youRow).toHaveStyle({ fontSize: '17px', fontWeight: '900' })
-    expect(Number.parseFloat(rivalRow.style.fontSize)).toBeLessThan(Number.parseFloat(youRow.style.fontSize))
-  })
-  it('リーグ表の全行と見出しの列幅が統一されている', () => {
-    localStorage.clear()
-    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
-    fireEvent.click(screen.getByTestId('league-tab'))
-    const template = '42px minmax(0,1fr) 126px 63px'
-    expect(screen.getByTestId('league-mark-header')).toHaveStyle({ gridTemplateColumns: template })
-    const rows = screen.getAllByTestId(/^league-row-/)
-    expect(rows.length).toBeGreaterThan(1)
-    for (const r of rows) {
-      expect(r).toHaveStyle({ gridTemplateColumns: template })
-    }
-  })
-  it('リーグ表の変動マークの幅は全行で統一されている', () => {
-    localStorage.clear()
-    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
-    fireEvent.click(screen.getByTestId('league-tab'))
-    for (const s of screen.getAllByTestId('league-mark-sym')) {
-      expect(s).toHaveStyle({ width: '18px' })
-    }
-    for (const v of screen.getAllByTestId('league-mark-val')) {
-      expect(v).toHaveStyle({ minWidth: '28px' })
-    }
-  })
-  it('リーグ表の変動矢印は上下で色分けされ見やすい', () => {
-    localStorage.clear()
-    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
-    fireEvent.click(screen.getByTestId('league-tab'))
-    const syms = screen.getAllByTestId('league-mark-sym')
-    expect(syms.length).toBeGreaterThan(0)
-    // 全ての矢印に色が付いている（白一色のままはNG）
-    for (const s of syms) {
-      const text = s.textContent ?? ''
-      if (text === '▲' || text === '▼' || text === '―') {
-        expect(s.style.color).not.toBe('')
-      }
-    }
-    // 上昇と下降があれば色が違うこと
-    const up = syms.find((s) => s.textContent === '▲')
-    const down = syms.find((s) => s.textContent === '▼')
-    if (up && down) {
-      expect(up.style.color).not.toBe(down.style.color)
-    }
-  })
-  it('リーグ表の○勝に順位と人数を併記する', () => {
+  it('リーグ表の○勝が表示される', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
     const wins = screen.getByTestId('league-wins')
     expect(wins).toHaveTextContent(/○\d+勝/)
-    expect(wins).toHaveTextContent(/8人中/)
-    expect(wins).toHaveTextContent(/位/)
-  })
-  it('リーグ表の右列の一番上に前日比と表示する', () => {
-    localStorage.clear()
-    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
-    fireEvent.click(screen.getByTestId('league-tab'))
-    const table = document.getElementById('league-table')!
-    expect(table).toHaveTextContent('前日比')
   })
   it('リーグ表の自分累計は今季のDB合計と一致する（キャッシュや全期間合計に依存しない）', async () => {
     const now = new Date().toISOString()
@@ -397,11 +332,10 @@ describe('RankingScreen', () => {
     localStorage.setItem('schedule-app-season-v1', JSON.stringify({ seasonId: '2026-09-01', div: 10, exp: 0, days: { [today]: 100 } }))
     render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    const youRow = await screen.findByTestId('league-row-you')
-    // 今季合計110ページ→22pt換算。今日分だけ（20pt）でも全期間合計（122pt）でもない
-    expect(youRow).toHaveTextContent('22pt')
+    // 今季合計110ページ→22pt換算→半分の11。今日分だけ（20pt→10）でも全期間合計でもない
+    expect(await screen.findByTestId('league-rating')).toHaveTextContent('11')
   })
-  it('レーティングはページ数の半分で表示する（順位表は不変）', async () => {
+  it('レーティングはページ数の半分で表示する', async () => {
     const now = new Date().toISOString()
     const today = '2026-09-02'
     await db.books.add({
@@ -412,10 +346,8 @@ describe('RankingScreen', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    // 今季累計100ページ→20pt換算、レーティングはその半分の10。順位表のpt・今日Pも換算値
+    // 今季累計100ページ→20pt換算、レーティングはその半分の10
     expect(await screen.findByTestId('league-rating')).toHaveTextContent('10')
-    expect(screen.getByTestId('league-row-you')).toHaveTextContent('20pt')
-    expect(screen.getByTestId('league-row-you')).toHaveTextContent('今日20P')
   })
   it('選択中のタブだけ種別調和色で表示する', () => {
     localStorage.clear()
