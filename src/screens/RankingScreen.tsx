@@ -337,9 +337,9 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                   data-testid="league-div-emblem"
                   src={divEmblemSrc(seasonState.div)}
                   alt={`Division ${seasonState.div}エンブレム`}
-                  width={72}
-                  height={72}
-                  style={{ width: 72, height: 72, objectFit: 'cover', flexShrink: 0, display: 'block', border: 'none', background: 'transparent' }}
+                  width={54}
+                  height={54}
+                  style={{ width: 54, height: 54, objectFit: 'contain', flexShrink: 0, display: 'block', border: 'none', background: 'transparent' }}
                   onError={() => setEmblemBroken(true)}
                 />
               )}
