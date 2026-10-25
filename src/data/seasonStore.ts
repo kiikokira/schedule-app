@@ -1,7 +1,7 @@
 import { seasonIdForDate, seasonDayIndex, tallyToResults, decideRoundOutcome, leagueRankForPages, leaguePopulationFor, leagueDayInfo, ROUND_SIZE, type LeagueDayResult } from '../lib/seasonLeague'
 import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
 import { pagesToExp } from '../lib/seasonExp'
-import { leagueRatingDelta, ratingBandForDiff, rivalRatingFor, RATING_START } from '../lib/leagueRating'
+import { leagueRatingDelta, ratingBandForDiff, rivalRatingFor, RATING_START, RATING_DIV2, RATING_DIV1 } from '../lib/leagueRating'
 import { awardPhaseBadge } from '../lib/leagueBadges'
 export type SeasonState = { seasonId: string; div: number; highestDiv: number; rating: number; ratedUpTo: string | null; round: RoundTally; phaseBestDiv: number; exp: number; days: Record<string, number>; appliedSeasonId?: string }
 export type RoundTally = { w: number; d: number; l: number; lastDate: string | null }
@@ -148,8 +148,16 @@ export function applyMatchRatings(s: SeasonState, div: number, entries: { date: 
     .sort((a, b) => (a.date < b.date ? -1 : 1))
   for (const e of ordered) {
     const band = ratingBandForDiff(e.oppRating - rating)
-    rating = Math.max(0, rating + leagueRatingDelta(band, e.result, e.date))
+    rating = Math.max(0, rating + leagueRatingDelta(band, e.result, `${e.date}:${e.oppRating}`))
     ratedUpTo = e.date
+  }
+  let nextDiv = div
+  while (nextDiv === 3 && rating >= RATING_DIV2) nextDiv = 2
+  while (nextDiv === 2 && rating >= RATING_DIV1) nextDiv = 1
+  if (nextDiv !== div) {
+    const highestDiv = Math.min(s.highestDiv, nextDiv)
+    const phaseBestDiv = Math.min(s.phaseBestDiv, nextDiv)
+    return { ...s, div: nextDiv, highestDiv, phaseBestDiv, rating, ratedUpTo }
   }
   return { ...s, rating, ratedUpTo }
 }
@@ -167,7 +175,15 @@ export function syncLeagueDay(today: string, days: Record<string, number>, div: 
     return { date, result: resultOfDay(sid, div, dayIndex, myPages), opp: oppRatingOf(sid, div, dayIndex, myPages) }
   })
   s = applyMatchRatings(s, div, matches.map((m) => ({ date: m.date, result: m.result, oppRating: m.opp })))
-  s = appendRoundMatches(s, div, matches.map((m) => ({ date: m.date, result: m.result })))
+  s = appendRoundMatches(s, s.div, matches.map((m) => ({ date: m.date, result: m.result })))
+  {
+    let nextDiv = s.div
+    while (nextDiv === 3 && s.rating >= RATING_DIV2) nextDiv = 2
+    while (nextDiv === 2 && s.rating >= RATING_DIV1) nextDiv = 1
+    if (nextDiv !== s.div) {
+      s = { ...s, div: nextDiv, highestDiv: Math.min(s.highestDiv, nextDiv), phaseBestDiv: Math.min(s.phaseBestDiv, nextDiv) }
+    }
+  }
   saveSeasonState(s)
   return s
 }

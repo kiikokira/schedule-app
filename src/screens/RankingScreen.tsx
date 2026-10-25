@@ -118,13 +118,8 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   // レーティングの上り幅だけ緩やかにする（ページ数・順位・勝敗には影響しない）。
   // 変更時はこの1箇所だけ変える。
   const displayRating = Math.floor(myLeagueCum * LEAGUE_RATING_RATE)
-  const seasonCum = useMemo(() => {
-    try {
-      return Object.values(seasonState.days ?? {}).reduce((a, b) => a + (typeof b === 'number' && Number.isFinite(b) ? b : 0), 0)
-    } catch {
-      return 0
-    }
-  }, [seasonState])
+  const headerRating = seasonState.div <= 3 ? seasonState.rating : displayRating
+  const seasonCum = mySeasonCumPages
   const pop = useMemo(() => {
     try {
       return leaguePopulationFor(seasonState.seasonId ?? seasonIdForDate(today))
@@ -346,7 +341,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                 <span>
                   <span style={{ display: 'block', fontSize: 12, color: '#9aa3c0' }}>レーティング</span>
                   <span data-testid="league-rating" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>
-                    {displayRating.toLocaleString()}
+                    {headerRating.toLocaleString()}
                   </span>
                 </span>
               </div>
