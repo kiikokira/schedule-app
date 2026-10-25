@@ -215,6 +215,15 @@ describe('RankingScreen', () => {
     expect(screen.getByTestId('league-phase')).toHaveTextContent('2026/09/01')
     expect(screen.getByTestId('league-phase')).toHaveTextContent('2026/09/28')
   })
+  it('Divに応じたエンブレム画像が出る', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    const img = screen.getByTestId('league-div-emblem') as HTMLImageElement
+    expect(img.tagName).toBe('IMG')
+    expect(img.getAttribute('src')).toContain('div-10.jpg')
+    expect(img.getAttribute('alt')).toContain('Division 10')
+  })
   it('対戦履歴ボタンで成績・履歴表示に切り替わり成績ボタンで戻る', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)

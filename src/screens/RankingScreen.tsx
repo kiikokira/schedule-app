@@ -14,6 +14,12 @@ type Props = { onBack: () => void; today?: string }
 // リーグのレーティング表示倍率（1.0で等倍）。ページ数・順位・勝敗には影響しない。
 const LEAGUE_RATING_RATE = 0.5
 
+// Divロゴ画像（添付の10枚を public/divs/div-1.jpg〜div-10.jpg として配置して使用）
+export function divEmblemSrc(div: number): string {
+  const n = Math.min(10, Math.max(1, Math.round(div)))
+  return `./divs/div-${n}.jpg`
+}
+
 // 選択中のタブだけ種別に調和する色にする。全国は白背景用（白＋濃枠）、リーグ/RPGはダーク背景用。非選択は既定のまま。
 function tabStyle(active: boolean, variant: 'national' | 'league' | 'rpg' = 'national'): CSSProperties | undefined {
   if (!active) return undefined
@@ -61,6 +67,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   })
   // リーグ内の表示切替：info（レーティング・順位・メイン報酬）⇄ record（成績・対戦履歴）
   const [leaguePanel, setLeaguePanel] = useState<'info' | 'record'>('info')
+  const [emblemBroken, setEmblemBroken] = useState(false)
   const leagueToggleStyle = { flex: 1, background: '#0b1026', color: '#29b6ff', border: '1px solid #2a3358', borderRadius: 10, fontWeight: 800, padding: '10px 0' } as const
   useEffect(() => {
     if (!showLeague && tab === 'league') setTab('rpg')
@@ -81,6 +88,9 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       return 0
     }
   }, [today])
+  useEffect(() => {
+    setEmblemBroken(false)
+  }, [seasonState.div])
   const mySeasonCumPages = useMemo(() => {
     try {
       // 自分の今季累計はDBから今季範囲で直接合計する。
@@ -312,15 +322,27 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             style={{ padding: '14px 12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div
-                style={{
-                  width: 54, height: 54, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 26, fontWeight: 900, color: '#fff', background: 'linear-gradient(180deg, #2b3a8f, #10163a)', border: '2px solid #ffe600',
-                }}
-                role="img" aria-label={`Division ${seasonState.div}エンブレム`}
-              >
-                {seasonState.div}
-              </div>
+              {emblemBroken ? (
+                <div
+                  style={{
+                    width: 54, height: 54, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 26, fontWeight: 900, color: '#fff', background: 'linear-gradient(180deg, #2b3a8f, #10163a)', border: '2px solid #ffe600',
+                  }}
+                  role="img" aria-label={`Division ${seasonState.div}エンブレム`}
+                >
+                  {seasonState.div}
+                </div>
+              ) : (
+                <img
+                  data-testid="league-div-emblem"
+                  src={divEmblemSrc(seasonState.div)}
+                  alt={`Division ${seasonState.div}エンブレム`}
+                  width={54}
+                  height={54}
+                  style={{ width: 54, height: 54, borderRadius: 16, border: '2px solid #ffe600', objectFit: 'cover', background: '#10163a' }}
+                  onError={() => setEmblemBroken(true)}
+                />
+              )}
               <div>
                 <div data-testid="league-division" style={{ fontWeight: 900, fontSize: 24, color: '#ffe600', lineHeight: 1.1 }}>
                   Division {seasonState.div}
