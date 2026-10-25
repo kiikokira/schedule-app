@@ -4,7 +4,7 @@ import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { combinedActivityOnDate, totalCycleUnits, pagesRecordsForTotals, cycleRecordsForTotals, todayStr } from '../lib/progress'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
-import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leagueDayInfo, type LeagueDayResult } from '../lib/seasonLeague'
+import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leagueDayInfo, leaguePointsForPages, type LeagueDayResult } from '../lib/seasonLeague'
 import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
 import { loadSeasonState } from '../data/seasonStore'
 import { loadProfile } from '../data/profileStore'
@@ -118,8 +118,8 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       }
       const rows = [
         {
-          id: 'you', name: 'あなた', pages: myDaily, prev: myPrevDaily, cum: myCum,
-          prevCum: leagueDay > 0 ? Math.max(0, myCum - myDaily) : myCum, you: true as const,
+          id: 'you', name: 'あなた', pages: leaguePointsForPages(myDaily), prev: leaguePointsForPages(myPrevDaily), cum: leaguePointsForPages(myCum),
+          prevCum: leaguePointsForPages(leagueDay > 0 ? Math.max(0, myCum - myDaily) : myCum), you: true as const,
         },
         ...rivals.map((r) => {
           let cum = 0
@@ -143,7 +143,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             }
           })()
           const prevCum = leagueDay > 0 ? Math.max(0, cum - daily) : cum
-          return { id: r.id, name: r.name, pages: daily, prev: prevDaily, cum, prevCum, you: false as const }
+          return { id: r.id, name: r.name, pages: leaguePointsForPages(daily), prev: leaguePointsForPages(prevDaily), cum: leaguePointsForPages(cum), prevCum: leaguePointsForPages(prevCum), you: false as const }
         }),
       ].sort((a, b) => b.cum - a.cum)
       return rows
@@ -444,7 +444,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                       color: d.result === 'win' ? '#06210f' : '#fff',
                     }}
                   >
-                    {d.pages}-{d.opponentPages}
+                    {leaguePointsForPages(d.pages)}-{leaguePointsForPages(d.opponentPages)}
                   </div>
                 </div>
               ))}

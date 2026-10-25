@@ -378,8 +378,8 @@ describe('RankingScreen', () => {
     render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
     const youRow = await screen.findByTestId('league-row-you')
-    // 今季合計110pt。今日分だけ（100pt）でも全期間合計（610pt）でもない
-    expect(youRow).toHaveTextContent('110pt')
+    // 今季合計110ページ→22pt換算。今日分だけ（20pt）でも全期間合計（122pt）でもない
+    expect(youRow).toHaveTextContent('22pt')
   })
   it('レーティングはページ数の半分で表示する（順位表は不変）', async () => {
     const now = new Date().toISOString()
@@ -392,10 +392,10 @@ describe('RankingScreen', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    // 今季累計100pt → レーティングは半分の50。順位表のpt・今日Pはそのまま
-    expect(await screen.findByTestId('league-rating')).toHaveTextContent('50')
-    expect(screen.getByTestId('league-row-you')).toHaveTextContent('100pt')
-    expect(screen.getByTestId('league-row-you')).toHaveTextContent('今日100P')
+    // 今季累計100ページ→20pt換算、レーティングはその半分の10。順位表のpt・今日Pも換算値
+    expect(await screen.findByTestId('league-rating')).toHaveTextContent('10')
+    expect(screen.getByTestId('league-row-you')).toHaveTextContent('20pt')
+    expect(screen.getByTestId('league-row-you')).toHaveTextContent('今日20P')
   })
   it('選択中のタブだけ種別調和色で表示する', () => {
     localStorage.clear()

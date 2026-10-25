@@ -1,5 +1,16 @@
 import { generateRivals, rivalPagesForDay } from './seasonRivals'
 
+// リーグpt換算率。記録ページ数をそのままptにすると数回の記録で数百ptになり
+// 一気に上がって見えるため、自分・ライバル共通で緩やかにする。
+// 正の線形変換なので順位・勝敗・前日比の正負は不変（平等性維持）。
+// 変更時はこの1箇所だけ変える。
+export const LEAGUE_PT_RATE = 0.2
+
+export function leaguePointsForPages(pages: number): number {
+  if (!Number.isFinite(pages) || pages <= 0) return 0
+  return Math.round(pages * LEAGUE_PT_RATE)
+}
+
 const ANCHOR = '2026-09-01'
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 function isValidDateString(d: unknown): d is string {

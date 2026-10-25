@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { seasonIdForDate, seasonDayIndex, isSeasonFinalDay, decidePromotion, leagueDayResults, leagueDayInfo, seasonEndForDate } from './seasonLeague'
+import { seasonIdForDate, seasonDayIndex, isSeasonFinalDay, decidePromotion, leagueDayResults, leagueDayInfo, seasonEndForDate, leaguePointsForPages, LEAGUE_PT_RATE } from './seasonLeague'
 import { generateRivals, rivalPagesForDay } from './seasonRivals'
 
 describe('seasonLeague', () => {
@@ -42,6 +42,14 @@ describe('seasonLeague', () => {
     expect(info.average).toBeGreaterThanOrEqual(0)
     expect(info.opponent.length).toBeGreaterThan(0)
     expect(info.opponentPages).toBeGreaterThanOrEqual(0)
+  })
+  it('リーグptはページ数に換算率を掛けたもので単調に増える', () => {
+    expect(LEAGUE_PT_RATE).toBeGreaterThan(0)
+    expect(LEAGUE_PT_RATE).toBeLessThan(1)
+    expect(leaguePointsForPages(0)).toBe(0)
+    expect(leaguePointsForPages(100)).toBe(Math.round(100 * LEAGUE_PT_RATE))
+    expect(leaguePointsForPages(50)).toBeLessThanOrEqual(leaguePointsForPages(100))
+    expect(leaguePointsForPages(100)).toBeLessThan(100)
   })
   it('対戦相手はその日に最もptが近いライバル', () => {
     const rivals = generateRivals('2026-09-01', 10)
