@@ -1,4 +1,4 @@
-import { generateRivals, rivalPagesForDay } from './seasonRivals'
+import { generateRivals, rivalPagesForDay, hashSeed, mulberry32 } from './seasonRivals'
 
 // リーグpt換算率。記録ページ数をそのままptにすると数回の記録で数百ptになり
 // 一気に上がって見えるため、自分・ライバル共通で緩やかにする。
@@ -140,4 +140,29 @@ export function decideRoundOutcome(div: number, results: LeagueDayResult[]): Rou
   if (minFinal >= stay && maxFinal < promo) return 'stay'
   if (played.length >= ROUND_SIZE) return pts >= promo ? 'promote' : pts < stay ? 'relegate' : 'stay'
   return 'undecided'
+}
+export function leaguePopulationFor(seasonId: string): number {
+  let key = seasonId
+  try {
+    key = seasonIdForDate(seasonId)
+  } catch {
+    key = seasonId
+  }
+  const rand = mulberry32(hashSeed(`league-pop-${key}`))
+  return 2000000 + Math.floor(rand() * 3000001)
+}
+function lognormalCdf(pages: number, median: number, sigma: number): number {
+  if (pages <= 0) return 0
+  const z = (Math.log(pages) - Math.log(median)) / sigma
+  const t = 1 / (1 + 0.2316419 * Math.abs(z))
+  const d = 0.3989423 * Math.exp((-z * z) / 2)
+  let p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))))
+  if (z > 0) p = 1 - p
+  return Math.min(Math.max(p, 0), 1)
+}
+export function leagueRankForPages(pages: number, population: number): number {
+  const pop = Math.max(1, Math.round(population))
+  if (pages <= 0) return pop
+  const rank = Math.round(pop * (1 - lognormalCdf(pages, 300, 0.9)))
+  return Math.min(Math.max(rank, 1), pop)
 }
