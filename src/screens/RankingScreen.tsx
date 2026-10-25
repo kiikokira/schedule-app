@@ -318,6 +318,10 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             style={{ padding: '14px 12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                data-testid="league-div-emblem-wrap"
+                style={{ width: 54, height: 54, borderRadius: 16, overflow: 'hidden', flexShrink: 0, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
               {emblemBroken ? (
                 <div
                   style={{
@@ -333,12 +337,13 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                   data-testid="league-div-emblem"
                   src={divEmblemSrc(seasonState.div)}
                   alt={`Division ${seasonState.div}エンブレム`}
-                  width={54}
-                  height={54}
-                  style={{ width: 54, height: 54, borderRadius: 16, border: 'none', objectFit: 'cover', background: 'transparent' }}
+                  width={72}
+                  height={72}
+                  style={{ width: 72, height: 72, objectFit: 'cover', flexShrink: 0, display: 'block', border: 'none', background: 'transparent' }}
                   onError={() => setEmblemBroken(true)}
                 />
               )}
+              </div>
               <div>
                 <div data-testid="league-division" style={{ fontWeight: 900, fontSize: 24, color: '#ffe600', lineHeight: 1.1 }}>
                   Division {seasonState.div}
@@ -462,11 +467,6 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             )}
           </section>
             </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button data-testid="league-back" type="button" onClick={() => setTab('national')} style={{ flex: 1, background: 'linear-gradient(180deg, #29b6ff, #0a84ff)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 800 }}>
-              〈 戻る
-            </button>
-          </div>
         </div>
       )}
       {tab === 'rpg' && showRpg && (

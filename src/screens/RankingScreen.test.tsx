@@ -282,14 +282,19 @@ describe('RankingScreen', () => {
     fireEvent.click(screen.getByTestId('rpg-tab'))
     expect(screen.getByTestId('rpg-level')).toHaveTextContent('Lv.1')
   })
-  it('リーグタブの青い戻るで全国タブに戻る', () => {
+  it('リーグタブに青い戻るボタンはない', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
     expect(screen.getByTestId('league-board')).toBeInTheDocument()
-    fireEvent.click(screen.getByTestId('league-back'))
-    expect(screen.getByTestId('ranking-summary')).toBeInTheDocument()
-    expect(screen.queryByTestId('league-board')).toBeNull()
+    expect(screen.queryByTestId('league-back')).toBeNull()
+  })
+  it('Divエンブレムは白縁が一番外になるよう切り抜き表示される', () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    const wrap = screen.getByTestId('league-div-emblem-wrap')
+    expect(wrap).toHaveStyle({ overflow: 'hidden' })
   })
   it('リーグタブに白い戻る・順位表・記録へボタンはない', () => {
     localStorage.clear()
