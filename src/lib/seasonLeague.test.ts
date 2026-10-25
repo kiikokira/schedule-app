@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { seasonIdForDate, seasonDayIndex, isSeasonFinalDay, decidePromotion, leagueDayResults, leagueDayInfo, seasonEndForDate, leaguePointsForPages, LEAGUE_PT_RATE } from './seasonLeague'
+import { seasonIdForDate, seasonDayIndex, isSeasonFinalDay, decidePromotion, leagueDayResults, leagueDayInfo, seasonEndForDate, leaguePointsForPages, LEAGUE_PT_RATE, type LeagueDayResult } from './seasonLeague'
 import { generateRivals, rivalPagesForDay } from './seasonRivals'
 
 describe('seasonLeague', () => {
@@ -62,5 +62,40 @@ describe('seasonLeague', () => {
     const info = leagueDayInfo('2026-09-01', 10, 1, mine)
     expect(info.opponent).toBe(expected.name)
     expect(info.opponentPages).toBe(expected.pages)
+  })
+  it('ラウンド勝ち点は勝ち3引分1負け0', async () => {
+    const { roundPoints } = await import('./seasonLeague')
+    expect(roundPoints(['win', 'win', 'draw', 'loss'])).toBe(7)
+  })
+  it('Div10は勝ち点3で即昇格確定', async () => {
+    const { decideRoundOutcome } = await import('./seasonLeague')
+    expect(decideRoundOutcome(10, ['win'])).toBe('promote')
+  })
+  it('Div8は残り試合の全勝敗パターンで覆らない時だけ確定する', async () => {
+    const { decideRoundOutcome } = await import('./seasonLeague')
+    expect(decideRoundOutcome(8, ['win', 'win', 'win'])).toBe('promote')
+    expect(decideRoundOutcome(8, ['loss', 'loss', 'loss', 'loss', 'loss', 'loss', 'loss'])).toBe('undecided')
+    const stay: LeagueDayResult[] = ['win', 'win', 'draw', 'loss', 'loss', 'loss', 'loss', 'loss', 'loss', 'loss']
+    expect(decideRoundOutcome(8, [...stay])).toBe('stay')
+  })
+  it('Div4は22点で昇格・19点以下で残留判定', async () => {
+    const { decideRoundOutcome } = await import('./seasonLeague')
+    const wins7: Array<'win'> = ['win', 'win', 'win', 'win', 'win', 'win', 'win']
+    expect(decideRoundOutcome(4, wins7)).toBe('undecided')
+    expect(decideRoundOutcome(4, [...wins7, 'win'])).toBe('promote')
+    const stay: LeagueDayResult[] = ['win', 'win', 'win', 'win', 'win', 'win', 'draw', 'loss', 'loss', 'loss']
+    expect(decideRoundOutcome(4, [...stay])).toBe('stay')
+    const drop: LeagueDayResult[] = ['win', 'win', 'win', 'draw', 'loss', 'loss', 'loss', 'loss', 'loss', 'loss']
+    expect(decideRoundOutcome(4, [...drop])).toBe('relegate')
+  })
+  it('残留ラインのないDivは降格しない', async () => {
+    const { decideRoundOutcome } = await import('./seasonLeague')
+    expect(decideRoundOutcome(10, Array<LeagueDayResult>(10).fill('loss'))).toBe('stay')
+    expect(decideRoundOutcome(9, Array<LeagueDayResult>(10).fill('loss'))).toBe('stay')
+    expect(decideRoundOutcome(6, Array<LeagueDayResult>(10).fill('loss'))).toBe('stay')
+  })
+  it('タリーから結果配列に復元できる', async () => {
+    const { tallyToResults } = await import('./seasonLeague')
+    expect(tallyToResults({ w: 2, d: 1, l: 0 })).toEqual(['win', 'win', 'draw'])
   })
 })

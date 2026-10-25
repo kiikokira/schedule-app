@@ -114,3 +114,30 @@ export function leagueDayResults(seasonId: string, div: number, myDaily: number[
     return myDaily.map(() => 'draw' as const)
   }
 }
+export const ROUND_SIZE = 10
+export const ROUND_WIN_POINTS = { win: 3, draw: 1, loss: 0 } as const
+export const PROMOTION_LINES: Record<number, number> = { 10: 3, 9: 6, 8: 9, 7: 12, 6: 15, 5: 18, 4: 22 }
+export const STAY_LINES: Partial<Record<number, number>> = { 8: 6, 7: 9, 5: 15, 4: 19 }
+export type RoundOutcome = 'promote' | 'stay' | 'relegate' | 'undecided'
+export function roundPoints(results: LeagueDayResult[]): number {
+  return results.reduce((s, r) => s + ROUND_WIN_POINTS[r], 0)
+}
+export function tallyToResults(tally: { w: number; d: number; l: number }): LeagueDayResult[] {
+  return [...Array(tally.w).fill('win'), ...Array(tally.d).fill('draw'), ...Array(tally.l).fill('loss')] as LeagueDayResult[]
+}
+export function decideRoundOutcome(div: number, results: LeagueDayResult[]): RoundOutcome {
+  const promo = PROMOTION_LINES[div]
+  if (promo === undefined) return 'undecided'
+  const played = results.slice(0, ROUND_SIZE)
+  const pts = roundPoints(played)
+  const remaining = Math.max(0, ROUND_SIZE - played.length)
+  const minFinal = pts
+  const maxFinal = pts + 3 * remaining
+  if (minFinal >= promo) return 'promote'
+  const stay = STAY_LINES[div]
+  if (stay === undefined) return played.length >= ROUND_SIZE || maxFinal < promo ? 'stay' : 'undecided'
+  if (maxFinal < stay) return 'relegate'
+  if (minFinal >= stay && maxFinal < promo) return 'stay'
+  if (played.length >= ROUND_SIZE) return pts >= promo ? 'promote' : pts < stay ? 'relegate' : 'stay'
+  return 'undecided'
+}
