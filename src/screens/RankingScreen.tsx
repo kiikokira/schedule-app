@@ -8,6 +8,7 @@ import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, 
 import { loadSeasonState, saveSeasonState, finalizeRoundEarly } from '../data/seasonStore'
 import { loadProfile } from '../data/profileStore'
 import { levelForExp } from '../lib/seasonExp'
+import { parseSlotKey } from '../lib/slotLeague'
 
 type Props = { onBack: () => void; today?: string }
 
@@ -156,7 +157,16 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   const leagueDaily = useMemo(() => {
     try {
       const entries = Object.entries(seasonState.slotMatches ?? {})
-        .sort(([a],[b]) => (a < b ? -1 : 1))
+        .sort(([a], [b]) => {
+          const pa = parseSlotKey(a)
+          const pb = parseSlotKey(b)
+          if (pa && pb) {
+            if (pa.date !== pb.date) return pa.date < pb.date ? -1 : 1
+            if (pa.startMin !== pb.startMin) return pa.startMin - pb.startMin
+            return pa.endMin - pb.endMin
+          }
+          return a < b ? -1 : a > b ? 1 : 0
+        })
         .slice(-5)
         .map(([, m]) => ({ date: m.date, pages: m.my, average: 0, opponent: m.oppName, opponentPages: m.opp, result: m.result, unit: m.unit }))
       return entries
