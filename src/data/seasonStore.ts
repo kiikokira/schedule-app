@@ -175,6 +175,8 @@ export function applyMatchRatings(s: SeasonState, div: number, entries: { date: 
   return { ...s, rating, ratedUpTo }
 }
 
+// DEPRECATED: slot-based only — 日次リーグ進行は廃止。リーグ進行は syncLeagueSlot（枠確定時）のみ。
+// 互換のため関数は残すが、全国/EXP とは無関係のリーグ進行は行わない。
 export function syncLeagueDay(today: string, days: Record<string, number>, div: number, seasonId: string): SeasonState {
   void seasonId
   let s = loadSeasonState(today)
@@ -187,8 +189,9 @@ export function syncLeagueDay(today: string, days: Record<string, number>, div: 
     const sid = seasonIdForDate(date)
     return { date, result: resultOfDay(sid, div, dayIndex, myPages), opp: oppRatingOf(sid, div, dayIndex, myPages) }
   })
-  s = applyMatchRatings(s, div, matches.map((m) => ({ date: m.date, result: m.result, oppRating: m.opp })))
-  s = appendRoundMatches(s, s.div, matches.map((m) => ({ date: m.date, result: m.result })))
+  // s = applyMatchRatings(s, div, matches.map((m) => ({ date: m.date, result: m.result, oppRating: m.opp })))
+  // s = appendRoundMatches(s, s.div, matches.map((m) => ({ date: m.date, result: m.result })))
+  void matches
   {
     let nextDiv = s.div
     while (nextDiv === 3 && s.rating >= RATING_DIV2) nextDiv = 2

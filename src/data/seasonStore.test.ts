@@ -29,30 +29,35 @@ describe('seasonStore', () => {
     expect(s2.exp).toBe(200)
     expect(s2.days['2026-09-01']).toBe(20)
   })
-  it('10試合でラウンド確定しDiv4からDiv3へ昇格する', async () => {
-    const { loadSeasonState, saveSeasonState, syncLeagueDay } = await import('./seasonStore')
+  it('syncLeagueDayはリーグ進行しない（slot-only）', async () => {
+    const { loadSeasonState, saveSeasonState, syncLeagueDay, syncLeagueSlot } = await import('./seasonStore')
     localStorage.clear()
     const s0 = loadSeasonState('2026-09-01')
     saveSeasonState({ ...s0, div: 4, highestDiv: 4, phaseBestDiv: 4, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} })
     const days: Record<string, number> = {}
     for (let d = 1; d <= 10; d++) days[`2026-09-${String(d).padStart(2, '0')}`] = 150
     const s1 = syncLeagueDay('2026-09-10', days, 4, '2026-09-01')
-    expect(s1.div).toBe(3)
-    expect(s1.highestDiv).toBe(3)
-    expect(s1.phaseBestDiv).toBe(3)
+    expect(s1.div).toBe(4)
+    expect(s1.highestDiv).toBe(4)
+    expect(s1.phaseBestDiv).toBe(4)
     expect(s1.round.w + s1.round.d + s1.round.l).toBe(0)
-    expect(s1.rating).toBe(1200)
+    expect(s1.rating).toBe(0)
+    // リーグ進行は枠確定時のみ
+    const s2 = syncLeagueSlot('2026-09-10', '2026-09-10#390-420', { my: 150, unit: 'pages', slotMinutes: 30 })
+    expect(s2.round.w + s2.round.d + s2.round.l).toBe(1)
   })
-  it('昇格確定前にスキップすると即昇格し新ラウンドになる', async () => {
-    const { loadSeasonState, saveSeasonState, syncLeagueDay, finalizeRoundEarly } = await import('./seasonStore')
+  it('日次記録ではラウンドが進まず枠確定でのみ進む（skipは枠ベース）', async () => {
+    const { loadSeasonState, saveSeasonState, syncLeagueDay, syncLeagueSlot, finalizeRoundEarly } = await import('./seasonStore')
     localStorage.clear()
     const s0 = loadSeasonState('2026-09-01')
     saveSeasonState({ ...s0, div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} })
     const s1 = syncLeagueDay('2026-09-01', { '2026-09-01': 100 }, 10, '2026-09-01')
     expect(s1.div).toBe(10)
-    expect(s1.round.w + s1.round.d + s1.round.l).toBe(1)
+    expect(s1.round.w + s1.round.d + s1.round.l).toBe(0)
     const s2 = finalizeRoundEarly(s1, '2026-09-01')
-    expect(s2.div).toBe(9)
+    expect(s2.div).toBe(10)
+    const s3 = syncLeagueSlot('2026-09-01', '2026-09-01#390-420', { my: 100, unit: 'pages', slotMinutes: 30 })
+    expect(s3.round.w + s3.round.d + s3.round.l).toBe(1)
   })
   it('破損入力ガード(div範囲外はクランプ・days nullは空)', () => {
     localStorage.setItem(

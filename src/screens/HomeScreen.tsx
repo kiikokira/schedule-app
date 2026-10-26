@@ -33,8 +33,8 @@ import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
 import { quoteOf } from '../data/quotes'
 import { loadSchedule, saveSchedule, syncEntryDatesForBook } from '../data/scheduleStore'
-import { loadSeasonState, recordSeasonDay, syncLeagueDay } from '../data/seasonStore'
-import { seasonDayIndex, seasonIdForDate } from '../lib/seasonLeague'
+import { loadSeasonState, recordSeasonDay } from '../data/seasonStore'
+import { seasonDayIndex } from '../lib/seasonLeague'
 import { listAvailability } from '../data/dayplanStore'
 import { earliestFeasibleDeadline, effectiveSpeed } from '../lib/dayplan'
 import {
@@ -604,11 +604,8 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
   useEffect(() => {
     try {
       const pages = combinedActivityOnDate(today, validRecords, validCycles)
-      recordSeasonDay(today, pages, streak.streak)
-      try {
-        const st = loadSeasonState(today)
-        syncLeagueDay(today, { ...(st.days ?? {}), [today]: pages }, st.div, seasonIdForDate(today))
-      } catch { /* national-only fallback */ }
+      recordSeasonDay(today, pages, streak.streak) // 全国・EXP用に残す
+      // リーグ進行は syncLeagueSlot（枠確定時）のみ。syncLeagueDayは呼ばない
     } catch { /* national-only fallback */ }
   }, [validRecords, validCycles, today, streak.streak])
 
