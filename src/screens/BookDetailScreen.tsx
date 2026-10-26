@@ -110,6 +110,8 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
   const [leapBlock, setLeapBlock] = useState<number | null>(null)
   const [showCycleList, setShowCycleList] = useState(false)
+  const [recordDate, setRecordDate] = useState(() => todayStr())
+  const [showRecordList, setShowRecordList] = useState(false)
 
   useEffect(() => {
     void listAvailability().then(setAvailability).catch(() => {})
@@ -119,9 +121,10 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const today = todayStr()
 
   useEffect(() => {
-    const tr = records.find((r) => r.bookId === book?.id && r.date === today)
+    const targetDate = recordDate || today
+    const tr = records.find((r) => r.bookId === book?.id && r.date === targetDate)
     setPagesInput(tr ? String(tr.pages) : '')
-  }, [book?.id, today])
+  }, [book?.id, recordDate, records, today])
 
   if (!book) {
     return (
@@ -167,7 +170,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       return String(suggestCycleRound(book, mine, f, t))
     })()
     const roundFieldValue = cycleRoundInput !== '' ? cycleRoundInput : autoSuggestedRound
-    const effectiveDate = isLeap ? today : cycleDate || today
+    const effectiveDate = cycleDate || today
     const dateOutOfRange = effectiveDate < book.startDate || effectiveDate > book.deadline
     const cycleRoundCoverage = Array.from({ length: cycleTargetRounds }, (_, i) => {
       const r = i + 1
@@ -318,7 +321,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           <p>反復の記録</p>
           <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 4px' }}>
             {isLeap
-              ? 'やった範囲の開始語・終了語を入力してください（今日・今の周回で記録）'
+              ? 'やった範囲の開始語・終了語・日付（空なら今日）を入力してください'
               : `やった範囲の開始${unit}・終了${unit}・周回・日付（空なら今日）を入力してください`}
           </p>
           {isLeap && (
@@ -408,18 +411,16 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
               目標{book.targetRounds}周中の今{round}周目に記録
             </p>
           )}
-          {!isLeap && (
-            <>
-              <label htmlFor="cycle-date">日付</label>
-              <input
-                id="cycle-date"
-                data-testid="cycle-date"
-                type="date"
-                value={cycleDate}
-                onChange={(e) => { setCycleDate(e.target.value); setCycleNewSlot('') }}
-              />
-            </>
-          )}
+          <>
+            <label htmlFor="cycle-date">日付</label>
+            <input
+              id="cycle-date"
+              data-testid="cycle-date"
+              type="date"
+              value={cycleDate}
+              onChange={(e) => { setCycleDate(e.target.value); setCycleNewSlot('') }}
+            />
+          </>
           {(() => {
             const newSlots = slotsForRecordDate(availability, effectiveDate)
             if (newSlots.length === 0) return null
@@ -668,10 +669,15 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       setError('ページ数は1以上の整数で入力してください')
       return
     }
+    const targetDate = recordDate || today
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+      setError('日付を入力してください')
+      return
+    }
     setError(null)
     try {
-      const recordedAt = recordNewSlot !== '' ? buildRecordedAt(today, recordNewSlot) : undefined
-      await addProgress(book.id, today, pages, recordedAt)
+      const recordedAt = recordNewSlot !== '' ? buildRecordedAt(targetDate, recordNewSlot) : undefined
+      await addProgress(book.id, targetDate, pages, recordedAt)
     } catch {
       setError('記録に失敗しました。もう一度お試しください')
       return
@@ -753,7 +759,15 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
         ページ
       </p>
       <div style={{ margin: '16px 0' }}>
-        <p>今日の学習（{todayRecord ? '記録済み・上書きします' : '未記録'}）</p>
+        <p>学習の記録（{recordDate === today ? (todayRecord ? '今日・記録済み・上書きします' : '今日・未記録') : formatJaDate(recordDate)}）</p>
+        <label htmlFor="record-date">日付</label>
+        <input
+          data-testid="record-date"
+          id="record-date"
+          type="date"
+          value={recordDate || today}
+          onChange={(e) => { setRecordDate(e.target.value); setRecordNewSlot('') }}
+        />
         <input
           data-testid="progress-input"
           type="number"
@@ -763,8 +777,8 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           placeholder="ページ数"
         />
         {(() => {
-          const todaySlots = slotsForRecordDate(availability, today)
-          if (todaySlots.length === 0) return null
+          const newSlots = slotsForRecordDate(availability, recordDate || today)
+          if (newSlots.length === 0) return null
           return (
             <select
               data-testid="record-slot-new"
@@ -773,7 +787,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
               onChange={(e) => setRecordNewSlot(e.target.value)}
             >
               <option value="">時刻を選ぶ（任意）</option>
-              {todaySlots.map((s) => (
+              {newSlots.map((s) => (
                 <option key={s.id} value={s.start}>
                   {s.start}〜{s.end}
                 </option>
@@ -782,7 +796,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           )
         })()}
         <button data-testid="record-progress" type="button" onClick={() => void handleRecord()}>
-          今日やったページ数を記録
+          ページ数を記録
         </button>
         {error && (
           <p data-testid="record-error" style={{ color: 'var(--danger)' }}>
@@ -798,8 +812,16 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       )}
       {bookRecords.length > 0 && (
         <section data-testid="record-list" style={{ marginTop: 16 }}>
-          <h2 style={{ fontSize: 16 }}>記録一覧</h2>
-          {bookRecords.map((record) => (
+          <button
+            data-testid="record-list-toggle"
+            type="button"
+            aria-expanded={showRecordList}
+            onClick={() => setShowRecordList((v) => !v)}
+            style={{ fontSize: 16, fontWeight: 700 }}
+          >
+            記録一覧（{bookRecords.length}件） {showRecordList ? '▼' : '▶'}
+          </button>
+          {showRecordList && bookRecords.map((record) => (
             <div
               key={record.id}
               data-testid={`record-row-${record.id}`}

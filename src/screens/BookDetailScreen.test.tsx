@@ -108,8 +108,9 @@ describe('BookDetailScreen', () => {
     await db.records.add({ id: 'r1', bookId: 'b1', date: daysFromNow(-2), pages: 10 })
     await db.records.add({ id: 'r2', bookId: 'b1', date: daysFromNow(-1), pages: 20 })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
-    expect(await screen.findByText('記録一覧')).toBeInTheDocument()
-    const row1 = screen.getByTestId('record-row-r1')
+    expect(await screen.findByTestId('record-list-toggle')).toHaveTextContent(/記録一覧/)
+    fireEvent.click(screen.getByTestId('record-list-toggle'))
+    const row1 = await screen.findByTestId('record-row-r1')
     expect(row1).toHaveTextContent('10 ページ')
     const row2 = screen.getByTestId('record-row-r2')
     expect(row2).toHaveTextContent('20 ページ')
@@ -123,6 +124,7 @@ describe('BookDetailScreen', () => {
     await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
     await db.records.add({ id: 'r1', bookId: 'b1', date: localDateStr(new Date()), pages: 10 })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('record-list-toggle'))
     fireEvent.click(await screen.findByTestId('record-edit-r1'))
     fireEvent.change(screen.getByTestId('record-edit-pages-r1'), { target: { value: '25' } })
     fireEvent.click(screen.getByTestId('record-save-r1'))
@@ -135,6 +137,7 @@ describe('BookDetailScreen', () => {
     await db.records.add({ id: 'r1', bookId: 'b1', date: localDateStr(new Date()), pages: 10 })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     const newDate = daysFromNow(2)
+    fireEvent.click(await screen.findByTestId('record-list-toggle'))
     fireEvent.click(await screen.findByTestId('record-edit-r1'))
     fireEvent.change(screen.getByTestId('record-edit-date-r1'), { target: { value: newDate } })
     fireEvent.click(screen.getByTestId('record-save-r1'))
@@ -149,6 +152,7 @@ describe('BookDetailScreen', () => {
     await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
     await db.records.add({ id: 'r1', bookId: 'b1', date: localDateStr(new Date()), pages: 10 })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('record-list-toggle'))
     fireEvent.click(await screen.findByTestId('record-delete-r1'))
     await waitFor(async () => {
       expect(screen.queryByTestId('record-row-r1')).not.toBeInTheDocument()
@@ -162,6 +166,7 @@ describe('BookDetailScreen', () => {
     await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
     await db.records.add({ id: 'r1', bookId: 'b1', date: localDateStr(new Date()), pages: 10 })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('record-list-toggle'))
     fireEvent.click(await screen.findByTestId('record-delete-r1'))
     expect(await db.records.get('r1')).toBeDefined()
     expect(screen.getByTestId('record-row-r1')).toBeInTheDocument()
@@ -462,7 +467,7 @@ describe('BookDetailScreen', () => {
     expect(recs[0].unitTo).toBe(1212)
   })
 
-  it('LEAPは日付欄なし・目標周回に今の周回が入った状態で記録できる', async () => {
+  it('LEAPは日付欄あり・目標周回に今の周回が入った状態で記録できる', async () => {
     await db.books.add({
       ...book,
       title: '改訂版 必携 英単語 LEAP',
@@ -476,7 +481,7 @@ describe('BookDetailScreen', () => {
     })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     expect(await screen.findByTestId('cycle-record')).toBeInTheDocument()
-    expect(screen.queryByTestId('cycle-date')).not.toBeInTheDocument()
+    expect(screen.getByTestId('cycle-date')).toBeInTheDocument()
     expect(screen.getByTestId('cycle-round')).toHaveValue('1')
     fireEvent.click(screen.getByTestId('leap-preset-1-400'))
     for (const d of ['1', '2']) fireEvent.click(screen.getByTestId('numpad-' + d))
@@ -744,6 +749,7 @@ describe('BookDetailScreen', () => {
       true,
     )
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('record-list-toggle'))
     fireEvent.click(await screen.findByTestId('record-edit-r1'))
     const form = await screen.findByTestId('record-edit-form-r1')
     expect(form).toHaveStyle({ 'flex-wrap': 'wrap' })
@@ -756,5 +762,57 @@ describe('BookDetailScreen', () => {
       const { formatJaTime } = await import('../lib/progress')
       expect(formatJaTime(stored?.recordedAt ?? new Date().toISOString())).toBe('21:00')
     })
+  })
+
+  it('通常ページの記録フォームに日付入力があり初期値は今日', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    const dateInput = (await screen.findByTestId('record-date') as HTMLInputElement)
+    expect(dateInput).toBeInTheDocument()
+    expect(dateInput.value).toBe(localDateStr(new Date()))
+  })
+
+  it('通常ページで過去日を指定して記録できる', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(-5), deadline: daysFromNow(10) })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    const yesterday = daysFromNow(-1)
+    fireEvent.change(await screen.findByTestId('record-date'), { target: { value: yesterday } })
+    fireEvent.change(await screen.findByTestId('progress-input'), { target: { value: '15' } })
+    fireEvent.click(screen.getByTestId('record-progress'))
+    await waitFor(async () => {
+      const recs = await db.records.toArray()
+      expect(recs).toHaveLength(1)
+      expect(recs[0].date).toBe(yesterday)
+      expect(recs[0].pages).toBe(15)
+    })
+  })
+
+  it('通常ページの記録一覧はボタンで展開するまでは表示されない', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(-2), deadline: daysFromNow(10) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: daysFromNow(-1), pages: 10 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    const toggle = await screen.findByTestId('record-list-toggle')
+    expect(toggle).toHaveTextContent(/記録一覧/)
+    expect(screen.queryByTestId('record-row-r1')).not.toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(await screen.findByTestId('record-row-r1')).toBeInTheDocument()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(screen.queryByTestId('record-row-r1')).not.toBeInTheDocument())
+  })
+
+  it('LEAPでも日付入力が表示される', async () => {
+    await db.books.add({
+      ...book,
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      totalPages: 576,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(-2),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByTestId('cycle-date')).toBeInTheDocument()
   })
 })
