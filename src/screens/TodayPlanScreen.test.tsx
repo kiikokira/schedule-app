@@ -862,7 +862,7 @@ describe('today slot gate', () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
     await screen.findByTestId('today-table')
     expect(screen.getByTestId('plan-record-b1')).toBeInTheDocument()
-    expect(screen.getByTestId('slot-missed-b1')).toHaveTextContent('やらなかった')
+    expect(screen.getByTestId('slot-missed-b1')).toHaveTextContent('スキップ')
     expect(screen.queryByTestId('slot-gate-future')).not.toBeInTheDocument()
     expect(screen.queryByTestId('slot-locked')).not.toBeInTheDocument()
   })

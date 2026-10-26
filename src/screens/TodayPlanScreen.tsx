@@ -700,7 +700,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                 syncLeagueSlot(today, slotKey, { my: 0, unit: unitKind, slotMinutes, forfeit: true })
                 setSeasonTick((v) => v + 1)
               } catch { /* ignore */ }
-              setDayMessage(`やらなかったとして記録しました（${fmt(s.startMin)}-${fmt(s.endMin)}）`)
+              setDayMessage(`スキップとして記録しました（${fmt(s.startMin)}-${fmt(s.endMin)}）`)
             }
             return (
               <div
@@ -795,7 +795,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                         style={{ flexShrink: 0 }}
                         onClick={handleForfeit}
                       >
-                        やらなかった
+                        スキップ
                       </button>
                     </div>
                   )}
@@ -857,7 +857,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                         style={{ flexShrink: 0 }}
                         onClick={handleForfeit}
                       >
-                        やらなかった
+                        スキップ
                       </button>
                     </div>
                   )}
