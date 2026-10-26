@@ -347,6 +347,53 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
               選択中：{LEAP_WORD_RANGES[leapBlock].from}〜{LEAP_WORD_RANGES[leapBlock].to}語の中で開始語・終了語を入力
             </p>
           )}
+          {mine.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+              <button
+                data-testid="cycle-continue"
+                type="button"
+                onClick={() => {
+                  const last = mine[0]
+                  const total = book.totalUnits ?? 0
+                  const len = Math.abs(last.unitTo - last.unitFrom) + 1
+                  let start = Math.max(last.unitFrom, last.unitTo) + 1
+                  if (start > total) start = total
+                  const end = Math.min(start + len - 1, total)
+                  setCycleFrom(String(start))
+                  setCycleTo(String(end))
+                  setCycleRoundInput('')
+                  setNumpadTarget('to')
+                }}
+              >
+                つづきから入力
+              </button>
+              {[
+                { id: 'cycle-step-minus-50', delta: -50, label: '−50' },
+                { id: 'cycle-step-minus-10', delta: -10, label: '−10' },
+                { id: 'cycle-step-plus-10', delta: 10, label: '＋10' },
+                { id: 'cycle-step-plus-50', delta: 50, label: '＋50' },
+              ].map(({ id, delta, label }) => (
+                <button
+                  key={id}
+                  data-testid={id}
+                  type="button"
+                  aria-label={`終了を${label}する`}
+                  onClick={() => {
+                    const total = book.totalUnits ?? 0
+                    const curTo = cycleTo.trim() !== '' ? Number(normalizeNumericInput(cycleTo.trim())) : NaN
+                    const curFrom = cycleFrom.trim() !== '' ? Number(normalizeNumericInput(cycleFrom.trim())) : NaN
+                    const base = Number.isInteger(curTo) ? curTo : Number.isInteger(curFrom) ? curFrom : null
+                    if (base == null) return
+                    const next = Math.min(Math.max(base + delta, 1), total)
+                    setCycleTo(String(next))
+                    setNumpadTarget('to')
+                  }}
+                >
+                  終了{label}
+                </button>
+              ))}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               data-testid="numpad-tab-from"
@@ -776,6 +823,46 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           onChange={(e) => setPagesInput(e.target.value)}
           placeholder="ページ数"
         />
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '8px 0' }}>
+          {bookRecords.length > 0 && (
+            <button
+              data-testid="record-repeat-last"
+              type="button"
+              onClick={() => setPagesInput(String(bookRecords[0].pages))}
+            >
+              前回と同じ
+            </button>
+          )}
+          <button
+            data-testid="record-set-target"
+            type="button"
+            onClick={() => {
+              if (target >= 1) setPagesInput(String(target))
+            }}
+          >
+            目標をセット
+          </button>
+          {[
+            { id: 'record-step-minus-5', delta: -5, label: '−5' },
+            { id: 'record-step-minus-1', delta: -1, label: '−1' },
+            { id: 'record-step-plus-1', delta: 1, label: '＋1' },
+            { id: 'record-step-plus-5', delta: 5, label: '＋5' },
+          ].map(({ id, delta, label }) => (
+            <button
+              key={id}
+              data-testid={id}
+              type="button"
+              aria-label={`ページ数を${label}する`}
+              onClick={() => {
+                const cur = pagesInput.trim() !== '' ? Number(pagesInput) : 0
+                const base = Number.isInteger(cur) ? cur : 0
+                setPagesInput(String(Math.max(base + delta, 1)))
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         {(() => {
           const newSlots = slotsForRecordDate(availability, recordDate || today)
           if (newSlots.length === 0) return null

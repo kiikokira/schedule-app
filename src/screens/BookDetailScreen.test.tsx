@@ -815,4 +815,65 @@ describe('BookDetailScreen', () => {
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     expect(await screen.findByTestId('cycle-date')).toBeInTheDocument()
   })
+
+  it('cycles: つづきボタンで前回の次から同分量をセットする', async () => {
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(-2),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: daysFromNow(0), unitFrom: 1, unitTo: 100, round: 1 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('cycle-continue'))
+    expect(screen.getByTestId('cycle-from-display')).toHaveTextContent('101')
+    expect(screen.getByTestId('cycle-to-display')).toHaveTextContent('200')
+  })
+
+  it('cycles: 終了ステッパーで終了だけ増減できる', async () => {
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(-2),
+      deadline: daysFromNow(6),
+    })
+    await db.cycleRecords.add({ id: 'c1', bookId: 'b1', date: daysFromNow(0), unitFrom: 1, unitTo: 100, round: 1 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('cycle-continue'))
+    fireEvent.click(screen.getByTestId('cycle-step-plus-50'))
+    expect(screen.getByTestId('cycle-to-display')).toHaveTextContent('250')
+    fireEvent.click(screen.getByTestId('cycle-step-minus-10'))
+    expect(screen.getByTestId('cycle-to-display')).toHaveTextContent('240')
+  })
+
+  it('cycles: 記録がないときはつづきボタンを出さない', async () => {
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+      startDate: daysFromNow(-2),
+      deadline: daysFromNow(6),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    expect(await screen.findByTestId('cycle-record')).toBeInTheDocument()
+    expect(screen.queryByTestId('cycle-continue')).not.toBeInTheDocument()
+  })
+
+  it('pages: 前回と同じ・目標セット・ステッパーで入力できる', async () => {
+    await db.books.add({ ...book, totalPages: 308, startDate: daysFromNow(-5), deadline: daysFromNow(10) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: daysFromNow(-1), pages: 20 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    const target = (await screen.findByTestId('today-target')).textContent
+    fireEvent.click(await screen.findByTestId('record-repeat-last'))
+    expect((screen.getByTestId('progress-input') as HTMLInputElement).value).toBe('20')
+    fireEvent.click(screen.getByTestId('record-step-plus-5'))
+    expect((screen.getByTestId('progress-input') as HTMLInputElement).value).toBe('25')
+    fireEvent.click(screen.getByTestId('record-set-target'))
+    expect((screen.getByTestId('progress-input') as HTMLInputElement).value).toBe(target)
+  })
 })
