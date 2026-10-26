@@ -5,6 +5,8 @@ import SchoolScreen from './SchoolScreen'
 describe('SchoolScreen', () => {
   beforeEach(() => {
     window.scrollTo = vi.fn() as unknown as typeof window.scrollTo
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
+    document.querySelector('.app-header')?.remove()
   })
   it('shows the October and March month sections', () => {
     render(<SchoolScreen onBack={() => {}} />)
@@ -95,22 +97,35 @@ describe('SchoolScreen', () => {
     expect(screen.queryByText('今月')).not.toBeInTheDocument()
   })
 
-  it('jump button scrolls to today event row', () => {
+  it('jump button scrolls to today event row just below the sticky header', () => {
+    const headerEl = document.createElement('div')
+    headerEl.className = 'app-header'
+    document.body.appendChild(headerEl)
     render(<SchoolScreen onBack={() => {}} today="2026-10-08" />)
+    const scrollTo = vi.fn()
+    window.scrollTo = scrollTo as unknown as typeof window.scrollTo
     const row = screen.getByTestId('school-event-10-8-0') as HTMLElement
-    const spy = vi.fn()
-    row.scrollIntoView = spy
+    vi.spyOn(headerEl, 'getBoundingClientRect').mockReturnValue({ top: 0, height: 60 } as DOMRect)
+    vi.spyOn(row, 'getBoundingClientRect').mockReturnValue({ top: 500 } as DOMRect)
+    Object.defineProperty(window, 'scrollY', { value: 100, configurable: true })
     fireEvent.click(screen.getByTestId('school-jump-today'))
-    expect(spy).toHaveBeenCalled()
+    // 500 + 100 - 60(header) - 8(余白) = 532。block:'start'のままだとヘッダー裏に隠れる。
+    expect(scrollTo).toHaveBeenCalledWith({ top: 532, behavior: 'smooth' })
   })
 
   it('jump button scrolls to the today placeholder row when today has no events', () => {
+    const headerEl = document.createElement('div')
+    headerEl.className = 'app-header'
+    document.body.appendChild(headerEl)
     render(<SchoolScreen onBack={() => {}} today="2026-10-04" />)
+    const scrollTo = vi.fn()
+    window.scrollTo = scrollTo as unknown as typeof window.scrollTo
     const row = screen.getByTestId('school-event-10-4-0') as HTMLElement
-    const spy = vi.fn()
-    row.scrollIntoView = spy
+    vi.spyOn(headerEl, 'getBoundingClientRect').mockReturnValue({ top: 0, height: 60 } as DOMRect)
+    vi.spyOn(row, 'getBoundingClientRect').mockReturnValue({ top: 400 } as DOMRect)
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
     fireEvent.click(screen.getByTestId('school-jump-today'))
-    expect(spy).toHaveBeenCalled()
+    expect(scrollTo).toHaveBeenCalledWith({ top: 332, behavior: 'smooth' })
   })
 
   it('jump button is hidden outside the covered months', () => {

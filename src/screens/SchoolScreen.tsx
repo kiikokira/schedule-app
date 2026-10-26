@@ -23,12 +23,19 @@ export default function SchoolScreen({ onBack, today: todayProp }: Props) {
   const todayDay = Number(today.slice(8, 10))
   const hasTodayMonth = MONTHS.includes(todayMonth)
   // 自動スクロールはしない（先頭表示の要求を維持）。押したときだけ今日へ移動する。
+  // stickyヘッダー（.app-header）の裏に隠れないよう、ヘッダー高さ分を差し引いて
+  // 今日の行の上端がヘッダー直下に来る位置までスクロールする（画像の状態）。
   const jumpToToday = () => {
-    const row = document.querySelector(
+    const el = document.querySelector(
       `[data-testid="school-event-${todayMonth}-${todayDay}-0"]`,
-    )
-    const month = document.querySelector(`[data-testid="school-month-${todayMonth}"]`)
-    ;(row ?? month)?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
+    ) as HTMLElement | null
+    const month = document.querySelector(`[data-testid="school-month-${todayMonth}"]`) as HTMLElement | null
+    const target = el ?? month
+    if (!target) return
+    const header = document.querySelector('.app-header')
+    const headerH = header?.getBoundingClientRect().height ?? 0
+    const y = target.getBoundingClientRect().top + window.scrollY - headerH - 8
+    window.scrollTo({ top: y, behavior: 'smooth' })
   }
   // 別ページ遷移時に前画面のスクロール位置が残り途中から表示されるため、先頭から表示する
   useEffect(() => {
