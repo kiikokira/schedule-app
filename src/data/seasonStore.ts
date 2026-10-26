@@ -1,9 +1,11 @@
 import { seasonIdForDate, seasonDayIndex, tallyToResults, decideRoundOutcome, leagueRankForPages, leaguePopulationFor, leagueDayInfo, ROUND_SIZE, type LeagueDayResult } from '../lib/seasonLeague'
 import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
 import { pagesToExp } from '../lib/seasonExp'
+import { leagueSlotInfo, parseSlotKey, rivalForSlot, type SlotUnit } from '../lib/slotLeague'
 import { leagueRatingDelta, ratingBandForDiff, rivalRatingFor, RATING_START, RATING_DIV2, RATING_DIV1 } from '../lib/leagueRating'
 import { awardPhaseBadge } from '../lib/leagueBadges'
-export type SeasonState = { seasonId: string; div: number; highestDiv: number; rating: number; ratedUpTo: string | null; round: RoundTally; phaseBestDiv: number; exp: number; days: Record<string, number>; appliedSeasonId?: string }
+export type SlotMatchEntry = { date: string; my: number; opp: number; oppName: string; result: LeagueDayResult; unit: SlotUnit }
+export type SeasonState = { seasonId: string; div: number; highestDiv: number; rating: number; ratedUpTo: string | null; round: RoundTally; phaseBestDiv: number; exp: number; days: Record<string, number>; slotMatches: Record<string, SlotMatchEntry>; appliedSeasonId?: string }
 export type RoundTally = { w: number; d: number; l: number; lastDate: string | null }
 
 function normalizeHighestDiv(v: unknown, fallbackDiv: number): number {
@@ -42,6 +44,17 @@ function normalizeDays(v: unknown): Record<string, number> {
 }
 function normalizeExp(v: unknown): number {
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : 0
+}
+function normalizeSlotMatches(v: unknown): Record<string, SlotMatchEntry> {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return {}
+  const out: Record<string, SlotMatchEntry> = {}
+  for (const [k, e] of Object.entries(v as Record<string, unknown>)) {
+    if (!e || typeof e !== 'object') continue
+    const o = e as Record<string, unknown>
+    if (typeof o['date'] !== 'string' || typeof o['result'] !== 'string') continue
+    out[k] = e as SlotMatchEntry
+  }
+  return out
 }
 function readApplied(p: unknown): string | undefined {
   if (p && typeof p === 'object') {
@@ -188,6 +201,27 @@ export function syncLeagueDay(today: string, days: Record<string, number>, div: 
   return s
 }
 
+export function syncLeagueSlot(today: string, slotKey: string, input: { my: number; unit: SlotUnit; slotMinutes: number; forfeit?: boolean }): SeasonState {
+  let s = loadSeasonState(today)
+  if (typeof slotKey !== 'string' || !slotKey.includes('#')) return s
+  const parsed = parseSlotKey(slotKey)
+  if (!parsed) return s
+  if (s.slotMatches?.[slotKey]) return s
+  const seasonId = seasonIdForDate(parsed.date)
+  const my = input.forfeit ? 0 : (Number.isFinite(input.my) && input.my >= 0 ? Math.floor(input.my) : 0)
+  const info = leagueSlotInfo(seasonId, s.div, slotKey, my, input.unit, input.slotMinutes)
+  const result: LeagueDayResult = input.forfeit ? 'loss' : info.result
+  const entry: SlotMatchEntry = { date: parsed.date, my, opp: info.opponentAmount, oppName: info.opponent, result, unit: input.unit }
+  const rival = rivalForSlot(seasonId, s.div, slotKey)
+  const oppRating = rivalRatingFor(rival.id, s.div)
+  const stamp = `${parsed.date}${slotKey.slice(10)}`
+  let next: SeasonState = { ...s, slotMatches: { ...(s.slotMatches ?? {}), [slotKey]: entry } }
+  next = appendRoundMatches(next, next.div, [{ date: stamp, result }])
+  next = applyMatchRatings(next, next.div, [{ date: stamp, result, oppRating }])
+  saveSeasonState(next)
+  return next
+}
+
 export function loadSeasonState(today: string): SeasonState {
   let currentId: string
   try {
@@ -211,7 +245,8 @@ export function loadSeasonState(today: string): SeasonState {
           const rating = normalizeRating((p as unknown as Record<string, unknown>)['rating'])
           const ratedUpTo = normalizeRatedUpTo((p as unknown as Record<string, unknown>)['ratedUpTo'])
           const round = normalizeRound((p as unknown as Record<string, unknown>)['round'])
-          const next: SeasonState = { seasonId: currentId, div, highestDiv, phaseBestDiv, rating, ratedUpTo, round, exp, days }
+          const slotMatches = normalizeSlotMatches((p as unknown as Record<string, unknown>)['slotMatches'])
+          const next: SeasonState = { seasonId: currentId, div, highestDiv, phaseBestDiv, rating, ratedUpTo, round, exp, days, slotMatches }
           if (applied) next.appliedSeasonId = applied
           return next
         }
@@ -226,7 +261,7 @@ export function loadSeasonState(today: string): SeasonState {
         awardPhaseBadge(prevId, { bestDiv: prevPhaseBest, finalRank, played: playedCount })
         const highestDiv = Math.min(prevHighest, prevDiv)
         const newDiv = startDivForHighest(highestDiv)
-        const rolled: SeasonState = { seasonId: currentId, div: newDiv, highestDiv, phaseBestDiv: newDiv, rating: newDiv <= 3 ? RATING_START : 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {}, appliedSeasonId: prevId }
+        const rolled: SeasonState = { seasonId: currentId, div: newDiv, highestDiv, phaseBestDiv: newDiv, rating: newDiv <= 3 ? RATING_START : 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {}, slotMatches: {}, appliedSeasonId: prevId }
         try {
           localStorage.setItem(KEY, JSON.stringify(rolled))
         } catch { /* ignore */ }
@@ -235,9 +270,9 @@ export function loadSeasonState(today: string): SeasonState {
     }
   } catch { /* ignore */ }
   try {
-    return { seasonId: seasonIdForDate(today), div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} }
+    return { seasonId: seasonIdForDate(today), div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {}, slotMatches: {} }
   } catch {
-    return { seasonId: '2026-09-01', div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} }
+    return { seasonId: '2026-09-01', div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {}, slotMatches: {} }
   }
 }
 export function saveSeasonState(s: SeasonState): void {
@@ -262,7 +297,7 @@ export function recordSeasonDay(today: string, pages: number, streak: number): S
     try {
       return loadSeasonState(today)
     } catch {
-      return { seasonId: '2026-09-01', div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} }
+      return { seasonId: '2026-09-01', div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {}, slotMatches: {} }
     }
   }
 }
