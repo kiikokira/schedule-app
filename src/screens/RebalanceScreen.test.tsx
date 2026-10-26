@@ -69,10 +69,11 @@ describe('RebalanceScreen', () => {
     render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={() => {}} />)
     const select = (await screen.findByTestId('priority-select-b1')) as HTMLSelectElement
     expect(select.selectedOptions[0].textContent).toBe('優先')
-    expect(screen.getByRole('option', { name: '優先' })).toHaveValue('0')
-    expect(screen.getByRole('option', { name: '公平均分' })).toHaveValue('1')
-    expect(screen.getByRole('option', { name: '軽視' })).toHaveValue('2')
-    expect(screen.getByRole('option', { name: 'スキップ' })).toHaveValue('3')
+    const scope = within(select)
+    expect(scope.getByRole('option', { name: '優先' })).toHaveValue('0')
+    expect(scope.getByRole('option', { name: '公平均分' })).toHaveValue('1')
+    expect(scope.getByRole('option', { name: '軽視' })).toHaveValue('2')
+    expect(scope.getByRole('option', { name: 'スキップ' })).toHaveValue('3')
   })
 
   it('shows no-change when the added book gets no time today', async () => {
@@ -216,6 +217,42 @@ describe('RebalanceScreen', () => {
     expect(onSchedule).toHaveBeenCalled()
   })
 
+  it('clears a saved priority back to 未設定 when reporting', async () => {
+    const onSchedule = vi.fn()
+    await addBook('b1', { priority: 0 })
+    await addBook('b2')
+    await seedDaySlot()
+    render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={onSchedule} />)
+    const select = (await screen.findByTestId('priority-select-b1')) as HTMLSelectElement
+    expect(select.value).toBe('0')
+    fireEvent.change(select, { target: { value: '' } })
+    fireEvent.click(screen.getByTestId('rebalance-report'))
+    await waitFor(() => expect(onSchedule).toHaveBeenCalled())
+    const book = await db.books.get('b1')
+    expect(book?.priority).toBeUndefined()
+  })
+
+  it('saves the other book’s edits too so two-book balance can be adjusted', async () => {
+    const onSchedule = vi.fn()
+    await addBook('b1')
+    await addBook('b2')
+    await seedDaySlot()
+    render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={onSchedule} />)
+    fireEvent.change(await screen.findByTestId('priority-select-b2'), {
+      target: { value: '2' },
+    })
+    fireEvent.change(await screen.findByTestId('ratio-input-b2'), {
+      target: { value: '3' },
+    })
+    fireEvent.click(screen.getByTestId('rebalance-report'))
+    await waitFor(async () => {
+      const other = await db.books.get('b2')
+      expect(other?.priority).toBe(2)
+      expect(other?.allottedRatio).toBeCloseTo(0.3)
+    })
+    await waitFor(() => expect(onSchedule).toHaveBeenCalled())
+  })
+
   it('keeps home books out of train slots in the after plan', async () => {
     const today = todayStr()
     await addBook('bHome', { trainFit: 'home', totalPages: 200, minutesPerPage: 2, deadline: addDays(today, 90) })
@@ -261,16 +298,22 @@ describe('RebalanceScreen', () => {
     )
   })
 
-  it('tells that nothing changes without priority or ratio edits', async () => {
+  it('lets the after image through to the plan even without priority or ratio edits', async () => {
+    const onSchedule = vi.fn()
     await addBook('b1')
     await addBook('b2')
     await seedDaySlot()
-    render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={() => {}} />)
-    expect(await screen.findByTestId('rebalance-no-change-hint')).toHaveTextContent(
-      '優先度・配分比率に変更がないため、このまま反映しても計画は変わりません',
-    )
-    fireEvent.change(screen.getByTestId('priority-select-b1'), { target: { value: '0' } })
+    render(<RebalanceScreen bookId="b1" onBack={() => {}} onSchedule={onSchedule} />)
+    // ブロックするヒントは出さず、入力なしでも修正後イメージのまま進める文言を出す
+    expect(await screen.findByTestId('rebalance-after')).toBeInTheDocument()
     expect(screen.queryByTestId('rebalance-no-change-hint')).not.toBeInTheDocument()
+    expect(screen.getByText('入力がなくても上の修正後イメージのまま今日の計画へ進めます。配分を変えたい本だけ調整してください。')).toBeInTheDocument()
+    // 他冊も調整できるように対象外の本の入力欄も出す（配分バランス用）
+    expect(screen.getByTestId('priority-select-b2')).toBeInTheDocument()
+    expect(screen.getByTestId('ratio-input-b2')).toBeInTheDocument()
+    // 入力なしでも計画に反映で今日の計画へ進める
+    fireEvent.click(screen.getByTestId('rebalance-report'))
+    await waitFor(() => expect(onSchedule).toHaveBeenCalled())
   })
 
   it('excludes past slots from the after plan', async () => {

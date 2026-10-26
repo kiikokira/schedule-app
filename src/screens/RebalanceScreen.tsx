@@ -58,7 +58,9 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   const now = new Date()
   const nowMin = now.getHours() * 60 + now.getMinutes()
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
-  const [priorities, setPriorities] = useState<Record<string, number>>({})
+  // 優先度は明示的なクリア（未設定に戻す）も変更として扱うため、
+  // キーの有無で「触ったかどうか」を判定する（値がundefinedでも変更扱い）。
+  const [priorities, setPriorities] = useState<Record<string, number | undefined>>({})
   const [ratios, setRatios] = useState<Record<string, string>>({})
   const [recalcStatus, setRecalcStatus] = useState<string | null>(null)
 
@@ -67,7 +69,7 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   }, [])
 
   const priorityOf = (b: BookData): number | undefined =>
-    priorities[b.id] !== undefined ? priorities[b.id] : b.priority
+    b.id in priorities ? priorities[b.id] : b.priority
   const ratioOf = (b: BookData) =>
     ratios[b.id] !== undefined ? clampRatio(ratios[b.id]) : b.allottedRatio
 
@@ -114,34 +116,47 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   }
 
   const report = async () => {
-    const book = books.find((b) => b.id === bookId)
-    if (!book) return
-    const effectivePriority = priorityOf(book)
-    const changed: Partial<BookData> = {}
-    if (effectivePriority !== undefined && effectivePriority !== book.priority) {
-      changed.priority = effectivePriority
-    }
-    if (ratios[bookId] !== undefined && ratioOf(book) !== book.allottedRatio) {
-      changed.allottedRatio = ratioOf(book)
-    }
-    await saveBook({ ...book, ...changed, updatedAt: new Date().toISOString() }, false)
-    if (changed.priority !== undefined) {
-      await addAdjustment({
-        id: crypto.randomUUID(),
-        date: today,
-        bookId,
-        kind: 'priority',
-        value: changed.priority,
-      })
-    }
-    if (changed.allottedRatio !== undefined) {
-      await addAdjustment({
-        id: crypto.randomUUID(),
-        date: today,
-        bookId,
-        kind: 'ratio',
-        value: changed.allottedRatio,
-      })
+    // 修正後イメージ（after）は保存済み＋画面の入力から生成される。
+    // 入力がなくてもafter自体が現在の計画なので、そのまま今日の計画へ進める。
+    // 入力がある本は全て保存する（対象本だけでなく他冊の調整も反映できるように）。
+    const nowIso = new Date().toISOString()
+    for (const b of books) {
+      const hasPriorityEdit = b.id in priorities
+      const hasRatioEdit = ratios[b.id] !== undefined
+      if (!hasPriorityEdit && !hasRatioEdit) continue
+      const effectivePriority = hasPriorityEdit ? priorities[b.id] : b.priority
+      const effectiveRatio = hasRatioEdit ? clampRatio(ratios[b.id]) : b.allottedRatio
+      const priorityChanged = hasPriorityEdit && effectivePriority !== b.priority
+      const ratioChanged = hasRatioEdit && effectiveRatio !== b.allottedRatio
+      if (!priorityChanged && !ratioChanged) continue
+      const next: BookData = { ...b, updatedAt: nowIso }
+      if (priorityChanged) {
+        if (effectivePriority === undefined) delete (next as Partial<BookData>).priority
+        else next.priority = effectivePriority
+      }
+      if (ratioChanged) {
+        if (effectiveRatio === undefined) delete (next as Partial<BookData>).allottedRatio
+        else next.allottedRatio = effectiveRatio
+      }
+      await saveBook(next, false)
+      if (priorityChanged && effectivePriority !== undefined) {
+        await addAdjustment({
+          id: crypto.randomUUID(),
+          date: today,
+          bookId: b.id,
+          kind: 'priority',
+          value: effectivePriority,
+        })
+      }
+      if (ratioChanged && effectiveRatio !== undefined) {
+        await addAdjustment({
+          id: crypto.randomUUID(),
+          date: today,
+          bookId: b.id,
+          kind: 'ratio',
+          value: effectiveRatio,
+        })
+      }
     }
     onSchedule()
   }
@@ -163,10 +178,10 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   const beforeSummary = summarize(before)
   const afterSummary = summarize(after)
   const targetBook = books.find((b) => b.id === bookId)
-  const hasPendingChanges =
-    targetBook !== undefined &&
-    ((priorities[bookId] !== undefined && priorities[bookId] !== targetBook.priority) ||
-      (ratios[bookId] !== undefined && ratioOf(targetBook) !== targetBook.allottedRatio))
+  // 対象本を先頭に、その他も調整できるようにする（2冊以上の配分バランスを取るため）。
+  const orderedBooks = [...books].sort((a, b) =>
+    a.id === bookId ? -1 : b.id === bookId ? 1 : 0,
+  )
 
   const renderPlan = (
     plan: Awaited<ReturnType<typeof generateDayPlan>>,
@@ -277,64 +292,67 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
         })}
       </div>
 
-      {targetBook && (
+      {orderedBooks.length > 0 && (
         <>
           <h2 style={{ fontSize: 16, marginTop: 16 }}>優先度・配分比率を調整</h2>
-          <div style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 15, marginBottom: 4 }}>{targetBook.title}</div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <select
-                data-testid={`priority-select-${targetBook.id}`}
-                value={String(priorityOf(targetBook) ?? '')}
-                onChange={(e) => {
-                  const v = e.target.value
-                  if (v === '') {
-                    setPriorities((p) => {
-                      const next = { ...p }
-                      delete next[targetBook.id]
-                      return next
-                    })
-                  } else {
-                    setPriorities((p) => ({ ...p, [targetBook.id]: Number(v) }))
-                  }
-                }}
-                style={{ width: 120 }}
-              >
-                {PRIORITY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <label
-                  data-testid={`ratio-label-${targetBook.id}`}
-                  htmlFor={`ratio-input-${targetBook.id}`}
-                  style={{ fontSize: 13, fontWeight: 700 }}
+          <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+            入力がなくても上の修正後イメージのまま今日の計画へ進めます。配分を変えたい本だけ調整してください。
+          </p>
+          {orderedBooks.map((b) => (
+            <div key={b.id} style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 15, marginBottom: 4 }}>{b.title}</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <select
+                  data-testid={`priority-select-${b.id}`}
+                  value={String(priorityOf(b) ?? '')}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (v === '') {
+                      // 明示的なクリアとしてundefinedを保持する（保存済みの値を消せるように）。
+                      // キーを消すと保存済みにフォールバックしてクリアできなくなるため。
+                      setPriorities((p) => ({ ...p, [b.id]: undefined }))
+                    } else {
+                      setPriorities((p) => ({ ...p, [b.id]: Number(v) }))
+                    }
+                  }}
+                  style={{ width: 120 }}
                 >
-                  配分比率（1〜10）
-                </label>
-                <input
-                  id={`ratio-input-${targetBook.id}`}
-                  data-testid={`ratio-input-${targetBook.id}`}
-                  type="number"
-                  min="1"
-                  max="10"
-                  step="1"
-                  value={ratios[targetBook.id] ?? ratioInputOf(targetBook)}
-                  onChange={(e) => setRatios((r) => ({ ...r, [targetBook.id]: e.target.value }))}
-                  placeholder="例: 5"
-                  style={{ width: 140 }}
-                />
-                <div
-                  data-testid={`ratio-hint-${targetBook.id}`}
-                  style={{ fontSize: 12, color: 'var(--text-dim)' }}
-                >
-                  1日の空き時間のうち使う上限の割合。5で5割まで
+                  {PRIORITY_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <label
+                    data-testid={`ratio-label-${b.id}`}
+                    htmlFor={`ratio-input-${b.id}`}
+                    style={{ fontSize: 13, fontWeight: 700 }}
+                  >
+                    配分比率（1〜10）
+                  </label>
+                  <input
+                    id={`ratio-input-${b.id}`}
+                    data-testid={`ratio-input-${b.id}`}
+                    type="number"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={ratios[b.id] ?? ratioInputOf(b)}
+                    onChange={(e) => setRatios((r) => ({ ...r, [b.id]: e.target.value }))}
+                    placeholder="例: 5"
+                    style={{ width: 140 }}
+                  />
+                  <div
+                    data-testid={`ratio-hint-${b.id}`}
+                    style={{ fontSize: 12, color: 'var(--text-dim)' }}
+                  >
+                    1日の空き時間のうち使う上限の割合。5で5割まで
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ))}
         </>
       )}
 
@@ -349,11 +367,6 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
           戻る
         </button>
       </div>
-      {targetBook && !hasPendingChanges && (
-        <p data-testid="rebalance-no-change-hint" style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 8 }}>
-          優先度・配分比率に変更がないため、このまま反映しても計画は変わりません
-        </p>
-      )}
       {recalcStatus && (
         <p data-testid="rebalance-status" style={{ color: 'var(--text-dim)' }}>
           {recalcStatus}
