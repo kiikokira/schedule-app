@@ -4,16 +4,13 @@ import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { combinedActivityOnDate, totalCycleUnits, pagesRecordsForTotals, cycleRecordsForTotals, todayStr } from '../lib/progress'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
-import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leaguePointsForPages, leaguePopulationFor, leagueRankForPages, decideRoundOutcome, tallyToResults, PROMOTION_LINES, STAY_LINES } from '../lib/seasonLeague'
+import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leaguePopulationFor, leagueRankForPages, leagueRankForRating, decideRoundOutcome, tallyToResults, PROMOTION_LINES, STAY_LINES } from '../lib/seasonLeague'
 import { loadSeasonState, saveSeasonState, finalizeRoundEarly } from '../data/seasonStore'
 import { loadProfile } from '../data/profileStore'
 import { levelForExp } from '../lib/seasonExp'
 import { parseSlotKey } from '../lib/slotLeague'
 
 type Props = { onBack: () => void; today?: string }
-
-// リーグのレーティング表示倍率（1.0で等倍）。ページ数・順位・勝敗には影響しない。
-const LEAGUE_RATING_RATE = 0.5
 
 // Divロゴ画像（添付の10枚を public/divs/div-1.jpg〜div-10.jpg として配置して使用）
 export function divEmblemSrc(div: number): string {
@@ -122,11 +119,6 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       }
     }
   }, [today, validRecords, validCycles, leagueDay])
-  const myLeagueCum = useMemo(() => leaguePointsForPages(mySeasonCumPages), [mySeasonCumPages])
-  // レーティングの上り幅だけ緩やかにする（ページ数・順位・勝敗には影響しない）。
-  // 変更時はこの1箇所だけ変える。
-  const displayRating = Math.floor(myLeagueCum * LEAGUE_RATING_RATE)
-  const headerRating = seasonState.div <= 3 ? seasonState.rating : displayRating
   const seasonCum = mySeasonCumPages
   const pop = useMemo(() => {
     try {
@@ -135,7 +127,10 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       return 2000000
     }
   }, [seasonState.seasonId, today])
-  const leagueRankVal = leagueRankForPages(seasonCum, pop)
+  const isPointsDiv = seasonState.div >= 4
+  // Div4〜10は勝ち点のみ。Div3〜1はレーティング基準順位（1900→約100万、2000→70万切り、popで変動）。
+  const headerRating = seasonState.rating
+  const leagueRankVal = isPointsDiv ? leagueRankForPages(seasonCum, pop) : leagueRankForRating(seasonState.rating, pop)
   const leagueWins = seasonState.round?.w ?? 0
   const phaseNo = useMemo(() => {
     try {
@@ -317,6 +312,105 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       )}
       {tab === 'league' && showLeague && (
         <div data-testid="league-board" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {isPointsDiv ? (
+          <section
+            data-testid="league-points-card"
+            style={{ padding: '14px 12px', borderRadius: 12, background: '#1e1f22', border: '1px solid #333', color: '#fff' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                data-testid="league-div-emblem-wrap"
+                style={{ width: 54, height: 54, borderRadius: 12, overflow: 'hidden', flexShrink: 0, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+              {emblemBroken ? (
+                <div
+                  style={{
+                    width: 54, height: 54, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 26, fontWeight: 900, color: '#fff', background: '#2b3a8f', border: '2px solid #fff',
+                  }}
+                  role="img" aria-label={`Division ${seasonState.div}エンブレム`}
+                >
+                  {seasonState.div}
+                </div>
+              ) : (
+                <img
+                  data-testid="league-div-emblem"
+                  src={divEmblemSrc(seasonState.div)}
+                  alt={`Division ${seasonState.div}エンブレム`}
+                  width={54}
+                  height={54}
+                  style={{ width: 54, height: 54, objectFit: 'contain', flexShrink: 0, display: 'block', border: 'none', background: 'transparent' }}
+                  onError={() => setEmblemBroken(true)}
+                />
+              )}
+              </div>
+              <div>
+                <div data-testid="league-division" style={{ fontWeight: 900, fontSize: 24, color: '#ffe600', lineHeight: 1.1 }}>
+                  Division {seasonState.div}
+                </div>
+                <div data-testid="league-phase" style={{ fontSize: 13, color: '#d7ff00', marginTop: 2, fontWeight: 700 }}>
+                  フェーズ{phaseNo}: {phaseRange.start}〜{phaseRange.end}
+                </div>
+              </div>
+            </div>
+            {(() => {
+              const t = seasonState.round ?? { w: 0, d: 0, l: 0, lastDate: null }
+              const played = Math.min(10, t.w + t.d + t.l)
+              const pts = t.w * 3 + t.d
+              const promo = PROMOTION_LINES[seasonState.div] ?? 0
+              const stay = STAY_LINES[seasonState.div]
+              const maxScale = Math.max(promo + 4, pts + 2, 1)
+              const fillPct = Math.min(100, Math.max(0, (pts / maxScale) * 100))
+              const stayPct = stay == null ? null : Math.min(100, Math.max(0, (stay / maxScale) * 100))
+              const promoPct = Math.min(100, Math.max(0, (promo / maxScale) * 100))
+              const outcome = decideRoundOutcome(seasonState.div, tallyToResults(t))
+              const statusText = outcome === 'promote' ? '昇格が確定しました' : outcome === 'stay' ? '残留が確定しました' : outcome === 'relegate' ? '降格が確定しました' : ''
+              return (
+                <>
+                  <div data-testid="league-points" style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginTop: 12 }}>
+                    現在の勝ち点: {pts}
+                  </div>
+                  <div data-testid="league-gauge" style={{ marginTop: 8 }}>
+                    <div style={{ position: 'relative', height: 28, background: '#4b4d52', borderRadius: 2, overflow: 'hidden' }}>
+                      <div data-testid="league-gauge-fill" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${fillPct}%`, background: '#2fd44f' }} />
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', color: '#fff', fontWeight: 700, fontSize: 16, padding: '0 8px', justifyContent: 'space-between' }}>
+                        <span>0</span>
+                        {stayPct != null && <span data-testid="league-gauge-stay-mark">{stay}</span>}
+                        <span data-testid="league-gauge-promo-mark">{promo}</span>
+                      </div>
+                      {stayPct != null && <div style={{ position: 'absolute', left: `${stayPct}%`, top: 0, bottom: 0, width: 2, background: '#fff', opacity: 0.9 }} />}
+                      <div style={{ position: 'absolute', left: `${promoPct}%`, top: 0, bottom: 0, width: 2, background: '#fff', opacity: 0.9 }} />
+                    </div>
+                    <div style={{ display: 'flex', marginTop: 2 }}>
+                      {stayPct != null ? (
+                        <>
+                          <div style={{ width: `${stayPct}%`, borderBottom: '2px solid #ff3b30', textAlign: 'center', color: '#ff3b30', fontWeight: 800, fontSize: 14, paddingTop: 2 }} data-testid="league-gauge-label-relegate">降格</div>
+                          <div style={{ width: `${Math.max(0, promoPct - (stayPct ?? 0))}%`, borderBottom: '2px solid #2fd44f', textAlign: 'center', color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }} data-testid="league-gauge-label-stay">残留</div>
+                          <div style={{ flex: 1, borderBottom: '2px solid #2fd44f', textAlign: 'center', color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }} data-testid="league-gauge-label-promote">昇格</div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ width: `${promoPct}%`, borderBottom: '2px solid #2fd44f', textAlign: 'center', color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }} data-testid="league-gauge-label-stay">残留</div>
+                          <div style={{ flex: 1, borderBottom: '2px solid #2fd44f', textAlign: 'center', color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }} data-testid="league-gauge-label-promote">昇格</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div data-testid="league-matches" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 8, borderTop: '1px solid #333' }}>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>🏆 試合数</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{played}/10</span>
+                  </div>
+                  {statusText && <div data-testid="league-decision" style={{ fontSize: 15, color: '#9a9a9a', marginTop: 12 }}>{statusText}</div>}
+                  {outcome === 'promote' && (t.w + t.d + t.l) < 10 && (
+                    <button data-testid="league-skip" type="button" onClick={() => { try { saveSeasonState(finalizeRoundEarly(loadSeasonState(today), today)); setSeasonTick((v) => v + 1) } catch { /* ignore */ } }} style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontWeight: 800, fontSize: 17, padding: '4px 0 0', cursor: 'pointer', textAlign: 'left' }}>
+                      残りの試合をスキップ
+                    </button>
+                  )}
+                </>
+              )
+            })()}
+          </section>
+          ) : (
           <section
             style={{ padding: '14px 12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}
           >
@@ -381,32 +475,11 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                 </span>
               </div>
             </div>
-            <div data-testid="league-round-status" style={{ fontSize: 13, color: '#9aa3c0', marginTop: 8 }}>
-              {(() => {
-                const t = seasonState.round ?? { w: 0, d: 0, l: 0, lastDate: null }
-                const played = t.w + t.d + t.l
-                const pts = t.w * 3 + t.d
-                const promo = PROMOTION_LINES[seasonState.div]
-                const stay = STAY_LINES[seasonState.div]
-                if (promo === undefined) return `レーティング勝負中（現在${seasonState.rating}）`
-                return `ラウンド${played + 1}試合目 勝ち点${pts}（昇格${promo}${stay == null ? '' : `・残留${stay}`}）`
-              })()}
-            </div>
             <div data-testid="league-wins" style={{ fontSize: 13, color: '#fff', marginTop: 4, fontWeight: 800 }}>
               ○{leagueWins}勝
             </div>
-            {(() => {
-              const t = seasonState.round ?? { w: 0, d: 0, l: 0, lastDate: null }
-              const played = t.w + t.d + t.l
-              const outcome = decideRoundOutcome(seasonState.div, tallyToResults(t))
-              if (outcome !== 'promote' || played >= 10 || seasonState.div < 4 || seasonState.div > 10) return null
-              return (
-                <button data-testid="league-skip" type="button" onClick={() => { try { saveSeasonState(finalizeRoundEarly(loadSeasonState(today), today)); setSeasonTick((v) => v + 1) } catch { /* ignore */ } }} style={{ flex: 1, background: '#ffe600', color: '#111', border: 'none', borderRadius: 10, fontWeight: 800, padding: '10px 0' }}>
-                  スキップして昇格
-                </button>
-              )
-            })()}
           </section>
+          )}
           <div data-testid="league-panel-info" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <section
             style={{ padding: '12px', borderRadius: 16, background: '#151a30', border: '1px solid #2a3358', color: '#fff' }}

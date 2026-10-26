@@ -130,4 +130,19 @@ describe('seasonLeague', () => {
     expect(leagueRankForPages(6000, pop)).toBeLessThan(r600)
     expect(leagueRankForPages(0, pop)).toBe(pop)
   })
+  it('レーティング順位は1900で約100万・2000で70万切り・固定でない', async () => {
+    const { leagueRankForRating } = await import('./seasonLeague')
+    const pop = 3000000
+    const r1900 = leagueRankForRating(1900, pop)
+    expect(r1900).toBeGreaterThan(600000)
+    expect(r1900).toBeLessThan(1400000)
+    const r2000 = leagueRankForRating(2000, pop)
+    expect(r2000).toBeLessThan(700000)
+    expect(r2000).toBeLessThan(r1900)
+    // 母集団で変動する（固定でない）
+    expect(leagueRankForRating(2000, 2000000)).not.toBe(leagueRankForRating(2000, 5000000))
+    // 上限キャップ：pop=500万でも2000は70万を切る
+    expect(leagueRankForRating(2000, 5000000)).toBeLessThan(700000)
+    expect(leagueRankForRating(1200, pop)).toBe(pop)
+  })
 })

@@ -1,4 +1,4 @@
-import { seasonIdForDate, seasonDayIndex, tallyToResults, decideRoundOutcome, leagueRankForPages, leaguePopulationFor, leagueDayInfo, ROUND_SIZE, type LeagueDayResult } from '../lib/seasonLeague'
+import { seasonIdForDate, seasonDayIndex, tallyToResults, decideRoundOutcome, leagueRankForPages, leagueRankForRating, leaguePopulationFor, leagueDayInfo, ROUND_SIZE, type LeagueDayResult } from '../lib/seasonLeague'
 import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
 import { pagesToExp } from '../lib/seasonExp'
 import { leagueSlotInfo, parseSlotKey, rivalForSlot, type SlotUnit } from '../lib/slotLeague'
@@ -260,7 +260,8 @@ export function loadSeasonState(today: string): SeasonState {
         const playedCount = Object.keys(prevDays).filter((d) => (prevDays[d] ?? 0) > 0).length
         const prevCum = Object.values(prevDays).reduce((a, b) => a + b, 0)
         const prevPop = leaguePopulationFor(prevId)
-        const finalRank = leagueRankForPages(prevCum, prevPop)
+        const prevRating = normalizeRating((p as unknown as Record<string, unknown>)['rating'])
+        const finalRank = prevDiv <= 3 ? leagueRankForRating(prevRating, prevPop) : leagueRankForPages(prevCum, prevPop)
         awardPhaseBadge(prevId, { bestDiv: prevPhaseBest, finalRank, played: playedCount })
         const highestDiv = Math.min(prevHighest, prevDiv)
         const newDiv = startDivForHighest(highestDiv)

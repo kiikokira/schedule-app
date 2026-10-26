@@ -166,3 +166,20 @@ export function leagueRankForPages(pages: number, population: number): number {
   const rank = Math.round(pop * (1 - lognormalCdf(pages, 300, 0.9)))
   return Math.min(Math.max(rank, 1), pop)
 }
+// Div3〜1用：レーティング基準の順位。母集団popで変動（固定にしない）。
+// 平均pop=300万で1900→約100万、2000→約60万（必ず70万切り）。 continuity at 1900.
+export function leagueRankForRating(rating: number, population: number): number {
+  const pop = Math.max(1, Math.round(population))
+  if (!Number.isFinite(rating) || rating <= 1200) return pop
+  const A1 = 0.001569
+  const A2 = 0.00511
+  const base1900 = Math.exp(-A1 * 700)
+  let rank: number
+  if (rating <= 1900) {
+    rank = pop * Math.exp(-A1 * (rating - 1200))
+  } else {
+    rank = pop * base1900 * Math.exp(-A2 * (rating - 1900))
+    if (rating >= 2000) rank = Math.min(rank, 699999)
+  }
+  return Math.min(Math.max(Math.round(rank), 1), pop)
+}

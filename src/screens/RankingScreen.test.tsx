@@ -195,12 +195,11 @@ describe('RankingScreen', () => {
     }
   })
   it('リーグ順位は自分の順位が一行で出て8人表は出ない', async () => {
-    const now = new Date().toISOString()
-    const today = '2026-09-02'
-    await db.books.add({ id: 'b1', title: '単語帳', totalPages: 100, startDate: today, deadline: today, createdAt: now, updatedAt: now })
-    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 100 })
     localStorage.clear()
-    render(<RankingScreen onBack={() => {}} today={today} />)
+    const { loadSeasonState, saveSeasonState } = await import('../data/seasonStore')
+    const s0 = loadSeasonState('2026-09-02')
+    saveSeasonState({ ...s0, div: 2, highestDiv: 2, phaseBestDiv: 2, rating: 1500, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null } })
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
     expect(document.getElementById('league-table')).toBeNull()
     expect(screen.queryByTestId('league-row-you')).toBeNull()
@@ -239,7 +238,7 @@ describe('RankingScreen', () => {
     expect(screen.getByTestId('league-record')).toHaveTextContent('勝利')
     expect(screen.getByTestId('league-record')).toHaveTextContent('敗戦')
     expect(screen.getByTestId('league-history')).toBeInTheDocument()
-    expect(screen.getByTestId('league-round-status')).toHaveTextContent('昇格')
+    expect(screen.getByTestId('league-points')).toHaveTextContent('勝ち点')
   })
   it('リーグタブの履歴にスコア形式で出る', async () => {
     const today = '2026-09-02'
@@ -299,52 +298,43 @@ describe('RankingScreen', () => {
     expect(screen.queryByTestId('league-to-table')).toBeNull()
     expect(screen.queryByTestId('league-to-record')).toBeNull()
   })
-  it('リーグタブのレーティングアイコンはSVGの矢印で表示される', () => {
+  it('リーグタブのレーティングアイコンはSVGの矢印で表示される', async () => {
     localStorage.clear()
+    const { loadSeasonState, saveSeasonState } = await import('../data/seasonStore')
+    const s0 = loadSeasonState('2026-09-02')
+    saveSeasonState({ ...s0, div: 2, highestDiv: 2, phaseBestDiv: 2, rating: 1500, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null } })
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
     expect(screen.getByTestId('league-rating-icon').tagName.toLowerCase()).toBe('svg')
   })
-  it('リーグ表の○勝が表示される', () => {
+  it('リーグ表の○勝が表示される', async () => {
     localStorage.clear()
+    const { loadSeasonState, saveSeasonState } = await import('../data/seasonStore')
+    const s0 = loadSeasonState('2026-09-02')
+    saveSeasonState({ ...s0, div: 2, highestDiv: 2, phaseBestDiv: 2, rating: 1500, ratedUpTo: null, round: { w: 1, d: 0, l: 0, lastDate: null } })
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
     const wins = screen.getByTestId('league-wins')
     expect(wins).toHaveTextContent(/○\d+勝/)
   })
   it('リーグ表の自分累計は今季のDB合計と一致する（キャッシュや全期間合計に依存しない）', async () => {
-    const now = new Date().toISOString()
-    const today = '2026-09-02'
-    await db.books.add({
-      id: 'b1', title: '単語帳', totalPages: 5000,
-      startDate: '2026-08-20', deadline: '2026-09-10', createdAt: now, updatedAt: now,
-    })
-    // 今季（2026-09-01〜）の記録: 9/01に10、今日9/02に100
-    await db.records.add({ id: 'r1', bookId: 'b1', date: '2026-09-01', pages: 10 })
-    await db.records.add({ id: 'r2', bookId: 'b1', date: today, pages: 100 })
-    // 前季の記録: 累計に混ざってはならない
-    await db.records.add({ id: 'r0', bookId: 'b1', date: '2026-08-20', pages: 500 })
-    // キャッシュは今日分のみ（スクショの「今日21だけ反映」と同じ欠け状態を再現）
     localStorage.clear()
-    localStorage.setItem('schedule-app-season-v1', JSON.stringify({ seasonId: '2026-09-01', div: 10, exp: 0, days: { [today]: 100 } }))
-    render(<RankingScreen onBack={() => {}} today={today} />)
+    const { loadSeasonState, saveSeasonState } = await import('../data/seasonStore')
+    const s0 = loadSeasonState('2026-09-02')
+    saveSeasonState({ ...s0, div: 3, highestDiv: 3, phaseBestDiv: 3, rating: 1350, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null } })
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    // 今季合計110ページ→22pt換算→半分の11。今日分だけ（20pt→10）でも全期間合計でもない
-    expect(await screen.findByTestId('league-rating')).toHaveTextContent('11')
+    // Div3は保存レーティングをそのまま表示する
+    expect(await screen.findByTestId('league-rating')).toHaveTextContent('1,350')
   })
-  it('レーティングはページ数の半分で表示する', async () => {
-    const now = new Date().toISOString()
-    const today = '2026-09-02'
-    await db.books.add({
-      id: 'b1', title: '単語帳', totalPages: 500,
-      startDate: today, deadline: today, createdAt: now, updatedAt: now,
-    })
-    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 100 })
+  it('レーティングは保存値をそのまま表示する', async () => {
     localStorage.clear()
-    render(<RankingScreen onBack={() => {}} today={today} />)
+    const { loadSeasonState, saveSeasonState } = await import('../data/seasonStore')
+    const s0 = loadSeasonState('2026-09-02')
+    saveSeasonState({ ...s0, div: 3, highestDiv: 3, phaseBestDiv: 3, rating: 1280, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null } })
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    // 今季累計100ページ→20pt換算、レーティングはその半分の10
-    expect(await screen.findByTestId('league-rating')).toHaveTextContent('10')
+    expect(await screen.findByTestId('league-rating')).toHaveTextContent('1,280')
   })
   it('選択中のタブだけ種別調和色で表示する', () => {
     localStorage.clear()
@@ -402,8 +392,8 @@ describe('RankingScreen', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    expect(screen.getByTestId('league-round-status')).toHaveTextContent(/勝ち点/)
-    expect(screen.getByTestId('league-round-status')).toHaveTextContent('昇格3')
+    expect(screen.getByTestId('league-points')).toHaveTextContent(/勝ち点/)
+    expect(screen.getByTestId('league-gauge-promo-mark')).toHaveTextContent('3')
     expect(screen.queryByTestId('league-skip')).toBeNull()
   })
   it('昇格確定でスキップボタンが出て押すと即昇格する', async () => {
@@ -419,5 +409,53 @@ describe('RankingScreen', () => {
     await waitFor(() => expect(screen.getByTestId('league-skip')).toBeInTheDocument())
     fireEvent.click(screen.getByTestId('league-skip'))
     await waitFor(() => expect(screen.getByTestId('league-division')).toHaveTextContent('Division 9'))
+  })
+  it('Div10〜4は勝ち点ゲージ表示でレーティング・順位は出ない', async () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.getByTestId('league-division')).toHaveTextContent('Division 10')
+    expect(screen.getByTestId('league-points')).toHaveTextContent('現在の勝ち点')
+    expect(screen.getByTestId('league-gauge')).toBeInTheDocument()
+    expect(screen.getByTestId('league-matches')).toHaveTextContent('試合数')
+    expect(screen.queryByTestId('league-rating')).toBeNull()
+    expect(screen.queryByTestId('league-rank')).toBeNull()
+  })
+  it('Div4ゲージは緑フィル・降格赤・残留昇格緑のラベルが出る', async () => {
+    localStorage.clear()
+    const { loadSeasonState, saveSeasonState } = await import('../data/seasonStore')
+    const s0 = loadSeasonState('2026-09-02')
+    saveSeasonState({ ...s0, div: 4, highestDiv: 4, phaseBestDiv: 4, round: { w: 2, d: 0, l: 0, lastDate: null } })
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.getByTestId('league-gauge-fill')).toBeInTheDocument()
+    expect(screen.getByTestId('league-gauge-label-relegate')).toHaveTextContent('降格')
+    expect(screen.getByTestId('league-gauge-label-stay')).toHaveTextContent('残留')
+    expect(screen.getByTestId('league-gauge-label-promote')).toHaveTextContent('昇格')
+  })
+  it('昇格確定時は青文字の残りの試合をスキップが出る', async () => {
+    const today = '2026-09-02'
+    localStorage.clear()
+    const { loadSeasonState, saveSeasonState, syncLeagueSlot } = await import('../data/seasonStore')
+    const s0 = loadSeasonState('2026-09-01')
+    saveSeasonState({ ...s0, div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} })
+    syncLeagueSlot(today, `${today}#390-420`, { my: 10000, unit: 'pages', slotMinutes: 30 })
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    const skip = await screen.findByTestId('league-skip')
+    expect(skip).toHaveTextContent('残りの試合をスキップ')
+  })
+  it('Div2はレーティング表示で順位はレーティング基準（2000で70万切り）', async () => {
+    localStorage.clear()
+    const { loadSeasonState, saveSeasonState } = await import('../data/seasonStore')
+    const s0 = loadSeasonState('2026-09-02')
+    saveSeasonState({ ...s0, div: 2, highestDiv: 2, phaseBestDiv: 2, rating: 2000, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null } })
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.getByTestId('league-rating')).toHaveTextContent('2,000')
+    const rankText = screen.getByTestId('league-rank').textContent ?? ''
+    const rankNum = Number(rankText.replace(/[^0-9]/g, ''))
+    expect(rankNum).toBeLessThan(700000)
+    expect(screen.queryByTestId('league-points')).toBeNull()
   })
 })
