@@ -840,3 +840,89 @@ describe('TodayPlanScreen', () => {
   })
 })
 
+describe('today slot gate', () => {
+  it('未来枠は「終了後に記録できます」と表示し記録UIを隠す', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'f1', weekday: null, date: '2099-01-01', start: '21:00', end: '23:00', bookId: 'b1' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2099-01-01" />)
+    expect(await screen.findByTestId('slot-gate-future')).toHaveTextContent('終了後に記録できます')
+    expect(screen.queryByTestId('plan-record-b1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('slot-missed-b1')).not.toBeInTheDocument()
+  })
+
+  it('過去の未確定枠は記録とやらなかったボタンを出す', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    await screen.findByTestId('today-table')
+    expect(screen.getByTestId('plan-record-b1')).toBeInTheDocument()
+    expect(screen.getByTestId('slot-missed-b1')).toHaveTextContent('やらなかった')
+    expect(screen.queryByTestId('slot-gate-future')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('slot-locked')).not.toBeInTheDocument()
+  })
+
+  it('やらなかったで不戦敗が確定し確定済みになる', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    fireEvent.click(await screen.findByTestId('slot-missed-b1'))
+    const { loadSeasonState } = await import('../data/seasonStore')
+    const st = loadSeasonState('2026-09-21')
+    expect(st.slotMatches['2026-09-21#1260-1380']?.result).toBe('loss')
+    expect(st.slotMatches['2026-09-21#1260-1380']?.my).toBe(0)
+    expect(await screen.findByTestId('slot-locked')).toHaveTextContent('確定済み')
+  })
+
+  it('確定済み枠は確定済み表示し記録UIを隠す', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
+      true,
+    )
+    const { syncLeagueSlot } = await import('../data/seasonStore')
+    syncLeagueSlot('2026-09-21', '2026-09-21#1260-1380', { my: 10, unit: 'pages', slotMinutes: 120 })
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('slot-locked')).toHaveTextContent('確定済み')
+    expect(screen.queryByTestId('plan-record-b1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('slot-missed-b1')).not.toBeInTheDocument()
+  })
+
+  it('記録成功でリーグ枠が確定する', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const input = await screen.findByTestId('plan-input-b1')
+    fireEvent.change(input, { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('plan-record-b1'))
+    await waitFor(async () => {
+      const { loadSeasonState } = await import('../data/seasonStore')
+      const st = loadSeasonState('2026-09-21')
+      expect(st.slotMatches['2026-09-21#1260-1380']?.my).toBe(10)
+    })
+  })
+
+  it('未割当の過去枠は本選択前は記録UIを出さない', async () => {
+    await fillBook('b1', { trainFit: 'home' })
+    await saveAvailabilitySlot(
+      { id: 'u1', weekday: null, date: '2026-09-21', start: '18:00', end: '19:00', onTrain: true },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    await screen.findByTestId('today-table')
+    expect(screen.queryByTestId('plan-record-b1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('slot-missed-b1')).not.toBeInTheDocument()
+  })
+})
+

@@ -14,6 +14,8 @@ import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { isLeapBook } from '../lib/leap'
+import { makeSlotKey, type SlotUnit } from '../lib/slotLeague'
+import { loadSeasonState, syncLeagueSlot } from '../data/seasonStore'
 import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
 import { loadOverridePresets, type OverridePreset } from '../data/overridePresets'
 import CoverImage from '../components/CoverImage'
@@ -185,6 +187,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const [overrideOpen, setOverrideOpen] = useState(false)
   const [presets, setPresets] = useState<OverridePreset[]>(() => loadOverridePresets())
   const [presetId, setPresetId] = useState('')
+  const [seasonTick, setSeasonTick] = useState(0)
 
   const refreshAvailability = async () => {
     const a = await listAvailability()
@@ -463,13 +466,13 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     loadPresetById(id)
   }
 
-  const handleCycleRecord = async (slotKey: string, book: BookData) => {
+  const handleCycleRecord = async (inputKey: string, book: BookData, league?: { slotKey: string; slotMinutes: number }) => {
     const totalUnits = book.totalUnits ?? 0
     const targetRounds = book.targetRounds ?? 0
     const unit = isLeapBook(book) ? '語' : '区画'
-    const from = Number(normalizeNumericInput((cycleInputs[`${slotKey}-from`] ?? '').trim()))
-    const to = Number(normalizeNumericInput((cycleInputs[`${slotKey}-to`] ?? '').trim()))
-    const roundInput = normalizeNumericInput((cycleInputs[`${slotKey}-round`] ?? '').trim())
+    const from = Number(normalizeNumericInput((cycleInputs[`${inputKey}-from`] ?? '').trim()))
+    const to = Number(normalizeNumericInput((cycleInputs[`${inputKey}-to`] ?? '').trim()))
+    const roundInput = normalizeNumericInput((cycleInputs[`${inputKey}-round`] ?? '').trim())
     const mine = cycleRecords.filter((r) => r.bookId === book.id)
     const round = roundInput === '' ? currentCycleRound(book, mine) : Number(roundInput)
     if (
@@ -480,31 +483,39 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       to < 1 ||
       to > totalUnits
     ) {
-      setCycleErrors((p) => ({ ...p, [slotKey]: `${unit}の範囲を正しく入力してください` }))
+      setCycleErrors((p) => ({ ...p, [inputKey]: `${unit}の範囲を正しく入力してください` }))
       return
     }
     if (!Number.isInteger(round) || round < 1 || round > targetRounds) {
-      setCycleErrors((p) => ({ ...p, [slotKey]: '周回は1〜目標周回の範囲で入力してください' }))
+      setCycleErrors((p) => ({ ...p, [inputKey]: '周回は1〜目標周回の範囲で入力してください' }))
       return
     }
     try {
       await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: today, unitFrom: from, unitTo: to, round, recordedAt: new Date().toISOString() })
     } catch {
-      setCycleErrors((p) => ({ ...p, [slotKey]: '記録に失敗しました。もう一度お試しください' }))
+      setCycleErrors((p) => ({ ...p, [inputKey]: '記録に失敗しました。もう一度お試しください' }))
       return
     }
     setCycleErrors((p) => {
       const next = { ...p }
-      delete next[slotKey]
+      delete next[inputKey]
       return next
     })
     setCycleInputs((p) => {
       const next = { ...p }
-      delete next[`${slotKey}-from`]
-      delete next[`${slotKey}-to`]
-      delete next[`${slotKey}-round`]
+      delete next[`${inputKey}-from`]
+      delete next[`${inputKey}-to`]
+      delete next[`${inputKey}-round`]
       return next
     })
+    if (league) {
+      try {
+        const unitKind: SlotUnit = isLeapBook(book as never) ? 'words' : 'sections'
+        const my = Math.abs(to - from) + 1
+        syncLeagueSlot(today, league.slotKey, { my, unit: unitKind, slotMinutes: league.slotMinutes })
+        setSeasonTick((v) => v + 1)
+      } catch { /* ignore */ }
+    }
   }
 
   const recordPages = async (bookId: string, pages: number) => {
@@ -528,19 +539,31 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     }
   }
 
-  const handleRecord = async (slotKey: string, bookId: string) => {
-    const raw = inputs[slotKey] ?? ''
+  const handleRecord = async (inputKey: string, bookId: string, league?: { slotKey: string; unit: SlotUnit; slotMinutes: number }) => {
+    const raw = inputs[inputKey] ?? ''
     const pages = Number(raw)
     if (!Number.isInteger(pages) || pages < 1) return
     await recordPages(bookId, pages)
-    setInputs((p) => ({ ...p, [slotKey]: '' }))
+    setInputs((p) => ({ ...p, [inputKey]: '' }))
+    if (league) {
+      try {
+        syncLeagueSlot(today, league.slotKey, { my: pages, unit: league.unit, slotMinutes: league.slotMinutes })
+        setSeasonTick((v) => v + 1)
+      } catch { /* ignore */ }
+    }
   }
 
-  const handleComplete = async (slot: PlanSlot, book: BookData) => {
+  const handleComplete = async (slot: PlanSlot, book: BookData, league?: { slotKey: string; slotMinutes: number }) => {
     const pages = slot.pages
     if (!Number.isInteger(pages) || pages < 1) return
     if (!window.confirm(`「${book.title}」を ${pages} ページで記録しますか？`)) return
     await recordPages(book.id, pages)
+    if (league) {
+      try {
+        syncLeagueSlot(today, league.slotKey, { my: pages, unit: 'pages', slotMinutes: league.slotMinutes })
+        setSeasonTick((v) => v + 1)
+      } catch { /* ignore */ }
+    }
   }
 
   return (
@@ -667,6 +690,18 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
               }
             }
             const isNow = isCurrentSlot(s.startMin, s.endMin, nowMin)
+            const slotKey = makeSlotKey(today, s.startMin, s.endMin)
+            const slotMinutes = s.endMin - s.startMin
+            const isPast = today < todayStr() ? true : today > todayStr() ? false : s.endMin <= nowMin
+            const locked = (() => { void seasonTick; try { return !!loadSeasonState(today).slotMatches?.[slotKey] } catch { return false } })()
+            const unitKind: SlotUnit = isCycles ? (isLeapBook(book as never) ? 'words' : 'sections') : 'pages'
+            const handleForfeit = () => {
+              try {
+                syncLeagueSlot(today, slotKey, { my: 0, unit: unitKind, slotMinutes, forfeit: true })
+                setSeasonTick((v) => v + 1)
+              } catch { /* ignore */ }
+              setDayMessage(`やらなかったとして記録しました（${fmt(s.startMin)}-${fmt(s.endMin)}）`)
+            }
             return (
               <div
                 key={`${s.startMin}-${s.bookId}-${i}`}
@@ -717,7 +752,13 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                       </button>
                     )}
                   </div>
-                  {book && !isCycles && (
+                  {!isPast && !locked && (
+                    <div data-testid="slot-gate-future">終了後に記録できます</div>
+                  )}
+                  {locked && (
+                    <div data-testid="slot-locked">確定済み</div>
+                  )}
+                  {isPast && !locked && book && !isCycles && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <input
                         data-testid={`plan-input-${s.bookId}`}
@@ -734,7 +775,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                         data-testid={`plan-record-${s.bookId}`}
                         type="button"
                         style={{ flexShrink: 0 }}
-                        onClick={() => void handleRecord(inputKey, s.bookId)}
+                        onClick={() => void handleRecord(inputKey, s.bookId, { slotKey, unit: unitKind, slotMinutes })}
                       >
                         記録
                       </button>
@@ -743,14 +784,22 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                           data-testid={`plan-done-${s.bookId}`}
                           type="button"
                           style={{ flexShrink: 0 }}
-                          onClick={() => void handleComplete(s, book)}
+                          onClick={() => void handleComplete(s, book, { slotKey, slotMinutes })}
                         >
                           完了
                         </button>
                       )}
+                      <button
+                        data-testid={`slot-missed-${s.bookId}`}
+                        type="button"
+                        style={{ flexShrink: 0 }}
+                        onClick={handleForfeit}
+                      >
+                        やらなかった
+                      </button>
                     </div>
                   )}
-                  {book && isCycles && (
+                  {isPast && !locked && book && isCycles && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       <input
                         data-testid={`plan-cycle-from-${s.bookId}`}
@@ -798,9 +847,17 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                         data-testid={`plan-cycle-record-${s.bookId}`}
                         type="button"
                         style={{ flexShrink: 0 }}
-                        onClick={() => void handleCycleRecord(inputKey, book)}
+                        onClick={() => void handleCycleRecord(inputKey, book, { slotKey, slotMinutes })}
                       >
                         記録
+                      </button>
+                      <button
+                        data-testid={`slot-missed-${s.bookId}`}
+                        type="button"
+                        style={{ flexShrink: 0 }}
+                        onClick={handleForfeit}
+                      >
+                        やらなかった
                       </button>
                     </div>
                   )}
