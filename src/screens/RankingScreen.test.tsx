@@ -242,18 +242,14 @@ describe('RankingScreen', () => {
     expect(screen.getByTestId('league-round-status')).toHaveTextContent('昇格')
   })
   it('リーグタブの履歴にスコア形式で出る', async () => {
-    const now = new Date().toISOString()
     const today = '2026-09-02'
-    await db.books.add({
-      id: 'b1', title: '単語帳', totalPages: 500,
-      startDate: today, deadline: today, createdAt: now, updatedAt: now,
-    })
-    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 100 })
     localStorage.clear()
+    const { syncLeagueSlot } = await import('../data/seasonStore')
+    syncLeagueSlot(today, `${today}#390-420`, { my: 10, unit: 'pages', slotMinutes: 30 })
     render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
     const history = screen.getByTestId('league-history')
-    expect(await within(history).findByTestId('league-history-0')).toHaveTextContent(/\d+-\d+/)
+    expect(await within(history).findByTestId('league-history-0')).toHaveTextContent(/\d+-\d+ページ/)
   })
   it('記録がない日は勝敗に数えず敗戦0・履歴空・勝率―になる', () => {
     localStorage.clear()
@@ -263,18 +259,17 @@ describe('RankingScreen', () => {
     expect(screen.getByTestId('league-record')).toHaveTextContent('勝率 ―')
     expect(screen.getByTestId('league-history-empty')).toBeInTheDocument()
   })
-  it('記録した日だけ勝敗に数えて勝率が動く', async () => {
-    const now = new Date().toISOString()
+  it('枠の記録だけ勝敗に数えて勝率が動く', async () => {
     const today = '2026-09-02'
-    await db.books.add({
-      id: 'b1', title: '単語帳', totalPages: 500,
-      startDate: today, deadline: today, createdAt: now, updatedAt: now,
-    })
-    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 100 })
     localStorage.clear()
+    const { loadSeasonState, syncLeagueSlot } = await import('../data/seasonStore')
+    syncLeagueSlot(today, `${today}#390-420`, { my: 10, unit: 'pages', slotMinutes: 30 })
+    const st = loadSeasonState(today)
+    const played = st.round.w + st.round.d + st.round.l
+    const rate = played > 0 ? Math.round((st.round.w / played) * 100) : 0
     render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    await waitFor(() => expect(screen.getByTestId('league-record')).toHaveTextContent('勝率 100%'))
+    await waitFor(() => expect(screen.getByTestId('league-record')).toHaveTextContent(`勝率 ${rate}%`))
   })
   it('RPGタブでレベルが表示される', () => {
     localStorage.clear()

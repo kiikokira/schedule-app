@@ -4,7 +4,7 @@ import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { combinedActivityOnDate, totalCycleUnits, pagesRecordsForTotals, cycleRecordsForTotals, todayStr } from '../lib/progress'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
-import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leagueDayInfo, leaguePointsForPages, leaguePopulationFor, leagueRankForPages, decideRoundOutcome, tallyToResults, PROMOTION_LINES, STAY_LINES, type LeagueDayResult } from '../lib/seasonLeague'
+import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leaguePointsForPages, leaguePopulationFor, leagueRankForPages, decideRoundOutcome, tallyToResults, PROMOTION_LINES, STAY_LINES } from '../lib/seasonLeague'
 import { loadSeasonState, saveSeasonState, finalizeRoundEarly } from '../data/seasonStore'
 import { loadProfile } from '../data/profileStore'
 import { levelForExp } from '../lib/seasonExp'
@@ -75,7 +75,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
     try {
       return loadSeasonState(today)
     } catch {
-      return { seasonId: '2026-09-01', div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} as Record<string, number> }
+      return { seasonId: '2026-09-01', div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} as Record<string, number>, slotMatches: {} }
     }
   }, [today, seasonTick])
   const leagueDay = useMemo(() => {
@@ -155,20 +155,13 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   }, [today])
   const leagueDaily = useMemo(() => {
     try {
-      const start = seasonStartForDate(today)
-      const base = Date.parse(start + 'T00:00:00Z')
-      const seasonId = seasonIdForDate(today)
-      // 記録した日だけを対戦として数える（戦っていない日は勝敗に含めない）
-      return Array.from({ length: leagueDay + 1 }, (_, d) => {
-        const date = new Date(base + d * 86400000).toISOString().slice(0, 10)
-        const pages = combinedActivityOnDate(date, validRecords, validCycles)
-        const info = leagueDayInfo(seasonId, seasonState.div, d, pages)
-        return { date, pages, ...info }
-      }).filter((o) => o.pages > 0)
-    } catch {
-      return [] as { date: string; pages: number; average: number; opponent: string; opponentPages: number; result: LeagueDayResult }[]
-    }
-  }, [today, validRecords, validCycles, leagueDay, seasonState.div])
+      const entries = Object.entries(seasonState.slotMatches ?? {})
+        .sort(([a],[b]) => (a < b ? -1 : 1))
+        .slice(-5)
+        .map(([, m]) => ({ date: m.date, pages: m.my, average: 0, opponent: m.oppName, opponentPages: m.opp, result: m.result, unit: m.unit }))
+      return entries
+    } catch { return [] }
+  }, [seasonState.slotMatches])
   const leagueRecord = useMemo(() => {
     const wins = leagueDaily.filter((d) => d.result === 'win').length
     const draws = leagueDaily.filter((d) => d.result === 'draw').length
@@ -459,7 +452,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                       color: d.result === 'win' ? '#06210f' : '#fff',
                     }}
                   >
-                    {leaguePointsForPages(d.pages)}-{leaguePointsForPages(d.opponentPages)}
+                    {`${d.pages}-${d.opponentPages}${d.unit === 'words' ? '語' : d.unit === 'sections' ? '区画' : 'ページ'}`}
                   </div>
                 </div>
               ))}
