@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { seasonIdForDate, seasonDayIndex, isSeasonFinalDay, decidePromotion, leagueDayResults, leagueDayInfo, seasonEndForDate, leaguePointsForPages, LEAGUE_PT_RATE, type LeagueDayResult } from './seasonLeague'
 import { generateRivals, rivalPagesForDay } from './seasonRivals'
+import { leagueSlotInfo, rivalForSlot, rivalSlotAmount } from './slotLeague'
 
 describe('seasonLeague', () => {
   it('anchor 2026-09-01から28日ブロックでseasonIdが決まる', () => {
@@ -22,6 +23,8 @@ describe('seasonLeague', () => {
     expect(seasonEndForDate('2026-09-01')).toBe('2026-09-28')
     expect(seasonEndForDate('2026-09-29')).toBe('2026-10-26')
   })
+  // NOTE: 日次平均によるリーグ進行は廃止し、枠ベースに移行した。以下の日次ヘルパー
+  // (leagueDayInfo/leagueDayResults) は互換のため残す。枠ベースの勝敗仕様は slotLeague.test.ts を正とする。
   it('日次平均を上回れば勝ち・下回れば負け', () => {
     const wins = leagueDayResults('2026-09-01', 10, [10000, 10000, 10000])
     expect(wins).toEqual(['win', 'win', 'win'])
@@ -36,7 +39,19 @@ describe('seasonLeague', () => {
     expect(leagueDayResults('2026-09-01', 10, [])).toEqual([])
     expect(leagueDayResults('2026-09-01', 10, [10000, 0]).length).toBe(2)
   })
-  it('対戦情報は平均・最接戦相手・勝敗を返す', () => {
+  it('枠ベースでも超過・同値・未満で勝敗が決まる（日次比較と同値）', () => {
+    const seasonId = '2026-09-01'
+    const slotKey = '2026-09-02#390-420'
+    const rival = rivalForSlot(seasonId, 10, slotKey)
+    const opp = rivalSlotAmount(rival, slotKey, 'pages', 30)
+    const win = leagueSlotInfo(seasonId, 10, slotKey, opp + 1, 'pages', 30)
+    expect(win.opponent).toBe(rival.name)
+    expect(win.opponentAmount).toBe(opp)
+    expect(win.result).toBe('win')
+    expect(leagueSlotInfo(seasonId, 10, slotKey, opp, 'pages', 30).result).toBe('draw')
+    expect(leagueSlotInfo(seasonId, 10, slotKey, 0, 'pages', 30).result).toBe('loss')
+  })
+  it('対戦情報は平均・最接戦相手・勝敗を返す（日次互換。枠ベースは slotLeague.test.ts 参照）', () => {
     const info = leagueDayInfo('2026-09-01', 10, 0, 10000)
     expect(info.result).toBe('win')
     expect(info.average).toBeGreaterThanOrEqual(0)

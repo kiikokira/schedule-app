@@ -407,16 +407,13 @@ describe('RankingScreen', () => {
     expect(screen.queryByTestId('league-skip')).toBeNull()
   })
   it('昇格確定でスキップボタンが出て押すと即昇格する', async () => {
-    const now = new Date().toISOString()
     const today = '2026-09-02'
-    await db.books.add({ id: 'b1', title: '単語帳', totalPages: 500, startDate: today, deadline: today, createdAt: now, updatedAt: now })
-    await db.records.add({ id: 'r1', bookId: 'b1', date: '2026-09-01', pages: 100 })
-    await db.records.add({ id: 'r2', bookId: 'b1', date: today, pages: 100 })
     localStorage.clear()
-    const { loadSeasonState, saveSeasonState, syncLeagueDay } = await import('../data/seasonStore')
+    // 枠ベース進行：日次 syncLeagueDay はリーグ進行しないため、枠確定で勝ち点を積む
+    const { loadSeasonState, saveSeasonState, syncLeagueSlot } = await import('../data/seasonStore')
     const s0 = loadSeasonState('2026-09-01')
     saveSeasonState({ ...s0, div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} })
-    syncLeagueDay('2026-09-02', { '2026-09-01': 100, '2026-09-02': 100 }, 10, '2026-09-01')
+    syncLeagueSlot(today, `${today}#390-420`, { my: 10000, unit: 'pages', slotMinutes: 30 })
     render(<RankingScreen onBack={() => {}} today={today} />)
     fireEvent.click(screen.getByTestId('league-tab'))
     await waitFor(() => expect(screen.getByTestId('league-skip')).toBeInTheDocument())
