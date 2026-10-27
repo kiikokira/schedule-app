@@ -4,17 +4,17 @@ import type { BookData } from './progress'
 export type SlotInfo = { start: string; end: string; books: string[] }
 export type SlotsPayload = { date: string; slots: SlotInfo[]; savedAt: string }
 
-// 空き時間の開始10分前に送る通知のリードタイム（分）。
-export const REMINDER_LEAD_MIN = 10
+// 空き時間の開始20分前に送る通知のリードタイム（分）。
+export const REMINDER_LEAD_MIN = 20
 
-// 開始10分前通知のタイトル。アプリとワークフローで共有し、
+// 開始20分前通知のタイトル。アプリとワークフローで共有し、
 // 同じ時間帯への二重送信を防ぐキーにも使う。
 export function slotStartTitle(start: string): string {
-  return `学習開始10分前 ${start}`
+  return `学習開始20分前 ${start}`
 }
 
 export function slotStartMessage(slot: SlotInfo): string {
-  const base = `${slot.start}～${slot.end} の学習が10分後に始まります。準備しましょう`
+  const base = `${slot.start}～${slot.end} の学習が20分後に始まります。準備しましょう`
   return slot.books.length > 0 ? `${base}（${slot.books.join('、')}）` : base
 }
 
@@ -30,7 +30,7 @@ function startOfDay(date: Date): number {
   return d.getTime()
 }
 
-// 通知を送る時刻（開始の10分前）を分で返す。深夜帯は前日になるため呼び出し側で除外する。
+// 通知を送る時刻（開始の20分前）を分で返す。深夜帯は前日になるため呼び出し側で除外する。
 export function reminderTimeMin(slot: Pick<SlotInfo, 'start'>): number {
   return parseTimeToMin(slot.start) - REMINDER_LEAD_MIN
 }

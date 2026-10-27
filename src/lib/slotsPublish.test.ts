@@ -55,17 +55,17 @@ describe('publishSlotsOnce', () => {
 })
 
 describe('slotSequenceId / slotStartUnix', () => {
-  it('builds a deterministic id and a JST unix timestamp 10 minutes before start', () => {
+  it('builds a deterministic id and a JST unix timestamp 20 minutes before start', () => {
     expect(slotSequenceId('2026-09-27', '21:00')).toBe('slot-start-2026-09-27-2100')
     expect(slotStartUnix('2026-09-27', '21:00')).toBe(
-      Math.floor(new Date('2026-09-27T20:50:00+09:00').getTime() / 1000),
+      Math.floor(new Date('2026-09-27T20:40:00+09:00').getTime() / 1000),
     )
   })
 
-  it('rolls the reminder back to the previous day for slots starting before 00:10', () => {
-    // 00:05開始→前日23:55通知。NaNにならず予約できること（欠落防止）
+  it('rolls the reminder back to the previous day for slots starting before 00:20', () => {
+    // 00:05開始→前日23:45通知。NaNにならず予約できること（欠落防止）
     expect(slotStartUnix('2026-09-27', '00:05')).toBe(
-      Math.floor(new Date('2026-09-26T23:55:00+09:00').getTime() / 1000),
+      Math.floor(new Date('2026-09-26T23:45:00+09:00').getTime() / 1000),
     )
   })
 
@@ -94,7 +94,7 @@ describe('syncSlotSchedules', () => {
     const past: SlotsPayload = {
       ...futurePayload,
       slots: [
-        // 通知済み（19:50開始→19:40通知は15分窓の外）の枠は対象外
+        // 通知済み（19:50開始→19:30通知は15分窓の外）の枠は対象外
         { start: '19:50', end: '20:00', books: ['old'] },
         ...futurePayload.slots,
       ],
@@ -106,12 +106,37 @@ describe('syncSlotSchedules', () => {
     )
     expect(posts).toHaveLength(2)
     const first = new URL(posts[0][0] as string)
-    // 20:30開始→20:20通知
+    // 20:30開始→20:10通知
     expect(first.pathname).toBe('/my-topic/slot-start-2026-09-27-2030')
     expect(first.searchParams.get('delay')).toBe(
-      String(Math.floor(new Date('2026-09-27T20:20:00+09:00').getTime() / 1000)),
+      String(Math.floor(new Date('2026-09-27T20:10:00+09:00').getTime() / 1000)),
     )
-    expect(first.searchParams.get('title')).toBe('学習開始10分前 20:30')
+    expect(first.searchParams.get('title')).toBe('学習開始20分前 20:30')
+  })
+
+  it('resends reserved slots when the lead time changes', async () => {
+    // 旧リードタイム（10分）で予約済みの記録はハッシュ不一致になり送り直す（同IDで置換）
+    const oldHash = JSON.stringify(futurePayload.slots[0])
+    localStorage.setItem(
+      SCHEDULED_KEY,
+      JSON.stringify({
+        v: 2,
+        days: {
+          '2026-09-27': {
+            slots: { 'slot-start-2026-09-27-2030': { h: oldHash, t: 1 } },
+          },
+        },
+      }),
+    )
+    const res = await syncSlotSchedules('my-topic', futurePayload, okFetch as typeof fetch, undefined, true)
+    expect(res.scheduled).toBe(2)
+    const posts = okFetch.mock.calls.filter(
+      ([, init]) => (init as RequestInit).method === 'POST',
+    )
+    expect(posts).toHaveLength(2)
+    const first = new URL(posts[0][0] as string)
+    expect(first.pathname).toBe('/my-topic/slot-start-2026-09-27-2030')
+    expect(first.searchParams.get('title')).toBe('学習開始20分前 20:30')
   })
 
   it('does nothing when the content is unchanged', async () => {
@@ -159,12 +184,12 @@ describe('syncSlotSchedules', () => {
   })
 
   it('schedules recent-past reminders with a short delay instead of dropping them', async () => {
-    // 20:05開始→19:55通知は5分過ぎ。予約対象外だが15秒後の予約投稿で送る。
+    // 20:15開始→19:55通知は5分過ぎ。予約対象外だが15秒後の予約投稿で送る。
     // 同じ予約IDのため重なっても置換になり二重送信しない
     const late: SlotsPayload = {
       ...futurePayload,
       date: '2026-09-27',
-      slots: [{ start: '20:05', end: '20:30', books: ['A'] }],
+      slots: [{ start: '20:15', end: '20:30', books: ['A'] }],
     }
     const res = await syncSlotSchedules('my-topic', late, okFetch as typeof fetch)
     expect(res).toEqual({ scheduled: 0, salvaged: 1, cancelled: 0 })
@@ -173,18 +198,18 @@ describe('syncSlotSchedules', () => {
     )
     expect(posts).toHaveLength(1)
     const url = new URL(posts[0][0] as string)
-    expect(url.pathname).toBe('/my-topic/slot-start-2026-09-27-2005')
+    expect(url.pathname).toBe('/my-topic/slot-start-2026-09-27-2015')
     expect(url.searchParams.get('delay')).toBe(
       String(Math.floor(new Date(2026, 8, 27, 20, 0, 0).getTime() / 1000) + 15),
     )
-    expect(url.searchParams.get('title')).toBe('学習開始10分前 20:05')
+    expect(url.searchParams.get('title')).toBe('学習開始20分前 20:15')
   })
 
   it('does not resend a salvaged slot handled before', async () => {
     const late: SlotsPayload = {
       ...futurePayload,
       date: '2026-09-27',
-      slots: [{ start: '20:05', end: '20:30', books: ['A'] }],
+      slots: [{ start: '20:15', end: '20:30', books: ['A'] }],
     }
     const first = await syncSlotSchedules('my-topic', late, okFetch as typeof fetch)
     expect(first).toEqual({ scheduled: 0, salvaged: 1, cancelled: 0 })
@@ -264,7 +289,7 @@ describe('syncSlotSchedules', () => {
   })
 
   it('schedules future-date payloads so unopened days are covered', async () => {
-    // 現在2026-09-27 20:00。翌28日06:30開始→06:20通知は未来のため予約する
+    // 現在2026-09-27 20:00。翌28日06:30開始→06:10通知は未来のため予約する
     const tomorrow: SlotsPayload = {
       date: '2026-09-28',
       savedAt: '2026-09-27T00:00:00.000Z',
@@ -279,7 +304,7 @@ describe('syncSlotSchedules', () => {
     const url = new URL(posts[0][0] as string)
     expect(url.pathname).toBe('/my-topic/slot-start-2026-09-28-0630')
     expect(url.searchParams.get('delay')).toBe(
-      String(Math.floor(new Date('2026-09-28T06:20:00+09:00').getTime() / 1000)),
+      String(Math.floor(new Date('2026-09-28T06:10:00+09:00').getTime() / 1000)),
     )
   })
 
@@ -295,7 +320,7 @@ describe('syncSlotSchedules', () => {
   })
 
   it('schedules midnight slots instead of dropping them', async () => {
-    // 現在2026-09-27 20:00。翌28日00:05開始→27日23:55通知は未来のため予約する
+    // 現在2026-09-27 20:00。翌28日00:05開始→27日23:45通知は未来のため予約する
     const midnight: SlotsPayload = {
       date: '2026-09-28',
       savedAt: '2026-09-27T00:00:00.000Z',
@@ -310,7 +335,7 @@ describe('syncSlotSchedules', () => {
     const url = new URL(posts[0][0] as string)
     expect(url.pathname).toBe('/my-topic/slot-start-2026-09-28-0005')
     expect(url.searchParams.get('delay')).toBe(
-      String(Math.floor(new Date('2026-09-27T23:55:00+09:00').getTime() / 1000)),
+      String(Math.floor(new Date('2026-09-27T23:45:00+09:00').getTime() / 1000)),
     )
   })
 
@@ -319,7 +344,7 @@ describe('syncSlotSchedules', () => {
     const late: SlotsPayload = {
       date: '2026-09-27',
       savedAt: '2026-09-27T00:00:00.000Z',
-      slots: [{ start: '20:05', end: '20:30', books: ['A'] }],
+      slots: [{ start: '20:15', end: '20:30', books: ['A'] }],
     }
     const [first, second] = await Promise.all([
       syncSlotSchedules('my-topic', late, okFetch as typeof fetch),
@@ -388,7 +413,7 @@ describe('syncSlotSchedules', () => {
     const url = new URL(posts[0][0] as string)
     expect(url.pathname).toBe('/my-topic/slot-start-2026-09-27-2030')
     expect(url.searchParams.get('delay')).toBe(
-      String(Math.floor(new Date('2026-09-27T20:20:00+09:00').getTime() / 1000)),
+      String(Math.floor(new Date('2026-09-27T20:10:00+09:00').getTime() / 1000)),
     )
   })
 })

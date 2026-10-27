@@ -22,8 +22,8 @@ describe('formatMin', () => {
 
 describe('slotStartTitle', () => {
   it('builds a dedupeable title from the slot start', () => {
-    expect(slotStartTitle('21:00')).toBe('学習開始10分前 21:00')
-    expect(REMINDER_LEAD_MIN).toBe(10)
+    expect(slotStartTitle('21:00')).toBe('学習開始20分前 21:00')
+    expect(REMINDER_LEAD_MIN).toBe(20)
   })
 })
 
@@ -31,19 +31,19 @@ describe('slotStartMessage', () => {
   it('includes the time range and book titles', () => {
     expect(
       slotStartMessage({ start: '21:00', end: '21:45', books: ['英文法ポラリス2'] }),
-    ).toBe('21:00～21:45 の学習が10分後に始まります。準備しましょう（英文法ポラリス2）')
+    ).toBe('21:00～21:45 の学習が20分後に始まります。準備しましょう（英文法ポラリス2）')
   })
 
   it('omits the parenthesis when no book is planned', () => {
     expect(slotStartMessage({ start: '21:00', end: '21:45', books: [] })).toBe(
-      '21:00～21:45 の学習が10分後に始まります。準備しましょう',
+      '21:00～21:45 の学習が20分後に始まります。準備しましょう',
     )
   })
 })
 
 describe('reminderTimeMin', () => {
-  it('is 10 minutes before the slot start', () => {
-    expect(reminderTimeMin({ start: '21:00' })).toBe(21 * 60 - 10)
+  it('is 20 minutes before the slot start', () => {
+    expect(reminderTimeMin({ start: '21:00' })).toBe(21 * 60 - 20)
   })
 })
 
@@ -109,9 +109,9 @@ describe('dueSlotStarts', () => {
   }
 
   it('returns slots whose start is coming up within the window', () => {
-    // 15:55開始の10分前=15:45ちょうど
-    expect(dueSlotStarts(payload, '2026-09-21', 15 * 60 + 45)).toHaveLength(1)
-    expect(dueSlotStarts(payload, '2026-09-21', 15 * 60 + 45)[0].start).toBe('15:55')
+    // 15:55開始の20分前=15:35ちょうど
+    expect(dueSlotStarts(payload, '2026-09-21', 15 * 60 + 35)).toHaveLength(1)
+    expect(dueSlotStarts(payload, '2026-09-21', 15 * 60 + 35)[0].start).toBe('15:55')
   })
 
   it('returns nothing long before the start or outside the window', () => {
@@ -127,13 +127,13 @@ describe('dueSlotStarts', () => {
 describe('msUntilNextReminder', () => {
   const at = (h: number, m: number) => new Date(2026, 8, 21, h, m, 0, 0)
 
-  it('returns the ms until 10 minutes before the next slot start', () => {
+  it('returns the ms until 20 minutes before the next slot start', () => {
     const slots: SlotInfo[] = [
       { start: '17:00', end: '17:30', books: [] },
       { start: '21:45', end: '22:00', books: [] },
     ]
-    // 17:00開始→通知16:50。16:49時点であと60秒
-    expect(msUntilNextReminder(slots, at(16, 49))).toBe(60_000)
+    // 17:00開始→通知16:40。16:39時点であと60秒
+    expect(msUntilNextReminder(slots, at(16, 39))).toBe(60_000)
   })
 
   it('returns null when no reminders remain today', () => {
@@ -151,7 +151,7 @@ describe('nextReminderSlot', () => {
   const at = (h: number, m: number) => new Date(2026, 8, 21, h, m, 0, 0)
 
   it('returns the slot whose reminder comes next', () => {
-    // 15:55開始→通知15:45。16:00時点では21:00開始分（通知20:50）が次
+    // 15:55開始→通知15:35。16:00時点では21:00開始分（通知20:40）が次
     expect(nextReminderSlot(slots, at(16, 0))?.start).toBe('21:00')
     expect(nextReminderSlot(slots, at(15, 0))?.start).toBe('15:55')
   })

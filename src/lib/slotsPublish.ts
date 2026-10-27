@@ -13,7 +13,7 @@ export function slotSequenceId(date: string, start: string): string {
   return `slot-start-${date}-${start.replace(':', '')}`
 }
 
-// 空き時間の開始10分前に届くよう予約投稿するためのUNIX秒。
+// 空き時間の開始20分前に届くよう予約投稿するためのUNIX秒。
 // 00:10より前の開始は前日に巻き戻る（日付文字列の組み立てではNaNになり
 // 通知が欠落するため、日またぎを吸収できるよう通しミリ秒で計算する）。
 export function slotStartUnix(date: string, start: string): number {
@@ -161,7 +161,7 @@ export async function publishSlotsOnce(
   return true
 }
 
-// その日の残り枠の開始10分前に届くようntfyへ予約投稿する。
+// その日の残り枠の開始20分前に届くようntfyへ予約投稿する。
 // アプリが閉じていてもサーバー側で配達される。
 // 本番ntfy.shの実測では、同じ予約IDへの再送が置換にならない場合があり
 // （再送のたびに重複が増える）、DELETEでの取り消しも効かない。
@@ -194,8 +194,9 @@ export async function syncSlotSchedules(
 
 let syncQueue: Promise<void> = Promise.resolve()
 
+// 予約内容のハッシュ。リードタイム変更時に送り直すよう先頭に含める。
 function slotContentHash(slot: SlotsPayload['slots'][number]): string {
-  return JSON.stringify(slot)
+  return JSON.stringify([REMINDER_LEAD_MIN, slot])
 }
 
 async function runSyncSlotSchedules(

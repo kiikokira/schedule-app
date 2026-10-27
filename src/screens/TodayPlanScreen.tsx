@@ -319,7 +319,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   }, [availabilityLoaded, availability, today, dayRowsInit])
 
   // リマインダー用: その日の空き時間帯と終了予定をntfyへ送り、
-  // 各枠の開始10分前に届くよう予約投稿する。
+  // 各枠の開始20分前に届くよう予約投稿する。
   const notify = getNotifySettings()
   const notifyEnabled = notify.enabled
   const notifyTopic = notify.topic
@@ -335,7 +335,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   useEffect(() => {
     if (!notifyEnabled || !notifyTopic.trim() || !slotsPayload) return
     void publishSlotsOnce(notifyTopic, slotsPayload)
-    // 開始10分前に届くよう予約投稿する。題付き（本の名前入り）として記録し、
+    // 開始20分前に届くよう予約投稿する。題付き（本の名前入り）として記録し、
     // 起動時の無題予約で上書きされないようにする。直近に過ぎた分はその場で送る。
     void syncSlotSchedules(notifyTopic, slotsPayload, undefined, undefined, true)
   }, [notifyEnabled, notifyTopic, slotsPayload])
