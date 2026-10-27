@@ -867,7 +867,7 @@ describe('today slot gate', () => {
     expect(screen.queryByTestId('slot-locked')).not.toBeInTheDocument()
   })
 
-  it('やらなかったで不戦敗が確定し確定済みになる', async () => {
+  it('スキップは確認後に不戦敗が確定し確定済みになる', async () => {
     await fillBook('b1')
     await saveAvailabilitySlot(
       { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
@@ -875,11 +875,31 @@ describe('today slot gate', () => {
     )
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
     fireEvent.click(await screen.findByTestId('slot-missed-b1'))
+    // リンク押下だけでは確定しない（確認が出る）
+    await screen.findByTestId('slot-missed-confirm-b1')
     const { loadSeasonState } = await import('../data/seasonStore')
+    expect(loadSeasonState('2026-09-21').slotMatches['2026-09-21#1260-1380']).toBeUndefined()
+    fireEvent.click(screen.getByTestId('slot-missed-yes-b1'))
     const st = loadSeasonState('2026-09-21')
     expect(st.slotMatches['2026-09-21#1260-1380']?.result).toBe('loss')
     expect(st.slotMatches['2026-09-21#1260-1380']?.my).toBe(0)
     expect(await screen.findByTestId('slot-locked')).toHaveTextContent('確定済み')
+  })
+
+  it('スキップ確認でキャンセルすると確定しない', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    fireEvent.click(await screen.findByTestId('slot-missed-b1'))
+    await screen.findByTestId('slot-missed-no-b1')
+    fireEvent.click(screen.getByTestId('slot-missed-no-b1'))
+    const { loadSeasonState } = await import('../data/seasonStore')
+    expect(loadSeasonState('2026-09-21').slotMatches['2026-09-21#1260-1380']).toBeUndefined()
+    expect(screen.getByTestId('slot-missed-b1')).toBeInTheDocument()
+    expect(screen.queryByTestId('slot-locked')).not.toBeInTheDocument()
   })
 
   it('確定済み枠は確定済み表示し記録UIを隠す', async () => {

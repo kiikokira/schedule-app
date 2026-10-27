@@ -188,6 +188,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const [presets, setPresets] = useState<OverridePreset[]>(() => loadOverridePresets())
   const [presetId, setPresetId] = useState('')
   const [seasonTick, setSeasonTick] = useState(0)
+  const [confirmForfeit, setConfirmForfeit] = useState<Record<string, boolean>>({})
 
   const refreshAvailability = async () => {
     const a = await listAvailability()
@@ -700,8 +701,39 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                 syncLeagueSlot(today, slotKey, { my: 0, unit: unitKind, slotMinutes, forfeit: true })
                 setSeasonTick((v) => v + 1)
               } catch { /* ignore */ }
+              setConfirmForfeit((p) => ({ ...p, [slotKey]: false }))
               setDayMessage(`スキップとして記録しました（${fmt(s.startMin)}-${fmt(s.endMin)}）`)
             }
+            const forfeitControl = !confirmForfeit[slotKey] ? (
+                      <button
+                        data-testid={`slot-missed-${s.bookId}`}
+                        type="button"
+                        style={{ flexShrink: 0 }}
+                        onClick={() => setConfirmForfeit((p) => ({ ...p, [slotKey]: true }))}
+                      >
+                        スキップ
+                      </button>
+            ) : (
+                      <span data-testid={`slot-missed-confirm-${s.bookId}`} style={{ display: 'inline-flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 13 }}>スキップして敗戦扱いにしますか？</span>
+                        <button
+                          data-testid={`slot-missed-yes-${s.bookId}`}
+                          type="button"
+                          style={{ flexShrink: 0 }}
+                          onClick={handleForfeit}
+                        >
+                          スキップする
+                        </button>
+                        <button
+                          data-testid={`slot-missed-no-${s.bookId}`}
+                          type="button"
+                          style={{ flexShrink: 0 }}
+                          onClick={() => setConfirmForfeit((p) => ({ ...p, [slotKey]: false }))}
+                        >
+                          キャンセル
+                        </button>
+                      </span>
+            )
             return (
               <div
                 key={`${s.startMin}-${s.bookId}-${i}`}
@@ -789,14 +821,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                           完了
                         </button>
                       )}
-                      <button
-                        data-testid={`slot-missed-${s.bookId}`}
-                        type="button"
-                        style={{ flexShrink: 0 }}
-                        onClick={handleForfeit}
-                      >
-                        スキップ
-                      </button>
+                      {forfeitControl}
                     </div>
                   )}
                   {isPast && !locked && book && isCycles && (
@@ -851,14 +876,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                       >
                         記録
                       </button>
-                      <button
-                        data-testid={`slot-missed-${s.bookId}`}
-                        type="button"
-                        style={{ flexShrink: 0 }}
-                        onClick={handleForfeit}
-                      >
-                        スキップ
-                      </button>
+                      {forfeitControl}
                     </div>
                   )}
                   {book && isCycles && cycleErrors[inputKey] && (
