@@ -60,7 +60,7 @@ export default function MyPageScreen({ onBack, onRanking, onBreakdown, today: to
   const validCycles = useMemo(() => cycleRecordsForTotals(cycleRecords, books), [cycleRecords, books])
   const todayPages = combinedActivityOnDate(today, validRecords, validCycles)
   const totalPages = totalActivity(validRecords) + totalCycleUnits(validCycles)
-  const rank = totalPagesToRank(totalPages)
+  const rank = totalPagesToRank(totalPages, today)
   const [prevRank] = useState<number | null>(() => loadLastRank())
   useEffect(() => {
     saveLastRank(rank)
@@ -69,7 +69,7 @@ export default function MyPageScreen({ onBack, onRanking, onBreakdown, today: to
   const tone = deltaTone(prevRank, rank)
   const deviation = rankToDeviation(rank)
   const milestone = nextRankMilestone(rank)
-  const milestoneDiff = milestone == null ? 0 : Math.max(0, totalPagesForRank(milestone) - totalPages)
+  const milestoneDiff = milestone == null ? 0 : Math.max(0, totalPagesForRank(milestone, today) - totalPages)
   const [mockHistory, setMockHistory] = useState<MockRecord[]>(() => loadMockHistory())
   useEffect(() => {
     setMockHistory(recordMockIfNeeded(today, rank, deviation, totalPages))

@@ -44,12 +44,38 @@ export function dailyPagesToRank(pages: number, _dateIso: string): number {
   return Math.min(Math.max(rank, 1), RANK_POPULATION)
 }
 
-// 累計分布のCDF（中央値380ページ、σ=1.1）。
+// 累計分布のCDF（中央値380ページ起点・σ=1.1＋日付ドリフト）。
 // 実測（進研模試2年7月・英語偏差値54.5相当の学習量≒608ページで偏差値54前後になるよう調整）。
 // 国数英総合51.7・国語51.8・数学49.2・英語54.5の実力を反映し、序盤で跳ねないよう緩やかにした。
-function populationCdfTotal(pages: number): number {
+// ライバルも毎日勉強する想定で、中央値は起点日以降1日6〜10ページ（日替わり・決定的）ずつ上昇する。
+// 記録なしで日が進むと順位が下がる。起点日以前・引数なしは旧来通り中央値380。
+const TOTAL_MEDIAN_BASE = 380
+const TOTAL_DRIFT_ANCHOR = '2026-10-27'
+const TOTAL_DRIFT_BASE = 8
+const TOTAL_DRIFT_SPREAD = 2
+
+// その日の人口の伸び（6〜10ページ）。日付シードで決定的に変動し固定値にしない。
+export function populationDailyGain(dateIso: string): number {
+  const rand = mulberry32(hashSeed(`pop-gain-${dateIso}`))
+  return TOTAL_DRIFT_BASE - TOTAL_DRIFT_SPREAD + Math.floor(rand() * (TOTAL_DRIFT_SPREAD * 2 + 1))
+}
+
+function driftedTotalMedian(dateIso: string): number {
+  const t = Date.parse(dateIso + 'T00:00:00Z')
+  const a = Date.parse(TOTAL_DRIFT_ANCHOR + 'T00:00:00Z')
+  if (!Number.isFinite(t) || !Number.isFinite(a)) return TOTAL_MEDIAN_BASE
+  const days = Math.max(0, Math.floor((t - a) / 86400000))
+  let median = TOTAL_MEDIAN_BASE
+  for (let i = 0; i < days; i++) {
+    const d = new Date(a + i * 86400000).toISOString().slice(0, 10)
+    median += populationDailyGain(d)
+  }
+  return median
+}
+
+function populationCdfTotal(pages: number, median: number = TOTAL_MEDIAN_BASE): number {
   if (pages <= 0) return 0
-  const mu = Math.log(380)
+  const mu = Math.log(median)
   const sigma = 1.1
   const z = (Math.log(pages) - mu) / sigma
   const t = 1 / (1 + 0.2316419 * Math.abs(z))
@@ -59,8 +85,9 @@ function populationCdfTotal(pages: number): number {
   return Math.min(Math.max(p, 0), 1)
 }
 
-export function totalPagesToRank(totalPages: number): number {
-  const rank = Math.round(RANK_POPULATION * (1 - populationCdfTotal(totalPages)))
+export function totalPagesToRank(totalPages: number, dateIso?: string): number {
+  const median = dateIso == null ? TOTAL_MEDIAN_BASE : driftedTotalMedian(dateIso)
+  const rank = Math.round(RANK_POPULATION * (1 - populationCdfTotal(totalPages, median)))
   return Math.min(Math.max(rank, 1), RANK_POPULATION)
 }
 
@@ -127,15 +154,16 @@ export function pagesForRank(rank: number): number {
   return Math.max(0, Math.round((lo + hi) / 2))
 }
 
-// 累計版の逆変換（二分法、上限20000、中央値380ページ基準）
-export function totalPagesForRank(rank: number): number {
+// 累計版の逆変換（二分法、上限20000、中央値は日付ドリフト連動）
+export function totalPagesForRank(rank: number, dateIso?: string): number {
+  const median = dateIso == null ? TOTAL_MEDIAN_BASE : driftedTotalMedian(dateIso)
   const clamped = Math.min(Math.max(rank, 1), RANK_POPULATION)
   const target = 1 - clamped / RANK_POPULATION
   let lo = 0
-  let hi = 20000
+  let hi = 40000
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2
-    if (populationCdfTotal(mid) < target) lo = mid
+    if (populationCdfTotal(mid, median) < target) lo = mid
     else hi = mid
   }
   return Math.max(0, Math.round((lo + hi) / 2))
@@ -160,7 +188,7 @@ export function sampleNearBoard(
     if (rank === clampedRank) continue
     const rand = mulberry32(hashSeed(`board-${dateIso}-${rank}`))
     const label = rivalLabel(rand, rank)
-    raw.push({ rank, boardRank: 0, name: label.univ, faculty: label.faculty, grade: label.grade, pages: totalPagesForRank(rank), you: false })
+    raw.push({ rank, boardRank: 0, name: label.univ, faculty: label.faculty, grade: label.grade, pages: totalPagesForRank(rank, dateIso), you: false })
   }
   raw.push({ rank: clampedRank, boardRank: 0, name: 'あなた', faculty: '', grade: '', pages: userPages, you: true })
   raw.sort((a, b) => a.rank - b.rank)

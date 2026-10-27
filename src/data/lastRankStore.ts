@@ -2,7 +2,7 @@ const KEY = 'schedule-app-last-rank'
 const MODEL_KEY = 'schedule-app-last-rank-model'
 // 順位モデルの版。母集団パラメータを変えたら上げる。
 // 版が違う基準値とは比較しない（モデル変更直後の見かけのDOWN表示を防ぐ）。
-export const RANK_MODEL_VERSION = 2
+export const RANK_MODEL_VERSION = 3
 
 export function loadLastRank(): number | null {
   try {

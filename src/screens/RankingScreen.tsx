@@ -47,13 +47,13 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   }, [])
   const todayPages = combinedActivityOnDate(today, validRecords, validCycles)
   const totalPages = totalActivity(validRecords) + totalCycleUnits(validCycles)
-  const rank = totalPagesToRank(totalPages)
+  const rank = totalPagesToRank(totalPages, today)
   const deviation = rankToDeviation(rank)
   void nowMin
   const rivals = useMemo(() => sampleNearBoard(totalPages, rank, today, 5), [totalPages, rank, today])
   const topRivals = useMemo(() => sampleTopRivals(today, 10), [today])
   const milestone = nextRankMilestone(rank)
-  const milestoneDiff = milestone == null ? 0 : Math.max(0, totalPagesForRank(milestone) - totalPages)
+  const milestoneDiff = milestone == null ? 0 : Math.max(0, totalPagesForRank(milestone, today) - totalPages)
   const dayOfMonth = Number(today.slice(8, 10))
   const isMockWeek = dayOfMonth >= 1 && dayOfMonth <= 7
   const level = deviation >= 60 ? 'A' : deviation >= 55 ? 'B' : deviation >= 50 ? 'C' : deviation >= 45 ? 'D' : 'E'

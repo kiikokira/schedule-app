@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { RANK_POPULATION, dailyPagesToRank, rankToDeviation, pagesForRank, sampleNearBoard, sampleTopRivals, totalPagesToRank, totalPagesForRank, totalActivity, nextRankMilestone, RIVAL_GRADES } from './ranking'
+import { RANK_POPULATION, dailyPagesToRank, rankToDeviation, pagesForRank, sampleNearBoard, sampleTopRivals, totalPagesToRank, totalPagesForRank, totalActivity, nextRankMilestone, RIVAL_GRADES, populationDailyGain } from './ranking'
 import { ALL_UNIVERSITIES, TOP_UNIVERSITIES, LOCAL_UNIVERSITIES } from '../data/universities'
 
 describe('ranking', () => {
@@ -123,6 +123,30 @@ describe('ranking', () => {
     const board = sampleNearBoard(10, 150000, '2026-10-18', 15).filter((b) => !b.you)
     for (const b of board) {
       expect(b.pages).toBe(totalPagesForRank(b.rank))
+    }
+  })
+  it('記録なしで日が進むと順位が下がる（起点日は不変）', () => {
+    expect(totalPagesToRank(777, '2026-10-27')).toBe(51553)
+    expect(totalPagesToRank(777, '2026-10-28')).toBeGreaterThan(51553)
+    expect(totalPagesToRank(777, '2026-11-03')).toBeGreaterThan(totalPagesToRank(777, '2026-10-28'))
+    expect(totalPagesToRank(777, '2026-09-01')).toBe(51553)
+  })
+  it('人口の1日の伸びは日替わりで変動し固定でない', () => {
+    const gains = Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(Date.parse('2026-10-27T00:00:00Z') + i * 86400000).toISOString().slice(0, 10)
+      return populationDailyGain(d)
+    })
+    for (const g of gains) {
+      expect(g).toBeGreaterThanOrEqual(6)
+      expect(g).toBeLessThanOrEqual(10)
+    }
+    expect(new Set(gains).size).toBeGreaterThan(1)
+    expect(totalPagesToRank(777, '2026-10-27')).toBe(totalPagesToRank(777, '2026-10-27'))
+  })
+  it('日付付きでも累計ページ↔順位で往復できる', () => {
+    for (const pages of [500, 2000]) {
+      const rank = totalPagesToRank(pages, '2026-11-03')
+      expect(Math.abs(totalPagesForRank(rank, '2026-11-03') - pages) / pages).toBeLessThan(0.3)
     }
   })
 })

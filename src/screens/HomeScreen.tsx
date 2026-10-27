@@ -582,7 +582,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
   const streak = calcStreakDays(streakScores, dailyQuota, today)
   const todayPages = combinedActivityOnDate(today, validRecords, validCycles)
   const totalPages = totalActivity(validRecords) + totalCycleUnits(validCycles)
-  const rank = totalPagesToRank(totalPages)
+  const rank = totalPagesToRank(totalPages, today)
   const deviation = rankToDeviation(rank)
   const profile = loadProfile()
   const headerUniv = profile.university && profile.faculty ? `${formalUniversityName(profile.university)}${profile.faculty}` : '慶應義塾大学環境情報学部'
