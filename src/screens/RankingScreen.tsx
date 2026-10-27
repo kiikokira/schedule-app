@@ -388,11 +388,11 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                     <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                       {stayPct != null ? (
                         <>
-                          <div style={{ width: `${stayPct}%`, textAlign: 'center' }} data-testid="league-gauge-label-relegate">
+                          <div style={{ width: `calc(${stayPct}% - 4px)`, textAlign: 'center' }} data-testid="league-gauge-label-relegate">
                             <div data-testid="league-gauge-bracket-relegate" style={{ borderBottom: '2px solid #ff3b30', borderLeft: '2px solid #ff3b30', borderRight: '2px solid #ff3b30', height: 6 }} />
                             <div style={{ color: '#ff3b30', fontWeight: 800, fontSize: 14, paddingTop: 2 }}>降格</div>
                           </div>
-                          <div style={{ width: `${Math.max(0, promoPct - (stayPct ?? 0))}%`, textAlign: 'center' }} data-testid="league-gauge-label-stay">
+                          <div style={{ width: `calc(${Math.max(0, promoPct - (stayPct ?? 0))}% - 8px)`, textAlign: 'center' }} data-testid="league-gauge-label-stay">
                             <div data-testid="league-gauge-bracket-stay" style={{ borderBottom: '2px solid #2fd44f', borderLeft: '2px solid #2fd44f', borderRight: '2px solid #2fd44f', height: 6 }} />
                             <div style={{ color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }}>残留</div>
                           </div>
@@ -403,7 +403,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                         </>
                       ) : (
                         <>
-                          <div style={{ width: `${promoPct}%`, textAlign: 'center' }} data-testid="league-gauge-label-stay">
+                          <div style={{ width: `calc(${promoPct}% - 4px)`, textAlign: 'center' }} data-testid="league-gauge-label-stay">
                             <div data-testid="league-gauge-bracket-stay" style={{ borderBottom: '2px solid #2fd44f', borderLeft: '2px solid #2fd44f', borderRight: '2px solid #2fd44f', height: 6 }} />
                             <div style={{ color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }}>残留</div>
                           </div>

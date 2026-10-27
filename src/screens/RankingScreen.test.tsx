@@ -468,6 +468,14 @@ describe('RankingScreen', () => {
     expect(screen.getByTestId('league-gauge-bracket-stay')).toHaveStyle({ borderLeft: '2px solid #2fd44f', borderRight: '2px solid #2fd44f' })
     expect(screen.getByTestId('league-gauge-bracket-promote')).toHaveStyle({ borderLeft: '2px solid #2fd44f', borderRight: '2px solid #2fd44f' })
   })
+  it('白点線はブラケット間の隙間中央に揃う', async () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    // Div10既定: 昇格3・最大目盛7 → 点線位置42.857...%。ゾーン幅はgap半分(4px)補正で隙間中央に一致させる
+    expect(screen.getByTestId('league-gauge-promo-mark')).toBeInTheDocument()
+    expect(screen.getByTestId('league-gauge-label-stay')).toHaveStyle({ width: 'calc(42.857142857142854% - 4px)' })
+  })
   it('昇格確定時は青文字の残りの試合をスキップが出る', async () => {
     const today = '2026-09-02'
     localStorage.clear()
