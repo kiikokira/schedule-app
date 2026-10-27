@@ -378,20 +378,35 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                         {stayPct != null && <span data-testid="league-gauge-stay-mark">{stay}</span>}
                         <span data-testid="league-gauge-promo-mark">{promo}</span>
                       </div>
-                      {stayPct != null && <div style={{ position: 'absolute', left: `${stayPct}%`, top: 0, bottom: 0, width: 2, background: '#fff', opacity: 0.9 }} />}
-                      <div style={{ position: 'absolute', left: `${promoPct}%`, top: 0, bottom: 0, width: 2, background: '#fff', opacity: 0.9 }} />
+                      {stayPct != null && <div style={{ position: 'absolute', left: `${stayPct}%`, top: 0, bottom: 0, borderLeft: '2px dashed rgba(255,255,255,0.9)' }} />}
+                      <div style={{ position: 'absolute', left: `${promoPct}%`, top: 0, bottom: 0, borderLeft: '2px dashed rgba(255,255,255,0.9)' }} />
                     </div>
-                    <div style={{ display: 'flex', marginTop: 2 }}>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                       {stayPct != null ? (
                         <>
-                          <div style={{ width: `${stayPct}%`, borderBottom: '2px solid #ff3b30', textAlign: 'center', color: '#ff3b30', fontWeight: 800, fontSize: 14, paddingTop: 2 }} data-testid="league-gauge-label-relegate">降格</div>
-                          <div style={{ width: `${Math.max(0, promoPct - (stayPct ?? 0))}%`, borderBottom: '2px solid #2fd44f', textAlign: 'center', color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }} data-testid="league-gauge-label-stay">残留</div>
-                          <div style={{ flex: 1, borderBottom: '2px solid #2fd44f', textAlign: 'center', color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }} data-testid="league-gauge-label-promote">昇格</div>
+                          <div style={{ width: `${stayPct}%`, textAlign: 'center' }} data-testid="league-gauge-label-relegate">
+                            <div data-testid="league-gauge-bracket-relegate" style={{ borderBottom: '2px solid #ff3b30', borderLeft: '2px solid #ff3b30', borderRight: '2px solid #ff3b30', height: 6 }} />
+                            <div style={{ color: '#ff3b30', fontWeight: 800, fontSize: 14, paddingTop: 2 }}>降格</div>
+                          </div>
+                          <div style={{ width: `${Math.max(0, promoPct - (stayPct ?? 0))}%`, textAlign: 'center' }} data-testid="league-gauge-label-stay">
+                            <div data-testid="league-gauge-bracket-stay" style={{ borderBottom: '2px solid #2fd44f', borderLeft: '2px solid #2fd44f', borderRight: '2px solid #2fd44f', height: 6 }} />
+                            <div style={{ color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }}>残留</div>
+                          </div>
+                          <div style={{ flex: 1, textAlign: 'center' }} data-testid="league-gauge-label-promote">
+                            <div data-testid="league-gauge-bracket-promote" style={{ borderBottom: '2px solid #2fd44f', borderLeft: '2px solid #2fd44f', borderRight: '2px solid #2fd44f', height: 6 }} />
+                            <div style={{ color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }}>昇格</div>
+                          </div>
                         </>
                       ) : (
                         <>
-                          <div style={{ width: `${promoPct}%`, borderBottom: '2px solid #2fd44f', textAlign: 'center', color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }} data-testid="league-gauge-label-stay">残留</div>
-                          <div style={{ flex: 1, borderBottom: '2px solid #2fd44f', textAlign: 'center', color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }} data-testid="league-gauge-label-promote">昇格</div>
+                          <div style={{ width: `${promoPct}%`, textAlign: 'center' }} data-testid="league-gauge-label-stay">
+                            <div data-testid="league-gauge-bracket-stay" style={{ borderBottom: '2px solid #2fd44f', borderLeft: '2px solid #2fd44f', borderRight: '2px solid #2fd44f', height: 6 }} />
+                            <div style={{ color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }}>残留</div>
+                          </div>
+                          <div style={{ flex: 1, textAlign: 'center' }} data-testid="league-gauge-label-promote">
+                            <div data-testid="league-gauge-bracket-promote" style={{ borderBottom: '2px solid #2fd44f', borderLeft: '2px solid #2fd44f', borderRight: '2px solid #2fd44f', height: 6 }} />
+                            <div style={{ color: '#2fd44f', fontWeight: 800, fontSize: 14, paddingTop: 2 }}>昇格</div>
+                          </div>
                         </>
                       )}
                     </div>

@@ -433,6 +433,20 @@ describe('RankingScreen', () => {
     expect(screen.getByTestId('league-gauge-label-stay')).toHaveTextContent('残留')
     expect(screen.getByTestId('league-gauge-label-promote')).toHaveTextContent('昇格')
   })
+  it('ゲージのゾーン境界はブラケット＋隙間で区切られる', async () => {
+    localStorage.clear()
+    const { loadSeasonState, saveSeasonState } = await import('../data/seasonStore')
+    const s0 = loadSeasonState('2026-09-02')
+    saveSeasonState({ ...s0, div: 4, highestDiv: 4, phaseBestDiv: 4, round: { w: 2, d: 0, l: 0, lastDate: null } })
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    const gauge = screen.getByTestId('league-gauge')
+    expect(gauge.firstElementChild?.firstElementChild).toBeInTheDocument()
+    // 各ゾーンのブラケット（両端の縦線付き）が存在する
+    expect(screen.getByTestId('league-gauge-bracket-relegate')).toHaveStyle({ borderLeft: '2px solid #ff3b30', borderRight: '2px solid #ff3b30' })
+    expect(screen.getByTestId('league-gauge-bracket-stay')).toHaveStyle({ borderLeft: '2px solid #2fd44f', borderRight: '2px solid #2fd44f' })
+    expect(screen.getByTestId('league-gauge-bracket-promote')).toHaveStyle({ borderLeft: '2px solid #2fd44f', borderRight: '2px solid #2fd44f' })
+  })
   it('昇格確定時は青文字の残りの試合をスキップが出る', async () => {
     const today = '2026-09-02'
     localStorage.clear()
