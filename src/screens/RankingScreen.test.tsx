@@ -472,9 +472,11 @@ describe('RankingScreen', () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
     fireEvent.click(screen.getByTestId('league-tab'))
-    // Div10既定: 昇格3・最大目盛7 → 点線位置42.857...%。ゾーン幅はgap半分(4px)補正で隙間中央に一致させる
+    // Div10既定: 昇格3・最大目盛7 → 点線位置42.857...%。ゾーン幅はバーと同一%で共有し、隙間は内側対称マージンで中央に寄せる
     expect(screen.getByTestId('league-gauge-promo-mark')).toBeInTheDocument()
-    expect(screen.getByTestId('league-gauge-label-stay')).toHaveStyle({ width: 'calc(42.857142857142854% - 4px)' })
+    expect(screen.getByTestId('league-gauge-label-stay')).toHaveStyle({ width: '42.857142857142854%' })
+    expect(screen.getByTestId('league-gauge-bracket-stay')).toHaveStyle({ marginRight: '4px' })
+    expect(screen.getByTestId('league-gauge-bracket-promote')).toHaveStyle({ marginLeft: '4px' })
   })
   it('昇格確定時は青文字の残りの試合をスキップが出る', async () => {
     const today = '2026-09-02'
