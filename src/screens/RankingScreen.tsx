@@ -86,6 +86,10 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
   useEffect(() => {
     setEmblemBroken(false)
   }, [seasonState.div])
+  const [confirmSkip, setConfirmSkip] = useState(false)
+  useEffect(() => {
+    setConfirmSkip(false)
+  }, [seasonState.div, seasonState.round?.w, seasonState.round?.d, seasonState.round?.l])
   const mySeasonCumPages = useMemo(() => {
     try {
       // 自分の今季累計はDBから今季範囲で直接合計する。
@@ -415,11 +419,24 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
                     <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>🏆 試合数</span>
                     <span style={{ fontSize: 18, fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{played}/10</span>
                   </div>
-                  {statusText && <div data-testid="league-decision" style={{ fontSize: 15, color: '#9a9a9a', marginTop: 12 }}>{statusText}</div>}
-                  {outcome === 'promote' && (t.w + t.d + t.l) < 10 && (
-                    <button data-testid="league-skip" type="button" onClick={() => { try { saveSeasonState(finalizeRoundEarly(loadSeasonState(today), today)); setSeasonTick((v) => v + 1) } catch { /* ignore */ } }} style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontWeight: 800, fontSize: 17, padding: '4px 0 0', cursor: 'pointer', textAlign: 'left' }}>
+                  {statusText && <div data-testid="league-decision" style={{ fontSize: 17, color: '#9a9a9a', marginTop: 12 }}>{statusText}</div>}
+                  {outcome === 'promote' && (t.w + t.d + t.l) < 10 && !confirmSkip && (
+                    <button data-testid="league-skip" type="button" onClick={() => setConfirmSkip(true)} style={{ background: 'transparent', border: 'none', color: '#3b82f6', fontWeight: 800, fontSize: 17, padding: '4px 0 0', cursor: 'pointer', textAlign: 'left' }}>
                       残りの試合をスキップ
                     </button>
+                  )}
+                  {outcome === 'promote' && (t.w + t.d + t.l) < 10 && confirmSkip && (
+                    <div data-testid="league-skip-confirm" style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 14, color: '#fff', fontWeight: 700 }}>残りの試合をスキップして昇格しますか？</div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <button data-testid="league-skip-yes" type="button" onClick={() => { try { saveSeasonState(finalizeRoundEarly(loadSeasonState(today), today)); setSeasonTick((v) => v + 1) } catch { /* ignore */ } }} style={{ flex: 1, background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 800, fontSize: 15, padding: '10px 0', cursor: 'pointer' }}>
+                          昇格する
+                        </button>
+                        <button data-testid="league-skip-no" type="button" onClick={() => setConfirmSkip(false)} style={{ flex: 1, background: 'transparent', color: '#9a9a9a', border: '1px solid #555', borderRadius: 8, fontWeight: 700, fontSize: 15, padding: '10px 0', cursor: 'pointer' }}>
+                          キャンセル
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </>
               )

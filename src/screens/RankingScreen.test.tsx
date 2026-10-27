@@ -396,7 +396,7 @@ describe('RankingScreen', () => {
     expect(screen.getByTestId('league-gauge-promo-mark')).toHaveTextContent('3')
     expect(screen.queryByTestId('league-skip')).toBeNull()
   })
-  it('昇格確定でスキップボタンが出て押すと即昇格する', async () => {
+  it('昇格確定でスキップ確認が出て確定押下で昇格する', async () => {
     const today = '2026-09-02'
     localStorage.clear()
     // 枠ベース進行：日次 syncLeagueDay はリーグ進行しないため、枠確定で勝ち点を積む
@@ -408,7 +408,28 @@ describe('RankingScreen', () => {
     fireEvent.click(screen.getByTestId('league-tab'))
     await waitFor(() => expect(screen.getByTestId('league-skip')).toBeInTheDocument())
     fireEvent.click(screen.getByTestId('league-skip'))
+    // リンク押下だけでは昇格しない（確認が出る）
+    await waitFor(() => expect(screen.getByTestId('league-skip-confirm')).toBeInTheDocument())
+    expect(screen.getByTestId('league-division')).toHaveTextContent('Division 10')
+    fireEvent.click(screen.getByTestId('league-skip-yes'))
     await waitFor(() => expect(screen.getByTestId('league-division')).toHaveTextContent('Division 9'))
+  })
+  it('スキップ確認でキャンセルすると昇格しない', async () => {
+    const today = '2026-09-02'
+    localStorage.clear()
+    const { loadSeasonState, saveSeasonState, syncLeagueSlot } = await import('../data/seasonStore')
+    const s0 = loadSeasonState('2026-09-01')
+    saveSeasonState({ ...s0, div: 10, highestDiv: 10, phaseBestDiv: 10, rating: 0, ratedUpTo: null, round: { w: 0, d: 0, l: 0, lastDate: null }, exp: 0, days: {} })
+    syncLeagueSlot(today, `${today}#390-420`, { my: 10000, unit: 'pages', slotMinutes: 30 })
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    await waitFor(() => expect(screen.getByTestId('league-skip')).toBeInTheDocument())
+    fireEvent.click(screen.getByTestId('league-skip'))
+    await waitFor(() => expect(screen.getByTestId('league-skip-no')).toBeInTheDocument())
+    fireEvent.click(screen.getByTestId('league-skip-no'))
+    await waitFor(() => expect(screen.getByTestId('league-skip')).toBeInTheDocument())
+    expect(screen.queryByTestId('league-skip-confirm')).toBeNull()
+    expect(screen.getByTestId('league-division')).toHaveTextContent('Division 10')
   })
   it('Div10〜4は勝ち点ゲージ表示でレーティング・順位は出ない', async () => {
     localStorage.clear()
