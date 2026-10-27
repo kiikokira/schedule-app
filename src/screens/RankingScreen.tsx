@@ -349,10 +349,10 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               )}
               </div>
               <div>
-                <div data-testid="league-division" style={{ fontWeight: 900, fontSize: 24, color: '#ffe600', lineHeight: 1.1 }}>
+                <div data-testid="league-division" style={{ fontWeight: 900, fontSize: 24, color: '#e7e721', lineHeight: 1.1 }}>
                   Division {seasonState.div}
                 </div>
-                <div data-testid="league-phase" style={{ fontSize: 13, color: '#d7ff00', marginTop: 2, fontWeight: 700 }}>
+                <div data-testid="league-phase" style={{ fontSize: 13, color: '#e7e721', marginTop: 2, fontWeight: 700 }}>
                   フェーズ{phaseNo}: {phaseRange.start}〜{phaseRange.end}
                 </div>
               </div>
@@ -474,10 +474,10 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
               )}
               </div>
               <div>
-                <div data-testid="league-division" style={{ fontWeight: 900, fontSize: 24, color: '#ffe600', lineHeight: 1.1 }}>
+                <div data-testid="league-division" style={{ fontWeight: 900, fontSize: 24, color: '#e7e721', lineHeight: 1.1 }}>
                   Division {seasonState.div}
                 </div>
-                <div data-testid="league-phase" style={{ fontSize: 13, color: '#ffe600', marginTop: 2 }}>
+                <div data-testid="league-phase" style={{ fontSize: 13, color: '#e7e721', marginTop: 2 }}>
                   フェーズ{phaseNo}: {phaseRange.start}〜{phaseRange.end}
                 </div>
               </div>

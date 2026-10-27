@@ -431,6 +431,13 @@ describe('RankingScreen', () => {
     expect(screen.queryByTestId('league-skip-confirm')).toBeNull()
     expect(screen.getByTestId('league-division')).toHaveTextContent('Division 10')
   })
+  it('Division見出しとフェーズはエンブレム数字色の明るい黄色', async () => {
+    localStorage.clear()
+    render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
+    fireEvent.click(screen.getByTestId('league-tab'))
+    expect(screen.getByTestId('league-division')).toHaveStyle({ color: '#e7e721' })
+    expect(screen.getByTestId('league-phase')).toHaveStyle({ color: '#e7e721' })
+  })
   it('Div10〜4は勝ち点ゲージ表示でレーティング・順位は出ない', async () => {
     localStorage.clear()
     render(<RankingScreen onBack={() => {}} today="2026-09-02" />)
