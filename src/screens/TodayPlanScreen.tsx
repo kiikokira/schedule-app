@@ -589,19 +589,6 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     })
   }
 
-  const handleComplete = async (slot: PlanSlot, book: BookData, league?: { slotKey: string; slotMinutes: number }) => {
-    const pages = slot.pages
-    if (!Number.isInteger(pages) || pages < 1) return
-    if (!window.confirm(`「${book.title}」を ${pages} ページで記録しますか？`)) return
-    await recordPages(book.id, pages)
-    if (league) {
-      try {
-        syncLeagueSlot(today, league.slotKey, { my: pages, unit: 'pages', slotMinutes: league.slotMinutes })
-        setSeasonTick((v) => v + 1)
-      } catch { /* ignore */ }
-    }
-  }
-
   return (
     <div data-testid="today-plan-screen" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>今日の計画</h1>
@@ -870,16 +857,6 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                       >
                         記録
                       </button>
-                      {s.pages > 0 && (
-                        <button
-                          data-testid={`plan-done-${s.bookId}`}
-                          type="button"
-                          style={{ flexShrink: 0 }}
-                          onClick={() => void handleComplete(s, book, { slotKey, slotMinutes })}
-                        >
-                          完了
-                        </button>
-                      )}
                       {forfeitControl}
                     </div>
                   )}

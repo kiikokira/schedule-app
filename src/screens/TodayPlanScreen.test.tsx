@@ -803,32 +803,6 @@ describe('TodayPlanScreen', () => {
     expect(badges[0]).toHaveTextContent(/あと\d+分/)
   })
 
-  it('records the planned pages with one tap after confirm', async () => {
-    const originalConfirm = window.confirm
-    window.confirm = (() => true) as unknown as typeof window.confirm
-    try {
-      await fillBook('b1')
-      await saveAvailabilitySlot(
-        { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
-        true,
-      )
-      render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
-      const row = await screen.findByTestId('plan-row-0')
-      const planned = Number(
-        within(row).getByTestId('plan-row-pages').textContent?.replace(/[^0-9]/g, '') ?? '0',
-      )
-      expect(planned).toBeGreaterThan(0)
-      fireEvent.click(within(row).getByTestId('plan-done-b1'))
-      await waitFor(async () => {
-        const recs = await db.records.toArray()
-        expect(recs).toHaveLength(1)
-        expect(recs[0].pages).toBe(planned)
-      })
-    } finally {
-      window.confirm = originalConfirm
-    }
-  })
-
   it('ずらした上書きでは上書き前の時間は残らない（重複なし）', async () => {
     await fillBook('b1', { trainFit: 'home' })
     await fillBook('b2', { trainFit: 'home' })
@@ -903,25 +877,6 @@ describe('TodayPlanScreen', () => {
     })
   })
 
-  it('cancelling the confirm records nothing', async () => {
-    const originalConfirm = window.confirm
-    window.confirm = (() => false) as unknown as typeof window.confirm
-    try {
-      await fillBook('b1')
-      await saveAvailabilitySlot(
-        { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
-        true,
-      )
-      render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
-      const row = await screen.findByTestId('plan-row-0')
-      fireEvent.click(within(row).getByTestId('plan-done-b1'))
-      await waitFor(async () => {
-        expect(await db.records.toArray()).toHaveLength(0)
-      })
-    } finally {
-      window.confirm = originalConfirm
-    }
-  })
 })
 
 describe('today slot gate', () => {
