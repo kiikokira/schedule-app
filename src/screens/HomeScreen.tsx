@@ -624,9 +624,6 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 24 }}>{headerUniv}</h1>
-      <button data-testid="home-school-open" type="button" onClick={() => onSchool?.()} style={{ marginTop: 4, fontSize: 13, color: 'var(--text-dim)', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
-        学校の日程 ▶
-      </button>
       <section data-testid="ranking-card" style={{ marginTop: 8, marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div style={{ fontWeight: 800, fontSize: 16 }}>仮想全国ランキング</div>
         <div data-testid="ranking-summary" style={{ fontSize: 14 }}>
@@ -640,6 +637,9 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
         </button>
         <div data-testid="season-banner">今季Div.{season.div} 残り{seasonRemain}節 順位はリーグタブで</div>
       </section>
+      <button data-testid="home-school-open" type="button" onClick={() => onSchool?.()} style={{ marginBottom: 8, fontSize: 13, color: 'var(--text-dim)', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
+        学校の日程 ▶
+      </button>
       <p data-testid="today-date" style={{ fontWeight: 700 }}>
         今日は {formatJaDate(today)}
       </p>

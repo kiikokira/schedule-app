@@ -772,7 +772,7 @@ describe('HomeScreen', () => {
     expect(entry).toHaveTextContent('学校の日程')
     expect(entry).not.toHaveTextContent('🏫')
     const card = await screen.findByTestId('ranking-card')
-    expect(entry.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(card.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     fireEvent.click(entry)
     expect(onSchool).toHaveBeenCalledTimes(1)
   })
