@@ -85,6 +85,7 @@ export default function PlanScreen({ onDone, onFocus, onJapan, onSchool }: Props
   const [showPresetForm, setShowPresetForm] = useState(false)
   const [showCatalogForm, setShowCatalogForm] = useState(false)
   const [showRegisteredForm, setShowRegisteredForm] = useState(false)
+  const [showAddBooks, setShowAddBooks] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set())
   const [availabilityOpen, setAvailabilityOpen] = useState(false)
   const [slotDrafts, setSlotDrafts] = useState<Record<string, SlotRow>>({})
@@ -387,6 +388,18 @@ export default function PlanScreen({ onDone, onFocus, onJapan, onSchool }: Props
 
       <section style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
         <button
+          data-testid="add-books-toggle"
+          type="button"
+          aria-expanded={showAddBooks}
+          onClick={() => setShowAddBooks((v) => !v)}
+          style={{ fontSize: 16, fontWeight: 700, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+        >
+          参考書を追加 {showAddBooks ? '▼' : '▶'}
+        </button>
+        {showAddBooks && (
+        <>
+        <div style={{ marginTop: 8 }}>
+        <button
           data-testid="catalog-toggle"
           type="button"
           aria-expanded={showCatalogForm}
@@ -450,9 +463,8 @@ export default function PlanScreen({ onDone, onFocus, onJapan, onSchool }: Props
           </button>
         </div>
         )}
-      </section>
-
-      <section style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+        </div>
+        <div style={{ marginTop: 8 }}>
         <button
           data-testid="registered-toggle"
           type="button"
@@ -509,6 +521,9 @@ export default function PlanScreen({ onDone, onFocus, onJapan, onSchool }: Props
           >
             追加
           </button>
+        </div>
+        </>
+        )}
         </div>
         </>
         )}

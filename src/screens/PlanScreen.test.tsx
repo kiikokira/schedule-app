@@ -38,6 +38,7 @@ describe('PlanScreen', () => {
 
   it('shows a suggested deadline when adding a book from the catalog', () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('add-books-toggle'))
     fireEvent.click(screen.getByTestId('catalog-toggle'))
     fireEvent.change(screen.getByTestId('catalog-select'), {
       target: { value: 'eibunpo-polaris-1' },
@@ -53,6 +54,7 @@ describe('PlanScreen', () => {
 
   it('adds a book from the catalog to the schedule', () => {
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('add-books-toggle'))
     fireEvent.click(screen.getByTestId('catalog-toggle'))
     fireEvent.change(screen.getByTestId('catalog-select'), {
       target: { value: 'eibunpo-polaris-1' },
@@ -281,6 +283,7 @@ describe('PlanScreen', () => {
       updatedAt: '2026-01-01T00:00:00.000Z',
     })
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('add-books-toggle'))
     fireEvent.click(screen.getByTestId('registered-toggle'))
     await waitFor(() => {
       const select = screen.getByTestId<HTMLSelectElement>('registered-select')
@@ -313,6 +316,7 @@ describe('PlanScreen', () => {
       updatedAt: '2026-01-01T00:00:00.000Z',
     })
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('add-books-toggle'))
     fireEvent.click(screen.getByTestId('registered-toggle'))
     fireEvent.change(screen.getByTestId('registered-select'), {
       target: { value: 'b1' },
@@ -335,6 +339,7 @@ describe('PlanScreen', () => {
       updatedAt: '2026-01-01T00:00:00.000Z',
     })
     render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('add-books-toggle'))
     fireEvent.click(screen.getByTestId('registered-toggle'))
     await waitFor(() => {
       const select = screen.getByTestId<HTMLSelectElement>('registered-select')
@@ -1012,8 +1017,12 @@ describe('PlanScreen', () => {
     expect(loadOverridePresets()).toHaveLength(1)
   })
 
-  it('カタログ追加と登録済み追加は初期は閉じていて展開できる', async () => {
+  it('カタログ追加と登録済み追加は親トグル内にあり初期は閉じていて展開できる', async () => {
     render(<PlanScreen onDone={() => {}} />)
+    expect(screen.getByTestId('add-books-toggle')).toBeInTheDocument()
+    expect(screen.queryByTestId('catalog-toggle')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('registered-toggle')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('add-books-toggle'))
     expect(screen.getByTestId('catalog-toggle')).toBeInTheDocument()
     expect(screen.getByTestId('registered-toggle')).toBeInTheDocument()
     expect(screen.queryByTestId('catalog-select')).not.toBeInTheDocument()
