@@ -57,6 +57,7 @@ type Props = {
   onOpenBook: (id: string) => void
   onRanking?: () => void
   onMyPage?: () => void
+  onSchool?: () => void
 }
 
 function findRegistered(
@@ -427,7 +428,7 @@ function ScheduleRow({
   )
 }
 
-export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
+export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }: Props) {
   const { books, saveBook, loaded: booksLoaded } = useBooks()
   const { records, addProgress } = useRecords()
   const { cycleRecords } = useCycleRecords()
@@ -623,6 +624,9 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage }: Props) {
   return (
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 24 }}>{headerUniv}</h1>
+      <button data-testid="home-school-open" type="button" onClick={() => onSchool?.()} style={{ marginTop: 4, fontSize: 13, color: 'var(--text-dim)', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
+        学校の日程 ▶
+      </button>
       <section data-testid="ranking-card" style={{ marginTop: 8, marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div style={{ fontWeight: 800, fontSize: 16 }}>仮想全国ランキング</div>
         <div data-testid="ranking-summary" style={{ fontSize: 14 }}>

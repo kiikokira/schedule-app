@@ -765,6 +765,18 @@ describe('HomeScreen', () => {
     expect(onRanking).toHaveBeenCalledTimes(1)
   })
 
+  it('ホーム上部に学校の日程への入口があり絵文字なしで開ける', async () => {
+    const onSchool = vi.fn()
+    render(<HomeScreen onOpenBook={() => {}} onSchool={onSchool} />)
+    const entry = await screen.findByTestId('home-school-open')
+    expect(entry).toHaveTextContent('学校の日程')
+    expect(entry).not.toHaveTextContent('🏫')
+    const card = await screen.findByTestId('ranking-card')
+    expect(entry.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    fireEvent.click(entry)
+    expect(onSchool).toHaveBeenCalledTimes(1)
+  })
+
   const seedOverduePageBook = async () => {
     const now = new Date().toISOString()
     await db.books.add({
