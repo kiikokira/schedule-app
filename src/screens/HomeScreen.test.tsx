@@ -55,13 +55,13 @@ describe('HomeScreen', () => {
     expect(screen.queryByTestId('goal-badge')).not.toBeInTheDocument()
   })
 
-  it('shows a 第一志望 badge when the goal university is set', async () => {
+  it('shows a 志望校 badge when the goal university is set', async () => {
     const { saveProfile } = await import('../data/profileStore')
     saveProfile({ nickname: '', grade: '高2', university: '慶應', faculty: '環境情報学部', department: '', playMode: 'both' })
     render(<HomeScreen onOpenBook={() => {}} />)
     const heading = screen.getByRole('heading', { level: 1 })
     expect(heading).toHaveTextContent('慶應義塾大学環境情報学部')
-    expect(screen.getByTestId('goal-badge')).toHaveTextContent('第一志望')
+    expect(screen.getByTestId('goal-badge')).toHaveTextContent('志望校')
     localStorage.clear()
   })
 

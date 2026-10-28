@@ -626,8 +626,8 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
     <div style={{ padding: 16 }}>
       <h1 style={{ fontSize: 24 }}>
         {hasGoal && (
-          <span data-testid="goal-badge" style={{ display: 'inline-block', fontSize: 12, fontWeight: 800, color: '#ffe600', background: '#151a30', borderRadius: 999, padding: '2px 10px', marginRight: 8, verticalAlign: 'middle' }}>
-            第一志望
+          <span data-testid="goal-badge" style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, color: '#1e2a5a', background: '#ffffff', border: '1px solid #1e2a5a', borderRadius: 999, padding: '1px 8px', marginRight: 8, verticalAlign: 'middle' }}>
+            志望校
           </span>
         )}
         {headerUniv}
