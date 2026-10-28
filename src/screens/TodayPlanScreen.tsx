@@ -6,6 +6,7 @@ import {
   listAvailability,
   saveAvailabilitySlot,
   deleteAvailabilitySlot,
+  listAdjustments,
   type AvailabilitySlot,
 } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
@@ -176,6 +177,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     .map((p) => p.title)
   const [availability, setAvailability] = useState<Awaited<ReturnType<typeof listAvailability>>>([])
   const [availabilityLoaded, setAvailabilityLoaded] = useState(false)
+  // 当日に再調整（優先度・配分比率）した本は期限警告を出さない。
+  // 見直し→反映の往復ループを防ぐため。当日分のみ有効で翌日は再表示する。
+  const [handledToday, setHandledToday] = useState<Set<string>>(new Set())
   const [inputs, setInputs] = useState<Record<string, string>>({})
   const [bookOverrides, setBookOverrides] = useState<Record<number, string>>({})
   const [pinOverrides, setPinOverrides] = useState<Record<string, { bookId: string; onTrain?: boolean }>>({})
@@ -199,7 +203,16 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
 
   useEffect(() => {
     void refreshAvailability()
-  }, [])
+    void listAdjustments().then((all) => {
+      setHandledToday(
+        new Set(
+          all
+            .filter((a) => a.date === today && (a.kind === 'priority' || a.kind === 'ratio'))
+            .map((a) => a.bookId),
+        ),
+      )
+    })
+  }, [today])
 
   const pageBooks = books.filter((b) => b.studyMode !== 'cycles')
   const cycleBooks = books.filter((b) => b.studyMode === 'cycles')
@@ -217,7 +230,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const planned = generateDayPlan({ availability, books: scheduled, today })
   // 期限に間に合わない本の警告用。開始前の本も含めて将来の期限と調整する。
   // 期限自体は変えず、不足分の再配分は見直し先の再調整画面に任せる。
-  const risks = findAtRiskBooks({ books: scheduled, availability, today })
+  const risks = findAtRiskBooks({ books: scheduled, availability, today }).filter(
+    (r) => !handledToday.has(r.bookId),
+  )
 
   // ページ本の差し替え（従来通り、planned の index 基準）
   const pageApplied: PlanSlot[] = planned.today.slots.map((s, i) => {

@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import TodayPlanScreen from './TodayPlanScreen'
 import { db } from '../db/database'
-import { saveAvailabilitySlot, listAvailability } from '../data/dayplanStore'
+import { saveAvailabilitySlot, listAvailability, addAdjustment } from '../data/dayplanStore'
 import { saveFocusPeriods } from '../data/focusPeriods'
 import { resetSchedule } from '../data/scheduleStore'
 
@@ -12,6 +12,7 @@ beforeEach(async () => {
   await db.records.clear()
   await db.cycleRecords.clear()
   await db.availability.clear()
+  if (db.adjustments) await db.adjustments.clear()
   resetSchedule()
   saveFocusPeriods([])
 })
@@ -658,6 +659,37 @@ describe('TodayPlanScreen', () => {
     expect(await screen.findByTestId('deadline-risk-hint')).toHaveTextContent(
       '記録を進める・期限を延ばす・空き時間を増やすと解消します',
     )
+  })
+
+  it('今日再調整した本の期限警告は表示しない', async () => {
+    await fillBook('b1', { totalPages: 500, deadline: '2026-09-22' })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '22:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'a2', weekday: 2, date: null, start: '21:00', end: '22:00' },
+      true,
+    )
+    await addAdjustment({ id: 'adj1', date: '2026-09-21', bookId: 'b1', kind: 'priority', value: 0 })
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" onRebalance={() => {}} />)
+    await screen.findByTestId('today-table')
+    expect(screen.queryByTestId('deadline-risk-section')).not.toBeInTheDocument()
+  })
+
+  it('別日に再調整した本の期限警告は再表示する', async () => {
+    await fillBook('b1', { totalPages: 500, deadline: '2026-09-22' })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '22:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'a2', weekday: 2, date: null, start: '21:00', end: '22:00' },
+      true,
+    )
+    await addAdjustment({ id: 'adj2', date: '2026-09-20', bookId: 'b1', kind: 'ratio', value: 0.7 })
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" onRebalance={() => {}} />)
+    expect(await screen.findByTestId('deadline-risk-section')).toHaveTextContent('英文法ポラリス2（応用レベル）')
   })
 
   it('期限に余裕があれば警告を出さない', async () => {
