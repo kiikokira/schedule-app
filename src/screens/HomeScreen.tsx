@@ -586,7 +586,8 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
   const rank = totalPagesToRank(totalPages, today)
   const deviation = rankToDeviation(rank)
   const profile = loadProfile()
-  const headerUniv = profile.university && profile.faculty ? `${formalUniversityName(profile.university)}${profile.faculty}` : '慶應義塾大学環境情報学部'
+  const hasGoal = profile.university !== '' && profile.faculty !== ''
+  const headerUniv = hasGoal ? `${formalUniversityName(profile.university)}${profile.faculty}` : '慶應義塾大学環境情報学部'
   const season = (() => {
     try {
       return loadSeasonState(today)
@@ -623,7 +624,14 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
 
   return (
     <div style={{ padding: 16 }}>
-      <h1 style={{ fontSize: 24 }}>{headerUniv}</h1>
+      <h1 style={{ fontSize: 24 }}>
+        {hasGoal && (
+          <span data-testid="goal-badge" style={{ display: 'inline-block', fontSize: 12, fontWeight: 800, color: '#ffe600', background: '#151a30', borderRadius: 999, padding: '2px 10px', marginRight: 8, verticalAlign: 'middle' }}>
+            第一志望
+          </span>
+        )}
+        {headerUniv}
+      </h1>
       <section data-testid="ranking-card" style={{ marginTop: 8, marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div style={{ fontWeight: 800, fontSize: 16 }}>仮想全国ランキング</div>
         <div data-testid="ranking-summary" style={{ fontSize: 14 }}>
