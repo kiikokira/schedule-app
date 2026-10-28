@@ -645,10 +645,10 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
         </button>
         <div data-testid="season-banner">今季Div.{season.div} 残り{seasonRemain}節 順位はリーグタブで</div>
       </section>
-      <button data-testid="home-school-open" type="button" onClick={() => onSchool?.()} style={{ marginBottom: 8, fontSize: 13, color: 'var(--text-dim)', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
+      <button data-testid="home-school-open" type="button" onClick={() => onSchool?.()} style={{ fontSize: 13, color: 'var(--text-dim)', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
         学校の日程 ▶
       </button>
-      <p data-testid="today-date" style={{ fontWeight: 700 }}>
+      <p data-testid="today-date" style={{ fontWeight: 700, marginTop: 0 }}>
         今日は {formatJaDate(today)}
       </p>
       {todayQuote && (
