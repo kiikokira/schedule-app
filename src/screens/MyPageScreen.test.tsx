@@ -65,7 +65,7 @@ describe('MyPageScreen', () => {
     expect(hero).toHaveTextContent('未設定')
   })
   it('目標カードに順位・偏差値・次の節目までの差を表示する', async () => {
-    const today = todayStr()
+    const today = '2026-10-27'
     const now = new Date().toISOString()
     await db.books.add({ id: 'b1', title: '単語帳', totalPages: 500, startDate: today, deadline: today, createdAt: now, updatedAt: now })
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 50 })
@@ -75,7 +75,7 @@ describe('MyPageScreen', () => {
     await waitFor(() => expect(goal).toHaveTextContent('累計 50ページ'))
     expect(goal).toHaveTextContent('全国100,000位')
     expect(goal).toHaveTextContent('偏差値')
-    expect(goal).toHaveTextContent('あと330ページ')
+    expect(goal).toHaveTextContent('あと1,020ページ')
   })
   it('累計の内訳カードは行を表示せずタップで一覧へ遷移する', async () => {
     const today = todayStr()
@@ -104,14 +104,15 @@ describe('MyPageScreen', () => {
     expect(await screen.findByTestId('progress-chart')).toBeInTheDocument()
   })
   it('前回より順位が上がれば +N を強調表示する', async () => {
-    saveLastRank(199166)
-    const today = todayStr()
+    const today = '2026-10-27'
+    // 50ページ=422401位。前回を100位悪くして+100を検証。
+    saveLastRank(422501)
     const now = new Date().toISOString()
     await db.books.add({ id: 'b1', title: '単語帳', totalPages: 500, startDate: today, deadline: today, createdAt: now, updatedAt: now })
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 50 })
     render(<MyPageScreen onBack={() => {}} onRanking={() => {}} today={today} />)
     const delta = await screen.findByTestId('mypage-rank-delta')
-    await waitFor(() => expect(delta).toHaveTextContent('+'))
+    await waitFor(() => expect(delta).toHaveTextContent('+100'))
     expect(delta).toHaveTextContent('前回比')
   })
   it('初回は増減を表示しない', async () => {
@@ -123,8 +124,9 @@ describe('MyPageScreen', () => {
     expect(screen.queryByTestId('mypage-rank-delta')).toBeNull()
   })
   it('順位下降は -N を大きなバッジで強調表示する', async () => {
-    saveLastRank(199695)
-    const today = todayStr()
+    const today = '2026-10-27'
+    // 14ページ=430764位。前回を36位良くして-36を検証。
+    saveLastRank(430728)
     const now = new Date().toISOString()
     await db.books.add({ id: 'b1', title: '単語帳', totalPages: 500, startDate: today, deadline: today, createdAt: now, updatedAt: now })
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 14 })
@@ -135,8 +137,8 @@ describe('MyPageScreen', () => {
     expect(delta).toHaveTextContent('▼')
   })
   it('順位変化なしは±0を小さめに表示しキープ文言は出さない', async () => {
-    saveLastRank(199731)
-    const today = todayStr()
+    const today = '2026-10-27'
+    saveLastRank(430764)
     const now = new Date().toISOString()
     await db.books.add({ id: 'b1', title: '単語帳', totalPages: 500, startDate: today, deadline: today, createdAt: now, updatedAt: now })
     await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 14 })

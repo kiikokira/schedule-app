@@ -3,7 +3,7 @@
 // 日次分布（中央値8p）と累計分布（中央値150p）の2系統を持つ。
 // 累計は減らず、最下位スタートで貯めるほど上がる。
 import { facultiesFor, universitiesForRank } from '../data/universities'
-export const RANK_POPULATION = 200000
+export const RANK_POPULATION = 431051
 
 // 簡易ハッシュ＋mulberry32（日付シード決定的乱数）
 function hashSeed(s: string): number {
@@ -44,12 +44,12 @@ export function dailyPagesToRank(pages: number, _dateIso: string): number {
   return Math.min(Math.max(rank, 1), RANK_POPULATION)
 }
 
-// 累計分布のCDF（中央値380ページ起点・σ=1.1＋日付ドリフト）。
-// 実測（進研模試2年7月・英語偏差値54.5相当の学習量≒608ページで偏差値54前後になるよう調整）。
+// 累計分布のCDF（中央値478ページ起点・σ=1.1＋日付ドリフト）。
+// 実測: 進研模試2年7月 英語124769位/431051人・偏差値54.5〜55.5帯に合わせ、880ページで約124769位・偏差値約55.5になるよう中央値478に調整。
 // 国数英総合51.7・国語51.8・数学49.2・英語54.5の実力を反映し、序盤で跳ねないよう緩やかにした。
 // ライバルも毎日勉強する想定で、中央値は起点日以降1日6〜10ページ（日替わり・決定的）ずつ上昇する。
-// 記録なしで日が進むと順位が下がる。起点日以前・引数なしは旧来通り中央値380。
-const TOTAL_MEDIAN_BASE = 380
+// 記録なしで日が進むと順位が下がる。起点日以前・引数なしは中央値478。
+const TOTAL_MEDIAN_BASE = 478
 const TOTAL_DRIFT_ANCHOR = '2026-10-27'
 const TOTAL_DRIFT_BASE = 8
 const TOTAL_DRIFT_SPREAD = 2

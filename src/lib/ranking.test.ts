@@ -3,12 +3,12 @@ import { RANK_POPULATION, dailyPagesToRank, rankToDeviation, pagesForRank, sampl
 import { ALL_UNIVERSITIES, TOP_UNIVERSITIES, LOCAL_UNIVERSITIES } from '../data/universities'
 
 describe('ranking', () => {
-  it('ページ数が多いほど上位になり1〜200000に収まる', () => {
-    expect(RANK_POPULATION).toBe(200000)
+  it('ページ数が多いほど上位になり1〜431051に収まる', () => {
+    expect(RANK_POPULATION).toBe(431051)
     const a = dailyPagesToRank(30, '2026-10-18')
     const b = dailyPagesToRank(10, '2026-10-18')
     expect(a).toBeGreaterThanOrEqual(1)
-    expect(a).toBeLessThanOrEqual(200000)
+    expect(a).toBeLessThanOrEqual(431051)
     expect(a).toBeLessThan(b)
   })
   it('1位の偏差値は80付近の高値になる', () => {
@@ -67,21 +67,26 @@ describe('ranking', () => {
       expect(d2[i].pages).toBeGreaterThanOrEqual(d1[i].pages)
     }
   })
-  it('608ページ前後で偏差値54.5前後になる（実測・2年7月英語54.5相当の学習量）', () => {
-    const dev = rankToDeviation(totalPagesToRank(608))
-    expect(dev).toBeGreaterThan(53)
-    expect(dev).toBeLessThan(56)
+  it('880ページで約124769位・偏差値55.5前後になる（実測・進研模試2年7月英語124769位/431051人・偏差値54.5〜55.5帯）', () => {
+    const rank = totalPagesToRank(880)
+    expect(rank).toBeGreaterThanOrEqual(124769 - 2000)
+    expect(rank).toBeLessThanOrEqual(124769 + 2000)
+    const dev = rankToDeviation(rank)
+    expect(dev).toBeGreaterThanOrEqual(54.0)
+    expect(dev).toBeLessThanOrEqual(57.0)
+    expect(rankToDeviation(124769)).toBeGreaterThanOrEqual(54.0)
+    expect(rankToDeviation(124769)).toBeLessThanOrEqual(57.0)
   })
   it('序盤は上がりにくい（100ページで偏差値40未満・300ページで50未満）', () => {
     expect(rankToDeviation(totalPagesToRank(100))).toBeLessThan(40)
     expect(rankToDeviation(totalPagesToRank(300))).toBeLessThan(50)
   })
   it('累計0は最下位で貯めるほど順位が上がり下がらない', () => {
-    expect(totalPagesToRank(0)).toBe(200000)
+    expect(totalPagesToRank(0)).toBe(431051)
     const r10 = totalPagesToRank(10)
     const r100 = totalPagesToRank(100)
     const r1000 = totalPagesToRank(1000)
-    expect(r10).toBeLessThan(200000)
+    expect(r10).toBeLessThan(431051)
     expect(r100).toBeLessThan(r10)
     expect(r1000).toBeLessThan(r100)
   })
@@ -99,7 +104,7 @@ describe('ranking', () => {
     for (const n of topNames) {
       expect(TOP_UNIVERSITIES.some((u) => n.startsWith(u))).toBe(true)
     }
-    const bottom = sampleNearBoard(5, 199990, '2026-10-18', 5).filter((r) => !r.you).map((r) => r.name)
+    const bottom = sampleNearBoard(5, 431040, '2026-10-18', 5).filter((r) => !r.you).map((r) => r.name)
     expect(bottom.length).toBeGreaterThan(0)
     for (const n of bottom) {
       expect(LOCAL_UNIVERSITIES.some((u) => n.startsWith(u))).toBe(true)
@@ -126,10 +131,10 @@ describe('ranking', () => {
     }
   })
   it('記録なしで日が進むと順位が下がる（起点日は不変）', () => {
-    expect(totalPagesToRank(777, '2026-10-27')).toBe(51553)
-    expect(totalPagesToRank(777, '2026-10-28')).toBeGreaterThan(51553)
+    expect(totalPagesToRank(777, '2026-10-27')).toBe(141974)
+    expect(totalPagesToRank(777, '2026-10-28')).toBeGreaterThan(141974)
     expect(totalPagesToRank(777, '2026-11-03')).toBeGreaterThan(totalPagesToRank(777, '2026-10-28'))
-    expect(totalPagesToRank(777, '2026-09-01')).toBe(51553)
+    expect(totalPagesToRank(777, '2026-09-01')).toBe(141974)
   })
   it('人口の1日の伸びは日替わりで変動し固定でない', () => {
     const gains = Array.from({ length: 14 }, (_, i) => {
