@@ -58,6 +58,7 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   const now = new Date()
   const nowMin = now.getHours() * 60 + now.getMinutes()
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
+  const [availabilityLoaded, setAvailabilityLoaded] = useState(false)
   // 優先度は明示的なクリア（未設定に戻す）も変更として扱うため、
   // キーの有無で「触ったかどうか」を判定する（値がundefinedでも変更扱い）。
   const [priorities, setPriorities] = useState<Record<string, number | undefined>>({})
@@ -65,7 +66,10 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   const [recalcStatus, setRecalcStatus] = useState<string | null>(null)
 
   useEffect(() => {
-    void listAvailability().then(setAvailability)
+    void listAvailability().then((slots) => {
+      setAvailability(slots)
+      setAvailabilityLoaded(true)
+    })
   }, [])
 
   const priorityOf = (b: BookData): number | undefined =>
@@ -182,6 +186,17 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
   const orderedBooks = [...books].sort((a, b) =>
     a.id === bookId ? -1 : b.id === bookId ? 1 : 0,
   )
+  const affectedIds: Set<string> = new Set<string>([bookId])
+  for (const s of after.today.slots) affectedIds.add(s.bookId)
+  for (const day of after.upcoming.slice(0, 3)) {
+    for (const item of day.items) affectedIds.add(item.bookId)
+  }
+  const visibleBooks = !availabilityLoaded
+    ? orderedBooks
+    : orderedBooks.filter((b) => b.id === bookId || affectedIds.has(b.id))
+  const hiddenBooks = !availabilityLoaded
+    ? []
+    : orderedBooks.filter((b) => b.id !== bookId && !affectedIds.has(b.id))
 
   const renderPlan = (
     plan: Awaited<ReturnType<typeof generateDayPlan>>,
@@ -298,7 +313,7 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
           <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
             入力がなくても上の修正後イメージのまま今日の計画へ進めます。配分を変えたい本だけ調整してください。
           </p>
-          {orderedBooks.map((b) => (
+          {visibleBooks.map((b) => (
             <div key={b.id} style={{ marginTop: 8 }}>
               <div style={{ fontSize: 15, marginBottom: 4 }}>{b.title}</div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -353,6 +368,66 @@ export default function RebalanceScreen({ bookId, onBack, onSchedule }: Props) {
               </div>
             </div>
           ))}
+          {hiddenBooks.length > 0 && (
+            <details data-testid="rebalance-others">
+              <summary>その他の参考書（今回の配分に影響なし） {hiddenBooks.length}冊</summary>
+              {hiddenBooks.map((b) => (
+                <div key={b.id} style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 15, marginBottom: 4 }}>{b.title}</div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <select
+                      data-testid={`priority-select-${b.id}`}
+                      value={String(priorityOf(b) ?? '')}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        if (v === '') {
+                          // 明示的なクリアとしてundefinedを保持する（保存済みの値を消せるように）。
+                          // キーを消すと保存済みにフォールバックしてクリアできなくなるため。
+                          setPriorities((p) => ({ ...p, [b.id]: undefined }))
+                        } else {
+                          setPriorities((p) => ({ ...p, [b.id]: Number(v) }))
+                        }
+                      }}
+                      style={{ width: 120 }}
+                    >
+                      {PRIORITY_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <label
+                        data-testid={`ratio-label-${b.id}`}
+                        htmlFor={`ratio-input-${b.id}`}
+                        style={{ fontSize: 13, fontWeight: 700 }}
+                      >
+                        配分比率（1〜10）
+                      </label>
+                      <input
+                        id={`ratio-input-${b.id}`}
+                        data-testid={`ratio-input-${b.id}`}
+                        type="number"
+                        min="1"
+                        max="10"
+                        step="1"
+                        value={ratios[b.id] ?? ratioInputOf(b)}
+                        onChange={(e) => setRatios((r) => ({ ...r, [b.id]: e.target.value }))}
+                        placeholder="例: 5"
+                        style={{ width: 140 }}
+                      />
+                      <div
+                        data-testid={`ratio-hint-${b.id}`}
+                        style={{ fontSize: 12, color: 'var(--text-dim)' }}
+                      >
+                        1日の空き時間のうち使う上限の割合。5で5割まで
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </details>
+          )}
         </>
       )}
 
