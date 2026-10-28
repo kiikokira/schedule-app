@@ -193,6 +193,12 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const [presetId, setPresetId] = useState('')
   const [seasonTick, setSeasonTick] = useState(0)
   const [confirmForfeit, setConfirmForfeit] = useState<Record<string, boolean>>({})
+  // 記録前の確認ダイアログ。はいで run を実行、いいえ・背景タップで破棄する。
+  const [recordConfirm, setRecordConfirm] = useState<{
+    title: string
+    message: string
+    run: () => Promise<void>
+  } | null>(null)
 
   const refreshAvailability = async () => {
     const a = await listAvailability()
@@ -506,32 +512,39 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       setCycleErrors((p) => ({ ...p, [inputKey]: '周回は1〜目標周回の範囲で入力してください' }))
       return
     }
-    try {
-      await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: today, unitFrom: from, unitTo: to, round, recordedAt: new Date().toISOString() })
-    } catch {
-      setCycleErrors((p) => ({ ...p, [inputKey]: '記録に失敗しました。もう一度お試しください' }))
-      return
-    }
-    setCycleErrors((p) => {
-      const next = { ...p }
-      delete next[inputKey]
-      return next
+    const unitLabel = isLeapBook(book) ? '語' : '区画'
+    setRecordConfirm({
+      title: '記録の確認',
+      message: `「${book.title}」の${unitLabel}${from}〜${to}（${round}周目）を記録しますか？`,
+      run: async () => {
+        try {
+          await addCycle({ id: crypto.randomUUID(), bookId: book.id, date: today, unitFrom: from, unitTo: to, round, recordedAt: new Date().toISOString() })
+        } catch {
+          setCycleErrors((p) => ({ ...p, [inputKey]: '記録に失敗しました。もう一度お試しください' }))
+          return
+        }
+        setCycleErrors((p) => {
+          const next = { ...p }
+          delete next[inputKey]
+          return next
+        })
+        setCycleInputs((p) => {
+          const next = { ...p }
+          delete next[`${inputKey}-from`]
+          delete next[`${inputKey}-to`]
+          delete next[`${inputKey}-round`]
+          return next
+        })
+        if (league) {
+          try {
+            const unitKind: SlotUnit = isLeapBook(book as never) ? 'words' : 'sections'
+            const my = Math.abs(to - from) + 1
+            syncLeagueSlot(today, league.slotKey, { my, unit: unitKind, slotMinutes: league.slotMinutes })
+            setSeasonTick((v) => v + 1)
+          } catch { /* ignore */ }
+        }
+      },
     })
-    setCycleInputs((p) => {
-      const next = { ...p }
-      delete next[`${inputKey}-from`]
-      delete next[`${inputKey}-to`]
-      delete next[`${inputKey}-round`]
-      return next
-    })
-    if (league) {
-      try {
-        const unitKind: SlotUnit = isLeapBook(book as never) ? 'words' : 'sections'
-        const my = Math.abs(to - from) + 1
-        syncLeagueSlot(today, league.slotKey, { my, unit: unitKind, slotMinutes: league.slotMinutes })
-        setSeasonTick((v) => v + 1)
-      } catch { /* ignore */ }
-    }
   }
 
   const recordPages = async (bookId: string, pages: number) => {
@@ -559,14 +572,22 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     const raw = inputs[inputKey] ?? ''
     const pages = Number(raw)
     if (!Number.isInteger(pages) || pages < 1) return
-    await recordPages(bookId, pages)
-    setInputs((p) => ({ ...p, [inputKey]: '' }))
-    if (league) {
-      try {
-        syncLeagueSlot(today, league.slotKey, { my: pages, unit: league.unit, slotMinutes: league.slotMinutes })
-        setSeasonTick((v) => v + 1)
-      } catch { /* ignore */ }
-    }
+    const book = books.find((b) => b.id === bookId)
+    const title = book?.title ?? 'この本'
+    setRecordConfirm({
+      title: '記録の確認',
+      message: `「${title}」を ${pages} ページで記録しますか？`,
+      run: async () => {
+        await recordPages(bookId, pages)
+        setInputs((p) => ({ ...p, [inputKey]: '' }))
+        if (league) {
+          try {
+            syncLeagueSlot(today, league.slotKey, { my: pages, unit: league.unit, slotMinutes: league.slotMinutes })
+            setSeasonTick((v) => v + 1)
+          } catch { /* ignore */ }
+        }
+      },
+    })
   }
 
   const handleComplete = async (slot: PlanSlot, book: BookData, league?: { slotKey: string; slotMinutes: number }) => {
@@ -625,6 +646,47 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
           <p data-testid="deadline-risk-hint" style={{ fontSize: 13, color: 'var(--text-dim)', margin: '8px 0 0' }}>
             記録を進める・期限を延ばす・空き時間を増やすと解消します
           </p>
+        </div>
+      )}
+      {recordConfirm && (
+        <div
+          data-testid="record-confirm"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48, zIndex: 50 }}
+          onClick={() => setRecordConfirm(null)}
+        >
+          <div
+            style={{ background: '#fff', borderRadius: 12, minWidth: 240, maxWidth: 340, overflow: 'hidden' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '16px 16px 8px', textAlign: 'center', fontWeight: 800, fontSize: 16 }}>
+              {recordConfirm.title}
+            </div>
+            <div style={{ padding: '0 16px 16px', textAlign: 'center', fontSize: 14 }}>
+              {recordConfirm.message}
+            </div>
+            <div style={{ display: 'flex', borderTop: '1px solid var(--border)' }}>
+              <button
+                data-testid="record-confirm-yes"
+                type="button"
+                style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', borderRight: '1px solid var(--border)', color: '#2077e0', fontSize: 16 }}
+                onClick={() => {
+                  const c = recordConfirm
+                  setRecordConfirm(null)
+                  void c.run()
+                }}
+              >
+                はい
+              </button>
+              <button
+                data-testid="record-confirm-no"
+                type="button"
+                style={{ flex: 1, padding: '12px 0', background: 'transparent', border: 'none', color: '#2077e0', fontSize: 16 }}
+                onClick={() => setRecordConfirm(null)}
+              >
+                いいえ
+              </button>
+            </div>
+          </div>
         </div>
       )}
       {focusIds !== null && (

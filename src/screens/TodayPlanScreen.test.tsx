@@ -64,11 +64,32 @@ describe('TodayPlanScreen', () => {
     const input = await screen.findByTestId('plan-input-b1')
     fireEvent.change(input, { target: { value: '10' } })
     fireEvent.click(screen.getByTestId('plan-record-b1'))
+    expect(await screen.findByTestId('record-confirm')).toHaveTextContent('記録の確認')
+    expect(screen.getByTestId('record-confirm')).toHaveTextContent('10 ページで記録しますか？')
+    fireEvent.click(screen.getByTestId('record-confirm-yes'))
     await waitFor(async () => {
       const recs = await db.records.toArray()
       expect(recs).toHaveLength(1)
       expect(recs[0].pages).toBe(10)
     })
+  })
+
+  it('cancelling the record confirm records nothing', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const input = await screen.findByTestId('plan-input-b1')
+    fireEvent.change(input, { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('plan-record-b1'))
+    await screen.findByTestId('record-confirm')
+    fireEvent.click(screen.getByTestId('record-confirm-no'))
+    await waitFor(async () => {
+      expect(await db.records.toArray()).toHaveLength(0)
+    })
+    expect(screen.queryByTestId('record-confirm')).not.toBeInTheDocument()
   })
 
   it('calls onSettings when the settings link is tapped', async () => {
@@ -311,11 +332,42 @@ describe('TodayPlanScreen', () => {
       target: { value: '5' },
     })
     fireEvent.click(screen.getByTestId('plan-cycle-record-cycle-1'))
+    expect(await screen.findByTestId('record-confirm')).toHaveTextContent('記録の確認')
+    fireEvent.click(screen.getByTestId('record-confirm-yes'))
     await waitFor(async () => {
       const recs = await db.cycleRecords.toArray()
       expect(recs).toHaveLength(1)
       expect(recs[0].unitFrom).toBe(1)
       expect(recs[0].unitTo).toBe(5)
+    })
+  })
+
+  it('cancelling the cycle record confirm records nothing', async () => {
+    await fillBook('b1')
+    await fillBook('cycle-1', {
+      title: '反復本',
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+    })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const select = (await screen.findByTestId('plan-book-select-0')) as HTMLSelectElement
+    fireEvent.change(select, { target: { value: 'cycle-1' } })
+    fireEvent.change(await screen.findByTestId('plan-cycle-from-cycle-1'), {
+      target: { value: '1' },
+    })
+    fireEvent.change(await screen.findByTestId('plan-cycle-to-cycle-1'), {
+      target: { value: '5' },
+    })
+    fireEvent.click(screen.getByTestId('plan-cycle-record-cycle-1'))
+    await screen.findByTestId('record-confirm')
+    fireEvent.click(screen.getByTestId('record-confirm-no'))
+    await waitFor(async () => {
+      expect(await db.cycleRecords.toArray()).toHaveLength(0)
     })
   })
 
@@ -958,6 +1010,7 @@ describe('today slot gate', () => {
     const input = await screen.findByTestId('plan-input-b1')
     fireEvent.change(input, { target: { value: '10' } })
     fireEvent.click(screen.getByTestId('plan-record-b1'))
+    fireEvent.click(await screen.findByTestId('record-confirm-yes'))
     await waitFor(async () => {
       const { loadSeasonState } = await import('../data/seasonStore')
       const st = loadSeasonState('2026-09-21')
