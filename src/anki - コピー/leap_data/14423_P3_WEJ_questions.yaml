@@ -1,0 +1,8475 @@
+﻿# (C)Suken Shuppan
+# 『必携 英単語 LEAP』単語（英→日）Part 3  出力日: Fri Apr 04 2025 14:44:58 GMT+0900 (日本標準時)
+setting:
+  title: 『必携 英単語 LEAP』単語（英→日）Part 3
+  id: 14423_lp2we3
+  path: ./
+  drillIdCount: 34
+questionList:
+  - title: Week 1
+    id: 1_1
+    dId: 1
+    ver: 1
+    questions:
+      - audio: audio/1001_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1001'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: propose
+        question:
+          answer: 1
+          option:
+            - ～を提案する
+            - ～を要望する
+            - ～に取り掛かる
+            - ～に期待する
+          random: true
+          type: select
+      - audio: audio/1002_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1002'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: dismiss
+        question:
+          answer: 1
+          option:
+            - ～を退ける
+            - ～を批判する
+            - ～を変更する
+            - ～を検討する
+          random: true
+          type: select
+      - audio: audio/1003_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1003'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: bless
+        question:
+          answer: 1
+          option:
+            - ～を祝福する
+            - ～を罰する
+            - ～を好きになる
+            - ～を変更する
+          random: true
+          type: select
+      - audio: audio/1004_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1004'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: glory
+        question:
+          answer: 1
+          option:
+            - 栄光
+            - 失意
+            - 背信
+            - 配慮
+          random: true
+          type: select
+      - audio: audio/1005_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1005'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: compliment
+        question:
+          answer: 1
+          option:
+            - 褒め言葉
+            - 憧れ
+            - こだわり
+            - 批評
+          random: true
+          type: select
+      - audio: audio/1006_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1006'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: feast
+        question:
+          answer: 1
+          option:
+            - 宴会
+            - 招待状
+            - 贈り物
+            - 歓迎会
+          random: true
+          type: select
+      - audio: audio/1007_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1007'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: declare
+        question:
+          answer: 1
+          option:
+            - ～を宣言する
+            - ～を認める
+            - ～を証明する
+            - ～を批判する
+          random: true
+          type: select
+      - audio: audio/1008_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1008'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: highlight
+        question:
+          answer: 1
+          option:
+            - ～を強調する
+            - ～を心配する
+            - ～を議論する
+            - ～を研究する
+          random: true
+          type: select
+      - audio: audio/1009_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1009'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: imply
+        question:
+          answer: 1
+          option:
+            - ～をほのめかす
+            - ～を表明する
+            - ～を固める
+            - ～を翻す
+          random: true
+          type: select
+      - audio: audio/1010_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1010'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: recite
+        question:
+          answer: 1
+          option:
+            - ～を暗唱する
+            - ～を好む
+            - ～を翻訳する
+            - ～を創作する
+          random: true
+          type: select
+      - audio: audio/1011_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1011'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: ray
+        question:
+          answer: 1
+          option:
+            - 光線
+            - エネルギー
+            - 発電
+            - 系統
+          random: true
+          type: select
+      - audio: audio/1012_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1012'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: radiation
+        question:
+          answer: 1
+          option:
+            - 放射線
+            - 太陽光
+            - 強風
+            - 熱風
+          random: true
+          type: select
+      - audio: audio/1013_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1013'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: laboratory
+        question:
+          answer: 1
+          option:
+            - 研究室
+            - 屋外
+            - 宇宙
+            - 無菌室
+          random: true
+          type: select
+      - audio: audio/1014_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1014'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: oxygen
+        question:
+          answer: 1
+          option:
+            - 酸素
+            - 二酸化炭素
+            - ケイ素
+            - フッ素
+          random: true
+          type: select
+      - audio: audio/1015_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1015'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: molecule
+        question:
+          answer: 1
+          option:
+            - 分子
+            - 酸素
+            - 二酸化炭素
+            - 色素
+          random: true
+          type: select
+      - audio: audio/1016_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1016'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: compound
+        question:
+          answer: 1
+          option:
+            - 化合物
+            - 化学結合
+            - 化学薬品
+            - 化学実験室
+          random: true
+          type: select
+      - audio: audio/1017_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1017'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: tissue
+        question:
+          answer: 1
+          option:
+            - 組織
+            - 細胞
+            - 系統
+            - 質量
+          random: true
+          type: select
+      - audio: audio/1018_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1018'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: cell
+        question:
+          answer: 1
+          option:
+            - 細胞
+            - 患者
+            - 遺伝子
+            - 組織
+          random: true
+          type: select
+      - audio: audio/1019_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1019'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: gene
+        question:
+          answer: 1
+          option:
+            - 遺伝子
+            - 細胞
+            - 組織
+            - 家系
+          random: true
+          type: select
+      - audio: audio/1020_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1020'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: substance
+        question:
+          answer: 1
+          option:
+            - 物質
+            - 食品
+            - 液体
+            - 繊維
+          random: true
+          type: select
+      - audio: audio/1021_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1021'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: solid
+        question:
+          answer: 1
+          option:
+            - 固体の
+            - 化石の
+            - 液体の
+            - 核の
+          random: true
+          type: select
+      - audio: audio/1022_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1022'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: satellite
+        question:
+          answer: 1
+          option:
+            - 衛星
+            - 軌道
+            - 写真
+            - 住人
+          random: true
+          type: select
+      - audio: audio/1023_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1023'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: orbit
+        question:
+          answer: 1
+          option:
+            - 軌道
+            - 形状
+            - 速さ
+            - 影響
+          random: true
+          type: select
+      - audio: audio/1024_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1024'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: launch
+        question:
+          answer: 1
+          option:
+            - ～を打ち上げる
+            - ～を作る
+            - ～を設計する
+            - ～を見守る
+          random: true
+          type: select
+      - audio: audio/1025_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1025'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: attempt
+        question:
+          answer: 1
+          option:
+            - 試み
+            - 目標
+            - 能力
+            - 計画
+          random: true
+          type: select
+      - audio: audio/1026_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1026'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: capacity
+        question:
+          answer: 1
+          option:
+            - 能力
+            - 計画
+            - 目標
+            - プログラム
+          random: true
+          type: select
+      - audio: audio/1027_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1027'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: capable
+        question:
+          answer: 1
+          option:
+            - 力がある
+            - 可能性がある
+            - 反対の
+            - 化石の
+          random: true
+          type: select
+      - audio: audio/1028_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1028'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: attain
+        question:
+          answer: 1
+          option:
+            - ～を達成する
+            - ～を設定する
+            - ～を変更する
+            - ～をあきらめる
+          random: true
+          type: select
+      - audio: audio/1029_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1029'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: desperate
+        question:
+          answer: 1
+          option:
+            - 必死の
+            - 有効な
+            - 毎日の
+            - 小さな
+          random: true
+          type: select
+      - audio: audio/1030_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1030'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: dedicate
+        question:
+          answer: 1
+          option:
+            - ～を捧げる
+            - ～を合わせる
+            - ～を重ねる
+            - ～を設定する
+          random: true
+          type: select
+      - audio: audio/1031_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1031'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: pain
+        question:
+          answer: 1
+          option:
+            - 苦痛
+            - シミ
+            - 疲労
+            - 怪我
+          random: true
+          type: select
+      - audio: audio/1032_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1032'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: strain
+        question:
+          answer: 1
+          option:
+            - 負担
+            - 目標
+            - 規制
+            - 期待
+          random: true
+          type: select
+      - audio: audio/1033_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1033'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: remedy
+        question:
+          answer: 1
+          option:
+            - 治療法
+            - 症状
+            - 診断
+            - 流行
+          random: true
+          type: select
+      - audio: audio/1034_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1034'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: pharmacy
+        question:
+          answer: 1
+          option:
+            - 薬局
+            - コンビニ
+            - 病院
+            - スーパー
+          random: true
+          type: select
+      - audio: audio/1035_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1035'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: physician
+        question:
+          answer: 1
+          option:
+            - 医師
+            - 車両
+            - 病院
+            - 患者
+          random: true
+          type: select
+      - audio: audio/1036_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1036'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: disorder
+        question:
+          answer: 1
+          option:
+            - 不調
+            - 抑制
+            - 補助
+            - 行動
+          random: true
+          type: select
+      - audio: audio/1037_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1037'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: pregnant
+        question:
+          answer: 1
+          option:
+            - 妊娠した
+            - 勤続の
+            - 濁った
+            - 以前の
+          random: true
+          type: select
+      - audio: audio/1038_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1038'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: clinical
+        question:
+          answer: 1
+          option:
+            - 臨床の
+            - 定期的な
+            - 国家の
+            - 卒業の
+          random: true
+          type: select
+      - audio: audio/1039_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1039'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: heal
+        question:
+          answer: 1
+          option:
+            - ～を治す
+            - ～をだます
+            - ～に問いかける
+            - ～と交流する
+          random: true
+          type: select
+      - audio: audio/1040_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1040'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: infect
+        question:
+          answer: 1
+          option:
+            - ～に感染させる
+            - ～を悩ませる
+            - ～を操作する
+            - ～を困らせる
+          random: true
+          type: select
+      - audio: audio/1041_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1041'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: ankle
+        question:
+          answer: 1
+          option:
+            - 足首
+            - 肩
+            - 手首
+            - 腕
+          random: true
+          type: select
+      - audio: audio/1042_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1042'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: thumb
+        question:
+          answer: 1
+          option:
+            - 親指
+            - 腕
+            - 誓い
+            - 計画
+          random: true
+          type: select
+      - audio: audio/1043_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1043'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: forehead
+        question:
+          answer: 1
+          option:
+            - 額
+            - あご
+            - 腕
+            - 足
+          random: true
+          type: select
+      - audio: audio/1044_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1044'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: chin
+        question:
+          answer: 1
+          option:
+            - 下あご
+            - 胸
+            - 腕
+            - 足
+          random: true
+          type: select
+      - audio: audio/1045_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1045'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: chest
+        question:
+          answer: 1
+          option:
+            - 胸
+            - 頭
+            - 足
+            - 肩
+          random: true
+          type: select
+      - audio: audio/1046_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1046'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: breast
+        question:
+          answer: 1
+          option:
+            - 胸
+            - 肺
+            - 胃
+            - 頭
+          random: true
+          type: select
+      - audio: audio/1047_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1047'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: lung
+        question:
+          answer: 1
+          option:
+            - 肺
+            - 胃
+            - 頭
+            - 胸
+          random: true
+          type: select
+      - audio: audio/1048_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1048'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: organ
+        question:
+          answer: 1
+          option:
+            - 臓器
+            - 心臓
+            - 血管
+            - 肝臓
+          random: true
+          type: select
+      - audio: audio/1049_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1049'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: vision
+        question:
+          answer: 1
+          option:
+            - 視力
+            - 性格
+            - 体調
+            - 神経
+          random: true
+          type: select
+      - audio: audio/1050_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1050'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: skeleton
+        question:
+          answer: 1
+          option:
+            - 骸骨
+            - 関節
+            - 臓器
+            - 血管
+          random: true
+          type: select
+      - audio: audio/1051_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1051'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: sensation
+        question:
+          answer: 1
+          option:
+            - 感覚
+            - 爪
+            - 色
+            - 指紋
+          random: true
+          type: select
+      - audio: audio/1052_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1052'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: code
+        question:
+          answer: 1
+          option:
+            - 規定
+            - 問題
+            - 自由
+            - 流行
+          random: true
+          type: select
+      - audio: audio/1053_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1053'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: agenda
+        question:
+          answer: 1
+          option:
+            - 議題
+            - 結論
+            - 時間
+            - 原因
+          random: true
+          type: select
+      - audio: audio/1054_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1054'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: liberty
+        question:
+          answer: 1
+          option:
+            - 自由
+            - 国家
+            - 権利
+            - 名誉
+          random: true
+          type: select
+      - audio: audio/1055_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1055'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: committee
+        question:
+          answer: 1
+          option:
+            - 委員会
+            - 競技
+            - 選手
+            - 選考会
+          random: true
+          type: select
+      - audio: audio/1056_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1056'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: humanity
+        question:
+          answer: 1
+          option:
+            - 人類
+            - 国家
+            - 安全
+            - 社会
+          random: true
+          type: select
+      - audio: audio/1057_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1057'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: mankind
+        question:
+          answer: 1
+          option:
+            - 人類
+            - 国家
+            - 社会
+            - 地球
+          random: true
+          type: select
+      - audio: audio/1058_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1058'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: authority
+        question:
+          answer: 1
+          option:
+            - 権威
+            - 研究
+            - 講座
+            - 単位
+          random: true
+          type: select
+      - audio: audio/1059_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1059'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: justice
+        question:
+          answer: 1
+          option:
+            - 正義
+            - 優勢
+            - 劣勢
+            - 安心
+          random: true
+          type: select
+      - audio: audio/1060_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1060'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: insurance
+        question:
+          answer: 1
+          option:
+            - 保険
+            - 集会
+            - 研究会
+            - 相談所
+          random: true
+          type: select
+      - audio: audio/1061_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1061'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: hardship
+        question:
+          answer: 1
+          option:
+            - 苦難
+            - 損害
+            - 逆境
+            - 打撃
+          random: true
+          type: select
+    config:
+      limitTime: 10
+      limit: null
+      continue: null
+      random: null
+      audio: null
+  - title: Week 2
+    id: 2_1
+    dId: 2
+    ver: 1
+    questions:
+      - audio: audio/1062_ew.mp3
+        presentation:
+          type: text
+          value: poverty
+          align: left
+        question:
+          type: select
+          answer: 1
+          random: true
+          option:
+            - 貧困
+            - 平均
+            - 給与
+            - 生活
+        comment:
+          audio: ""
+          video: ""
+          type: text
+          align: left
+          fontZoom: "1"
+          value: '<p style="color: red;">単語番号 1062'
+      - audio: audio/1063_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1063'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: chaos
+        question:
+          answer: 1
+          option:
+            - 大混乱
+            - 問題
+            - お気に入り
+            - 秩序
+          random: true
+          type: select
+      - audio: audio/1064_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1064'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: isolation
+        question:
+          answer: 1
+          option:
+            - 孤立
+            - 排除
+            - 移動
+            - 協力
+          random: true
+          type: select
+      - audio: audio/1065_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1065'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: region
+        question:
+          answer: 1
+          option:
+            - 地域
+            - 管理
+            - 気候
+            - 天候
+          random: true
+          type: select
+      - audio: audio/1066_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1066'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: proof
+        question:
+          answer: 1
+          option:
+            - 証拠
+            - 事実
+            - 証言
+            - 記述
+          random: true
+          type: select
+      - audio: audio/1067_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1067'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: warranty
+        question:
+          answer: 1
+          option:
+            - 保証
+            - 優待
+            - 割引
+            - セール
+          random: true
+          type: select
+      - audio: audio/1068_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1068'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: principle
+        question:
+          answer: 1
+          option:
+            - 原理
+            - 物理
+            - 社会
+            - 事実
+          random: true
+          type: select
+      - audio: audio/1069_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1069'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: origin
+        question:
+          answer: 1
+          option:
+            - 起源
+            - 証拠
+            - 維持
+            - 管理
+          random: true
+          type: select
+      - audio: audio/1070_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1070'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: setting
+        question:
+          answer: 1
+          option:
+            - 環境
+            - 天候
+            - 車
+            - ガス
+          random: true
+          type: select
+      - audio: audio/1071_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1071'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: mission
+        question:
+          answer: 1
+          option:
+            - 任務
+            - 計画
+            - 憧れ
+            - 移住
+          random: true
+          type: select
+      - audio: audio/1072_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1072'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: project
+        question:
+          answer: 1
+          option:
+            - 計画
+            - 契約
+            - 制度
+            - 作品
+          random: true
+          type: select
+      - audio: audio/1073_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1073'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: monument
+        question:
+          answer: 1
+          option:
+            - 記念碑
+            - 計画
+            - 企画
+            - 目途
+          random: true
+          type: select
+      - audio: audio/1074_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1074'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: revolution
+        question:
+          answer: 1
+          option:
+            - 革命
+            - 問題
+            - 格差
+            - 進歩
+          random: true
+          type: select
+      - audio: audio/1075_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1075'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: contract
+        question:
+          answer: 1
+          option:
+            - 契約
+            - 競争
+            - 議論
+            - 和解
+          random: true
+          type: select
+      - audio: audio/1076_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1076'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: infrastructure
+        question:
+          answer: 1
+          option:
+            - インフラ
+            - 標識
+            - 案内所
+            - 名所
+          random: true
+          type: select
+      - audio: audio/1077_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1077'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: negotiate
+        question:
+          answer: 1
+          option:
+            - 交渉する　
+            - 共謀する
+            - 連絡する
+            - 会う
+          random: true
+          type: select
+      - audio: audio/1078_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1078'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: cooperate
+        question:
+          answer: 1
+          option:
+            - 協力する
+            - 説得する
+            - 計画する
+            - 徹夜する
+          random: true
+          type: select
+      - audio: audio/1079_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1079'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: restore
+        question:
+          answer: 1
+          option:
+            - ～を回復する
+            - ～を問題視する
+            - ～に関心がある
+            - ～を創立する
+          random: true
+          type: select
+      - audio: audio/1080_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1080'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: found
+        question:
+          answer: 1
+          option:
+            - ～を創立する
+            - ～を復活させる
+            - ～を問題視する
+            - ～を操作する
+          random: true
+          type: select
+      - audio: audio/1081_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1081'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: conservative
+        question:
+          answer: 1
+          option:
+            - 保守的な
+            - 先進的な
+            - 革新的な
+            - 事務的な
+          random: true
+          type: select
+      - audio: audio/1082_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1082'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: affair
+        question:
+          answer: 1
+          option:
+            - 情勢
+            - 協力
+            - 経済
+            - 政治
+          random: true
+          type: select
+      - audio: audio/1083_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1083'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: agency
+        question:
+          answer: 1
+          option:
+            - 機関
+            - 問題
+            - 調査員
+            - 情勢
+          random: true
+          type: select
+      - audio: audio/1084_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1084'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: council
+        question:
+          answer: 1
+          option:
+            - 議会
+            - 役所
+            - 議題
+            - 協力
+          random: true
+          type: select
+      - audio: audio/1085_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1085'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: kingdom
+        question:
+          answer: 1
+          option:
+            - 王国
+            - 図鑑
+            - 虐待
+            - 経済
+          random: true
+          type: select
+      - audio: audio/1086_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1086'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: republic
+        question:
+          answer: 1
+          option:
+            - 共和国
+            - 合衆国
+            - 王国
+            - 連合国
+          random: true
+          type: select
+      - audio: audio/1087_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1087'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: empire
+        question:
+          answer: 1
+          option:
+            - 帝国
+            - 軍
+            - 時代
+            - 政治
+          random: true
+          type: select
+      - audio: audio/1088_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1088'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: aid
+        question:
+          answer: 1
+          option:
+            - 援助
+            - 制裁
+            - 開発
+            - 改革
+          random: true
+          type: select
+      - audio: audio/1089_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1089'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: reform
+        question:
+          answer: 1
+          option:
+            - 改革
+            - 方針
+            - 問題
+            - 審議会
+          random: true
+          type: select
+      - audio: audio/1090_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1090'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: minister
+        question:
+          answer: 1
+          option:
+            - 大臣
+            - 次官
+            - 議員
+            - 問題
+          random: true
+          type: select
+      - audio: audio/1091_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1091'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: parliament
+        question:
+          answer: 1
+          option:
+            - 議会
+            - 専門家
+            - 関係者
+            - 開発
+          random: true
+          type: select
+      - audio: audio/1092_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1092'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: territory
+        question:
+          answer: 1
+          option:
+            - 領土
+            - 民族
+            - 外交
+            - 海域
+          random: true
+          type: select
+      - audio: audio/1093_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1093'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: poll
+        question:
+          answer: 1
+          option:
+            - 世論調査
+            - 話題
+            - 流行
+            - 傾向
+          random: true
+          type: select
+      - audio: audio/1094_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1094'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: fortune
+        question:
+          answer: 1
+          option:
+            - 財産
+            - 前例
+            - 仕事
+            - 流行
+          random: true
+          type: select
+      - audio: audio/1095_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1095'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: property
+        question:
+          answer: 1
+          option:
+            - 財産
+            - 障がい
+            - 自由
+            - 水準
+          random: true
+          type: select
+      - audio: audio/1096_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1096'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: fund
+        question:
+          answer: 1
+          option:
+            - 資金
+            - 資源
+            - 時間
+            - サービス
+          random: true
+          type: select
+      - audio: audio/1097_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1097'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: stock
+        question:
+          answer: 1
+          option:
+            - 株
+            - 不動産
+            - IT産業
+            - 投資
+          random: true
+          type: select
+      - audio: audio/1098_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1098'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: labor
+        question:
+          answer: 1
+          option:
+            - 労働
+            - 苦痛
+            - 健康
+            - 資源
+          random: true
+          type: select
+      - audio: audio/1099_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1099'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: overwork
+        question:
+          answer: 1
+          option:
+            - 働きすぎる
+            - 定期購読する
+            - 運動する
+            - 制止する
+          random: true
+          type: select
+      - audio: audio/1100_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1100'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: firm
+        question:
+          answer: 1
+          option:
+            - 会社
+            - 問題
+            - 違反
+            - 提案
+          random: true
+          type: select
+      - audio: audio/1101_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1101'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: union
+        question:
+          answer: 1
+          option:
+            - 労働組合
+            - 会社
+            - 医局
+            - 軍隊
+          random: true
+          type: select
+      - audio: audio/1102_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1102'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: administration
+        question:
+          answer: 1
+          option:
+            - 経営
+            - 新聞
+            - 制度
+            - 教育
+          random: true
+          type: select
+      - audio: audio/1103_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1103'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: secretary
+        question:
+          answer: 1
+          option:
+            - 秘書
+            - 地位
+            - 予定
+            - 社長
+          random: true
+          type: select
+      - audio: audio/1104_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1104'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: editor
+        question:
+          answer: 1
+          option:
+            - 編集長
+            - 発行
+            - 企画
+            - 購読
+          random: true
+          type: select
+      - audio: audio/1105_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1105'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: client
+        question:
+          answer: 1
+          option:
+            - 依頼人
+            - 容疑者
+            - 被告人
+            - 検事
+          random: true
+          type: select
+      - audio: audio/1106_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1106'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: recruit
+        question:
+          answer: 1
+          option:
+            - ～を新規採用する
+            - ～を探す
+            - ～と会う
+            - ～を構成する
+          random: true
+          type: select
+      - audio: audio/1107_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1107'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: basis
+        question:
+          answer: 1
+          option:
+            - 基礎
+            - 問題
+            - 例
+            - 企画
+          random: true
+          type: select
+      - audio: audio/1108_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1108'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: element
+        question:
+          answer: 1
+          option:
+            - 要素
+            - 理論
+            - 人物
+            - 計画
+          random: true
+          type: select
+      - audio: audio/1109_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1109'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: constitute
+        question:
+          answer: 1
+          option:
+            - ～を構成する
+            - ～に属している
+            - ～と対立している
+            - ～を離れる
+          random: true
+          type: select
+      - audio: audio/1110_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1110'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: unify
+        question:
+          answer: 1
+          option:
+            - ～を統一する
+            - ～を変革する
+            - ～を安定させる
+            - ～を構成する
+          random: true
+          type: select
+      - audio: audio/1111_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1111'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: combine
+        question:
+          answer: 1
+          option:
+            - ～を結びつける
+            - ～を勘違いする
+            - ～を同一視する
+            - ～を解釈する
+          random: true
+          type: select
+      - audio: audio/1112_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1112'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: unite
+        question:
+          answer: 1
+          option:
+            - 団結する
+            - 議論する
+            - 救済する
+            - 反対する
+          random: true
+          type: select
+      - audio: audio/1113_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1113'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: link
+        question:
+          answer: 1
+          option:
+            - 関連
+            - 願望
+            - 団結
+            - 運
+          random: true
+          type: select
+      - audio: audio/1114_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1114'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: relevant
+        question:
+          answer: 1
+          option:
+            - 関連のある
+            - 一貫性のある
+            - 矛盾のある
+            - 妥協点の
+          random: true
+          type: select
+      - audio: audio/1115_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1115'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: murder
+        question:
+          answer: 1
+          option:
+            - 殺人
+            - 犯罪
+            - 場面
+            - 映画
+          random: true
+          type: select
+      - audio: audio/1116_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1116'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: arrest
+        question:
+          answer: 1
+          option:
+            - ～を逮捕する
+            - ～を疑う
+            - ～を追う
+            - ～に事情聴取する
+          random: true
+          type: select
+      - audio: audio/1117_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1117'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: prison
+        question:
+          answer: 1
+          option:
+            - 刑務所
+            - 建物
+            - 学校
+            - 教室
+          random: true
+          type: select
+      - audio: audio/1118_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1118'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: vice
+        question:
+          answer: 1
+          option:
+            - 犯罪
+            - 有力者
+            - 差別
+            - 議会
+          random: true
+          type: select
+      - audio: audio/1119_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1119'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: witness
+        question:
+          answer: 1
+          option:
+            - 目撃者
+            - 容疑者
+            - 犠牲者
+            - 理解者
+          random: true
+          type: select
+      - audio: audio/1120_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1120'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: bullet
+        question:
+          answer: 1
+          option:
+            - 弾丸
+            - 刃物
+            - 傷
+            - とげ
+          random: true
+          type: select
+      - audio: audio/1121_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1121'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: sword
+        question:
+          answer: 1
+          option:
+            - 剣
+            - 毒
+            - 恩恵
+            - 思想
+          random: true
+          type: select
+      - audio: audio/1122_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1122'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: wound
+        question:
+          answer: 1
+          option:
+            - 傷
+            - 心
+            - 胸
+            - 腹
+          random: true
+          type: select
+      - audio: audio/1123_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1123'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: triumph
+        question:
+          answer: 1
+          option:
+            - 勝利
+            - 戦略
+            - 印象
+            - 演説
+          random: true
+          type: select
+      - audio: audio/1124_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1124'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: military
+        question:
+          answer: 1
+          option:
+            - 軍事的な
+            - 営業の
+            - 政治的な
+            - 資金の
+          random: true
+          type: select
+      - audio: audio/1125_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1125'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: strategy
+        question:
+          answer: 1
+          option:
+            - 戦略
+            - 努力
+            - 練習
+            - 指示
+          random: true
+          type: select
+      - audio: audio/1126_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1126'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: conquer
+        question:
+          answer: 1
+          option:
+            - ～を征服する
+            - ～に漂着する
+            - ～を目指す
+            - ～に上陸する
+          random: true
+          type: select
+      - audio: audio/1127_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1127'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: defend
+        question:
+          answer: 1
+          option:
+            - ～を守る
+            - ～を鍛える
+            - ～を把握する
+            - ～を目指す
+          random: true
+          type: select
+      - audio: audio/1128_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1128'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: dominate
+        question:
+          answer: 1
+          option:
+            - ～を支配する
+            - ～を守る
+            - ～を頼る
+            - ～を信用する
+          random: true
+          type: select
+      - audio: audio/1129_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1129'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: rob
+        question:
+          answer: 1
+          option:
+            - ～を襲う
+            - ～に乗る
+            - ～を作る
+            - ～を気に入る
+          random: true
+          type: select
+      - audio: audio/1130_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1130'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: deprive
+        question:
+          answer: 1
+          option:
+            - （～ of …）～から…を奪う
+            - （～ of …）～から…を研究する
+            - （～ of …）～から…を開拓する
+            - （～ of …）～から…を推測する
+          random: true
+          type: select
+    config:
+      limitTime: 10
+      limit: null
+      continue: null
+      random: null
+      audio: null
+  - title: Week 3
+    id: 3_1
+    dId: 3
+    ver: 1
+    questions:
+      - audio: audio/1131_ew.mp3
+        presentation:
+          type: text
+          value: devastate
+          align: left
+        question:
+          type: select
+          answer: 1
+          random: true
+          option:
+            - ～を壊滅させる
+            - ～を避難させる
+            - ～を驚かせる
+            - ～を頼る
+        comment:
+          audio: ""
+          video: ""
+          type: text
+          align: left
+          fontZoom: "1"
+          value: '<p style="color: red;">単語番号 1131'
+      - audio: audio/1132_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1132'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: crash
+        question:
+          answer: 1
+          option:
+            - 激突する
+            - 議論する
+            - 救済する
+            - 運動する
+          random: true
+          type: select
+      - audio: audio/1133_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1133'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: hazard
+        question:
+          answer: 1
+          option:
+            - 危険
+            - 障害
+            - 運動
+            - 課題
+          random: true
+          type: select
+      - audio: audio/1134_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1134'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: debris
+        question:
+          answer: 1
+          option:
+            - 破片
+            - 服
+            - 船
+            - 電車
+          random: true
+          type: select
+      - audio: audio/1135_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1135'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: orphan
+        question:
+          answer: 1
+          option:
+            - 孤児
+            - 奴隷
+            - 捕虜
+            - 被害
+          random: true
+          type: select
+      - audio: audio/1136_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1136'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: slave
+        question:
+          answer: 1
+          option:
+            - 奴隷
+            - 人質
+            - 捕虜
+            - 運動
+          random: true
+          type: select
+      - audio: audio/1137_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1137'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: acquaintance
+        question:
+          answer: 1
+          option:
+            - 知人
+            - 住人
+            - 顧客
+            - 証人
+          random: true
+          type: select
+      - audio: audio/1138_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1138'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: merchant
+        question:
+          answer: 1
+          option:
+            - 商人
+            - 生産者
+            - 鑑定士
+            - 愛好家
+          random: true
+          type: select
+      - audio: audio/1139_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1139'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: resident
+        question:
+          answer: 1
+          option:
+            - 住人
+            - 患者
+            - 障がい者
+            - 関係者
+          random: true
+          type: select
+      - audio: audio/1140_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1140'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: crew
+        question:
+          answer: 1
+          option:
+            - 乗組員
+            - 荷物
+            - 整備士
+            - 会社員
+          random: true
+          type: select
+      - audio: audio/1141_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1141'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: chase
+        question:
+          answer: 1
+          option:
+            - ～を追いかける
+            - ～を見つける
+            - ～をなくす
+            - ～を売る
+          random: true
+          type: select
+      - audio: audio/1142_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1142'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: proceed
+        question:
+          answer: 1
+          option:
+            - 進む
+            - 並ぶ
+            - 尋ねる
+            - 提出する
+          random: true
+          type: select
+      - audio: audio/1143_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1143'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: fade
+        question:
+          answer: 1
+          option:
+            - 薄れる
+            - 美しくなる
+            - はっきりする
+            - 曖昧になる
+          random: true
+          type: select
+      - audio: audio/1144_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1144'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: dissolve
+        question:
+          answer: 1
+          option:
+            - 溶ける
+            - 変わる
+            - 入る
+            - 浮く
+          random: true
+          type: select
+      - audio: audio/1145_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1145'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: float
+        question:
+          answer: 1
+          option:
+            - 浮かぶ
+            - 変わる
+            - 反射する
+            - 溶ける
+          random: true
+          type: select
+      - audio: audio/1146_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1146'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: sink
+        question:
+          answer: 1
+          option:
+            - 沈む
+            - 浮かぶ
+            - 溶ける
+            - 変わる
+          random: true
+          type: select
+      - audio: audio/1147_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1147'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: bounce
+        question:
+          answer: 1
+          option:
+            - 跳ねる
+            - 転がる
+            - 浮かぶ
+            - 変わる
+          random: true
+          type: select
+      - audio: audio/1148_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1148'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: transform
+        question:
+          answer: 1
+          option:
+            - ～を変える
+            - ～に移住する
+            - ～を見つける
+            - ～を壊す
+          random: true
+          type: select
+      - audio: audio/1149_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1149'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: shift
+        question:
+          answer: 1
+          option:
+            - 転換
+            - 理解
+            - 修正
+            - 跳躍
+          random: true
+          type: select
+      - audio: audio/1150_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1150'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: modify
+        question:
+          answer: 1
+          option:
+            - ～を修正する
+            - ～を最適化する
+            - ～を問題視する
+            - ～を認める
+          random: true
+          type: select
+      - audio: audio/1151_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1151'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: revise
+        question:
+          answer: 1
+          option:
+            - ～を修正する
+            - ～を問題視する
+            - ～を有する
+            - ～を理解する
+          random: true
+          type: select
+      - audio: audio/1152_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1152'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: enhance
+        question:
+          answer: 1
+          option:
+            - ～を向上させる
+            - ～を持っている
+            - ～を損ねる
+            - ～を理解する
+          random: true
+          type: select
+      - audio: audio/1153_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1153'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: lower
+        question:
+          answer: 1
+          option:
+            - ～を下げる
+            - ～を変える
+            - ～を動かす
+            - ～を有する
+          random: true
+          type: select
+      - audio: audio/1154_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1154'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: voyage
+        question:
+          answer: 1
+          option:
+            - 航海
+            - 計画
+            - 転換
+            - 準備
+          random: true
+          type: select
+      - audio: audio/1155_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1155'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: confirm
+        question:
+          answer: 1
+          option:
+            - ～を確認する
+            - ～を取り消す
+            - ～を重ねる
+            - ～を変える
+          random: true
+          type: select
+      - audio: audio/1156_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1156'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: ensure
+        question:
+          answer: 1
+          option:
+            - ～を確実にする
+            - ～を注意する
+            - ～を指示する
+            - ～を理解する
+          random: true
+          type: select
+      - audio: audio/1157_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1157'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: address
+        question:
+          answer: 1
+          option:
+            - ～に取り組む
+            - ～を解決する
+            - ～を研究する
+            - ～に関心がある
+          random: true
+          type: select
+      - audio: audio/1158_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1158'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: approach
+        question:
+          answer: 1
+          option:
+            - 取り組み方
+            - 理解
+            - 理論
+            - 行き方
+          random: true
+          type: select
+      - audio: audio/1159_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1159'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: resolve
+        question:
+          answer: 1
+          option:
+            - ～を解決する
+            - ～に取り組む
+            - ～を確認する
+            - ～に耐える
+          random: true
+          type: select
+      - audio: audio/1160_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1160'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: settle
+        question:
+          answer: 1
+          option:
+            - ～を解決する
+            - ～に取り組む
+            - ～に巻き込まれる
+            - ～が影響する
+          random: true
+          type: select
+      - audio: audio/1161_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1161'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: enrich
+        question:
+          answer: 1
+          option:
+            - ～を豊かにする
+            - ～を耕す
+            - ～を調査する
+            - ～を保つ
+          random: true
+          type: select
+      - audio: audio/1162_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1162'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: warn
+        question:
+          answer: 1
+          option:
+            - ～に警告する
+            - ～に頼む
+            - ～を説得する
+            - ～に強制する
+          random: true
+          type: select
+      - audio: audio/1163_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1163'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: force
+        question:
+          answer: 1
+          option:
+            - ～に強いる
+            - ～を説得する
+            - ～に警告する
+            - ～を決定する
+          random: true
+          type: select
+      - audio: audio/1164_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1164'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: appeal
+        question:
+          answer: 1
+          option:
+            - 訴える
+            - 依存する
+            - 関係する
+            - 研究する
+          random: true
+          type: select
+      - audio: audio/1165_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1165'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: applause
+        question:
+          answer: 1
+          option:
+            - 拍手
+            - 贈り物
+            - 賛辞
+            - ねぎらい
+          random: true
+          type: select
+      - audio: audio/1166_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1166'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: leap
+        question:
+          answer: 1
+          option:
+            - 跳ぶ
+            - 踊る
+            - あふれる
+            - 浮かぶ
+          random: true
+          type: select
+      - audio: audio/1167_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1167'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: grab
+        question:
+          answer: 1
+          option:
+            - ～をつかむ
+            - ～に飛びかかる
+            - ～に抱きつく
+            - ～を折る
+          random: true
+          type: select
+      - audio: audio/1168_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1168'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: seize
+        question:
+          answer: 1
+          option:
+            - ～をつかむ
+            - ～にもたれる
+            - ～を叩く
+            - ～を折る
+          random: true
+          type: select
+      - audio: audio/1169_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1169'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: cast
+        question:
+          answer: 1
+          option:
+            - ～を投げる
+            - ～がからまる
+            - ～が破れる
+            - ～を調査する
+          random: true
+          type: select
+      - audio: audio/1170_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1170'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: stun
+        question:
+          answer: 1
+          option:
+            - ～を気絶させる
+            - ～に気づかせる
+            - ～を連れ去る
+            - ～を触る
+          random: true
+          type: select
+      - audio: audio/1171_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1171'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: illuminate
+        question:
+          answer: 1
+          option:
+            - ～を照らす
+            - ～を描く
+            - ～を整える
+            - ～を塗装する
+          random: true
+          type: select
+      - audio: audio/1172_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1172'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: uncover
+        question:
+          answer: 1
+          option:
+            - ～を明らかにする
+            - ～を調査する
+            - ～を起こす
+            - ～をもみ消す
+          random: true
+          type: select
+      - audio: audio/1173_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1173'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: mend
+        question:
+          answer: 1
+          option:
+            - ～を修繕する
+            - ～に気づく
+            - ～が大きくなる
+            - ～を隠す
+          random: true
+          type: select
+      - audio: audio/1174_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1174'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: react
+        question:
+          answer: 1
+          option:
+            - 反応する
+            - 電話する
+            - 気絶する
+            - 攻撃する
+          random: true
+          type: select
+      - audio: audio/1175_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1175'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: endure
+        question:
+          answer: 1
+          option:
+            - ～に耐える
+            - ～が報われる
+            - ～がしのばれる
+            - ～に関心をもつ
+          random: true
+          type: select
+      - audio: audio/1176_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1176'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: bind
+        question:
+          answer: 1
+          option:
+            - ～を結びつける
+            - ～を立て直す
+            - ～を合併する
+            - ～を経営する
+          random: true
+          type: select
+      - audio: audio/1177_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1177'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: encounter
+        question:
+          answer: 1
+          option:
+            - ～に偶然出会う
+            - ～と戦う
+            - ～を追う
+            - ～を立て直す
+          random: true
+          type: select
+      - audio: audio/1178_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1178'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: trace
+        question:
+          answer: 1
+          option:
+            - ～を捜し出す
+            - ～に連絡する
+            - ～を見かける
+            - ～に偶然出会う
+          random: true
+          type: select
+      - audio: audio/1179_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1179'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: undergo
+        question:
+          answer: 1
+          option:
+            - ～を経験する
+            - ～を追求する
+            - ～をすすめる
+            - ～を起こす
+          random: true
+          type: select
+      - audio: audio/1180_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1180'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: seal
+        question:
+          answer: 1
+          option:
+            - ～を密封する
+            - ～を使い捨てる
+            - ～を追求する
+            - ～を見かける
+          random: true
+          type: select
+      - audio: audio/1181_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1181'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: incorporate
+        question:
+          answer: 1
+          option:
+            - ～を取り入れる
+            - ～を変える
+            - ～を移動する
+            - ～を翻訳する
+          random: true
+          type: select
+      - audio: audio/1182_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1182'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: emerge
+        question:
+          answer: 1
+          option:
+            - 現れる
+            - 捜し出す
+            - 聞こえる
+            - 消える
+          random: true
+          type: select
+      - audio: audio/1183_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1183'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: unfold
+        question:
+          answer: 1
+          option:
+            - 展開する
+            - 終わる
+            - 始まる
+            - 撮影される
+          random: true
+          type: select
+      - audio: audio/1184_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1184'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: derive
+        question:
+          answer: 1
+          option:
+            - 由来する
+            - 似ている
+            - 変わる
+            - 捜し出す
+          random: true
+          type: select
+      - audio: audio/1185_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1185'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: generate
+        question:
+          answer: 1
+          option:
+            - ～を生み出す
+            - ～を消費する
+            - ～を節約する
+            - ～を浪費する
+          random: true
+          type: select
+      - audio: audio/1186_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1186'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: possess
+        question:
+          answer: 1
+          option:
+            - ～を所有している
+            - ～に驚く
+            - ～を示す
+            - ～を追求する
+          random: true
+          type: select
+      - audio: audio/1187_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1187'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: retain
+        question:
+          answer: 1
+          option:
+            - ～を保持する
+            - ～に驚く
+            - ～に反応する
+            - ～を翻訳する
+          random: true
+          type: select
+      - audio: audio/1188_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1188'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: secure
+        question:
+          answer: 1
+          option:
+            - ～を確保する
+            - ～を選ぶ
+            - ～を取り合う
+            - ～を理解する
+          random: true
+          type: select
+      - audio: audio/1189_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1189'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: capture
+        question:
+          answer: 1
+          option:
+            - ～を捕らえる
+            - ～を選ぶ
+            - ～を節約する
+            - ～を変える
+          random: true
+          type: select
+      - audio: audio/1190_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1190'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: monitor
+        question:
+          answer: 1
+          option:
+            - ～を監視する
+            - ～を上げる
+            - ～を下げる
+            - ～を安定させる
+          random: true
+          type: select
+      - audio: audio/1191_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1191'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: investigate
+        question:
+          answer: 1
+          option:
+            - ～を調査する
+            - ～を変える
+            - ～に似せる
+            - ～を選ぶ
+          random: true
+          type: select
+      - audio: audio/1192_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1192'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: detect
+        question:
+          answer: 1
+          option:
+            - ～を探知する
+            - ～を売買する
+            - ～を上げる
+            - ～を下げる
+          random: true
+          type: select
+      - audio: audio/1193_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1193'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: inquiry
+        question:
+          answer: 1
+          option:
+            - 調査
+            - 保証
+            - 情報
+            - 学期
+          random: true
+          type: select
+      - audio: audio/1194_ew.mp3
+        presentation:
+          type: text
+          value: specialize
+          align: left
+        question:
+          type: select
+          answer: 1
+          random: true
+          option:
+            - （in ～）～を専攻する
+            - （in ～）～を研究する
+            - （in ～）～を選択する
+            - （in ～）～に電話する
+        comment:
+          audio: ""
+          video: ""
+          type: text
+          align: left
+          fontZoom: "1"
+          value: '<p style="color: red;">単語番号 1194'
+      - audio: audio/1195_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1195'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: semester
+        question:
+          answer: 1
+          option:
+            - 学期
+            - 生態
+            - 哲学
+            - 機関
+          random: true
+          type: select
+      - audio: audio/1196_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1196'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: biology
+        question:
+          answer: 1
+          option:
+            - 生物学
+            - 哲学
+            - 地理学
+            - 倫理学
+          random: true
+          type: select
+      - audio: audio/1197_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1197'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: ecology
+        question:
+          answer: 1
+          option:
+            - 生態
+            - 飼育
+            - 研究
+            - 大量発生
+          random: true
+          type: select
+    config:
+      limitTime: 10
+      limit: null
+      continue: null
+      random: null
+      audio: null
+  - title: Week 4
+    id: 4_1
+    dId: 4
+    ver: 1
+    questions:
+      - audio: audio/1198_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1198'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: philosophy
+        question:
+          answer: 1
+          option:
+            - 哲学
+            - 倫理学
+            - 物理学
+            - 生物学
+          random: true
+          type: select
+      - audio: audio/1199_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1199'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: geography
+        question:
+          answer: 1
+          option:
+            - 地理
+            - 生物学
+            - 歴史
+            - 心理学
+          random: true
+          type: select
+      - audio: audio/1200_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1200'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: institution
+        question:
+          answer: 1
+          option:
+            - 機関
+            - 問題
+            - 分野
+            - 改革
+          random: true
+          type: select
+      - audio: audio/1201_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1201'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: faculty
+        question:
+          answer: 1
+          option:
+            - 能力
+            - 講義
+            - 取得
+            - 大衆
+          random: true
+          type: select
+      - audio: audio/1202_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1202'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: intermediate
+        question:
+          answer: 1
+          option:
+            - 中級の
+            - 必須の
+            - 選択の
+            - 上級の
+          random: true
+          type: select
+      - audio: audio/1203_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1203'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: notion
+        question:
+          answer: 1
+          option:
+            - 考え
+            - 印象
+            - 報道
+            - 風潮
+          random: true
+          type: select
+      - audio: audio/1204_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1204'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: concept
+        question:
+          answer: 1
+          option:
+            - 概念
+            - 無駄
+            - 問題
+            - 経過
+          random: true
+          type: select
+      - audio: audio/1205_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1205'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: meditation
+        question:
+          answer: 1
+          option:
+            - 瞑想
+            - チーム
+            - 同盟
+            - プロジェクト
+          random: true
+          type: select
+      - audio: audio/1206_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1206'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: insight
+        question:
+          answer: 1
+          option:
+            - 洞察
+            - 期待
+            - 追及
+            - 攻撃
+          random: true
+          type: select
+      - audio: audio/1207_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1207'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: caution
+        question:
+          answer: 1
+          option:
+            - 用心
+            - 理解
+            - 団結
+            - 連携
+          random: true
+          type: select
+      - audio: audio/1208_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1208'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: will
+        question:
+          answer: 1
+          option:
+            - 意志
+            - 目的
+            - 規則
+            - 予想
+          random: true
+          type: select
+      - audio: audio/1209_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1209'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: option
+        question:
+          answer: 1
+          option:
+            - 選択肢
+            - 理由
+            - 問題
+            - 議題
+          random: true
+          type: select
+      - audio: audio/1210_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1210'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: prospect
+        question:
+          answer: 1
+          option:
+            - 見通し
+            - 目的
+            - 原因
+            - 同盟
+          random: true
+          type: select
+      - audio: audio/1211_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1211'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: cherish
+        question:
+          answer: 1
+          option:
+            - ～を大切にする
+            - ～にすがる
+            - ～を語る
+            - ～を忘れる
+          random: true
+          type: select
+      - audio: audio/1212_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1212'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: intend
+        question:
+          answer: 1
+          option:
+            - （to do）～するつもりだ
+            - （to do）～するはずだ
+            - （to do）～するかもしれない
+            - （to do）～することができる
+          random: true
+          type: select
+      - audio: audio/1213_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1213'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: suspect
+        question:
+          answer: 1
+          option:
+            - ～ではないかと思う
+            - ～だと確信している
+            - ～を目撃する
+            - ～に同情する
+          random: true
+          type: select
+      - audio: audio/1214_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1214'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: identify
+        question:
+          answer: 1
+          option:
+            - ～を特定する
+            - ～を調べる
+            - ～を採取する
+            - ～に見覚えがある
+          random: true
+          type: select
+      - audio: audio/1215_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1215'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: permit
+        question:
+          answer: 1
+          option:
+            - ～を許可する
+            - ～を理解する
+            - ～を推奨する
+            - ～を撮影する
+          random: true
+          type: select
+      - audio: audio/1216_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1216'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: acknowledge
+        question:
+          answer: 1
+          option:
+            - ～を認める
+            - ～を述べる
+            - ～に気づく
+            - ～を目撃する
+          random: true
+          type: select
+      - audio: audio/1217_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1217'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: perceive
+        question:
+          answer: 1
+          option:
+            - ～を認識する
+            - ～を断言する
+            - ～に位置づける
+            - ～を誤解する
+          random: true
+          type: select
+      - audio: audio/1218_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1218'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: evaluate
+        question:
+          answer: 1
+          option:
+            - ～を評価する
+            - ～を非難する
+            - ～を報告する
+            - ～を達成する
+          random: true
+          type: select
+      - audio: audio/1219_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1219'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: cultivate
+        question:
+          answer: 1
+          option:
+            - ～を耕す
+            - ～を買う
+            - ～を改良する
+            - ～を整備する
+          random: true
+          type: select
+      - audio: audio/1220_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1220'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: shade
+        question:
+          answer: 1
+          option:
+            - 日陰
+            - 窓際
+            - 地面
+            - 日光
+          random: true
+          type: select
+      - audio: audio/1221_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1221'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: breeze
+        question:
+          answer: 1
+          option:
+            - そよ風
+            - におい
+            - 色
+            - 音
+          random: true
+          type: select
+      - audio: audio/1222_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1222'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: desert
+        question:
+          answer: 1
+          option:
+            - 砂漠
+            - 地方
+            - そよ風
+            - 村
+          random: true
+          type: select
+      - audio: audio/1223_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1223'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: fog
+        question:
+          answer: 1
+          option:
+            - 霧
+            - 雨
+            - 雲
+            - 雪
+          random: true
+          type: select
+      - audio: audio/1224_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1224'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: moisture
+        question:
+          answer: 1
+          option:
+            - 湿気
+            - 日光
+            - そよ風
+            - 運動
+          random: true
+          type: select
+      - audio: audio/1225_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1225'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: damp
+        question:
+          answer: 1
+          option:
+            - 湿った
+            - 汚れた
+            - 余った
+            - 乾いた
+          random: true
+          type: select
+      - audio: audio/1226_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1226'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: path
+        question:
+          answer: 1
+          option:
+            - 道
+            - 移動
+            - 地図
+            - そよ風
+          random: true
+          type: select
+      - audio: audio/1227_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1227'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: trail
+        question:
+          answer: 1
+          option:
+            - 山道
+            - 登山者
+            - 地図
+            - 山登り
+          random: true
+          type: select
+      - audio: audio/1228_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1228'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: stream
+        question:
+          answer: 1
+          option:
+            - 小川
+            - 山道
+            - そよ風
+            - 湖
+          random: true
+          type: select
+      - audio: audio/1229_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1229'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: tide
+        question:
+          answer: 1
+          option:
+            - 潮
+            - 席
+            - 月
+            - 海域
+          random: true
+          type: select
+      - audio: audio/1230_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1230'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: reef
+        question:
+          answer: 1
+          option:
+            - 礁
+            - 再生
+            - 植樹
+            - 海域
+          random: true
+          type: select
+      - audio: audio/1231_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1231'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: habitat
+        question:
+          answer: 1
+          option:
+            - 生息地
+            - 発生
+            - 繁殖
+            - 生態
+          random: true
+          type: select
+      - audio: audio/1232_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1232'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: volcano
+        question:
+          answer: 1
+          option:
+            - 火山
+            - 島
+            - 場所
+            - 生態
+          random: true
+          type: select
+      - audio: audio/1233_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1233'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: mine
+        question:
+          answer: 1
+          option:
+            - 鉱山
+            - 火山
+            - 生息地
+            - 山奥
+          random: true
+          type: select
+      - audio: audio/1234_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1234'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: swallow
+        question:
+          answer: 1
+          option:
+            - ツバメ
+            - ニワトリ
+            - ウサギ
+            - スズメ
+          random: true
+          type: select
+      - audio: audio/1235_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1235'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: web
+        question:
+          answer: 1
+          option:
+            - 巣
+            - 足
+            - 罠
+            - 幕
+          random: true
+          type: select
+      - audio: audio/1236_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1236'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: mosquito
+        question:
+          answer: 1
+          option:
+            - 蚊
+            - 蟻
+            - クラゲ
+            - 蜂
+          random: true
+          type: select
+      - audio: audio/1237_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1237'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: cattle
+        question:
+          answer: 1
+          option:
+            - ウシ
+            - ウマ
+            - ヤギ
+            - ロバ
+          random: true
+          type: select
+      - audio: audio/1238_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1238'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: kitten
+        question:
+          answer: 1
+          option:
+            - 子ネコ
+            - ウシ
+            - サル
+            - ヤギ
+          random: true
+          type: select
+      - audio: audio/1239_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1239'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: organism
+        question:
+          answer: 1
+          option:
+            - 生物
+            - 発生
+            - 場所
+            - 再生
+          random: true
+          type: select
+      - audio: audio/1240_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1240'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: wildlife
+        question:
+          answer: 1
+          option:
+            - 野生生物
+            - 固有種
+            - 群れ
+            - 動物
+          random: true
+          type: select
+      - audio: audio/1241_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1241'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: beast
+        question:
+          answer: 1
+          option:
+            - 野獣
+            - 群れ
+            - 鉱山
+            - 類人猿
+          random: true
+          type: select
+      - audio: audio/1242_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1242'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: ape
+        question:
+          answer: 1
+          option:
+            - 類人猿
+            - ウシ
+            - 生物
+            - 鳥類
+          random: true
+          type: select
+      - audio: audio/1243_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1243'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: flock
+        question:
+          answer: 1
+          option:
+            - 群れ
+            - 羽毛
+            - くちばし
+            - 巣
+          random: true
+          type: select
+      - audio: audio/1244_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1244'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: vein
+        question:
+          answer: 1
+          option:
+            - 静脈
+            - 患者
+            - 脚
+            - 動脈
+          random: true
+          type: select
+      - audio: audio/1245_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1245'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: breed
+        question:
+          answer: 1
+          option:
+            - 繁殖する
+            - 動き回る
+            - 冬眠する
+            - 捕獲する
+          random: true
+          type: select
+      - audio: audio/1246_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1246'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: reproduce
+        question:
+          answer: 1
+          option:
+            - 繁殖する
+            - 死滅する
+            - 蔓延する
+            - 減少する
+          random: true
+          type: select
+      - audio: audio/1247_ew.mp3
+        presentation:
+          type: text
+          value: talkative
+          align: left
+        question:
+          type: select
+          answer: 1
+          random: true
+          option:
+            - おしゃべりの
+            - 勤勉な
+            - 真面目な
+            - 若い
+        comment:
+          audio: ""
+          video: ""
+          type: text
+          align: left
+          fontZoom: "1"
+          value: '<p style="color: red;">単語番号 1247'
+      - audio: audio/1248_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1248'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: earnest
+        question:
+          answer: 1
+          option:
+            - 真面目な
+            - 無駄な
+            - 有用な
+            - 主要な
+          random: true
+          type: select
+      - audio: audio/1249_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1249'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: diligent
+        question:
+          answer: 1
+          option:
+            - 勤勉な
+            - 傲慢な
+            - 控え目な
+            - 臆病な
+          random: true
+          type: select
+      - audio: audio/1250_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1250'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: principal
+        question:
+          answer: 1
+          option:
+            - 主要な
+            - 高価な
+            - 直接的な
+            - 間接的な
+          random: true
+          type: select
+      - audio: audio/1251_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1251'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: prime
+        question:
+          answer: 1
+          option:
+            - 最重要な
+            - 有用な
+            - 控え目な
+            - 直接的な
+          random: true
+          type: select
+      - audio: audio/1252_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1252'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: definite
+        question:
+          answer: 1
+          option:
+            - 明確な
+            - 間違った
+            - 主な
+            - わかりにくい
+          random: true
+          type: select
+      - audio: audio/1253_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1253'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: evident
+        question:
+          answer: 1
+          option:
+            - 明らかな
+            - 正しい
+            - 間違った
+            - 不明な
+          random: true
+          type: select
+      - audio: audio/1254_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1254'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: prominent
+        question:
+          answer: 1
+          option:
+            - 目立った
+            - 奇妙な
+            - 危ない
+            - 美しい
+          random: true
+          type: select
+      - audio: audio/1255_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1255'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: marked
+        question:
+          answer: 1
+          option:
+            - 際立った
+            - 奇妙な
+            - 微妙な
+            - 隠れた
+          random: true
+          type: select
+      - audio: audio/1256_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1256'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: grace
+        question:
+          answer: 1
+          option:
+            - 優美さ
+            - 姿勢
+            - 衣装
+            - 気性
+          random: true
+          type: select
+      - audio: audio/1257_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1257'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: charm
+        question:
+          answer: 1
+          option:
+            - 魅力
+            - 利益
+            - 問題
+            - 反響
+          random: true
+          type: select
+    config:
+      limitTime: 10
+      limit: null
+      continue: null
+      random: null
+      audio: null
+  - title: Week 5
+    id: 5_1
+    dId: 5
+    ver: 1
+    questions:
+      - audio: audio/1258_ew.mp3
+        video: null
+        presentation:
+          type: text
+          value: fancy
+          align: left
+        question:
+          type: select
+          answer: 1
+          random: true
+          option:
+            - 高級な
+            - 注目すべき
+            - 人気のある
+            - すてきな
+        comment:
+          audio: ""
+          video: ""
+          type: text
+          align: left
+          fontZoom: "1"
+          value: '<p style="color: red;">単語番号 1258'
+      - audio: audio/1259_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1259'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: rational
+        question:
+          answer: 1
+          option:
+            - 理性的な
+            - 究極の
+            - 理想的な
+            - 苦渋の
+          random: true
+          type: select
+      - audio: audio/1260_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1260'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: magnificent
+        question:
+          answer: 1
+          option:
+            - 壮大な
+            - 印象的な
+            - 理想的な
+            - 奇妙な
+          random: true
+          type: select
+      - audio: audio/1261_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1261'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: superior
+        question:
+          answer: 1
+          option:
+            - （be － to ～）～より優れている
+            - （be － to ～）～より新しい
+            - （be － to ～）～よりきれいだ
+            - （be － to ～）～より高級だ
+          random: true
+          type: select
+      - audio: audio/1262_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1262'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: loyal
+        question:
+          answer: 1
+          option:
+            - 忠実な
+            - 強力な
+            - 熱狂的な
+            - 奇妙な
+          random: true
+          type: select
+      - audio: audio/1263_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1263'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: horrible
+        question:
+          answer: 1
+          option:
+            - とてもひどい
+            - とてもきれいな
+            - 目立った
+            - 地味な
+          random: true
+          type: select
+      - audio: audio/1264_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1264'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: miserable
+        question:
+          answer: 1
+          option:
+            - 悲惨な
+            - 退屈な
+            - 静かな
+            - 優雅な
+          random: true
+          type: select
+      - audio: audio/1265_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1265'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: dull
+        question:
+          answer: 1
+          option:
+            - 退屈な
+            - 教育的な
+            - ばかげた
+            - 優雅な
+          random: true
+          type: select
+      - audio: audio/1266_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1266'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: nasty
+        question:
+          answer: 1
+          option:
+            - 不快な
+            - すてきな
+            - 苦い
+            - 甘い
+          random: true
+          type: select
+      - audio: audio/1267_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1267'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: insane
+        question:
+          answer: 1
+          option:
+            - 正気でない
+            - 怒った
+            - 悲しい
+            - わくわくした
+          random: true
+          type: select
+      - audio: audio/1268_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1268'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: ridiculous
+        question:
+          answer: 1
+          option:
+            - ばかげた
+            - 興味深い
+            - 理性的な
+            - すてきな
+          random: true
+          type: select
+      - audio: audio/1269_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1269'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: rotten
+        question:
+          answer: 1
+          option:
+            - 腐った
+            - ゆでた
+            - 炒めた
+            - 新鮮な
+          random: true
+          type: select
+      - audio: audio/1270_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1270'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: notorious
+        question:
+          answer: 1
+          option:
+            - 悪名高い
+            - ばかげている
+            - 正気ではない
+            - 著名な
+          random: true
+          type: select
+      - audio: audio/1271_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1271'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: evil
+        question:
+          answer: 1
+          option:
+            - 悪い
+            - よい
+            - 優れた
+            - 著名な
+          random: true
+          type: select
+      - audio: audio/1272_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1272'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: mess
+        question:
+          answer: 1
+          option:
+            - 乱雑
+            - 清潔
+            - 秩序
+            - 整理
+          random: true
+          type: select
+      - audio: audio/1273_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1273'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: vast
+        question:
+          answer: 1
+          option:
+            - 広大な
+            - 小さな
+            - 優美な
+            - 古い
+          random: true
+          type: select
+      - audio: audio/1274_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1274'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: huge
+        question:
+          answer: 1
+          option:
+            - 巨大な
+            - おとなしい
+            - 臆病な
+            - 小さな
+          random: true
+          type: select
+      - audio: audio/1275_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1275'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: tiny
+        question:
+          answer: 1
+          option:
+            - とても小さな
+            - 大きな
+            - 深い
+            - 浅い
+          random: true
+          type: select
+      - audio: audio/1276_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1276'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: sphere
+        question:
+          answer: 1
+          option:
+            - 球体
+            - 混乱
+            - 解決策
+            - 原稿
+          random: true
+          type: select
+      - audio: audio/1277_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1277'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: strip
+        question:
+          answer: 1
+          option:
+            - 細長い一片
+            - 球体
+            - 立体
+            - 実物
+          random: true
+          type: select
+      - audio: audio/1278_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1278'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: vessel
+        question:
+          answer: 1
+          option:
+            - 管
+            - 液体
+            - 脚
+            - 圧力
+          random: true
+          type: select
+      - audio: audio/1279_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1279'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: internal
+        question:
+          answer: 1
+          option:
+            - 内部の
+            - 外部の
+            - 心臓の
+            - 肝臓の
+          random: true
+          type: select
+      - audio: audio/1280_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1280'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: mobile
+        question:
+          answer: 1
+          option:
+            - 流動的な
+            - 厳しい
+            - 外部の
+            - 内部の
+          random: true
+          type: select
+      - audio: audio/1281_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1281'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: steep
+        question:
+          answer: 1
+          option:
+            - 険しい
+            - 狭い
+            - 大きな
+            - ゆるやかな
+          random: true
+          type: select
+      - audio: audio/1282_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1282'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: intense
+        question:
+          answer: 1
+          option:
+            - 強烈な
+            - 精神的な
+            - 肉体的な
+            - かすかな
+          random: true
+          type: select
+      - audio: audio/1283_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1283'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: inevitable
+        question:
+          answer: 1
+          option:
+            - 避けられない
+            - 納得の
+            - 意外な
+            - 予定通りの
+          random: true
+          type: select
+      - audio: audio/1284_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1284'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: neutral
+        question:
+          answer: 1
+          option:
+            - 中立の
+            - 安全な
+            - 攻撃的な
+            - 守備的な
+          random: true
+          type: select
+      - audio: audio/1285_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1285'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: brief
+        question:
+          answer: 1
+          option:
+            - 手短な
+            - 個人的な
+            - 楽しい
+            - 有意義な
+          random: true
+          type: select
+      - audio: audio/1286_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1286'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: bare
+        question:
+          answer: 1
+          option:
+            - むき出しの
+            - 真っ白な
+            - 真っ赤な
+            - 長い
+          random: true
+          type: select
+      - audio: audio/1287_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1287'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: mutual
+        question:
+          answer: 1
+          option:
+            - 相互の
+            - 世間の
+            - 一般的な
+            - 柔軟な
+          random: true
+          type: select
+      - audio: audio/1288_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1288'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: potential
+        question:
+          answer: 1
+          option:
+            - 潜在的な
+            - 理想的な
+            - 騒がしい
+            - 裕福な
+          random: true
+          type: select
+      - audio: audio/1289_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1289'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: tough
+        question:
+          answer: 1
+          option:
+            - たくましい
+            - 背の高い
+            - 古代の
+            - 現代の
+          random: true
+          type: select
+      - audio: audio/1290_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1290'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: conventional
+        question:
+          answer: 1
+          option:
+            - 従来の
+            - 最新の
+            - 最強の
+            - 最古の
+          random: true
+          type: select
+      - audio: audio/1291_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1291'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: supreme
+        question:
+          answer: 1
+          option:
+            - 最高の
+            - 地方の
+            - 最低の
+            - 都会の
+          random: true
+          type: select
+      - audio: audio/1292_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1292'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: resemble
+        question:
+          answer: 1
+          option:
+            - ～に似ている
+            - ～に勝っている
+            - ～にかなわない
+            - ～と比較される
+          random: true
+          type: select
+      - audio: audio/1293_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1293'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: contrary
+        question:
+          answer: 1
+          option:
+            - （on the －）それどころか
+            - （on the －）ましてや
+            - （on the －）確かに
+            - （on the －）結局は
+          random: true
+          type: select
+      - audio: audio/1294_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1294'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: category
+        question:
+          answer: 1
+          option:
+            - 範疇
+            - 集団
+            - 軍隊
+            - 組織
+          random: true
+          type: select
+      - audio: audio/1295_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1295'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: scope
+        question:
+          answer: 1
+          option:
+            - 範囲
+            - 資金
+            - 人員
+            - 目的
+          random: true
+          type: select
+      - audio: audio/1296_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1296'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: given
+        question:
+          answer: 1
+          option:
+            - 定められた
+            - 長い
+            - 短い
+            - 柔軟な
+          random: true
+          type: select
+      - audio: audio/1297_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1297'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: peculiar
+        question:
+          answer: 1
+          option:
+            - 固有の
+            - 地方の
+            - 現代の
+            - 古代の
+          random: true
+          type: select
+      - audio: audio/1298_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1298'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: sufficient
+        question:
+          answer: 1
+          option:
+            - 十分な
+            - 腐った
+            - 過剰な
+            - 新鮮な
+          random: true
+          type: select
+      - audio: audio/1299_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1299'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: numerous
+        question:
+          answer: 1
+          option:
+            - 多くの
+            - 一定の
+            - 緊急の
+            - 特定の
+          random: true
+          type: select
+      - audio: audio/1300_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1300'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: substantial
+        question:
+          answer: 1
+          option:
+            - かなりの
+            - おいしい
+            - いつもの
+            - 少ない
+          random: true
+          type: select
+      - audio: audio/1301_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1301'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: unit
+        question:
+          answer: 1
+          option:
+            - 単位
+            - 範囲
+            - 量
+            - 容器
+          random: true
+          type: select
+      - audio: audio/1302_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1302'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: diameter
+        question:
+          answer: 1
+          option:
+            - 直径
+            - 全長
+            - 距離
+            - 半径
+          random: true
+          type: select
+      - audio: audio/1303_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1303'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: arithmetic
+        question:
+          answer: 1
+          option:
+            - 算術
+            - 運動
+            - 芸術
+            - 道徳
+          random: true
+          type: select
+      - audio: audio/1304_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1304'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: quantity
+        question:
+          answer: 1
+          option:
+            - 量
+            - 範囲
+            - 時間
+            - 質
+          random: true
+          type: select
+      - audio: audio/1305_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1305'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: deficiency
+        question:
+          answer: 1
+          option:
+            - 欠乏
+            - 摂取
+            - 必要性
+            - 効果
+          random: true
+          type: select
+      - audio: audio/1306_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1306'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: maximum
+        question:
+          answer: 1
+          option:
+            - 最大限
+            - 最小値
+            - 時間
+            - 運動
+          random: true
+          type: select
+      - audio: audio/1307_ew.mp3
+        presentation:
+          type: text
+          value: bunch
+          align: left
+        question:
+          type: select
+          answer: 1
+          random: true
+          option:
+            - 束
+            - 柄
+            - 粉
+            - 量
+        comment:
+          audio: ""
+          video: ""
+          type: text
+          align: left
+          fontZoom: "1"
+          value: '<p style="color: red;">単語番号 1307'
+      - audio: audio/1308_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1308'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: lessen
+        question:
+          answer: 1
+          option:
+            - ～を減らす
+            - ～を増やす
+            - ～を避ける
+            - ～を検証する
+          random: true
+          type: select
+      - audio: audio/1309_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1309'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: era
+        question:
+          answer: 1
+          option:
+            - 時代
+            - 期間
+            - 組織
+            - 場面
+          random: true
+          type: select
+      - audio: audio/1310_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1310'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: session
+        question:
+          answer: 1
+          option:
+            - 期間
+            - 電話
+            - 組織
+            - 範囲
+          random: true
+          type: select
+      - audio: audio/1311_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1311'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: pause
+        question:
+          answer: 1
+          option:
+            - 休止
+            - 会話
+            - 休憩
+            - 議論
+          random: true
+          type: select
+      - audio: audio/1312_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1312'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: annual
+        question:
+          answer: 1
+          option:
+            - 年に1 度の
+            - 月例の
+            - 定時の
+            - 定期的な
+          random: true
+          type: select
+      - audio: audio/1313_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1313'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: eternal
+        question:
+          answer: 1
+          option:
+            - 永遠の
+            - 植物の
+            - 短い
+            - 幸運な
+          random: true
+          type: select
+      - audio: audio/1314_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1314'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: initial
+        question:
+          answer: 1
+          option:
+            - 最初の
+            - 最終の
+            - 準備の
+            - 安定した
+          random: true
+          type: select
+      - audio: audio/1315_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1315'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: prior
+        question:
+          answer: 1
+          option:
+            - （to ～）～より前の
+            - （to ～）～より後の
+            - （to ～）～に近い
+            - （to ～）～より遠い
+          random: true
+          type: select
+      - audio: audio/1316_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1316'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: subsequent
+        question:
+          answer: 1
+          option:
+            - 続いて起こる
+            - 以前の
+            - 日常の
+            - 最初の
+          random: true
+          type: select
+      - audio: audio/1317_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1317'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: meanwhile
+        question:
+          answer: 1
+          option:
+            - その間
+            - いつも通り
+            - しかしながら
+            - その代わりに
+          random: true
+          type: select
+      - audio: audio/1318_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1318'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: routine
+        question:
+          answer: 1
+          option:
+            - 決まりきった仕事
+            - 義務
+            - 授業
+            - 楽しみ
+          random: true
+          type: select
+      - audio: audio/1319_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1319'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: souvenir
+        question:
+          answer: 1
+          option:
+            - 土産
+            - 写真
+            - 記録
+            - 記事
+          random: true
+          type: select
+      - audio: audio/1320_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1320'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: brick
+        question:
+          answer: 1
+          option:
+            - れんが
+            - 木
+            - 竹
+            - 石
+          random: true
+          type: select
+      - audio: audio/1321_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1321'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: pole
+        question:
+          answer: 1
+          option:
+            - 棒
+            - 馬
+            - 石
+            - 木
+          random: true
+          type: select
+      - audio: audio/1322_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1322'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: mischief
+        question:
+          answer: 1
+          option:
+            - いたずら
+            - おしゃべり
+            - 競争
+            - 駄菓子
+          random: true
+          type: select
+      - audio: audio/1323_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1323'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: superstition
+        question:
+          answer: 1
+          option:
+            - 迷信
+            - うわさ
+            - 実験
+            - 伝説
+          random: true
+          type: select
+      - audio: audio/1324_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1324'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: storage
+        question:
+          answer: 1
+          option:
+            - 貯蔵
+            - 避難
+            - 学習
+            - 作業
+          random: true
+          type: select
+      - audio: audio/1325_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1325'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: shelter
+        question:
+          answer: 1
+          option:
+            - 避難
+            - 解放
+            - 利益
+            - 損害
+          random: true
+          type: select
+      - audio: audio/1326_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1326'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: garment
+        question:
+          answer: 1
+          option:
+            - 衣類
+            - 食品
+            - 利益
+            - 避難
+          random: true
+          type: select
+      - audio: audio/1327_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1327'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: canal
+        question:
+          answer: 1
+          option:
+            - 運河
+            - 地方
+            - 湾
+            - 条約
+          random: true
+          type: select
+      - audio: audio/1328_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1328'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: cabinet
+        question:
+          answer: 1
+          option:
+            - 戸棚
+            - 箱
+            - 鞄
+            - 台所
+          random: true
+          type: select
+      - audio: audio/1329_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1329'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: incident
+        question:
+          answer: 1
+          option:
+            - 出来事
+            - 爆発
+            - 事故
+            - 印象
+          random: true
+          type: select
+      - audio: audio/1330_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1330'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: circumstance
+        question:
+          answer: 1
+          option:
+            - 状況
+            - 運命
+            - 時代
+            - 考え
+          random: true
+          type: select
+    config:
+      limitTime: 10
+      limit: null
+      continue: null
+      random: null
+      audio: null
+  - title: Week 6
+    id: 6_1
+    dId: 6
+    ver: 1
+    questions:
+      - audio: audio/1331_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1331'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: fetch
+        question:
+          answer: 1
+          option:
+            - ～を取って来る
+            - ～を預ける
+            - ～を散らす
+            - ～を増やす
+          random: true
+          type: select
+      - audio: audio/1332_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1332'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: distribute
+        question:
+          answer: 1
+          option:
+            - ～を分配する
+            - ～を作る
+            - ～をもらう
+            - ～を捨てる
+          random: true
+          type: select
+      - audio: audio/1333_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1333'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: purchase
+        question:
+          answer: 1
+          option:
+            - ～を購入する
+            - ～に住む
+            - ～を建てる
+            - ～を売却する
+          random: true
+          type: select
+      - audio: audio/1334_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1334'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: statue
+        question:
+          answer: 1
+          option:
+            - 像
+            - 植木
+            - 記念碑
+            - 台
+          random: true
+          type: select
+      - audio: audio/1335_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1335'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: sculpture
+        question:
+          answer: 1
+          option:
+            - 彫刻
+            - 作品
+            - 提案
+            - 傑作
+          random: true
+          type: select
+      - audio: audio/1336_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1336'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: myth
+        question:
+          answer: 1
+          option:
+            - 神話
+            - 計画
+            - 構造
+            - 操業
+          random: true
+          type: select
+      - audio: audio/1337_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1337'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: craft
+        question:
+          answer: 1
+          option:
+            - 工芸
+            - 衣装
+            - 食事
+            - 土産
+          random: true
+          type: select
+      - audio: audio/1338_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1338'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: journal
+        question:
+          answer: 1
+          option:
+            - 雑誌
+            - 報告
+            - 発表
+            - 指導
+          random: true
+          type: select
+      - audio: audio/1339_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1339'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: encyclopedia
+        question:
+          answer: 1
+          option:
+            - 百科事典
+            - 図録
+            - 図鑑
+            - 発表
+          random: true
+          type: select
+      - audio: audio/1340_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1340'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: heaven
+        question:
+          answer: 1
+          option:
+            - 天国
+            - 地獄
+            - 教会
+            - 作品
+          random: true
+          type: select
+      - audio: audio/1341_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1341'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: funeral
+        question:
+          answer: 1
+          option:
+            - 葬式
+            - 結婚式
+            - 講演会
+            - 祝賀会
+          random: true
+          type: select
+      - audio: audio/1342_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1342'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: soul
+        question:
+          answer: 1
+          option:
+            - 魂
+            - 像
+            - 集合
+            - 解散
+          random: true
+          type: select
+      - audio: audio/1343_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1343'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: priest
+        question:
+          answer: 1
+          option:
+            - 神父
+            - 総理
+            - 司会者
+            - 作家
+          random: true
+          type: select
+      - audio: audio/1344_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1344'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: faith
+        question:
+          answer: 1
+          option:
+            - 信仰
+            - 講話
+            - 歴史
+            - 地理
+          random: true
+          type: select
+      - audio: audio/1345_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1345'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: sacred
+        question:
+          answer: 1
+          option:
+            - 神聖な
+            - 堕落した
+            - 貴重な
+            - ささいな
+          random: true
+          type: select
+      - audio: audio/1346_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1346'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: divine
+        question:
+          answer: 1
+          option:
+            - 神の
+            - 最後の
+            - 先祖の
+            - 有名な
+          random: true
+          type: select
+      - audio: audio/1347_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1347'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: Muslim
+        question:
+          answer: 1
+          option:
+            - イスラム教徒
+            - 神父
+            - ヒンドゥー教徒
+            - 信仰者
+          random: true
+          type: select
+      - audio: audio/1348_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1348'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: context
+        question:
+          answer: 1
+          option:
+            - 文脈
+            - 言語
+            - 人間
+            - 原稿
+          random: true
+          type: select
+      - audio: audio/1349_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1349'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: singular
+        question:
+          answer: 1
+          option:
+            - 単数の
+            - 複数の
+            - 両方の
+            - 片方の
+          random: true
+          type: select
+      - audio: audio/1350_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1350'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: command
+        question:
+          answer: 1
+          option:
+            - 言語を操る力
+            - 言語を学ぶ機会
+            - 言語を使う機会
+            - 言語を理解する力
+          random: true
+          type: select
+      - audio: audio/1351_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1351'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: instance
+        question:
+          answer: 1
+          option:
+            - 例
+            - 像
+            - 台
+            - 人
+          random: true
+          type: select
+      - audio: audio/1352_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1352'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: dialogue
+        question:
+          answer: 1
+          option:
+            - 会話
+            - 単語
+            - 例文
+            - 文学
+          random: true
+          type: select
+      - audio: audio/1353_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1353'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: usage
+        question:
+          answer: 1
+          option:
+            - 語法
+            - 長文
+            - 作文
+            - 会話
+          random: true
+          type: select
+      - audio: audio/1354_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1354'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: vowel
+        question:
+          answer: 1
+          option:
+            - 母音
+            - 子音
+            - アクセント
+            - 発音
+          random: true
+          type: select
+      - audio: audio/1355_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1355'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: pronoun
+        question:
+          answer: 1
+          option:
+            - 代名詞
+            - 動詞
+            - 形容詞
+            - 副詞
+          random: true
+          type: select
+      - audio: audio/1356_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1356'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: accent
+        question:
+          answer: 1
+          option:
+            - 訛
+            - 発音
+            - 文法
+            - 作文
+          random: true
+          type: select
+      - audio: audio/1357_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1357'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: outline
+        question:
+          answer: 1
+          option:
+            - ～の要点を述べる
+            - ～について尋ねる
+            - ～の変更を伝える
+            - ～について要望する
+          random: true
+          type: select
+      - audio: audio/1358_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1358'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: remote
+        question:
+          answer: 1
+          option:
+            - 辺鄙(へんぴ)な
+            - 有名な
+            - 静かな
+            - 小さな
+          random: true
+          type: select
+      - audio: audio/1359_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1359'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: ambition
+        question:
+          answer: 1
+          option:
+            - 願望
+            - 宣言
+            - 言葉
+            - 例文
+          random: true
+          type: select
+      - audio: audio/1360_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1360'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: temper
+        question:
+          answer: 1
+          option:
+            - 気性
+            - 言葉遣い
+            - 天候
+            - 海
+          random: true
+          type: select
+      - audio: audio/1361_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1361'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: affection
+        question:
+          answer: 1
+          option:
+            - 愛情
+            - 嫌悪
+            - 怒り
+            - 悲しみ
+          random: true
+          type: select
+      - audio: audio/1362_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1362'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: enthusiasm
+        question:
+          answer: 1
+          option:
+            - 情熱
+            - 愛情
+            - 怒り
+            - 野心
+          random: true
+          type: select
+      - audio: audio/1363_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1363'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: rage
+        question:
+          answer: 1
+          option:
+            - 激怒
+            - 悲しみ
+            - 苦痛
+            - 疲労
+          random: true
+          type: select
+      - audio: audio/1364_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1364'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: incredible
+        question:
+          answer: 1
+          option:
+            - 信じられない
+            - 定期的な
+            - 重要な
+            - 偶然の
+          random: true
+          type: select
+      - audio: audio/1365_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1365'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: chuckle
+        question:
+          answer: 1
+          option:
+            - くすくす笑う
+            - 怒る
+            - 泣く
+            - 電話する
+          random: true
+          type: select
+      - audio: audio/1366_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1366'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: dare
+        question:
+          answer: 1
+          option:
+            - 思い切って～する
+            - 積極的に～する
+            - 慌てて～する
+            - 大声で～する
+          random: true
+          type: select
+      - audio: audio/1367_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1367'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: scream
+        question:
+          answer: 1
+          option:
+            - 悲鳴を上げる
+            - 跳び上がる
+            - 気絶する
+            - 走り出す
+          random: true
+          type: select
+      - audio: audio/1368_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1368'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: soothe
+        question:
+          answer: 1
+          option:
+            - ～をなだめる
+            - ～を無視する
+            - ～に怒る
+            - ～を作る
+          random: true
+          type: select
+      - audio: audio/1369_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1369'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: tempt
+        question:
+          answer: 1
+          option:
+            - ～を誘惑する
+            - ～をなだめる
+            - ～を脅す
+            - ～を増やす
+          random: true
+          type: select
+      - audio: audio/1370_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1370'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: scold
+        question:
+          answer: 1
+          option:
+            - ～を𠮟る
+            - ～を罰する
+            - ～を責める
+            - ～を脅す
+          random: true
+          type: select
+      - audio: audio/1371_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1371'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: oppress
+        question:
+          answer: 1
+          option:
+            - ～を圧迫する
+            - ～を支援する
+            - ～を責める
+            - ～を脅す
+          random: true
+          type: select
+      - audio: audio/1372_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1372'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: threaten
+        question:
+          answer: 1
+          option:
+            - ～を脅かす
+            - ～を確認する
+            - ～を確保する
+            - ～を尊重する
+          random: true
+          type: select
+      - audio: audio/1373_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1373'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: mourn
+        question:
+          answer: 1
+          option:
+            - ～を嘆く
+            - ～に直面する
+            - ～を望む
+            - ～を支援する
+          random: true
+          type: select
+      - audio: audio/1374_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1374'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: sacrifice
+        question:
+          answer: 1
+          option:
+            - ～を犠牲にする
+            - ～に頼る
+            - ～と離れる
+            - ～を尊重する
+          random: true
+          type: select
+      - audio: audio/1375_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1375'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: curse
+        question:
+          answer: 1
+          option:
+            - 災いの元
+            - 気休め
+            - 娯楽
+            - 趣味
+          random: true
+          type: select
+      - audio: audio/1376_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1376'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: stem
+        question:
+          answer: 1
+          option:
+            - （from ～）～が原因である
+            - （from ～）～と関係する
+            - （from ～）結果的に～になる
+            - （from ～）～が犠牲になる
+          random: true
+          type: select
+      - audio: audio/1377_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1377'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: trigger
+        question:
+          answer: 1
+          option:
+            - ～のきっかけになる
+            - ～に驚く
+            - ～に対処する
+            - ～と関係する
+          random: true
+          type: select
+      - audio: audio/1378_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1378'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: consequence
+        question:
+          answer: 1
+          option:
+            - 結果
+            - 問題
+            - 対立
+            - 病気
+          random: true
+          type: select
+      - audio: audio/1379_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1379'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: process
+        question:
+          answer: 1
+          option:
+            - 過程
+            - 量
+            - 質
+            - 工場
+          random: true
+          type: select
+      - audio: audio/1380_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1380'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: resort
+        question:
+          answer: 1
+          option:
+            - 訴える
+            - 反対する
+            - 原因がある
+            - 賛成する
+          random: true
+          type: select
+      - audio: audio/1381_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1381'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: formula
+        question:
+          answer: 1
+          option:
+            - 方法
+            - 問題
+            - 結論
+            - 理論
+          random: true
+          type: select
+      - audio: audio/1382_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1382'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: procedure
+        question:
+          answer: 1
+          option:
+            - 手続き
+            - 結論
+            - 目的
+            - 原因
+          random: true
+          type: select
+      - audio: audio/1383_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1383'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: extraordinary
+        question:
+          answer: 1
+          option:
+            - 並外れた
+            - 確実な
+            - 完全な
+            - 平凡な
+          random: true
+          type: select
+      - audio: audio/1384_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1384'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: absolute
+        question:
+          answer: 1
+          option:
+            - 絶対的な
+            - 静かな
+            - 緊迫した
+            - 相対的な
+          random: true
+          type: select
+      - audio: audio/1385_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1385'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: overwhelming
+        question:
+          answer: 1
+          option:
+            - 圧倒的な
+            - 安定の
+            - 相対の
+            - 不特定の
+          random: true
+          type: select
+      - audio: audio/1386_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1386'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: altogether
+        question:
+          answer: 1
+          option:
+            - 完全に
+            - 今では
+            - ずっと前に
+            - 徐々に
+          random: true
+          type: select
+      - audio: audio/1387_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1387'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: entire
+        question:
+          answer: 1
+          option:
+            - すべての
+            - 多くの
+            - 一部の
+            - 圧倒的な
+          random: true
+          type: select
+      - audio: audio/1388_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1388'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: tremendous
+        question:
+          answer: 1
+          option:
+            - すさまじい
+            - 否定的な
+            - 好意的な
+            - 感動的な
+          random: true
+          type: select
+      - audio: audio/1389_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1389'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: sheer
+        question:
+          answer: 1
+          option:
+            - とてつもない～の
+            - 少量の～の
+            - 一定の～の
+            - 期待以上の～の
+          random: true
+          type: select
+      - audio: audio/1390_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1390'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: partial
+        question:
+          answer: 1
+          option:
+            - 部分的な
+            - 圧倒的な
+            - 完全な
+            - 理想的な
+          random: true
+          type: select
+      - audio: audio/1391_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1391'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: barely
+        question:
+          answer: 1
+          option:
+            - かろうじて
+            - 十分に
+            - 確実に
+            - 全体に
+          random: true
+          type: select
+      - audio: audio/1392_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1392'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: approximately
+        question:
+          answer: 1
+          option:
+            - おおよそ
+            - ぴったり
+            - 多くても
+            - 確実に
+          random: true
+          type: select
+      - audio: audio/1393_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1393'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: frequently
+        question:
+          answer: 1
+          option:
+            - 頻繁に
+            - 定期的に
+            - 毎日
+            - かろうじて
+          random: true
+          type: select
+      - audio: audio/1394_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1394'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: apparently
+        question:
+          answer: 1
+          option:
+            - 見たところでは
+            - なぜか
+            - 全く
+            - かろうじて
+          random: true
+          type: select
+      - audio: audio/1395_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1395'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: merely
+        question:
+          answer: 1
+          option:
+            - ～にすぎない
+            - ～と思われている
+            - ～の理解がある
+            - ～に好かれる
+          random: true
+          type: select
+      - audio: audio/1396_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1396'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: nevertheless
+        question:
+          answer: 1
+          option:
+            - それにもかかわらず
+            - それゆえ
+            - どうにかして
+            - なぜか
+          random: true
+          type: select
+      - audio: audio/1397_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1397'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: somehow
+        question:
+          answer: 1
+          option:
+            - 何らかの方法で
+            - きっと
+            - かろうじて
+            - 全体に
+          random: true
+          type: select
+      - audio: audio/1398_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1398'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: thus
+        question:
+          answer: 1
+          option:
+            - それゆえ
+            - しかしながら
+            - かろうじて
+            - どうやら
+          random: true
+          type: select
+      - audio: audio/1399_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1399'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: afterward(s)
+        question:
+          answer: 1
+          option:
+            - その後
+            - どうやら
+            - 単に
+            - どういうわけか
+          random: true
+          type: select
+      - audio: audio/1400_ew.mp3
+        comment:
+          align: left
+          audio: ""
+          fontZoom: "1"
+          type: text
+          value: '<p style="color: red;">単語番号 1400'
+          video: ""
+        presentation:
+          align: left
+          type: text
+          value: on behalf of ～
+        question:
+          answer: 1
+          option:
+            - ～を代表して
+            - ～の許可を取って
+            - ～と相談して
+            - ～の上司と
+          random: true
+          type: select
+    config:
+      limitTime: 10
+      limit: null
+      continue: null
+      random: null
+      audio: null
