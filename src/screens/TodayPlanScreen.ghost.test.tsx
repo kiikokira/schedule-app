@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, it, expect } from 'vitest'
 import TodayPlanScreen from './TodayPlanScreen'
 import { db } from '../db/database'
@@ -32,5 +32,18 @@ describe('ghost snapshot', () => {
       expect(rows.length).toBeGreaterThanOrEqual(1)
       expect(rows[rows.length - 1].total).toBe(10)
     })
+  })
+})
+
+describe('ghost battle card', () => {
+  it('shows lead text against uniform ghost', async () => {
+    const now = new Date().toISOString()
+    await db.books.add({ id: 'b1', title: '英文法ポラリス2（応用レベル）', subject: '英語', totalPages: 100, startDate: '2026-09-01', deadline: '2026-11-30', createdAt: now, updatedAt: now } as any)
+    await db.records.add({ id: 'past1', bookId: 'b1', date: '2026-09-20', pages: 120 } as any)
+    await saveAvailabilitySlot({ id: 'a1', weekday: 1, date: null, start: '09:00', end: '17:00' }, true)
+    await db.records.add({ id: 't1', bookId: 'b1', date: '2026-09-21', pages: 60 } as any)
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('ghost-battle')).toBeInTheDocument()
+    expect(within(await screen.findByTestId('ghost-battle')).getByTestId('ghost-status')).toBeInTheDocument()
   })
 })

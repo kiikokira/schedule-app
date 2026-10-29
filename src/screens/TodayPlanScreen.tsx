@@ -10,14 +10,16 @@ import {
   type AvailabilitySlot,
 } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, learnSpeedRobust, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
-import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData, combinedActivityOnDate, pagesRecordsForTotals, cycleRecordsForTotals } from '../lib/progress'
+import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData, combinedActivityOnDate, combinedActivityOnDate as ghostCombined, pagesRecordsForTotals, pagesRecordsForTotals as ghostPagesFilter, cycleRecordsForTotals, cycleRecordsForTotals as ghostCyclesFilter } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { isLeapBook } from '../lib/leap'
 import { makeSlotKey, type SlotUnit } from '../lib/slotLeague'
 import { loadSeasonState, syncLeagueSlot } from '../data/seasonStore'
-import { appendGhostSnapshot } from '../data/ghostLogStore'
+import { appendGhostSnapshot, listGhostLogs } from '../data/ghostLogStore'
+import GhostBattleCard from '../components/GhostBattleCard'
+import { findGhostDate, buildGhostCurve, ghostTotalAt, todaySlotBounds } from '../lib/ghost'
 import { db } from '../db/database'
 import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
 import { loadOverridePresets, type OverridePreset } from '../data/overridePresets'
@@ -613,6 +615,27 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     })
   }
 
+  const ghostSlots = useMemo(() => slotsForDate(availability, today), [availability, today])
+  const ghostBounds = useMemo(() => todaySlotBounds(ghostSlots), [ghostSlots])
+  const ghostTotals = useMemo(() => {
+    const out: Record<string, number> = {}
+    const dates = new Set([...records.map((r) => r.date), ...cycleRecords.map((r) => r.date)])
+    const vr = ghostPagesFilter(records, books)
+    const vc = ghostCyclesFilter(cycleRecords, books)
+    for (const d of dates) out[d] = ghostCombined(d, vr.filter((r) => r.date === d), vc.filter((r) => r.date === d))
+    return out
+  }, [records, cycleRecords, books])
+  const ghostDate = useMemo(() => findGhostDate(ghostTotals, today), [ghostTotals, today])
+  const [ghostEvents, setGhostEvents] = useState<{ atMs: number; total: number }[]>([])
+  useEffect(() => {
+    if (!ghostDate) { setGhostEvents([]); return }
+    void listGhostLogs(ghostDate).then((rows) => setGhostEvents(rows.map((r) => ({ atMs: r.atMs, total: r.total })))).catch(() => setGhostEvents([]))
+  }, [ghostDate])
+  const ghostCurve = useMemo(() => (ghostDate ? buildGhostCurve({ total: ghostTotals[ghostDate] ?? 0, events: ghostEvents }) : { kind: 'none' as const }), [ghostDate, ghostTotals, ghostEvents])
+  const youTotal = useMemo(() => ghostCombined(today, ghostPagesFilter(records, books), ghostCyclesFilter(cycleRecords, books)), [today, records, cycleRecords, books])
+  const elapsed = ghostBounds ? nowMin - ghostBounds.startMin : -1
+  const ghostNow = ghostBounds && ghostDate ? ghostTotalAt(ghostCurve, elapsed, ghostBounds.totalMinutes) : 0
+
   return (
     <div data-testid="today-plan-screen" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>今日の計画</h1>
@@ -657,6 +680,20 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
             記録を進める・期限を延ばす・空き時間を増やすと解消します
           </p>
         </div>
+      )}
+      {ghostDate == null ? (
+        <p data-testid="ghost-empty" style={{ fontSize: 13, color: 'var(--text-dim)' }}>まだゴーストがいません。記録を続けよう</p>
+      ) : ghostBounds == null ? (
+        <p data-testid="ghost-noslots" style={{ fontSize: 13, color: 'var(--text-dim)' }}>今日の枠が始まったらゴーストが走り出すよ</p>
+      ) : (
+        <GhostBattleCard
+          ghostLabel={ghostDate.slice(5).replace('-', '/')}
+          ghostTotal={ghostTotals[ghostDate] ?? 0}
+          youTotal={youTotal}
+          ghostNow={ghostNow}
+          diff={youTotal - ghostNow}
+          status={elapsed < 0 ? 'prestart' : elapsed >= ghostBounds.totalMinutes ? (youTotal > (ghostTotals[ghostDate] ?? 0) ? 'win' : youTotal === (ghostTotals[ghostDate] ?? 0) ? 'tie' : 'lose') : 'racing'}
+        />
       )}
       {recordConfirm && (
         <div
