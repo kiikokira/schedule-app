@@ -72,6 +72,14 @@ describe('TodayPlanScreen', () => {
       expect(recs).toHaveLength(1)
       expect(recs[0].pages).toBe(10)
     })
+    // run() の最後の副作用（リーグ枠確定）まで待つ。記録書き込みだけを待つと
+    // run() の残り（ゴースト snapshot・リーグ同期）が次のテストの beforeEach を
+    // 跨いで localStorage に書き込み、後続テストを slot-locked 汚染するため。
+    await waitFor(async () => {
+      const { loadSeasonState } = await import('../data/seasonStore')
+      const st = loadSeasonState('2026-09-21')
+      expect(st.slotMatches['2026-09-21#1260-1380']?.my).toBe(10)
+    })
   })
 
   it('cancelling the record confirm records nothing', async () => {
@@ -339,6 +347,14 @@ describe('TodayPlanScreen', () => {
       expect(recs).toHaveLength(1)
       expect(recs[0].unitFrom).toBe(1)
       expect(recs[0].unitTo).toBe(5)
+    })
+    // run() の最後から2番目の副作用（リーグ枠確定）まで待つ。記録書き込みだけを
+    // 待つと run() の残りが次のテストの beforeEach を跨いで localStorage に
+    // 書き込み、後続テストを slot-locked 汚染するため（unit は語彙なら words）。
+    await waitFor(async () => {
+      const { loadSeasonState } = await import('../data/seasonStore')
+      const st = loadSeasonState('2026-09-21')
+      expect(st.slotMatches['2026-09-21#1260-1380']?.my).toBe(5)
     })
   })
 

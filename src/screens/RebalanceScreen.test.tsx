@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
-import { beforeEach, describe, it, expect, vi } from 'vitest'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import RebalanceScreen from './RebalanceScreen'
 import { db } from '../db/database'
 import { saveAvailabilitySlot, listAdjustments } from '../data/dayplanStore'
@@ -7,10 +7,19 @@ import { addDays } from '../lib/dayplan'
 import { todayStr } from '../lib/progress'
 
 beforeEach(async () => {
+  // 壁時計を午前中に固定する。画面もseed枠も実 nowMin を使うため、
+  // 21:30 以降の実行では120分枠が当日に収まらず期待ページ数が変わる。
+  // shouldAdvanceTime でタイマーは進むため findBy/waitFor は通常通り動く。
+  vi.useFakeTimers({ shouldAdvanceTime: true } as any)
+  vi.setSystemTime(new Date(2026, 9, 21, 10, 0, 0))
   await db.books.clear()
   await db.records.clear()
   await db.availability.clear()
   if (db.adjustments) await db.adjustments.clear()
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 const addBook = async (id: string, over: Record<string, unknown> = {}) => {
