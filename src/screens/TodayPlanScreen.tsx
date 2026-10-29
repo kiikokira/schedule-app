@@ -953,14 +953,29 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
         </div>
       )}
       <div data-testid="today-override-section" style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
-        <h2 style={{ fontSize: 16 }}>今日だけ上書き（時間も本も）</h2>
         <button
           data-testid="today-override-toggle"
           type="button"
-          style={{ marginBottom: 8 }}
+          aria-expanded={overrideOpen}
           onClick={() => setOverrideOpen((v) => !v)}
+          style={{
+            display: 'flex',
+            width: '100%',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            padding: 0,
+            background: 'none',
+            border: 'none',
+            fontSize: 16,
+            fontWeight: 700,
+            textAlign: 'left',
+            cursor: 'pointer',
+            color: 'inherit',
+          }}
         >
-          {overrideOpen ? '閉じる' : '開く'}
+          <span>今日だけ上書き（時間も本も）</span>
+          <span aria-hidden="true">{overrideOpen ? '▲' : '▼'}</span>
         </button>
         {overrideOpen && (
           <>
