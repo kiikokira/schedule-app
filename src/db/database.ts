@@ -3,6 +3,7 @@ import type { BookData, ProgressRecordData, CycleRecordData } from '../lib/progr
 import type { AvailabilitySlot, Adjustment } from '../data/dayplanStore'
 import type { ChatHistoryEntry } from '../data/chatHistoryStore'
 import type { AutoSnapshot } from '../data/autoBackup'
+import type { GhostLog } from '../data/ghostLogStore'
 
 export type DexieBook = BookData
 export type DexieRecord = ProgressRecordData
@@ -15,6 +16,7 @@ class ScheduleDB extends Dexie {
   cycleRecords!: Table<CycleRecordData, string>
   chatMessages!: Table<ChatHistoryEntry, string>
   snapshots!: Table<AutoSnapshot, string>
+  ghostLogs!: Table<GhostLog, string>
 
   constructor() {
     super('schedule-app')
@@ -51,6 +53,16 @@ class ScheduleDB extends Dexie {
       cycleRecords: 'id, bookId, [bookId+date]',
       chatMessages: 'id, at',
       snapshots: 'id',
+    })
+    this.version(6).stores({
+      books: 'id, deadline, startDate',
+      records: 'id, bookId, [bookId+date]',
+      availability: 'id, weekday, date',
+      adjustments: 'id, date, bookId',
+      cycleRecords: 'id, bookId, [bookId+date]',
+      chatMessages: 'id, at',
+      snapshots: 'id',
+      ghostLogs: 'id, date',
     })
   }
 }
