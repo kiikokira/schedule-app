@@ -54,6 +54,16 @@ describe('SchoolScreen', () => {
     expect(within(screen.getByTestId('school-event-10-9-0')).queryByText('今日')).not.toBeInTheDocument()
   })
 
+  it('shows the date line only once when a day has multiple events', () => {
+    render(<SchoolScreen onBack={() => {}} today="2026-10-05" />)
+    const first = screen.getByTestId('school-event-11-4-0')
+    const second = screen.getByTestId('school-event-11-4-1')
+    expect(first).toHaveTextContent('11月4日')
+    expect(first).toHaveTextContent('英化週間')
+    expect(second).not.toHaveTextContent('11月4日')
+    expect(second).toHaveTextContent('校内選考')
+  })
+
   it('marks every row when multiple events share today', () => {
     render(<SchoolScreen onBack={() => {}} today="2026-11-04" />)
     expect(within(screen.getByTestId('school-event-11-4-0')).getByText('今日')).toBeInTheDocument()

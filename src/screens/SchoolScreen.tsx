@@ -93,6 +93,23 @@ export default function SchoolScreen({ onBack, today: todayProp }: Props) {
             {display.map((e, idx) => {
               const i = display.slice(0, idx).filter((x) => x.day === e.day).length
               const isToday = e.month === todayMonth && e.day === todayDay
+              // 同じ日の2件目以降は日付を見出し表示せず、行事だけ並べる。
+              const isFirstOfDay = idx === 0 || display[idx - 1].day !== e.day
+              const todayBadge = (
+                <span
+                  style={{
+                    marginLeft: 8,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    backgroundColor: '#eab308',
+                    color: '#fff',
+                    borderRadius: 4,
+                    padding: '2px 6px',
+                  }}
+                >
+                  今日
+                </span>
+              )
               return (
                 <div
                   key={`${e.month}-${e.day}-${idx}`}
@@ -110,25 +127,16 @@ export default function SchoolScreen({ onBack, today: todayProp }: Props) {
                       : undefined),
                   }}
                 >
-                  <div style={{ fontWeight: 700 }}>
-                    {formatSchoolEventDate(year, e.month, e.day)}
-                    {isToday && (
-                      <span
-                        style={{
-                          marginLeft: 8,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          backgroundColor: '#eab308',
-                          color: '#fff',
-                          borderRadius: 4,
-                          padding: '2px 6px',
-                        }}
-                      >
-                        今日
-                      </span>
-                    )}
+                  {isFirstOfDay && (
+                    <div style={{ fontWeight: 700 }}>
+                      {formatSchoolEventDate(year, e.month, e.day)}
+                      {isToday && todayBadge}
+                    </div>
+                  )}
+                  <div>
+                    {e.text}
+                    {!isFirstOfDay && isToday && todayBadge}
                   </div>
-                  <div>{e.text}</div>
                 </div>
               )
             })}
