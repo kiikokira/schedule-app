@@ -9,7 +9,7 @@ import {
   listAdjustments,
   type AvailabilitySlot,
 } from '../data/dayplanStore'
-import { generateDayPlan, effectiveSpeed, learnSpeed, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
+import { generateDayPlan, effectiveSpeed, learnSpeedRobust, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
 import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
@@ -232,7 +232,13 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     .map((b) => ({ ...toScheduledBook(b), donePages: doneByBook.get(b.id) ?? 0 }))
     .map((sb) => sb)
   // スケジュールに含まれていない登録本も対象にする
-  const planned = generateDayPlan({ availability, books: scheduled, today })
+  // 当日は過ぎた枠を除外して残り時間で自動再計画する（急な予定変更対応）
+  const planned = generateDayPlan({
+    availability,
+    books: scheduled,
+    today,
+    nowMin: today === todayStr() ? nowMin : undefined,
+  })
   // 期限に間に合わない本の警告用。開始前の本も含めて将来の期限と調整する。
   // 期限自体は変えず、不足分の再配分は見直し先の再調整画面に任せる。
   const risks = findAtRiskBooks({ books: scheduled, availability, today }).filter(
@@ -548,7 +554,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
 
   const recordPages = async (bookId: string, pages: number) => {
     await addProgress(bookId, today, pages)
-    // 速度学習: その日に割り当てられた時間の合計
+    // 速度学習: その日に割り当てられた時間の合計から実効速度を求め、
+    // 中央値ブレンドで外れ値に強くする（見積もり精度の改善）
     const todayMin = displayedSlots
       .filter((s) => s.bookId === bookId)
       .reduce((sum, s) => sum + (s.endMin - s.startMin), 0)
@@ -556,7 +563,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       const book = books.find((b) => b.id === bookId)
       if (book) {
         const current = effectiveSpeed(book.minutesPerPage, book.subject)
-        const next = learnSpeed(current, todayMin, pages)
+        const effective = todayMin / pages
+        const next = learnSpeedRobust(current, [effective])
         if (next !== current) {
           await saveBook(
             { ...book, minutesPerPage: next, updatedAt: new Date().toISOString() },

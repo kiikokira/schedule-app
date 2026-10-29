@@ -8,6 +8,7 @@ import {
   improvePlan,
   isCurrentSlot,
   learnSpeed,
+  learnSpeedRobust,
   minutesPerPageFor,
   parseTimeToMin,
   planScore,
@@ -478,6 +479,16 @@ it('learnSpeed rejects pages=0 or minutes=0 (keeps current)', () => {
 it('learnSpeed ignores abnormal ratios (speed outside 0.1..120 min/page)', () => {
   expect(learnSpeed(2, 10, 1000)).toBe(2) // 0.01分/頁 → 範囲外は無視
   expect(learnSpeed(2, 1000, 5)).toBe(2) // 200分/頁 → 範囲外は無視
+})
+
+it('learnSpeedRobust blends current with median of recent speeds', () => {
+  // 中央値3分/頁 → 2*0.5 + 3*0.5 = 2.5、外れ値は除外される
+  expect(learnSpeedRobust(2, [3, 3, 3, 1000, 0.01])).toBeCloseTo(2.5)
+})
+
+it('learnSpeedRobust keeps current when no valid history', () => {
+  expect(learnSpeedRobust(2, [])).toBe(2)
+  expect(learnSpeedRobust(2, [0.01, 500])).toBe(2)
 })
 
 it('effectiveSpeed falls back to per-subject default', () => {

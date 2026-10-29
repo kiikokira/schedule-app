@@ -512,3 +512,15 @@ export function learnSpeed(current: number, minutes: number, pages: number): num
   if (effective < 0.1 || effective > 120) return current
   return Number((current * 0.7 + effective * 0.3).toFixed(2))
 }
+
+export function learnSpeedRobust(current: number, recentEffectiveSpeeds: number[]): number {
+  const valid = recentEffectiveSpeeds.filter(
+    (v) => Number.isFinite(v) && v >= 0.1 && v <= 120,
+  )
+  if (valid.length === 0) return current
+  const sorted = [...valid].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  const median =
+    sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+  return Number((current * 0.5 + median * 0.5).toFixed(2))
+}
