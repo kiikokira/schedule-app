@@ -19,12 +19,17 @@ import {
   currentCycleRound,
   suggestCycleRound,
   expandCyclePairs,
+  combinedActivityOnDate,
+  pagesRecordsForTotals,
+  cycleRecordsForTotals,
   type BookData,
   type ProgressRecordData,
   type CycleRecordData,
 } from '../lib/progress'
 import { LEAP_WORD_RANGES, isLeapBook } from '../lib/leap'
 import { listAvailability, type AvailabilitySlot } from '../data/dayplanStore'
+import { appendGhostSnapshot } from '../data/ghostLogStore'
+import { db } from '../db/database'
 
 export function slotsForRecordDate(slots: AvailabilitySlot[], dateStr: string): AvailabilitySlot[] {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return []
@@ -211,6 +216,12 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
         setCycleError('記録に失敗しました。もう一度お試しください')
         return
       }
+      try {
+        const freshRecords = await db.records.toArray()
+        const freshCycles = await db.cycleRecords.toArray()
+        const total = combinedActivityOnDate(effectiveDate, pagesRecordsForTotals(freshRecords, books), cycleRecordsForTotals(freshCycles, books))
+        await appendGhostSnapshot(effectiveDate, total)
+      } catch { /* ignore: ゴースト失敗で記録を壊さない */ }
       setCycleFrom('')
       setCycleTo('')
       setCycleRoundInput('')
@@ -729,6 +740,12 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       setError('記録に失敗しました。もう一度お試しください')
       return
     }
+    try {
+      const freshRecords = await db.records.toArray()
+      const freshCycles = await db.cycleRecords.toArray()
+      const total = combinedActivityOnDate(targetDate, pagesRecordsForTotals(freshRecords, books), cycleRecordsForTotals(freshCycles, books))
+      await appendGhostSnapshot(targetDate, total)
+    } catch { /* ignore: ゴースト失敗で記録を壊さない */ }
     setPagesInput('')
     setRecordNewSlot('')
   }

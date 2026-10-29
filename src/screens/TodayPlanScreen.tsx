@@ -10,13 +10,15 @@ import {
   type AvailabilitySlot,
 } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, learnSpeedRobust, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
-import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData } from '../lib/progress'
+import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData, combinedActivityOnDate, pagesRecordsForTotals, cycleRecordsForTotals } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { isLeapBook } from '../lib/leap'
 import { makeSlotKey, type SlotUnit } from '../lib/slotLeague'
 import { loadSeasonState, syncLeagueSlot } from '../data/seasonStore'
+import { appendGhostSnapshot } from '../data/ghostLogStore'
+import { db } from '../db/database'
 import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
 import { loadOverridePresets, type OverridePreset } from '../data/overridePresets'
 import CoverImage from '../components/CoverImage'
@@ -528,6 +530,22 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
           setCycleErrors((p) => ({ ...p, [inputKey]: '記録に失敗しました。もう一度お試しください' }))
           return
         }
+        // リーグ確定は記録直後に同期する（後続のbest-effort処理で遅延させない）。
+        // run() の残りが次テストの beforeEach を跨ぐと slot-locked 汚染になるため。
+        if (league) {
+          try {
+            const unitKind: SlotUnit = isLeapBook(book as never) ? 'words' : 'sections'
+            const my = Math.abs(to - from) + 1
+            syncLeagueSlot(today, league.slotKey, { my, unit: unitKind, slotMinutes: league.slotMinutes })
+            setSeasonTick((v) => v + 1)
+          } catch { /* ignore */ }
+        }
+        try {
+          const freshRecords = await db.records.toArray()
+          const freshCycles = await db.cycleRecords.toArray()
+          const total = combinedActivityOnDate(today, pagesRecordsForTotals(freshRecords, books), cycleRecordsForTotals(freshCycles, books))
+          await appendGhostSnapshot(today, total)
+        } catch { /* ignore: ゴースト失敗で記録を壊さない */ }
         setCycleErrors((p) => {
           const next = { ...p }
           delete next[inputKey]
@@ -540,14 +558,6 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
           delete next[`${inputKey}-round`]
           return next
         })
-        if (league) {
-          try {
-            const unitKind: SlotUnit = isLeapBook(book as never) ? 'words' : 'sections'
-            const my = Math.abs(to - from) + 1
-            syncLeagueSlot(today, league.slotKey, { my, unit: unitKind, slotMinutes: league.slotMinutes })
-            setSeasonTick((v) => v + 1)
-          } catch { /* ignore */ }
-        }
       },
     })
   }
@@ -573,6 +583,12 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
         }
       }
     }
+    try {
+      const freshRecords = await db.records.toArray()
+      const freshCycles = await db.cycleRecords.toArray()
+      const total = combinedActivityOnDate(today, pagesRecordsForTotals(freshRecords, books), cycleRecordsForTotals(freshCycles, books))
+      await appendGhostSnapshot(today, total)
+    } catch { /* ignore */ }
   }
 
   const handleRecord = async (inputKey: string, bookId: string, league?: { slotKey: string; unit: SlotUnit; slotMinutes: number }) => {
