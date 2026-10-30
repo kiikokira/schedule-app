@@ -100,6 +100,24 @@ describe('TodayPlanScreen', () => {
     expect(screen.queryByTestId('record-confirm')).not.toBeInTheDocument()
   })
 
+  it('shows only the focus book in upcoming days', async () => {
+    await fillBook('b1', { deadline: '2026-09-22', totalPages: 100 })
+    await fillBook('b2', { deadline: '2026-11-30', totalPages: 100 })
+    // 翌日（火曜）に両冊分の枠を用意する。今日（月曜）の枠は作らない。
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: null, date: '2026-09-22', start: '09:00', end: '17:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const titles = await screen.findAllByTestId('upcoming-title')
+    expect(titles.length).toBeGreaterThan(0)
+    // 期限が一番近い b1 だけが表示され、b2 は出ない
+    for (const t of titles) {
+      expect(t).toHaveTextContent('英文法ポラリス2')
+    }
+    expect(screen.queryByText('システム英単語')).not.toBeInTheDocument()
+  })
+
   it('calls onSettings when the settings link is tapped', async () => {
     const onSettings = vi.fn()
     await fillBook('b1')
@@ -157,6 +175,11 @@ describe('TodayPlanScreen', () => {
     await fillBook('b1')
     await saveAvailabilitySlot(
       { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    // 集中本だけ表示のため、見出し確認したい日には割当が必要。火曜枠を追加する。
+    await saveAvailabilitySlot(
+      { id: 'a2', weekday: 2, date: null, start: '21:00', end: '23:00' },
       true,
     )
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)

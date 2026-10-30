@@ -20,6 +20,7 @@ import { loadSeasonState, syncLeagueSlot } from '../data/seasonStore'
 import { appendGhostSnapshot, listGhostLogs } from '../data/ghostLogStore'
 import GhostBattleCard from '../components/GhostBattleCard'
 import { findGhostDate, buildGhostCurve, ghostTotalAt, todaySlotBounds } from '../lib/ghost'
+import { selectFocusBookId } from '../lib/focusBook'
 import { db } from '../db/database'
 import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
 import { loadOverridePresets, type OverridePreset } from '../data/overridePresets'
@@ -635,6 +636,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const youTotal = useMemo(() => ghostCombined(today, ghostPagesFilter(records, books), ghostCyclesFilter(cycleRecords, books)), [today, records, cycleRecords, books])
   const elapsed = ghostBounds ? nowMin - ghostBounds.startMin : -1
   const ghostNow = ghostBounds && ghostDate ? ghostTotalAt(ghostCurve, elapsed, ghostBounds.totalMinutes) : 0
+  // 今後数日は集中本（期限が一番近く、同期限なら残量が一番多い1冊）だけ表示する。
+  // 決まらない場合（全て完了等）は従来通り全冊表示にフォールバックする。
+  const focusBookId = useMemo(() => selectFocusBookId(books, records, cycleRecords), [books, records, cycleRecords])
 
   return (
     <div data-testid="today-plan-screen" style={{ padding: 16 }}>
@@ -1159,10 +1163,14 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       )}
       <div data-testid="upcoming-list" style={{ marginTop: 16 }}>
         <h2 style={{ fontSize: 16 }}>今後数日</h2>
-        {planned.upcoming.map((u) => (
+        {planned.upcoming.map((u) => {
+          const items = focusBookId == null ? u.items : u.items.filter((it) => it.bookId === focusBookId)
+          // 集中本の割り当てがない日はブロックごと出さない
+          if (focusBookId != null && items.length === 0) return null
+          return (
           <div key={u.date} style={{ marginBottom: 8 }}>
             <div style={{ fontWeight: 700 }}>{formatJaDate(u.date)}</div>
-            {u.items.map((it) => {
+            {items.map((it) => {
               const book = books.find((b) => b.id === it.bookId)
               return (
                 <div
@@ -1191,7 +1199,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
               )
             })}
           </div>
-        ))}
+          )
+        })}
       </div>
       <button data-testid="today-back" type="button" onClick={onBack}>
         戻る
