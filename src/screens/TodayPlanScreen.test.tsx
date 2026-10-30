@@ -477,6 +477,42 @@ describe('TodayPlanScreen', () => {
     expect(screen.getByTestId('today-table')).toHaveTextContent('反復')
   })
 
+  it('選び直しはページ遷移（アンマウント→再マウント）後も残る', async () => {
+    await fillBook('b1', { trainFit: 'home' })
+    await fillBook('leap-1', {
+      title: '改訂版 必携 英単語 LEAP',
+      catalogId: 'leap',
+      studyMode: 'cycles',
+      totalUnits: 2300,
+      targetRounds: 3,
+    })
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '16:45', end: '17:15' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'w2', weekday: 2, date: null, start: '17:45', end: '19:00', onTrain: true },
+      true,
+    )
+    const first = render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('today-table')
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const target = rows.find((r) => r.textContent?.includes('未割当'))
+    expect(target?.textContent).toContain('17:45-19:00')
+    fireEvent.change(within(target as HTMLElement).getByRole('combobox'), {
+      target: { value: 'leap-1' },
+    })
+    await waitFor(() => expect(screen.queryByText(/未割当/)).not.toBeInTheDocument())
+    // 違うページに行って戻る＝アンマウント→再マウント
+    first.unmount()
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('today-table')
+    await waitFor(() => expect(screen.queryByText(/未割当/)).not.toBeInTheDocument())
+    const rowsAfter = screen.getAllByTestId(/plan-row-\d+/)
+    const kept = rowsAfter.find((r) => r.textContent?.includes('17:45-19:00'))
+    expect(kept?.textContent).toContain('改訂版 必携 英単語 LEAP')
+  })
+
   it('上書き時は上書き前の曜日設定の時間は並ばない', async () => {
     await saveAvailabilitySlot(
       { id: 'w1', weekday: 2, date: null, start: '17:45', end: '19:00' },

@@ -104,6 +104,76 @@ function rangeKeyOf(startMin: number, endMin: number): string {
   return `${startMin}-${endMin}`
 }
 
+// 選び直しの下書き（未保存のセッション固定）をページ遷移後も残すための保存層。
+// App のルート切替で TodayPlanScreen がアンマウントされると useState が消え、
+// 選ぶ前の状態に戻ってしまうのがバグの根本原因。DBへの固定（今日だけ固定する）
+// とは別に、下書きを localStorage に保持してマウント時に復元する。
+const TODAY_DRAFT_PREFIX = 'schedule-app-today-draft:'
+
+type TodayDraftPin = { bookId: string; onTrain?: boolean }
+
+function todayDraftKey(today: string): string {
+  return `${TODAY_DRAFT_PREFIX}${today}`
+}
+
+function loadTodayDraft(today: string): {
+  bookOverrides: Record<number, string>
+  pinOverrides: Record<string, TodayDraftPin>
+} {
+  try {
+    const raw = localStorage.getItem(todayDraftKey(today))
+    if (!raw) return { bookOverrides: {}, pinOverrides: {} }
+    const parsed = JSON.parse(raw) as {
+      bookOverrides?: Record<string, unknown>
+      pinOverrides?: Record<string, unknown>
+    }
+    const bookOverrides: Record<number, string> = {}
+    if (parsed.bookOverrides && typeof parsed.bookOverrides === 'object') {
+      for (const [k, v] of Object.entries(parsed.bookOverrides)) {
+        if (typeof v === 'string' && v !== '') bookOverrides[Number(k)] = v
+      }
+    }
+    const pinOverrides: Record<string, TodayDraftPin> = {}
+    if (parsed.pinOverrides && typeof parsed.pinOverrides === 'object') {
+      for (const [k, v] of Object.entries(parsed.pinOverrides)) {
+        if (typeof v === 'object' && v !== null && typeof (v as TodayDraftPin).bookId === 'string') {
+          const pin = v as TodayDraftPin
+          if (pin.bookId !== '') {
+            pinOverrides[k] = pin.onTrain ? { bookId: pin.bookId, onTrain: true } : { bookId: pin.bookId }
+          }
+        }
+      }
+    }
+    return { bookOverrides, pinOverrides }
+  } catch {
+    return { bookOverrides: {}, pinOverrides: {} }
+  }
+}
+
+function saveTodayDraft(
+  today: string,
+  bookOverrides: Record<number, string>,
+  pinOverrides: Record<string, TodayDraftPin>,
+): void {
+  try {
+    if (Object.keys(bookOverrides).length === 0 && Object.keys(pinOverrides).length === 0) {
+      localStorage.removeItem(todayDraftKey(today))
+      return
+    }
+    localStorage.setItem(todayDraftKey(today), JSON.stringify({ bookOverrides, pinOverrides }))
+  } catch {
+    // localStorage が利用できない環境では下書きを残さない
+  }
+}
+
+function clearTodayDraft(today: string): void {
+  try {
+    localStorage.removeItem(todayDraftKey(today))
+  } catch {
+    // 何もしない
+  }
+}
+
 // 反復本の固定を自動割当に上書き合成する。ページ枠の重なりはくり抜き、
 // 反復枠を挿入する。自動割当ロジック自体は変えない。
 function overlayCyclesPins(
@@ -186,8 +256,12 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   // 見直し→反映の往復ループを防ぐため。当日分のみ有効で翌日は再表示する。
   const [handledToday, setHandledToday] = useState<Set<string>>(new Set())
   const [inputs, setInputs] = useState<Record<string, string>>({})
-  const [bookOverrides, setBookOverrides] = useState<Record<number, string>>({})
-  const [pinOverrides, setPinOverrides] = useState<Record<string, { bookId: string; onTrain?: boolean }>>({})
+  const [bookOverrides, setBookOverrides] = useState<Record<number, string>>(
+    () => loadTodayDraft(today).bookOverrides,
+  )
+  const [pinOverrides, setPinOverrides] = useState<Record<string, { bookId: string; onTrain?: boolean }>>(
+    () => loadTodayDraft(today).pinOverrides,
+  )
   const [cycleInputs, setCycleInputs] = useState<Record<string, string>>({})
   const [cycleErrors, setCycleErrors] = useState<Record<string, string>>({})
   const [dayRows, setDayRows] = useState<DayRow[]>([])
@@ -223,6 +297,11 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       )
     })
   }, [today])
+
+  // 選び直しの下書きをページ遷移後も残す。保存（固定）したら下書きは消える。
+  useEffect(() => {
+    saveTodayDraft(today, bookOverrides, pinOverrides)
+  }, [today, bookOverrides, pinOverrides])
 
   const pageBooks = books.filter((b) => b.studyMode !== 'cycles')
   const cycleBooks = books.filter((b) => b.studyMode === 'cycles')
@@ -390,6 +469,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     }
     setBookOverrides({})
     setPinOverrides({})
+    clearTodayDraft(today)
     setDayRowsInit(false)
     setDayMessage('今日だけの計画に上書きしました')
     await refreshAvailability()
@@ -472,6 +552,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     }
     setBookOverrides({})
     setPinOverrides({})
+    clearTodayDraft(today)
     setDayRowsInit(false)
     setDayMessage('今日だけの時間と本を上書きしました')
     await refreshAvailability()
