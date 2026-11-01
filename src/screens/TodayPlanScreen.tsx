@@ -117,7 +117,7 @@ function todayDraftKey(today: string): string {
 }
 
 function loadTodayDraft(today: string): {
-  bookOverrides: Record<number, string>
+  bookOverrides: Record<string, string>
   pinOverrides: Record<string, TodayDraftPin>
 } {
   try {
@@ -127,10 +127,16 @@ function loadTodayDraft(today: string): {
       bookOverrides?: Record<string, unknown>
       pinOverrides?: Record<string, unknown>
     }
-    const bookOverrides: Record<number, string> = {}
+    // ページ枠の選び直しは時間帯キー（"開始分-終了分"）で保持する。
+    // 旧形式の plan index キー（"0" など）は枠構成が変わると別枠に誤適用されるため、
+    // 自動割当に戻す（捨てる）。入り組んだ時刻の断片化時は一致しなければ捨てる。
+    const bookOverrides: Record<string, string> = {}
     if (parsed.bookOverrides && typeof parsed.bookOverrides === 'object') {
       for (const [k, v] of Object.entries(parsed.bookOverrides)) {
-        if (typeof v === 'string' && v !== '') bookOverrides[Number(k)] = v
+        if (typeof v !== 'string' || v === '') continue
+        const [s, e] = k.split('-').map(Number)
+        if (!Number.isFinite(s) || !Number.isFinite(e) || !(e > s)) continue
+        bookOverrides[k] = v
       }
     }
     const pinOverrides: Record<string, TodayDraftPin> = {}
@@ -152,7 +158,7 @@ function loadTodayDraft(today: string): {
 
 function saveTodayDraft(
   today: string,
-  bookOverrides: Record<number, string>,
+  bookOverrides: Record<string, string>,
   pinOverrides: Record<string, TodayDraftPin>,
 ): void {
   try {
@@ -256,7 +262,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   // 見直し→反映の往復ループを防ぐため。当日分のみ有効で翌日は再表示する。
   const [handledToday, setHandledToday] = useState<Set<string>>(new Set())
   const [inputs, setInputs] = useState<Record<string, string>>({})
-  const [bookOverrides, setBookOverrides] = useState<Record<number, string>>(
+  const [bookOverrides, setBookOverrides] = useState<Record<string, string>>(
     () => loadTodayDraft(today).bookOverrides,
   )
   const [pinOverrides, setPinOverrides] = useState<Record<string, { bookId: string; onTrain?: boolean }>>(
@@ -329,9 +335,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     (r) => !handledToday.has(r.bookId),
   )
 
-  // ページ本の差し替え（従来通り、planned の index 基準）
-  const pageApplied: PlanSlot[] = planned.today.slots.map((s, i) => {
-    const overrideId = bookOverrides[i]
+  // ページ本の差し替え（時間帯キー基準。index だと枠構成の変化で別枠へ誤適用される）
+  const pageApplied: PlanSlot[] = planned.today.slots.map((s) => {
+    const overrideId = bookOverrides[rangeKeyOf(s.startMin, s.endMin)]
     if (!overrideId || overrideId === s.bookId) return s
     const book = books.find((b) => b.id === overrideId)
     if (!book || book.studyMode === 'cycles') return s
@@ -487,11 +493,14 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
         sessionPicks.push({ startMin: s, endMin: e, bookId: pin.bookId })
       }
     }
+    // ページ枠の選び直しは時間帯キーで保持する。現プランに同じ時間帯が無ければ捨てる。
+    // （index だと枠構成の変化で別枠へ誤適用される）
+    const plannedRanges = new Set(planned.today.slots.map((s) => rangeKeyOf(s.startMin, s.endMin)))
     Object.entries(bookOverrides).forEach(([key, bookId]) => {
-      const slot = pageApplied[Number(key)]
-      if (slot && bookId) {
-        sessionPicks.push({ startMin: slot.startMin, endMin: slot.endMin, bookId })
-      }
+      const [s, e] = key.split('-').map(Number)
+      if (!Number.isFinite(s) || !Number.isFinite(e) || !(e > s) || !bookId) return
+      if (!plannedRanges.has(key)) return
+      sessionPicks.push({ startMin: s, endMin: e, bookId })
     })
     const consumed = new Set<number>()
     for (const r of rows) {
@@ -852,33 +861,47 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
             const cycleTarget =
               isCycles && book ? calcCycleDailyTarget(book, cycleDone, daysBetween(today, book.deadline)) : 0
             const cycleRound = isCycles && book ? currentCycleRound(book, mine) : 1
+            // ページ枠の選び直しキーも時間帯にする（index は枠構成の変化でずれる）。
+            const pageKey = rangeKeyOf(s.startMin, s.endMin)
             const handlePick = (pickedId: string) => {
               const picked = books.find((b) => b.id === pickedId)
               if (row.planIndex !== null) {
                 if (picked && picked.studyMode === 'cycles') {
                   setPinOverrides((p) => ({
                     ...p,
-                    [rangeKeyOf(s.startMin, s.endMin)]: { bookId: pickedId, onTrain: s.onTrain },
+                    [pageKey]: { bookId: pickedId, onTrain: s.onTrain },
                   }))
                   setBookOverrides((p) => {
                     const next = { ...p }
-                    delete next[row.planIndex as number]
+                    delete next[pageKey]
                     return next
                   })
                 } else {
-                  setBookOverrides((p) => ({ ...p, [row.planIndex as number]: pickedId }))
+                  setBookOverrides((p) => ({ ...p, [pageKey]: pickedId }))
+                  setPinOverrides((p) => {
+                    const next = { ...p }
+                    delete next[pageKey]
+                    return next
+                  })
                 }
               } else if (row.rangeKey) {
                 setPinOverrides((p) => ({
                   ...p,
                   [row.rangeKey as string]: { bookId: pickedId, onTrain: s.onTrain },
                 }))
+                setBookOverrides((p) => {
+                  const next = { ...p }
+                  delete next[row.rangeKey as string]
+                  return next
+                })
               }
             }
+            const plannedBookIdOf = (key: string) =>
+              planned.today.slots.find((t) => rangeKeyOf(t.startMin, t.endMin) === key)?.bookId
             const showReset =
               row.planIndex !== null
-                ? !!bookOverrides[row.planIndex] &&
-                  bookOverrides[row.planIndex] !== planned.today.slots[row.planIndex]?.bookId
+                ? !!bookOverrides[pageKey] &&
+                  bookOverrides[pageKey] !== plannedBookIdOf(pageKey)
                 : !!(
                     row.rangeKey &&
                     pinOverrides[row.rangeKey] &&
@@ -888,7 +911,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
               if (row.planIndex !== null) {
                 setBookOverrides((p) => {
                   const next = { ...p }
-                  delete next[row.planIndex as number]
+                  delete next[pageKey]
                   return next
                 })
               } else if (row.rangeKey) {

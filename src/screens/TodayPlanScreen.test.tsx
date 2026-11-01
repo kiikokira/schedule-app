@@ -513,6 +513,65 @@ describe('TodayPlanScreen', () => {
     expect(kept?.textContent).toContain('改訂版 必携 英単語 LEAP')
   })
 
+  it('ページ枠の選び直しは再マウント後も同じ時間帯に残る', async () => {
+    await fillBook('b1', { totalPages: 1000 })
+    await fillBook('b2', { title: '入門 英文解釈の技術70', totalPages: 100, priority: 2 })
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '18:00', end: '18:30' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'w2', weekday: 2, date: null, start: '20:30', end: '21:00' },
+      true,
+    )
+    const first = render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('today-table')
+    // 自動割当では両枠ともb1のはず。後枠をb2に選び直す
+    let rows = screen.getAllByTestId(/plan-row-\d+/)
+    const target = rows.find((r) => r.textContent?.includes('20:30-21:00'))
+    expect(target?.textContent).toContain('英文法ポラリス2')
+    fireEvent.change(within(target as HTMLElement).getByRole('combobox'), {
+      target: { value: 'b2' },
+    })
+    await waitFor(() => {
+      const updated = screen.getAllByTestId(/plan-row-\d+/).find((r) => r.textContent?.includes('20:30-21:00'))
+      expect(updated?.textContent).toContain('入門 英文解釈の技術70')
+    })
+    first.unmount()
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('today-table')
+    rows = screen.getAllByTestId(/plan-row-\d+/)
+    const kept = rows.find((r) => r.textContent?.includes('20:30-21:00'))
+    expect(kept?.textContent).toContain('入門 英文解釈の技術70')
+    const untouched = rows.find((r) => r.textContent?.includes('18:00-18:30'))
+    expect(untouched?.textContent).toContain('英文法ポラリス2')
+  })
+
+  it('旧index形式の下書きは別枠へ誤適用しない（自動割当に戻す）', async () => {
+    await fillBook('b1', { totalPages: 1000 })
+    await fillBook('b2', { title: '入門 英文解釈の技術70', totalPages: 100, priority: 2 })
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 2, date: null, start: '18:00', end: '18:30' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'w2', weekday: 2, date: null, start: '20:30', end: '21:00' },
+      true,
+    )
+    // 旧形式（plan indexキー）の下書きを種付け。現レイアウトのindex=1に誤適用されるとb2が出る
+    localStorage.setItem(
+      'schedule-app-today-draft:2026-09-29',
+      JSON.stringify({ bookOverrides: { 1: 'b2' }, pinOverrides: {} }),
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-29" />)
+    await screen.findByTestId('today-table')
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const second = rows.find((r) => r.textContent?.includes('20:30-21:00'))
+    // 自動割当（b1）に戻り、旧下書きのb2は選ばれない（選択肢自体にはb2が並ぶ）
+    expect(within(second as HTMLElement).getByTestId('plan-row-book').textContent).toContain('英文法ポラリス2')
+    expect((within(second as HTMLElement).getByRole('combobox') as HTMLSelectElement).value).toBe('b1')
+  })
+
   it('上書き時は上書き前の曜日設定の時間は並ばない', async () => {
     await saveAvailabilitySlot(
       { id: 'w1', weekday: 2, date: null, start: '17:45', end: '19:00' },
