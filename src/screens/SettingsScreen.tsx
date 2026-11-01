@@ -44,6 +44,8 @@ export default function SettingsScreen({ onDone }: Props) {
   const [aiPreset, setAiPreset] = useState(() => presetOf(getAiSettings().endpoint))
   const [profiles, setProfiles] = useState(() => { migrateLegacySettings(); return listProfiles() })
   const [preferredId, setPreferredId] = useState(() => getPreferredProfile().id)
+  const [profileKeys, setProfileKeys] = useState<Record<string, string>>(() => Object.fromEntries(listProfiles().map((p) => [p.id, p.apiKey])))
+  const [profileKeyResult, setProfileKeyResult] = useState<string | null>(null)
   const [autoSnapshot, setAutoSnapshot] = useState<AutoSnapshot | null>(null)
   const [playMode, setPlayMode] = useState<PlayMode>(() => loadProfile().playMode)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -177,6 +179,14 @@ export default function SettingsScreen({ onDone }: Props) {
     return `${formatJaDate(formatDate(d))} ${hh}:${mm}`
   }
 
+  const handleSaveProfileKey = (id: string) => {
+    saveProfileApiKey(id, (profileKeys[id] ?? '').trim())
+    setProfiles(listProfiles())
+    setProfileKeys(Object.fromEntries(listProfiles().map((p) => [p.id, p.apiKey])))
+    const label = listProfiles().find((p) => p.id === id)?.label ?? id
+    setProfileKeyResult(`${label}のAPIキーを保存しました`)
+  }
+
   const handleSaveAi = () => {
     if (!isSafeAiEndpoint(aiEndpoint.trim())) {
       if (
@@ -192,6 +202,7 @@ export default function SettingsScreen({ onDone }: Props) {
       if (hit) saveProfileApiKey(hit.id, aiApiKey.trim(), aiModel.trim() || undefined)
       else saveProfileApiKey('custom', aiApiKey.trim(), aiModel.trim() || undefined)
       setProfiles(listProfiles())
+      setProfileKeys(Object.fromEntries(listProfiles().map((p) => [p.id, p.apiKey])))
     }
     setResult('調整AIの設定を保存しました')
     setEditingAi(false)
@@ -203,7 +214,7 @@ export default function SettingsScreen({ onDone }: Props) {
     setAiApiKey(saved.apiKey)
     setAiModel(saved.model)
     setAiPreset(presetOf(saved.endpoint))
-    setPreferredId(getPreferredProfile().id); setProfiles(listProfiles())
+    setPreferredId(getPreferredProfile().id); setProfiles(listProfiles()); setProfileKeys(Object.fromEntries(listProfiles().map((p) => [p.id, p.apiKey])))
     setAiTestResult(null)
     setAiPingResult(null)
     setEditingAi(false)
@@ -443,6 +454,39 @@ export default function SettingsScreen({ onDone }: Props) {
               </label>
             )
           })}
+        </div>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 700, margin: '12px 0 4px' }}>AIごとのAPIキー</p>
+          <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 4px' }}>
+            使うAIごとに入力してください（未入力のAIは自由文相談に使えません）。
+          </p>
+          {profiles.filter((p) => p.id !== 'custom').map((p) => (
+            <div key={p.id} style={{ marginBottom: 8 }}>
+              <label htmlFor={`profile-key-${p.id}`} style={{ fontSize: 14, color: 'var(--text)' }}>
+                {p.label}（{p.model}）
+              </label>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  id={`profile-key-${p.id}`}
+                  data-testid={`profile-key-${p.id}`}
+                  type="password"
+                  value={profileKeys[p.id] ?? ''}
+                  onChange={(e) => setProfileKeys((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                  placeholder="未設定"
+                  autoComplete="off"
+                  style={{ flex: 1, minWidth: 0, margin: 0 }}
+                />
+                <button data-testid={`profile-key-save-${p.id}`} type="button" onClick={() => handleSaveProfileKey(p.id)}>
+                  保存
+                </button>
+              </div>
+            </div>
+          ))}
+          {profileKeyResult && (
+            <p data-testid="profile-key-result" style={{ color: 'var(--accent-strong)' }}>
+              {profileKeyResult}
+            </p>
+          )}
         </div>
         <p data-testid="ai-description" style={{ fontSize: 13, color: 'var(--text-dim)' }}>
           オンラインでの自由文相談に使う高精度AI接続（OpenAI互換API）。WiFi・モバイル回線どちらでも利用可（GBを消費します。1回数KB〜数十KB程度）。未設定でもオフラインの内蔵AI（定型文＋自動提案）は動きます。期限は変更されません。APIキーはこの端末内だけに保存されます。高精度モデルは応答が遅く料金・GBが増えます（軽量例: gpt-4o-mini／高精度例: gpt-4o）。無料枠はGoogle AI Studioで無料キーを作成し、モデル名は一覧で確認してください。無料枠は回数制限があります。プロジェクト作成でつまずく場合はOpenRouterの無料登録（キー発行のみ・`:free`モデル）が簡単です。APIキー・モデル名・相談内容（書籍名・残ページ・時間割・自由文）は選択したAI事業者のエンドポイントに送信されます。共有端末では保存しないでください。httpのエンドポイントには送信しません。

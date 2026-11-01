@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { it, expect, vi, beforeEach } from 'vitest'
+import { listProfiles } from '../lib/aiProfiles'
 import SettingsScreen from './SettingsScreen'
 import { db } from '../db/database'
 import { getAiSettings } from '../lib/ai'
@@ -462,5 +463,22 @@ describe('ai profiles settings', () => {
     expect(box).toHaveTextContent('Gemini無料枠')
     expect(box).toHaveTextContent('Groq無料枠')
     expect(box).toHaveTextContent('OpenRouter無料')
+  })
+})
+
+describe('per-profile API keys', () => {
+  it('shows a key field for each free AI', async () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    expect(await screen.findByTestId('profile-key-gemini-free')).toBeTruthy()
+    expect(screen.getByTestId('profile-key-groq-free')).toBeTruthy()
+    expect(screen.getByTestId('profile-key-openrouter-free')).toBeTruthy()
+  })
+
+  it('saves a per-AI key without touching the shared field', async () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    const input = await screen.findByTestId('profile-key-groq-free')
+    fireEvent.change(input, { target: { value: 'gsk-test-key' } })
+    fireEvent.click(screen.getByTestId('profile-key-save-groq-free'))
+    expect(listProfiles().find((p) => p.id === 'groq-free')?.apiKey).toBe('gsk-test-key')
   })
 })
