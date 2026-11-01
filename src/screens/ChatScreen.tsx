@@ -141,6 +141,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
       void pingEndpoint(preferred.endpoint).then((r) => {
         if (r.reachable) {
           setActiveProfile(preferred.id)
+          try { localStorage.removeItem('ai-last-429-at') } catch {}
           pushAndSave({ role: 'assistant', text: 'いつものAIが復活したので戻しました' }, 'notice')
         }
       })
@@ -223,7 +224,6 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
     if (!report) return
     setLoading(true)
     setPendingOp(null)
-    const settings = getAiSettings()
     const history = messages
       .filter((m) => m.role === 'user' || (m.role === 'assistant' && !m.withProposal))
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.text }))
@@ -231,7 +231,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
     const profiles = listProfiles()
     const toSettings = (id: string) => {
       const p = profiles.find((x) => x.id === id) ?? getActiveProfile()
-      return { endpoint: p.endpoint || settings.endpoint, apiKey: p.apiKey || settings.apiKey, model: p.model || settings.model }
+      return { endpoint: p.endpoint, apiKey: p.apiKey, model: p.model }
     }
     const active = getActiveProfile()
     const { profileId, result } = await runFreeChat(active, system, [...history, { role: 'user', content: text }], {

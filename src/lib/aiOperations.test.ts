@@ -150,3 +150,15 @@ describe('extended ops parse', () => {
     expect(r.ok).toBe(false)
   })
 })
+
+// appended
+describe('extended ops guards', () => {
+  it('rejects empty rebalance_week', () => {
+    const r = parseOperationReply('```json\n{"op":"rebalance_week","bookIds":[]}\n```')
+    expect(r.ok).toBe(false)
+  })
+  it('rejects out-of-range set_ratio', () => {
+    const r = parseOperationReply('```json\n{"op":"set_ratio","bookId":"b1","ratio":2}\n```')
+    expect(r.ok).toBe(false)
+  })
+})

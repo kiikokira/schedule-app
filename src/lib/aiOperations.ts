@@ -112,7 +112,7 @@ export function parseOperationReply(text: string): ParseResult {
       }
       return { ok: false, error: 'shift_todayにはbookIdとminutes(±240以内)が必要です' }
     case 'rebalance_week':
-      if (Array.isArray(o.bookIds) && (o.bookIds as unknown[]).every((x) => typeof x === 'string')) {
+      if (Array.isArray(o.bookIds) && (o.bookIds as unknown[]).length > 0 && (o.bookIds as unknown[]).every((x) => typeof x === 'string')) {
         return { ok: true, op: { kind: 'rebalance_week', bookIds: o.bookIds as string[] } }
       }
       return { ok: false, error: 'rebalance_weekにはbookIdsが必要です' }
