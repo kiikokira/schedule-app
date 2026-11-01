@@ -80,7 +80,11 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
   const [lastFailedInput, setLastFailedInput] = useState('')
   const [pendingOp, setPendingOp] = useState<{ op: AiOperation; description: string } | null>(null)
   const [historyExpanded, setHistoryExpanded] = useState(false)
-  const [switchOpen, setSwitchOpen] = useState(false)
+  const [activeId, setActiveId] = useState<string>(() => getActiveProfile().id)
+  const changeProfile = (id: string) => {
+    setActiveProfile(id)
+    setActiveId(id)
+  }
   const VISIBLE_COUNT = 5
 
   useEffect(() => {
@@ -140,7 +144,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
       const preferred = getPreferredProfile()
       void pingEndpoint(preferred.endpoint).then((r) => {
         if (r.reachable) {
-          setActiveProfile(preferred.id)
+          changeProfile(preferred.id)
           try { localStorage.removeItem('ai-last-429-at') } catch {}
           pushAndSave({ role: 'assistant', text: 'いつものAIが復活したので戻しました' }, 'notice')
         }
@@ -240,7 +244,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
       'openrouter-free': (s, h) => chatWithModel(toSettings('openrouter-free'), s, h, { timeoutMs: 90000 }),
       'custom': (s, h) => chatWithModel(toSettings('custom'), s, h, { timeoutMs: 90000 }),
     })
-    if (profileId !== active.id) setActiveProfile(profileId)
+    if (profileId !== active.id) changeProfile(profileId)
     setLoading(false)
     if (result.ok) {
       pushAndSave({ role: 'assistant', text: result.text })
@@ -290,7 +294,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
   const switchRetry = async () => {
     if (!lastFailedInput || loading) return
     const next = ['groq-free', 'gemini-free', 'openrouter-free'].find((id) => id !== getActiveProfile().id)
-    if (next) setActiveProfile(next)
+    if (next) changeProfile(next)
     await retry()
   }
 
@@ -320,11 +324,31 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
 
   const chattedMessages = messages.filter((m) => m.kind !== 'notice')
   const visibleMessages = historyExpanded ? chattedMessages : chattedMessages.slice(-VISIBLE_COUNT)
+  const [proposalExpanded, setProposalExpanded] = useState(false)
+  const attentionBooks = (report?.books ?? [])
+    .filter((b) => b.status !== 'ok')
+    .sort((a, b) => (a.status === 'critical' ? 0 : 1) - (b.status === 'critical' ? 0 : 1))
+  const okBooks = (report?.books ?? []).filter((b) => b.status === 'ok')
 
   return (
     <div data-testid="chat-screen" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>調整AI</h1>
-      <div data-testid="model-switch"><span>{getActiveProfile().label}</span><button data-testid="model-switch-open" type="button" onClick={() => setSwitchOpen((v) => !v)}>モデル切替</button>{switchOpen && listProfiles().filter(p => p.id !== 'custom').map(p => <button key={p.id} type="button" onClick={() => { setActiveProfile(p.id); setSwitchOpen(false); }}>{p.label}</button>)}</div>
+      <div data-testid="model-switch" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ fontSize: 13, color: 'var(--text-dim)', flexShrink: 0 }}>使うAI</span>
+        <select
+          data-testid="model-switch-select"
+          value={activeId}
+          onChange={(e) => { changeProfile(e.target.value) }}
+          aria-label="使うAIを選び直す"
+          style={{ flex: 1, minWidth: 0 }}
+        >
+          {listProfiles().filter((p) => p.id !== 'custom').map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}（{p.model}）
+            </option>
+          ))}
+        </select>
+      </div>
       <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
         参考書の進捗から配分とペースを提案します。期限は変更されません。
       </p>
@@ -368,13 +392,35 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
               <div data-testid="proposal-card" style={{ marginTop: 8 }}>
                 <p style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700 }}>今日の配分案</p>
                 <ul data-testid="proposal-book-list" style={{ margin: '0 0 8px', paddingLeft: 20, lineHeight: 1.8 }}>
-                  {report.books.map((b) => (
+                  {attentionBooks.map((b) => (
                     <li key={b.bookId}>
-                      {b.title} — 残り{b.daysUntilDeadline}日・残{b.remainingPages}ページ・今日{b.plannedTodayPages}ページ
-                      {b.status === 'critical' ? '（危険）' : b.status === 'behind' ? '（遅れ）' : ''}
+                      {b.title} — 残り<strong>{b.daysUntilDeadline}日</strong>・残<strong>{b.remainingPages}ページ</strong>・今日{b.plannedTodayPages}ページ
+                      {b.status === 'critical'
+                        ? <strong style={{ color: 'var(--danger)' }}>（危険）</strong>
+                        : '（遅れ）'}
+                    </li>
+                  ))}
+                  {proposalExpanded && okBooks.map((b) => (
+                    <li key={b.bookId}>
+                      {b.title} — 残り{b.daysUntilDeadline}日・残{b.remainingPages}ページ・今日{b.plannedTodayPages}ページ（順調）
                     </li>
                   ))}
                 </ul>
+                {okBooks.length > 0 && (
+                  <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text-dim)' }}>
+                    他{okBooks.length}冊は順調です。
+                  </p>
+                )}
+                {okBooks.length > 0 && (
+                  <button
+                    data-testid="proposal-expand"
+                    type="button"
+                    style={{ marginBottom: 8 }}
+                    onClick={() => setProposalExpanded((v) => !v)}
+                  >
+                    {proposalExpanded ? '閉じる' : `すべて見る（全${report.books.length}冊）`}
+                  </button>
+                )}
                 {report.proposal.focus.length > 0 && (
                   <p style={{ margin: '0 0 8px' }}>
                     優先する本：{report.proposal.focus.map((id) => report.books.find((b) => b.bookId === id)!.title).join('、')}

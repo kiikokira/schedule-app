@@ -51,7 +51,7 @@ button {
   color: var(--text);
   font-size: 16px;
 }
-input, select {
+input:not([type='radio']):not([type='checkbox']), select {
   min-height: 44px;
   border: 1px solid var(--border);
   border-radius: 8px;

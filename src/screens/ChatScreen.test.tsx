@@ -366,4 +366,37 @@ describe('free-first header', () => {
     render(<ChatScreen onBack={() => {}} />)
     expect(await screen.findByTestId('model-switch')).toBeTruthy()
   })
+
+  it('offers AI profiles in a native select', async () => {
+    render(<ChatScreen onBack={() => {}} />)
+    const select = (await screen.findByTestId('model-switch-select')) as HTMLSelectElement
+    expect(select.options.length).toBeGreaterThanOrEqual(3)
+    fireEvent.change(select, { target: { value: 'groq-free' } })
+    expect(select.value).toBe('groq-free')
+  })
+})
+
+describe('proposal card conciseness', () => {
+  it('shows only attention books first and expands to all', async () => {
+    await fillBook()
+    const now = new Date().toISOString()
+    await db.books.add({
+      id: 'b2',
+      title: '英文法1000',
+      subject: '英文法',
+      totalPages: 100,
+      startDate: '2026-09-20',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+    } as BookData)
+    await addTodaySlot()
+    render(<ChatScreen onBack={() => {}} today={TODAY} />)
+    const list = await screen.findByTestId('proposal-book-list')
+    expect(list).toHaveTextContent('英単語1000')
+    expect(list).not.toHaveTextContent('英文法1000')
+    expect(screen.getByTestId('proposal-card')).toHaveTextContent(/他1冊は順調/)
+    fireEvent.click(screen.getByTestId('proposal-expand'))
+    expect(await screen.findByTestId('proposal-book-list')).toHaveTextContent('英文法1000')
+  })
 })

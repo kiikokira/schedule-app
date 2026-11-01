@@ -455,4 +455,12 @@ describe('ai profiles settings', () => {
     render(<SettingsScreen onDone={() => {}} />)
     expect(await screen.findByTestId('preferred-ai')).toBeTruthy()
   })
+
+  it('shows all free AI options with readable labels', async () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    const box = await screen.findByTestId('preferred-ai')
+    expect(box).toHaveTextContent('Gemini無料枠')
+    expect(box).toHaveTextContent('Groq無料枠')
+    expect(box).toHaveTextContent('OpenRouter無料')
+  })
 })

@@ -410,13 +410,39 @@ export default function SettingsScreen({ onDone }: Props) {
           <option value="groq">Groq無料枠（登録のみ・高速）</option>
         </select>
         <div data-testid="preferred-ai">
-          <p style={{ fontSize: 13 }}>いつも使うAI</p>
-          {profiles.filter((p) => p.id !== 'custom').map((p) => (
-            <label key={p.id}>
-              <input type="radio" name="preferred-ai" checked={preferredId === p.id} onChange={() => { setPreferredProfile(p.id); setPreferredId(p.id) }} />
-              {p.label}（{p.model}）
-            </label>
-          ))}
+          <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 4px' }}>いつも使うAI</p>
+          {profiles.filter((p) => p.id !== 'custom').map((p) => {
+            const selectedAi = preferredId === p.id
+            return (
+              <label
+                key={p.id}
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  alignItems: 'center',
+                  border: `1px solid ${selectedAi ? 'var(--accent-strong)' : 'var(--border)'}`,
+                  borderRadius: 8,
+                  padding: '10px 8px',
+                  marginBottom: 8,
+                  background: selectedAi ? 'var(--surface-2)' : undefined,
+                  fontSize: 15,
+                  color: 'var(--text)',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="preferred-ai"
+                  checked={selectedAi}
+                  onChange={() => { setPreferredProfile(p.id); setPreferredId(p.id) }}
+                  style={{ width: 'auto', minHeight: 'auto', margin: 0 }}
+                />
+                <span>
+                  {p.label}
+                  <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>（{p.model}）</span>
+                </span>
+              </label>
+            )
+          })}
         </div>
         <p data-testid="ai-description" style={{ fontSize: 13, color: 'var(--text-dim)' }}>
           オンラインでの自由文相談に使う高精度AI接続（OpenAI互換API）。WiFi・モバイル回線どちらでも利用可（GBを消費します。1回数KB〜数十KB程度）。未設定でもオフラインの内蔵AI（定型文＋自動提案）は動きます。期限は変更されません。APIキーはこの端末内だけに保存されます。高精度モデルは応答が遅く料金・GBが増えます（軽量例: gpt-4o-mini／高精度例: gpt-4o）。無料枠はGoogle AI Studioで無料キーを作成し、モデル名は一覧で確認してください。無料枠は回数制限があります。プロジェクト作成でつまずく場合はOpenRouterの無料登録（キー発行のみ・`:free`モデル）が簡単です。APIキー・モデル名・相談内容（書籍名・残ページ・時間割・自由文）は選択したAI事業者のエンドポイントに送信されます。共有端末では保存しないでください。httpのエンドポイントには送信しません。
