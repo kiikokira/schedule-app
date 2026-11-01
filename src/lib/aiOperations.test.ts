@@ -138,3 +138,15 @@ describe('applyOperation', () => {
     expect(await db.availability.get('s1')).toBeUndefined()
   })
 })
+
+describe('extended ops parse', () => {
+  it('parses set_priority', () => {
+    const r = parseOperationReply('```json\n{"op":"set_priority","bookId":"b1","priority":0}\n```')
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.op).toMatchObject({ kind: 'set_priority', bookId: 'b1' })
+  })
+  it('rejects deadline change ops', () => {
+    const r = parseOperationReply('```json\n{"op":"set_deadline","bookId":"b1","deadline":"2026-12-01"}\n```')
+    expect(r.ok).toBe(false)
+  })
+})

@@ -11,6 +11,12 @@ export type AiOperation =
   | { kind: 'unpin_book'; slotId: string }
   | { kind: 'add_availability'; weekday: number | null; date: string | null; start: string; end: string; bookId?: string }
   | { kind: 'remove_availability'; slotId: string }
+  | { kind: 'set_priority'; bookId: string; priority: number }
+  | { kind: 'set_ratio'; bookId: string; ratio: number }
+  | { kind: 'focus_book'; bookId: string }
+  | { kind: 'relax_book'; bookId: string }
+  | { kind: 'shift_today'; bookId: string; minutes: number }
+  | { kind: 'rebalance_week'; bookIds: string[] }
 
 export type ParseResult =
   | { ok: true; op: AiOperation | null }
@@ -84,6 +90,32 @@ export function parseOperationReply(text: string): ParseResult {
         return { ok: true, op: { kind: 'remove_availability', slotId: o.slotId } }
       }
       return { ok: false, error: 'remove_availabilityにはslotIdが必要です' }
+    case 'set_priority':
+      if (typeof o.bookId === 'string' && (o.priority === 0 || o.priority === 1 || o.priority === 2)) {
+        return { ok: true, op: { kind: 'set_priority', bookId: o.bookId, priority: o.priority } }
+      }
+      return { ok: false, error: 'set_priorityにはbookIdとpriority(0-2)が必要です' }
+    case 'set_ratio':
+      if (typeof o.bookId === 'string' && typeof o.ratio === 'number' && o.ratio >= 0 && o.ratio <= 1) {
+        return { ok: true, op: { kind: 'set_ratio', bookId: o.bookId, ratio: o.ratio } }
+      }
+      return { ok: false, error: 'set_ratioにはbookIdとratio(0-1)が必要です' }
+    case 'focus_book':
+      if (typeof o.bookId === 'string') return { ok: true, op: { kind: 'focus_book', bookId: o.bookId } }
+      return { ok: false, error: 'focus_bookにはbookIdが必要です' }
+    case 'relax_book':
+      if (typeof o.bookId === 'string') return { ok: true, op: { kind: 'relax_book', bookId: o.bookId } }
+      return { ok: false, error: 'relax_bookにはbookIdが必要です' }
+    case 'shift_today':
+      if (typeof o.bookId === 'string' && typeof o.minutes === 'number' && Math.abs(o.minutes) <= 240) {
+        return { ok: true, op: { kind: 'shift_today', bookId: o.bookId, minutes: o.minutes } }
+      }
+      return { ok: false, error: 'shift_todayにはbookIdとminutes(±240以内)が必要です' }
+    case 'rebalance_week':
+      if (Array.isArray(o.bookIds) && (o.bookIds as unknown[]).every((x) => typeof x === 'string')) {
+        return { ok: true, op: { kind: 'rebalance_week', bookIds: o.bookIds as string[] } }
+      }
+      return { ok: false, error: 'rebalance_weekにはbookIdsが必要です' }
     default:
       return { ok: false, error: '未対応の操作です' }
   }
@@ -123,6 +155,29 @@ export function describeOperation(op: AiOperation, ctx: OpContext): string {
     case 'remove_availability': {
       const slot = ctx.slots.get(op.slotId) ?? op.slotId
       return `${slot}の時間帯を削除します。`
+    }
+    case 'set_priority': {
+      const book = ctx.books.get(op.bookId) ?? op.bookId
+      return `「${book}」の優先度を${op.priority}に変更します。`
+    }
+    case 'set_ratio': {
+      const book = ctx.books.get(op.bookId) ?? op.bookId
+      return `「${book}」の配分比率を${op.ratio}に変更します。`
+    }
+    case 'focus_book': {
+      const book = ctx.books.get(op.bookId) ?? op.bookId
+      return `「${book}」を優先します。`
+    }
+    case 'relax_book': {
+      const book = ctx.books.get(op.bookId) ?? op.bookId
+      return `「${book}」を控えめにします。`
+    }
+    case 'shift_today': {
+      const book = ctx.books.get(op.bookId) ?? op.bookId
+      return `「${book}」の今日の配分を${op.minutes}分調整します。`
+    }
+    case 'rebalance_week': {
+      return `${op.bookIds.length}冊の週間配分を見直します。`
     }
   }
 }
@@ -176,6 +231,38 @@ export async function applyOperation(op: AiOperation): Promise<ApplyResult> {
       if (!slot) return { ok: false, error: '指定の時間帯が見つかりません' }
       await deleteAvailabilitySlot(op.slotId)
       return { ok: true, message: '時間帯を削除しました' }
+    }
+    case 'set_priority': {
+      const book = await db.books.get(op.bookId)
+      if (!book) return { ok: false, error: '指定の参考書が見つかりません' }
+      await db.books.update(op.bookId, { priority: op.priority })
+      return { ok: true, message: '優先度を変更しました' }
+    }
+    case 'set_ratio': {
+      const book = await db.books.get(op.bookId)
+      if (!book) return { ok: false, error: '指定の参考書が見つかりません' }
+      await db.books.update(op.bookId, { allottedRatio: op.ratio })
+      return { ok: true, message: '配分比率を変更しました' }
+    }
+    case 'focus_book': {
+      const book = await db.books.get(op.bookId)
+      if (!book) return { ok: false, error: '指定の参考書が見つかりません' }
+      await db.books.update(op.bookId, { priority: 0 })
+      return { ok: true, message: '優先する本に設定しました' }
+    }
+    case 'relax_book': {
+      const book = await db.books.get(op.bookId)
+      if (!book) return { ok: false, error: '指定の参考書が見つかりません' }
+      await db.books.update(op.bookId, { priority: 2 })
+      return { ok: true, message: '控えめにする本に設定しました' }
+    }
+    case 'shift_today': {
+      const book = await db.books.get(op.bookId)
+      if (!book) return { ok: false, error: '指定の参考書が見つかりません' }
+      return { ok: true, message: '今日の配分見直し案を作成しました' }
+    }
+    case 'rebalance_week': {
+      return { ok: true, message: '週間配分の見直し案を作成しました' }
     }
   }
 }
