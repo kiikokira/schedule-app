@@ -360,3 +360,10 @@ describe('ChatScreen', () => {
     expect(await screen.findByText(longText)).toBeInTheDocument()
   })
 })
+
+describe('free-first header', () => {
+  it('shows model switch entry', async () => {
+    render(<ChatScreen onBack={() => {}} />)
+    expect(await screen.findByTestId('model-switch')).toBeTruthy()
+  })
+})

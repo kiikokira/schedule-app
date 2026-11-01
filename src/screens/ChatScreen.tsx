@@ -3,13 +3,14 @@ import { useBooks } from '../hooks/useBooks'
 import { db } from '../db/database'
 import { listAvailability, addAdjustment } from '../data/dayplanStore'
 import {
-  buildAdvisorReport,
   answerBehind,
   answerPriority,
   answerPace,
-  type AdvisorReport,
 } from '../lib/advisor'
-import { getAiSettings, isAiConfigured, chatWithModel, buildSystemPrompt } from '../lib/ai'
+import { buildAdvisorReportV2, type AdvisorReportV2 } from '../lib/advisorV2'
+import { getAiSettings, isAiConfigured, chatWithModel, pingEndpoint } from '../lib/ai'
+import { buildSystemPromptV2, runFreeChat } from '../lib/aiOrchestrator'
+import { listProfiles, getActiveProfile, setActiveProfile, getPreferredProfile, shouldAutoRestore } from '../lib/aiProfiles'
 import {
   parseOperationReply,
   describeOperation,
@@ -65,7 +66,7 @@ export function describeAiError(reason: 'network' | 'http' | 'timeout', status?:
 export default function ChatScreen({ onBack, onHistory, today: todayProp }: Props) {
   const today = todayProp ?? todayStr()
   const { saveBook } = useBooks()
-  const [report, setReport] = useState<AdvisorReport | null>(null)
+  const [report, setReport] = useState<AdvisorReportV2 | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -79,6 +80,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
   const [lastFailedInput, setLastFailedInput] = useState('')
   const [pendingOp, setPendingOp] = useState<{ op: AiOperation; description: string } | null>(null)
   const [historyExpanded, setHistoryExpanded] = useState(false)
+  const [switchOpen, setSwitchOpen] = useState(false)
   const VISIBLE_COUNT = 5
 
   useEffect(() => {
@@ -92,7 +94,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
     }
   }, [])
 
-  const loadReport = async (): Promise<AdvisorReport | null> => {
+  const loadReport = async (): Promise<AdvisorReportV2 | null> => {
     const [availability, allBooks, allRecords] = await Promise.all([
       listAvailability(),
       db.books.toArray(),
@@ -102,7 +104,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
     const donePagesByBook = Object.fromEntries(
       targetBooks.map((b) => [b.id, calcTotalDone(b, allRecords)]),
     )
-    return buildAdvisorReport({ today, books: targetBooks, donePagesByBook, availability })
+    return buildAdvisorReportV2({ today, books: targetBooks, donePagesByBook, availability, records: allRecords.filter(r => targetBooks.some(b => b.id === r.bookId)) })
   }
 
   useEffect(() => {
@@ -130,6 +132,21 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
     push({ ...m, kind })
     void appendChatHistory({ role: m.role, text: m.text, kind }).catch(() => {})
   }
+
+  useEffect(() => {
+    try {
+      const last429 = Number(localStorage.getItem('ai-last-429-at') ?? 0) || null
+      if (!shouldAutoRestore(last429)) return
+      const preferred = getPreferredProfile()
+      void pingEndpoint(preferred.endpoint).then((r) => {
+        if (r.reachable) {
+          setActiveProfile(preferred.id)
+          pushAndSave({ role: 'assistant', text: 'いつものAIが復活したので戻しました' }, 'notice')
+        }
+      })
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const applyToday = async () => {
     if (!report) return
@@ -210,16 +227,20 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
     const history = messages
       .filter((m) => m.role === 'user' || (m.role === 'assistant' && !m.withProposal))
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.text }))
-    const [availability, allBooks] = await Promise.all([listAvailability(), db.books.toArray()])
-    const targetBooks = allBooks.filter((b) => b.studyMode !== 'cycles')
-    const result = await chatWithModel(
-      settings,
-      buildSystemPrompt(report, {
-        slots: availability,
-        books: targetBooks.map((b) => ({ id: b.id, title: b.title })),
-      }),
-      [...history, { role: 'user', content: text }],
-    )
+    const system = buildSystemPromptV2(report)
+    const profiles = listProfiles()
+    const toSettings = (id: string) => {
+      const p = profiles.find((x) => x.id === id) ?? getActiveProfile()
+      return { endpoint: p.endpoint || settings.endpoint, apiKey: p.apiKey || settings.apiKey, model: p.model || settings.model }
+    }
+    const active = getActiveProfile()
+    const { profileId, result } = await runFreeChat(active, system, [...history, { role: 'user', content: text }], {
+      'gemini-free': (s, h) => chatWithModel(toSettings('gemini-free'), s, h, { timeoutMs: 90000 }),
+      'groq-free': (s, h) => chatWithModel(toSettings('groq-free'), s, h, { timeoutMs: 90000 }),
+      'openrouter-free': (s, h) => chatWithModel(toSettings('openrouter-free'), s, h, { timeoutMs: 90000 }),
+      'custom': (s, h) => chatWithModel(toSettings('custom'), s, h, { timeoutMs: 90000 }),
+    })
+    if (profileId !== active.id) setActiveProfile(profileId)
     setLoading(false)
     if (result.ok) {
       pushAndSave({ role: 'assistant', text: result.text })
@@ -232,6 +253,9 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
       }
     } else {
       const err = result.ok === false ? result : { reason: 'network' as const }
+      if ('status' in err && err.status === 429) {
+        try { localStorage.setItem('ai-last-429-at', String(Date.now())) } catch { /* ignore */ }
+      }
       setLastError(
         'status' in err
           ? { reason: err.reason, status: err.status, detail: 'detail' in err ? (err.detail as string | undefined) : undefined }
@@ -261,6 +285,13 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
     setLastFailedInput('')
     pushAndSave({ role: 'user', text })
     await requestAi(text)
+  }
+
+  const switchRetry = async () => {
+    if (!lastFailedInput || loading) return
+    const next = ['groq-free', 'gemini-free', 'openrouter-free'].find((id) => id !== getActiveProfile().id)
+    if (next) setActiveProfile(next)
+    await retry()
   }
 
   const applyPendingOp = async () => {
@@ -293,6 +324,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
   return (
     <div data-testid="chat-screen" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>調整AI</h1>
+      <div data-testid="model-switch"><span>{getActiveProfile().label}</span><button data-testid="model-switch-open" type="button" onClick={() => setSwitchOpen((v) => !v)}>モデル切替</button>{switchOpen && listProfiles().filter(p => p.id !== 'custom').map(p => <button key={p.id} type="button" onClick={() => { setActiveProfile(p.id); setSwitchOpen(false); }}>{p.label}</button>)}</div>
       <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
         参考書の進捗から配分とペースを提案します。期限は変更されません。
       </p>
@@ -411,6 +443,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
             <button data-testid="chat-retry" type="button" onClick={() => void retry()}>
               再試行
             </button>
+            {lastError?.status === 429 && <button data-testid="switch-retry" type="button" onClick={() => void switchRetry()}>他の無料モデルに切替えて再試行</button>}
           </div>
         )}
       </div>
