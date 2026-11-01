@@ -449,3 +449,10 @@ describe('settings UI hardening (task6)', () => {
     expect(loadProfile().playMode).toBe('league')
   })
 })
+
+describe('ai profiles settings', () => {
+  it('shows preferred AI selector', async () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    expect(await screen.findByTestId('preferred-ai')).toBeTruthy()
+  })
+})

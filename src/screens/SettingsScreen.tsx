@@ -9,6 +9,7 @@ import {
   publishPush,
 } from '../lib/notify'
 import { getAiSettings, setAiSettings, chatWithModel, pingEndpoint, isSafeAiEndpoint, GEMINI_COMPAT_ENDPOINT, GEMINI_EXAMPLE_MODEL, OPENROUTER_ENDPOINT, OPENROUTER_EXAMPLE_MODEL, GROQ_ENDPOINT, GROQ_EXAMPLE_MODEL, DEFAULT_ENDPOINT } from '../lib/ai'
+import { listProfiles, getPreferredProfile, setPreferredProfile, saveProfileApiKey, migrateLegacySettings } from '../lib/aiProfiles'
 import { loadProfile, saveProfile, type PlayMode } from '../data/profileStore'
 
 type Props = {
@@ -41,6 +42,8 @@ export default function SettingsScreen({ onDone }: Props) {
   const [editingNtfy, setEditingNtfy] = useState(false)
   const [editingAi, setEditingAi] = useState(false)
   const [aiPreset, setAiPreset] = useState(() => presetOf(getAiSettings().endpoint))
+  const [profiles, setProfiles] = useState(() => { migrateLegacySettings(); return listProfiles() })
+  const [preferredId, setPreferredId] = useState(() => getPreferredProfile().id)
   const [autoSnapshot, setAutoSnapshot] = useState<AutoSnapshot | null>(null)
   const [playMode, setPlayMode] = useState<PlayMode>(() => loadProfile().playMode)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -184,6 +187,12 @@ export default function SettingsScreen({ onDone }: Props) {
         return
     }
     setAiSettings({ endpoint: aiEndpoint, apiKey: aiApiKey, model: aiModel })
+    {
+      const hit = listProfiles().find((p) => p.endpoint === aiEndpoint.trim())
+      if (hit) saveProfileApiKey(hit.id, aiApiKey.trim(), aiModel.trim() || undefined)
+      else saveProfileApiKey('custom', aiApiKey.trim(), aiModel.trim() || undefined)
+      setProfiles(listProfiles())
+    }
     setResult('調整AIの設定を保存しました')
     setEditingAi(false)
   }
@@ -194,6 +203,7 @@ export default function SettingsScreen({ onDone }: Props) {
     setAiApiKey(saved.apiKey)
     setAiModel(saved.model)
     setAiPreset(presetOf(saved.endpoint))
+    setPreferredId(getPreferredProfile().id); setProfiles(listProfiles())
     setAiTestResult(null)
     setAiPingResult(null)
     setEditingAi(false)
@@ -399,6 +409,15 @@ export default function SettingsScreen({ onDone }: Props) {
           <option value="openrouter">OpenRouter無料モデル（登録のみ）</option>
           <option value="groq">Groq無料枠（登録のみ・高速）</option>
         </select>
+        <div data-testid="preferred-ai">
+          <p style={{ fontSize: 13 }}>いつも使うAI</p>
+          {profiles.filter((p) => p.id !== 'custom').map((p) => (
+            <label key={p.id}>
+              <input type="radio" name="preferred-ai" checked={preferredId === p.id} onChange={() => { setPreferredProfile(p.id); setPreferredId(p.id) }} />
+              {p.label}（{p.model}）
+            </label>
+          ))}
+        </div>
         <p data-testid="ai-description" style={{ fontSize: 13, color: 'var(--text-dim)' }}>
           オンラインでの自由文相談に使う高精度AI接続（OpenAI互換API）。WiFi・モバイル回線どちらでも利用可（GBを消費します。1回数KB〜数十KB程度）。未設定でもオフラインの内蔵AI（定型文＋自動提案）は動きます。期限は変更されません。APIキーはこの端末内だけに保存されます。高精度モデルは応答が遅く料金・GBが増えます（軽量例: gpt-4o-mini／高精度例: gpt-4o）。無料枠はGoogle AI Studioで無料キーを作成し、モデル名は一覧で確認してください。無料枠は回数制限があります。プロジェクト作成でつまずく場合はOpenRouterの無料登録（キー発行のみ・`:free`モデル）が簡単です。APIキー・モデル名・相談内容（書籍名・残ページ・時間割・自由文）は選択したAI事業者のエンドポイントに送信されます。共有端末では保存しないでください。httpのエンドポイントには送信しません。
         </p>
