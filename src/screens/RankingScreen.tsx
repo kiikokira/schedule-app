@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useBooks } from '../hooks/useBooks'
+import RpgAdventure from '../components/RpgAdventure'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { combinedActivityOnDate, totalCycleUnits, pagesRecordsForTotals, cycleRecordsForTotals, todayStr } from '../lib/progress'
@@ -579,6 +580,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
       )}
       {tab === 'rpg' && showRpg && (
         <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <RpgAdventure level={leagueLevel} token={rpgChara} />
           <section
             data-testid="rpg-hero"
             style={{ padding: '14px 12px', borderRadius: 12, background: '#fff', border: '1px solid #d5dbe6', boxShadow: '0 2px 8px rgba(30,42,90,0.25)' }}

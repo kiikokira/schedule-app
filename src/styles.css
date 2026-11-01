@@ -64,6 +64,28 @@ input:not([type='radio']):not([type='checkbox']), select {
 }
 label { font-size: 14px; color: var(--text-dim); }
 main { padding-bottom: 80px; }
+.rpg-token-move { transition: left 0.55s linear, top 0.55s linear; }
+.rpg-token-ladder { transition: left 0.75s linear, top 0.75s linear; animation: rpg-wiggle 0.75s linear; }
+.rpg-token-jump-inner { display: inline-block; animation: rpg-jump 0.7s ease; }
+.rpg-spin-once { animation: rpg-spin 1.2s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+@keyframes rpg-jump {
+  0% { transform: translateY(0); }
+  40% { transform: translateY(-26px); }
+  100% { transform: translateY(0); }
+}
+@keyframes rpg-wiggle {
+  0%, 100% { margin-left: 0; }
+  25% { margin-left: -4px; }
+  75% { margin-left: 4px; }
+}
+@keyframes rpg-spin {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rpg-spin-once, .rpg-token-jump-inner, .rpg-token-ladder { animation: none !important; }
+  .rpg-token-move { transition: none !important; }
+}
 .cover-placeholder {
   background: var(--cover-placeholder);
   border: 1px dashed var(--border);
