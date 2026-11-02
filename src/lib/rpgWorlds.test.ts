@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
   WORLD_COUNT,
-  NODES_PER_WORLD,
   WORLD_DEFS,
   worldForLevel,
   nodeForLevel,
@@ -34,23 +33,32 @@ describe('rpgWorlds progression', () => {
     expect(nodeForLevel(1, 1)).toBe(0)
     expect(nodeForLevel(1, 10)).toBe(9)
     expect(nodeForLevel(2, 15)).toBe(4)
-    expect(nodeForLevel(9, 200)).toBe(9)
+    expect(nodeForLevel(9, 200)).toBe(11)
+  })
+
+  it('spreads 10 band levels across worlds with extra nodes', () => {
+    const w3 = WORLD_DEFS[2]
+    expect(w3.nodes.length).toBeGreaterThan(10)
+    expect(nodeForLevel(3, 21)).toBe(0)
+    expect(nodeForLevel(3, 30)).toBe(w3.nodes.length - 1)
   })
 })
 
 describe('WORLD_DEFS shape', () => {
-  it('defines 9 worlds with 10 nodes each', () => {
+  it('defines 9 worlds with about 10 nodes each (never below 10)', () => {
     expect(WORLD_COUNT).toBe(9)
     expect(WORLD_DEFS).toHaveLength(9)
     for (const w of WORLD_DEFS) {
-      expect(w.nodes).toHaveLength(NODES_PER_WORLD)
+      expect(w.nodes.length).toBeGreaterThanOrEqual(10)
+      expect(w.nodes.length).toBeLessThanOrEqual(12)
     }
+    expect(new Set(WORLD_DEFS.map((w) => w.nodes.length)).size).toBeGreaterThan(1)
   })
 
   it('chains every consecutive node with a valid edge kind', () => {
     const kinds: EdgeKind[] = ['walk', 'ladder', 'jump']
     for (const w of WORLD_DEFS) {
-      expect(w.edges).toHaveLength(NODES_PER_WORLD - 1)
+      expect(w.edges).toHaveLength(w.nodes.length - 1)
       w.edges.forEach((e, i) => {
         expect(e.from).toBe(i)
         expect(e.to).toBe(i + 1)

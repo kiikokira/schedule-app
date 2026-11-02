@@ -48,7 +48,7 @@ export default function RpgAdventure({ level, token }: Props) {
   }
 
   const targetOf = (worldId: WorldId): number =>
-    worldId < homeWorld ? 9 : nodeForLevel(worldId, level)
+    worldId < homeWorld ? worldDef(worldId).nodes.length - 1 : nodeForLevel(worldId, level)
 
   const busy = entering || playing !== null
 
