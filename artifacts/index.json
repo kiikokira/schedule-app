@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "updated": "2026-11-04",
+  "note": "プロジェクト内3D素材の統一索引。AIは新規取得の前に必ずここを確認し、既存素材を優先する。新規取得時は取得担当が本ファイルを更新する（自動再生成なし）。詳細は artifacts/ASSETS.md。",
+  "sites": {
+    "polyhaven": {
+      "tool": ".opencode/tools/polyhaven.ts (polyhaven_search/get_files/download)",
+      "role": "リアルなPBRテクスチャ・HDRI・3Dモデル",
+      "assets": [
+        {
+          "id": "brown_planks_03",
+          "name": "Brown Planks 03",
+          "path": "artifacts/polyhaven/brown_planks_03",
+          "page": "https://polyhaven.com/a/brown_planks_03",
+          "manifest": "artifacts/polyhaven/brown_planks_03/manifest.json",
+          "license": "CC0",
+          "formats": [".blend", ".jpg", ".png", ".exr"],
+          "tags": ["wood", "planks", "floor", "wall", "texture", "木材", "板", "床"],
+          "note": "1K解像度。床・壁の木材テクスチャ用途。"
+        }
+      ]
+    },
+    "ambientcg": {
+      "tool": ".opencode/tools/ambientcg.ts (ambientcg_search/get_files/download)",
+      "role": "地面・岩・草・砂・雪・木材などのPBRテクスチャ",
+      "assets": [
+        {
+          "id": "Grass005",
+          "name": "Grass 005",
+          "path": "artifacts/ambientcg/Grass005",
+          "page": "https://ambientcg.com/a/Grass005",
+          "manifest": "artifacts/ambientcg/Grass005/manifest.json",
+          "license": "CC0",
+          "formats": [".jpg", ".blend", ".mtlx", ".tres", ".usdc"],
+          "maps": ["color", "displacement", "normal", "roughness", "ambient-occlusion"],
+          "resolution": "1K",
+          "tags": ["grass", "ground", "lawn", "texture", "草原", "草", "地面"],
+          "note": "1K-JPG。芝生・草原の地面テクスチャ用途。"
+        }
+      ]
+    },
+    "kenney": {
+      "tool": ".opencode/tools/kenney.ts (kenney_search/get_files/download)",
+      "role": "ゲーム向けスタイライズド3Dモデル（木・岩・植物・建物・小物）",
+      "assets": [
+        {
+          "id": "nature-kit",
+          "name": "Nature Kit",
+          "path": "artifacts/kenney/nature-kit",
+          "page": "https://kenney.nl/assets/nature-kit",
+          "manifest": "artifacts/kenney/nature-kit/manifest.json",
+          "inventory": "artifacts/kenney/nature-kit/models.json",
+          "preview": "artifacts/kenney/nature-kit/preview.html",
+          "license": "CC0",
+          "formats": [".glb", ".fbx", ".obj", ".dae", ".stl", ".mtl", ".png"],
+          "glbCount": 329,
+          "categories": {
+            "tree": 61,
+            "cliff": 56,
+            "rock": 30,
+            "stone": 30,
+            "ground": 29,
+            "crops": 17,
+            "bridge": 16,
+            "fence": 12,
+            "flower": 9,
+            "plant": 8
+          },
+          "tags": ["nature", "tree", "rock", "foliage", "plant", "fence", "stylized", "木", "岩", "植物", "柵", "草原", "森林", "自然"],
+          "note": "GLB 329件をゲーム向けに優先（FBX/OBJ/DAE/STL併存、BLENDなし）。Isometric/SideのPNGプレビュー付き。公式表記330に対し実測329。"
+        }
+      ]
+    }
+  }
+}
