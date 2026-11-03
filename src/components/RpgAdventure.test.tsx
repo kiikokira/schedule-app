@@ -48,4 +48,13 @@ describe('RpgAdventure', () => {
     expect(screen.getByTestId('rpg-node-2')).toHaveAttribute('data-current', 'true')
     expect(screen.getByTestId('rpg-token')).toBeInTheDocument()
   })
+
+  it('opens the explorable grass world from world 1', () => {
+    render(<RpgAdventure level={3} token="🌱" />)
+    fireEvent.click(screen.getByTestId('rpg-grass-open'))
+    expect(screen.getByTestId('rpg-grass-map')).toBeInTheDocument()
+    expect(screen.getByTestId('rpg-grass-pad')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('rpg-grass-close'))
+    expect(screen.getByTestId('rpg-map')).toBeInTheDocument()
+  })
 })

@@ -92,3 +92,51 @@ main { padding-bottom: 80px; }
   border-radius: 4px;
   flex-shrink: 0;
 }
+
+/* RPG草原ワールド：キャラクター・環境アニメ */
+.rpgc-idle { animation: rpgc-breathe 2.2s ease-in-out infinite; transform-origin: 32px 60px; }
+.rpgc-walk .rpgc-leg-l { animation: rpgc-step 0.5s ease-in-out infinite; transform-origin: 28px 54px; }
+.rpgc-walk .rpgc-leg-r { animation: rpgc-step 0.5s ease-in-out infinite reverse; transform-origin: 38px 54px; }
+.rpgc-walk .rpgc-arm-l { animation: rpgc-swing 0.5s ease-in-out infinite reverse; transform-origin: 18px 40px; }
+.rpgc-walk .rpgc-arm-r { animation: rpgc-swing 0.5s ease-in-out infinite; transform-origin: 48px 40px; }
+.rpgc-run .rpgc-leg-l { animation: rpgc-step 0.3s ease-in-out infinite; transform-origin: 28px 54px; }
+.rpgc-run .rpgc-leg-r { animation: rpgc-step 0.3s ease-in-out infinite reverse; transform-origin: 38px 54px; }
+.rpgc-run .rpgc-arm-l { animation: rpgc-swing 0.3s ease-in-out infinite reverse; transform-origin: 18px 40px; }
+.rpgc-run .rpgc-arm-r { animation: rpgc-swing 0.3s ease-in-out infinite; transform-origin: 48px 40px; }
+.rpgc-ladder .rpgc-leg-l { animation: rpgc-climb 0.6s ease-in-out infinite; transform-origin: 28px 54px; }
+.rpgc-ladder .rpgc-leg-r { animation: rpgc-climb 0.6s ease-in-out infinite reverse; transform-origin: 38px 54px; }
+.rpgc-ladder .rpgc-arm-l { animation: rpgc-climb 0.6s ease-in-out infinite reverse; transform-origin: 18px 40px; }
+.rpgc-ladder .rpgc-arm-r { animation: rpgc-climb 0.6s ease-in-out infinite; transform-origin: 48px 40px; }
+.rpgc-jump { animation: rpgc-air 0.7s ease; transform-origin: 32px 60px; }
+.rpgc-land { animation: rpgc-crouch 0.3s ease; transform-origin: 32px 68px; }
+.rpgc-swim .rpgc-leg-l, .rpgc-swim .rpgc-leg-r { animation: rpgc-paddle 0.7s ease-in-out infinite alternate; }
+.rpgc-scarf { animation: rpgc-flutter 1.6s ease-in-out infinite; transform-origin: 30px 35px; }
+@keyframes rpgc-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.6px); } }
+@keyframes rpgc-step { 0%, 100% { transform: rotate(14deg); } 50% { transform: rotate(-14deg); } }
+@keyframes rpgc-swing { 0%, 100% { transform: rotate(12deg); } 50% { transform: rotate(-12deg); } }
+@keyframes rpgc-climb { 0%, 100% { transform: translateY(-3px); } 50% { transform: translateY(3px); } }
+@keyframes rpgc-air { 0% { transform: scale(1, 0.92); } 45% { transform: scale(0.97, 1.05); } 100% { transform: scale(1, 1); } }
+@keyframes rpgc-crouch { 0% { transform: scale(1.08, 0.86); } 100% { transform: scale(1, 1); } }
+@keyframes rpgc-paddle { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
+@keyframes rpgc-flutter { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(5deg); } }
+
+/* 環境：雲・水・草・旗・パーティクル */
+.rpg-cloud { animation: rpg-drift 26s linear infinite; }
+.rpg-cloud-2 { animation-duration: 38s; }
+.rpg-water { animation: rpg-flow 2.4s linear infinite; }
+.rpg-sway { animation: rpg-sway 3.4s ease-in-out infinite; transform-origin: 0 -20px; }
+.rpg-flag { animation: rpg-flutter 1.8s ease-in-out infinite; transform-origin: 0 -45px; }
+.rpg-pulse { animation: rpg-pulse 1.8s ease-out infinite; transform-origin: center; }
+.rpg-mote-a { animation: rpg-float-a 5s ease-in-out infinite; }
+.rpg-mote-b { animation: rpg-float-b 6.5s ease-in-out infinite; }
+@keyframes rpg-drift { from { transform: translateX(-40px); } to { transform: translateX(60px); } }
+@keyframes rpg-flow { to { stroke-dashoffset: -40; } }
+@keyframes rpg-sway { 0%, 100% { transform: rotate(-2.4deg); } 50% { transform: rotate(2.4deg); } }
+@keyframes rpg-pulse { 0% { transform: scale(0.8); opacity: 0.9; } 100% { transform: scale(1.25); opacity: 0; } }
+@keyframes rpg-float-a { 0%, 100% { transform: translateY(0); opacity: 0.9; } 50% { transform: translateY(-9px); opacity: 0.4; } }
+@keyframes rpg-float-b { 0%, 100% { transform: translateY(-6px); opacity: 0.5; } 50% { transform: translateY(4px); opacity: 0.95; } }
+@media (prefers-reduced-motion: reduce) {
+  .rpgc-idle, .rpgc-walk .rpgc-leg-l, .rpgc-walk .rpgc-leg-r, .rpgc-walk .rpgc-arm-l, .rpgc-walk .rpgc-arm-r,
+  .rpgc-run .rpgc-leg-l, .rpgc-run .rpgc-leg-r, .rpgc-ladder .rpgc-leg-l, .rpgc-ladder .rpgc-leg-r,
+  .rpgc-jump, .rpgc-scarf, .rpg-cloud, .rpg-water, .rpg-sway, .rpg-flag, .rpg-pulse, .rpg-mote-a, .rpg-mote-b { animation: none !important; }
+}

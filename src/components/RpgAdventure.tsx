@@ -10,6 +10,7 @@ import {
 } from '../lib/rpgWorlds'
 import RpgMap, { type PlayingState } from './RpgMap'
 import RpgWorldSelect from './RpgWorldSelect'
+import RpgGrassMap from './RpgGrassMap'
 
 export const RPG_ENTER_DELAY_MS = 1600
 export const RPG_EDGE_MS: Record<EdgeKind, number> = { walk: 550, ladder: 750, jump: 700 }
@@ -17,6 +18,11 @@ export const RPG_EDGE_MS: Record<EdgeKind, number> = { walk: 550, ladder: 750, j
 type Props = {
   level: number
   token: string
+  todayPages?: number
+  totalPages?: number
+  firstBookId?: string | null
+  hasBooks?: boolean
+  onStageAction?: (stageId: string, target: string) => void
 }
 
 function prefersReducedMotion(): boolean {
@@ -29,12 +35,13 @@ function prefersReducedMotion(): boolean {
   }
 }
 
-export default function RpgAdventure({ level, token }: Props) {
+export default function RpgAdventure({ level, token, todayPages = 0, totalPages = 0, firstBookId = null, hasBooks = false, onStageAction }: Props) {
   const homeWorld = worldForLevel(level)
   const unlocked = unlockedWorldCount(level)
   const [selected, setSelected] = useState<WorldId>(homeWorld)
   const [entering, setEntering] = useState(false)
   const [playing, setPlaying] = useState<PlayingState>(null)
+  const [grassOpen, setGrassOpen] = useState(false)
   const timers = useRef<number[]>([])
 
   useEffect(() => () => {
@@ -55,6 +62,7 @@ export default function RpgAdventure({ level, token }: Props) {
   const handleSelect = (id: WorldId) => {
     if (id === selected || busy) return
     setPlaying(null)
+    setGrassOpen(false)
     setEntering(true)
     later(RPG_ENTER_DELAY_MS, () => {
       setSelected(id)
@@ -100,16 +108,50 @@ export default function RpgAdventure({ level, token }: Props) {
         </div>
       ) : (
         <div style={{ marginTop: 8 }}>
-          <RpgMap world={def} level={level} token={token} playing={playing} />
-          <button
-            data-testid="rpg-play"
-            type="button"
-            onClick={handlePlay}
-            disabled={busy}
-            style={{ marginTop: 8, width: '100%' }}
-          >
-            {playing !== null ? 'ぼうけん中…' : 'ぼうけんスタート'}
-          </button>
+          {selected === 1 && grassOpen ? (
+            <>
+              <RpgGrassMap
+                todayPages={todayPages}
+                totalPages={totalPages}
+                firstBookId={firstBookId}
+                hasBooks={hasBooks}
+                onStageAction={onStageAction}
+                onBack={() => setGrassOpen(false)}
+              />
+              <button
+                data-testid="rpg-grass-close"
+                type="button"
+                onClick={() => setGrassOpen(false)}
+                style={{ marginTop: 8, width: '100%' }}
+              >
+                簡易マップにもどる
+              </button>
+            </>
+          ) : (
+            <>
+              <RpgMap world={def} level={level} token={token} playing={playing} />
+              {selected === 1 && (
+                <button
+                  data-testid="rpg-grass-open"
+                  type="button"
+                  onClick={() => setGrassOpen(true)}
+                  disabled={busy}
+                  style={{ marginTop: 8, width: '100%', fontWeight: 800 }}
+                >
+                  草原ワールド（立体版）であそぶ
+                </button>
+              )}
+              <button
+                data-testid="rpg-play"
+                type="button"
+                onClick={handlePlay}
+                disabled={busy}
+                style={{ marginTop: 8, width: '100%' }}
+              >
+                {playing !== null ? 'ぼうけん中…' : 'ぼうけんスタート'}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
