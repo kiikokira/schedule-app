@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nature Kit Preview (Kenney, CC0)</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #dfeee2; font-family: system-ui, sans-serif; }
+  #app { position: fixed; inset: 0; }
+  #hud { position: fixed; top: 12px; left: 12px; z-index: 10; background: rgba(255,255,255,.92);
+    border-radius: 12px; padding: 10px 14px; box-shadow: 0 2px 12px rgba(0,0,0,.15);
+    width: 300px; max-height: calc(100% - 24px); overflow: auto; }
+  #hud h1 { font-size: 15px; margin: 0 0 4px; }
+  #hud p { font-size: 12px; margin: 4px 0; color: #335; }
+  #hud select { width: 100%; margin: 4px 0; font-size: 12px; }
+  #meta { font-size: 12px; color: #064; white-space: pre-wrap; }
+  #err { display: none; position: fixed; bottom: 12px; left: 12px; right: 12px; z-index: 10;
+    background: #fde; border: 1px solid #c66; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #622; }
+  .thumbs img { width: 100%; border-radius: 8px; margin-top: 6px; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="hud">
+  <h1>Nature Kit Preview</h1>
+  <p>Kenney CC0 / GLB 329件 / ゲーム本体への配置なし（閲覧専用）</p>
+  <label>カテゴリ <select id="cat"></select></label>
+  <label>モデル <select id="model"></select></label>
+  <p id="meta">読み込み中…</p>
+  <div class="thumbs"><img src="Preview.png" alt="pack preview" /><img src="Sample.png" alt="pack sample" /></div>
+</div>
+<div id="err"></div>
+<script>const CATALOG = {"bed":[{"n":"bed.glb","s":19108},{"n":"bed_floor.glb","s":10688}],"bridge":[{"n":"bridge_center_stone.glb","s":5076},{"n":"bridge_center_stoneRound.glb","s":5080},{"n":"bridge_center_wood.glb","s":5480},{"n":"bridge_center_woodRound.glb","s":6280},{"n":"bridge_side_stone.glb","s":11408},{"n":"bridge_side_stoneRound.glb","s":13540},{"n":"bridge_side_wood.glb","s":10604},{"n":"bridge_side_woodRound.glb","s":13460},{"n":"bridge_stone.glb","s":17708},{"n":"bridge_stoneNarrow.glb","s":17724},{"n":"bridge_stoneRound.glb","s":22552},{"n":"bridge_stoneRoundNarrow.glb","s":22564},{"n":"bridge_wood.glb","s":15692},{"n":"bridge_woodNarrow.glb","s":15708},{"n":"bridge_woodRound.glb","s":21192},{"n":"bridge_woodRoundNarrow.glb","s":21204}],"cactus":[{"n":"cactus_short.glb","s":8844},{"n":"cactus_tall.glb","s":9668}],"campfire":[{"n":"campfire_bricks.glb","s":10220},{"n":"campfire_logs.glb","s":9284},{"n":"campfire_planks.glb","s":8148},{"n":"campfire_stones.glb","s":17344}],"canoe":[{"n":"canoe.glb","s":15780},{"n":"canoe_paddle.glb","s":3952}],"cliff":[{"n":"cliff_blockCave_rock.glb","s":5432},{"n":"cliff_blockCave_stone.glb","s":5436},{"n":"cliff_blockDiagonal_rock.glb","s":2564},{"n":"cliff_blockDiagonal_stone.glb","s":2568},{"n":"cliff_blockHalf_rock.glb","s":2788},{"n":"cliff_blockHalf_stone.glb","s":2792},{"n":"cliff_blockQuarter_rock.glb","s":2796},{"n":"cliff_blockQuarter_stone.glb","s":2800},{"n":"cliff_blockSlopeHalfWalls_rock.glb","s":8880},{"n":"cliff_blockSlopeHalfWalls_stone.glb","s":8884},{"n":"cliff_blockSlopeWalls_rock.glb","s":8900},{"n":"cliff_blockSlopeWalls_stone.glb","s":8904},{"n":"cliff_blockSlope_rock.glb","s":6720},{"n":"cliff_blockSlope_stone.glb","s":6724},{"n":"cliff_block_rock.glb","s":2776},{"n":"cliff_block_stone.glb","s":2780},{"n":"cliff_cave_rock.glb","s":5480},{"n":"cliff_cave_stone.glb","s":5484},{"n":"cliff_cornerInnerLarge_rock.glb","s":4296},{"n":"cliff_cornerInnerLarge_stone.glb","s":4300},{"n":"cliff_cornerInnerTop_rock.glb","s":7608},{"n":"cliff_cornerInnerTop_stone.glb","s":7612},{"n":"cliff_cornerInner_rock.glb","s":5008},{"n":"cliff_cornerInner_stone.glb","s":8568},{"n":"cliff_cornerLarge_rock.glb","s":2376},{"n":"cliff_cornerLarge_stone.glb","s":3296},{"n":"cliff_cornerTop_rock.glb","s":3108},{"n":"cliff_cornerTop_stone.glb","s":3112},{"n":"cliff_corner_rock.glb","s":2360},{"n":"cliff_corner_stone.glb","s":2364},{"n":"cliff_diagonal_rock.glb","s":4296},{"n":"cliff_diagonal_stone.glb","s":4236},{"n":"cliff_halfCornerInner_rock.glb","s":8016},{"n":"cliff_halfCornerInner_stone.glb","s":8020},{"n":"cliff_halfCorner_rock.glb","s":3128},{"n":"cliff_halfCorner_stone.glb","s":3132},{"n":"cliff_half_rock.glb","s":5316},{"n":"cliff_half_stone.glb","s":5320},{"n":"cliff_large_rock.glb","s":3560},{"n":"cliff_large_stone.glb","s":3564},{"n":"cliff_rock.glb","s":3556},{"n":"cliff_stepsCornerInner_rock.glb","s":15632},{"n":"cliff_stepsCornerInner_stone.glb","s":15636},{"n":"cliff_stepsCorner_rock.glb","s":17544},{"n":"cliff_stepsCorner_stone.glb","s":17548},{"n":"cliff_steps_rock.glb","s":15952},{"n":"cliff_steps_stone.glb","s":15956},{"n":"cliff_stone.glb","s":3560},{"n":"cliff_topDiagonal_rock.glb","s":6220},{"n":"cliff_topDiagonal_stone.glb","s":10540},{"n":"cliff_top_rock.glb","s":5312},{"n":"cliff_top_stone.glb","s":5316},{"n":"cliff_waterfallTop_rock.glb","s":7076},{"n":"cliff_waterfallTop_stone.glb","s":7508},{"n":"cliff_waterfall_rock.glb","s":4488},{"n":"cliff_waterfall_stone.glb","s":6100}],"crop":[{"n":"crop_carrot.glb","s":12664},{"n":"crop_melon.glb","s":13328},{"n":"crop_pumpkin.glb","s":10840},{"n":"crop_turnip.glb","s":14308}],"crops":[{"n":"crops_bambooStageA.glb","s":22092},{"n":"crops_bambooStageB.glb","s":40144},{"n":"crops_cornStageA.glb","s":9076},{"n":"crops_cornStageB.glb","s":9780},{"n":"crops_cornStageC.glb","s":11960},{"n":"crops_cornStageD.glb","s":29316},{"n":"crops_dirtDoubleRow.glb","s":7560},{"n":"crops_dirtDoubleRowCorner.glb","s":5396},{"n":"crops_dirtDoubleRowEnd.glb","s":6248},{"n":"crops_dirtRow.glb","s":4712},{"n":"crops_dirtRowCorner.glb","s":3248},{"n":"crops_dirtRowEnd.glb","s":4064},{"n":"crops_dirtSingle.glb","s":4196},{"n":"crops_leafsStageA.glb","s":7144},{"n":"crops_leafsStageB.glb","s":7768},{"n":"crops_wheatStageA.glb","s":56228},{"n":"crops_wheatStageB.glb","s":30040}],"fence":[{"n":"fence_bend.glb","s":16276},{"n":"fence_bendCenter.glb","s":20016},{"n":"fence_corner.glb","s":8644},{"n":"fence_gate.glb","s":27652},{"n":"fence_planks.glb","s":7720},{"n":"fence_planksDouble.glb","s":11160},{"n":"fence_simple.glb","s":5712},{"n":"fence_simpleCenter.glb","s":8660},{"n":"fence_simpleDiagonal.glb","s":6688},{"n":"fence_simpleDiagonalCenter.glb","s":11064},{"n":"fence_simpleHigh.glb","s":4300},{"n":"fence_simpleLow.glb","s":4312}],"flower":[{"n":"flower_purpleA.glb","s":7112},{"n":"flower_purpleB.glb","s":8084},{"n":"flower_purpleC.glb","s":7600},{"n":"flower_redA.glb","s":7104},{"n":"flower_redB.glb","s":8080},{"n":"flower_redC.glb","s":7600},{"n":"flower_yellowA.glb","s":7120},{"n":"flower_yellowB.glb","s":11256},{"n":"flower_yellowC.glb","s":7616}],"grass":[{"n":"grass.glb","s":11496},{"n":"grass_large.glb","s":18504},{"n":"grass_leafs.glb","s":4608},{"n":"grass_leafsLarge.glb","s":13988}],"ground":[{"n":"ground_grass.glb","s":1576},{"n":"ground_pathBend.glb","s":4132},{"n":"ground_pathBendBank.glb","s":4308},{"n":"ground_pathCorner.glb","s":3532},{"n":"ground_pathCornerSmall.glb","s":3632},{"n":"ground_pathCross.glb","s":6404},{"n":"ground_pathEnd.glb","s":5044},{"n":"ground_pathEndClosed.glb","s":5824},{"n":"ground_pathOpen.glb","s":1856},{"n":"ground_pathRocks.glb","s":8036},{"n":"ground_pathSide.glb","s":4124},{"n":"ground_pathSideOpen.glb","s":4524},{"n":"ground_pathSplit.glb","s":6012},{"n":"ground_pathStraight.glb","s":5620},{"n":"ground_pathTile.glb","s":6624},{"n":"ground_riverBend.glb","s":5684},{"n":"ground_riverBendBank.glb","s":5692},{"n":"ground_riverCorner.glb","s":4844},{"n":"ground_riverCornerSmall.glb","s":4236},{"n":"ground_riverCross.glb","s":7560},{"n":"ground_riverEnd.glb","s":5464},{"n":"ground_riverEndClosed.glb","s":6920},{"n":"ground_riverOpen.glb","s":1852},{"n":"ground_riverRocks.glb","s":8884},{"n":"ground_riverSide.glb","s":4544},{"n":"ground_riverSideOpen.glb","s":5312},{"n":"ground_riverSplit.glb","s":6804},{"n":"ground_riverStraight.glb","s":6044},{"n":"ground_riverTile.glb","s":9120}],"hanging":[{"n":"hanging_moss.glb","s":4776}],"lily":[{"n":"lily_large.glb","s":8044},{"n":"lily_small.glb","s":5664}],"log":[{"n":"log.glb","s":14288},{"n":"log_large.glb","s":7924},{"n":"log_stack.glb","s":10896},{"n":"log_stackLarge.glb","s":17604}],"mushroom":[{"n":"mushroom_red.glb","s":6364},{"n":"mushroom_redGroup.glb","s":14960},{"n":"mushroom_redTall.glb","s":6504},{"n":"mushroom_tan.glb","s":5804},{"n":"mushroom_tanGroup.glb","s":14956},{"n":"mushroom_tanTall.glb","s":6500}],"path":[{"n":"path_stone.glb","s":12392},{"n":"path_stoneCircle.glb","s":13100},{"n":"path_stoneCorner.glb","s":10772},{"n":"path_stoneEnd.glb","s":8996},{"n":"path_wood.glb","s":6448},{"n":"path_woodCorner.glb","s":6444},{"n":"path_woodEnd.glb","s":5164}],"plant":[{"n":"plant_bush.glb","s":4396},{"n":"plant_bushDetailed.glb","s":10172},{"n":"plant_bushLarge.glb","s":6436},{"n":"plant_bushLargeTriangle.glb","s":4564},{"n":"plant_bushSmall.glb","s":3212},{"n":"plant_bushTriangle.glb","s":3956},{"n":"plant_flatShort.glb","s":3936},{"n":"plant_flatTall.glb","s":3480}],"platform":[{"n":"platform_beach.glb","s":13204},{"n":"platform_grass.glb","s":12568},{"n":"platform_stone.glb","s":13632}],"pot":[{"n":"pot_large.glb","s":6168},{"n":"pot_small.glb","s":7004}],"rock":[{"n":"rock_largeA.glb","s":7552},{"n":"rock_largeB.glb","s":8560},{"n":"rock_largeC.glb","s":7004},{"n":"rock_largeD.glb","s":7992},{"n":"rock_largeE.glb","s":6464},{"n":"rock_largeF.glb","s":7516},{"n":"rock_smallA.glb","s":3044},{"n":"rock_smallB.glb","s":3528},{"n":"rock_smallC.glb","s":3044},{"n":"rock_smallD.glb","s":4012},{"n":"rock_smallE.glb","s":5932},{"n":"rock_smallF.glb","s":5700},{"n":"rock_smallFlatA.glb","s":3300},{"n":"rock_smallFlatB.glb","s":3056},{"n":"rock_smallFlatC.glb","s":4508},{"n":"rock_smallG.glb","s":4204},{"n":"rock_smallH.glb","s":6200},{"n":"rock_smallI.glb","s":5120},{"n":"rock_smallTopA.glb","s":5220},{"n":"rock_smallTopB.glb","s":6660},{"n":"rock_tallA.glb","s":12072},{"n":"rock_tallB.glb","s":14060},{"n":"rock_tallC.glb","s":5184},{"n":"rock_tallD.glb","s":5132},{"n":"rock_tallE.glb","s":5192},{"n":"rock_tallF.glb","s":5608},{"n":"rock_tallG.glb","s":6772},{"n":"rock_tallH.glb","s":7792},{"n":"rock_tallI.glb","s":5584},{"n":"rock_tallJ.glb","s":5424}],"sign":[{"n":"sign.glb","s":5040}],"statue":[{"n":"statue_block.glb","s":11252},{"n":"statue_column.glb","s":10472},{"n":"statue_columnDamaged.glb","s":8824},{"n":"statue_head.glb","s":14704},{"n":"statue_obelisk.glb","s":4416},{"n":"statue_ring.glb","s":6568}],"stone":[{"n":"stone_largeA.glb","s":7124},{"n":"stone_largeB.glb","s":8132},{"n":"stone_largeC.glb","s":6580},{"n":"stone_largeD.glb","s":7564},{"n":"stone_largeE.glb","s":6036},{"n":"stone_largeF.glb","s":7092},{"n":"stone_smallA.glb","s":2620},{"n":"stone_smallB.glb","s":3100},{"n":"stone_smallC.glb","s":2620},{"n":"stone_smallD.glb","s":3584},{"n":"stone_smallE.glb","s":5504},{"n":"stone_smallF.glb","s":5272},{"n":"stone_smallFlatA.glb","s":2872},{"n":"stone_smallFlatB.glb","s":2632},{"n":"stone_smallFlatC.glb","s":4080},{"n":"stone_smallG.glb","s":3776},{"n":"stone_smallH.glb","s":5772},{"n":"stone_smallI.glb","s":4692},{"n":"stone_smallTopA.glb","s":4792},{"n":"stone_smallTopB.glb","s":6232},{"n":"stone_tallA.glb","s":11644},{"n":"stone_tallB.glb","s":13596},{"n":"stone_tallC.glb","s":4788},{"n":"stone_tallD.glb","s":4704},{"n":"stone_tallE.glb","s":4764},{"n":"stone_tallF.glb","s":5180},{"n":"stone_tallG.glb","s":6344},{"n":"stone_tallH.glb","s":7364},{"n":"stone_tallI.glb","s":5160},{"n":"stone_tallJ.glb","s":4808}],"stump":[{"n":"stump_old.glb","s":9564},{"n":"stump_oldTall.glb","s":9564},{"n":"stump_round.glb","s":5644},{"n":"stump_roundDetailed.glb","s":8188},{"n":"stump_square.glb","s":4584},{"n":"stump_squareDetailed.glb","s":7544},{"n":"stump_squareDetailedWide.glb","s":7536}],"tent":[{"n":"tent_detailedClosed.glb","s":15460},{"n":"tent_detailedOpen.glb","s":15324},{"n":"tent_smallClosed.glb","s":13200},{"n":"tent_smallOpen.glb","s":13604}],"tree":[{"n":"tree_blocks.glb","s":10128},{"n":"tree_blocks_dark.glb","s":10132},{"n":"tree_blocks_fall.glb","s":18368},{"n":"tree_cone.glb","s":10924},{"n":"tree_cone_dark.glb","s":19940},{"n":"tree_cone_fall.glb","s":10916},{"n":"tree_default.glb","s":9428},{"n":"tree_default_dark.glb","s":9436},{"n":"tree_default_fall.glb","s":16940},{"n":"tree_detailed.glb","s":31412},{"n":"tree_detailed_dark.glb","s":31416},{"n":"tree_detailed_fall.glb","s":31404},{"n":"tree_fat.glb","s":5576},{"n":"tree_fat_darkh.glb","s":5584},{"n":"tree_fat_fall.glb","s":5572},{"n":"tree_oak.glb","s":14644},{"n":"tree_oak_dark.glb","s":14648},{"n":"tree_oak_fall.glb","s":14640},{"n":"tree_palm.glb","s":13616},{"n":"tree_palmBend.glb","s":14820},{"n":"tree_palmDetailedShort.glb","s":28212},{"n":"tree_palmDetailedTall.glb","s":28204},{"n":"tree_palmShort.glb","s":15596},{"n":"tree_palmTall.glb","s":15592},{"n":"tree_pineDefaultA.glb","s":17220},{"n":"tree_pineDefaultB.glb","s":18180},{"n":"tree_pineGroundA.glb","s":6704},{"n":"tree_pineGroundB.glb","s":6704},{"n":"tree_pineRoundA.glb","s":14488},{"n":"tree_pineRoundB.glb","s":18464},{"n":"tree_pineRoundC.glb","s":15332},{"n":"tree_pineRoundD.glb","s":13748},{"n":"tree_pineRoundE.glb","s":15308},{"n":"tree_pineRoundF.glb","s":16264},{"n":"tree_pineSmallA.glb","s":12820},{"n":"tree_pineSmallB.glb","s":7816},{"n":"tree_pineSmallC.glb","s":5376},{"n":"tree_pineSmallD.glb","s":5368},{"n":"tree_pineTallA.glb","s":7200},{"n":"tree_pineTallA_detailed.glb","s":10708},{"n":"tree_pineTallB.glb","s":7204},{"n":"tree_pineTallB_detailed.glb","s":12632},{"n":"tree_pineTallC.glb","s":8080},{"n":"tree_pineTallC_detailed.glb","s":11588},{"n":"tree_pineTallD.glb","s":8080},{"n":"tree_pineTallD_detailed.glb","s":12548},{"n":"tree_plateau.glb","s":16304},{"n":"tree_plateau_dark.glb","s":16308},{"n":"tree_plateau_fall.glb","s":16296},{"n":"tree_simple.glb","s":6500},{"n":"tree_simple_dark.glb","s":6508},{"n":"tree_simple_fall.glb","s":6496},{"n":"tree_small.glb","s":6500},{"n":"tree_small_dark.glb","s":11092},{"n":"tree_small_fall.glb","s":6492},{"n":"tree_tall.glb","s":7000},{"n":"tree_tall_dark.glb","s":7008},{"n":"tree_tall_fall.glb","s":12088},{"n":"tree_thin.glb","s":17200},{"n":"tree_thin_dark.glb","s":32488},{"n":"tree_thin_fall.glb","s":17192}]};</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const errBox = document.getElementById('err'), metaEl = document.getElementById('meta');
+const showErr = (m) => { errBox.style.display = 'block'; errBox.textContent = m; };
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.getElementById('app').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xdfeee2);
+scene.environment = new RoomEnvironment().texture;
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.01, 1000);
+camera.position.set(2.2, 1.8, 2.6);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.5, 0);
+const loader = new GLTFLoader();
+let current = null;
+function fmtKB(b) { return (b / 1024).toFixed(1) + ' KB'; }
+async function loadModel(cat, name) {
+  if (current) { scene.remove(current); current = null; }
+  metaEl.textContent = '読み込み中: ' + name;
+  try {
+    const url = 'Models/GLTF format/' + name;
+    const gltf = await loader.loadAsync(url);
+    current = gltf.scene;
+    scene.add(current);
+    const box = new THREE.Box3().setFromObject(current);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    controls.target.copy(center);
+    const info = CATALOG[cat].find((e) => e.n === name);
+    metaEl.textContent = name + ' (' + fmtKB(info.s) + ')\nsize: '
+      + size.x.toFixed(2) + ' x ' + size.y.toFixed(2) + ' x ' + size.z.toFixed(2) + ' m';
+  } catch (e) { showErr('読み込み失敗: ' + name + ' (' + e.message + ')\n※ http サーバ経由で開いてください'); }
+}
+const catSel = document.getElementById('cat'), modelSel = document.getElementById('model');
+for (const c of Object.keys(CATALOG).sort()) {
+  const o = document.createElement('option'); o.value = c; o.textContent = c + ' (' + CATALOG[c].length + ')'; catSel.appendChild(o);
+}
+function refreshModels() {
+  modelSel.innerHTML = '';
+  for (const e of CATALOG[catSel.value]) {
+    const o = document.createElement('option'); o.value = e.n; o.textContent = e.n; modelSel.appendChild(o);
+  }
+  loadModel(catSel.value, modelSel.value);
+}
+catSel.addEventListener('change', refreshModels);
+modelSel.addEventListener('change', () => loadModel(catSel.value, modelSel.value));
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+(function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); })();
+catSel.value = CATALOG['tree'] ? 'tree' : Object.keys(CATALOG).sort()[0];
+refreshModels();
+</script>
+</body>
+</html>
