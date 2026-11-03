@@ -1,0 +1,29 @@
+{
+  "assetId": "Grass005",
+  "assetName": "Grass 005",
+  "assetType": "material",
+  "source": "ambientCG",
+  "originalUrl": "https://ambientcg.com/a/Grass005",
+  "license": "CC0",
+  "license_url": "https://ambientcg.com/license",
+  "credit": "Created using assets from ambientCG.com, licensed under the Creative Commons CC0 1.0 Universal License.",
+  "resolution": "1K",
+  "fileFormat": "JPG",
+  "downloadedFiles": [
+    "Grass005_1K-JPG.zip",
+    "Grass005_1K-JPG.blend",
+    "Grass005_1K-JPG.mtlx",
+    "Grass005_1K-JPG.tres",
+    "Grass005_1K-JPG.usdc",
+    "Grass005_1K-JPG_AmbientOcclusion.jpg",
+    "Grass005_1K-JPG_Color.jpg",
+    "Grass005_1K-JPG_Displacement.jpg",
+    "Grass005_1K-JPG_NormalDX.jpg",
+    "Grass005_1K-JPG_NormalGL.jpg",
+    "Grass005_1K-JPG_Roughness.jpg",
+    "Grass005.png"
+  ],
+  "total_bytes": 10442657,
+  "downloaded_at": "2026-11-03T10:35:00.000Z",
+  "downloadDate": "2026-11-03T10:35:00.000Z"
+}
