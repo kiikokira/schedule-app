@@ -11,6 +11,7 @@ import {
 import RpgMap, { type PlayingState } from './RpgMap'
 import RpgWorldSelect from './RpgWorldSelect'
 import RpgGrassMap from './RpgGrassMap'
+import RpgWorld3d from './RpgWorld3d'
 
 export const RPG_ENTER_DELAY_MS = 1600
 export const RPG_EDGE_MS: Record<EdgeKind, number> = { walk: 550, ladder: 750, jump: 700 }
@@ -42,6 +43,7 @@ export default function RpgAdventure({ level, token, todayPages = 0, totalPages 
   const [entering, setEntering] = useState(false)
   const [playing, setPlaying] = useState<PlayingState>(null)
   const [grassOpen, setGrassOpen] = useState(false)
+  const [world3dOpen, setWorld3dOpen] = useState(false)
   const timers = useRef<number[]>([])
 
   useEffect(() => () => {
@@ -63,6 +65,7 @@ export default function RpgAdventure({ level, token, todayPages = 0, totalPages 
     if (id === selected || busy) return
     setPlaying(null)
     setGrassOpen(false)
+    setWorld3dOpen(false)
     setEntering(true)
     later(RPG_ENTER_DELAY_MS, () => {
       setSelected(id)
@@ -108,7 +111,26 @@ export default function RpgAdventure({ level, token, todayPages = 0, totalPages 
         </div>
       ) : (
         <div style={{ marginTop: 8 }}>
-          {selected === 1 && grassOpen ? (
+          {selected === 1 && world3dOpen ? (
+            <>
+              <RpgWorld3d
+                todayPages={todayPages}
+                totalPages={totalPages}
+                firstBookId={firstBookId}
+                hasBooks={hasBooks}
+                onStageAction={onStageAction}
+                onBack={() => setWorld3dOpen(false)}
+              />
+              <button
+                data-testid="rpg-3d-close"
+                type="button"
+                onClick={() => setWorld3dOpen(false)}
+                style={{ marginTop: 8, width: '100%' }}
+              >
+                簡易マップにもどる
+              </button>
+            </>
+          ) : selected === 1 && grassOpen ? (
             <>
               <RpgGrassMap
                 todayPages={todayPages}
@@ -139,6 +161,17 @@ export default function RpgAdventure({ level, token, todayPages = 0, totalPages 
                   style={{ marginTop: 8, width: '100%', fontWeight: 800 }}
                 >
                   草原ワールド（立体版）であそぶ
+                </button>
+              )}
+              {selected === 1 && (
+                <button
+                  data-testid="rpg-3d-open"
+                  type="button"
+                  onClick={() => setWorld3dOpen(true)}
+                  disabled={busy}
+                  style={{ marginTop: 8, width: '100%', fontWeight: 800 }}
+                >
+                  草原ワールド3Dであそぶ
                 </button>
               )}
               <button

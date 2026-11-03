@@ -57,4 +57,12 @@ describe('RpgAdventure', () => {
     fireEvent.click(screen.getByTestId('rpg-grass-close'))
     expect(screen.getByTestId('rpg-map')).toBeInTheDocument()
   })
+
+  it('opens the 3D grass world from world 1', () => {
+    render(<RpgAdventure level={3} token="🌱" />)
+    fireEvent.click(screen.getByTestId('rpg-3d-open'))
+    expect(screen.getByTestId('rpg-world3d')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('rpg-3d-close'))
+    expect(screen.getByTestId('rpg-map')).toBeInTheDocument()
+  })
 })

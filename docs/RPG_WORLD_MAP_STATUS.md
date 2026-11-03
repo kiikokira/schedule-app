@@ -1,7 +1,18 @@
 # RPGワールドマップ 進捗ステータス
 
-最終仕様: `src/RPG_World_Map_Prompt_v3.md`（最上位） + `src/OpenCode_AGENTS_Addendum.md`
+最終仕様（v4）: `src/RPG_World_Map_OpenCode_Prompt_v4.md`（最上位）。v3仕様の成果（2.5D版）は破壊せず残置。
 このファイルは複数フェーズ作業の再開用 ledger。完了/未完了/未検証を区別する。
+
+## v4 実績（2026-11-04・3D再構築）
+
+- Phase 1: `docs/RPG_PROJECT_AUDIT.md` 作成（技術・Git・Blender実名ツール・素材手段・方針）。
+- Phase 2: Kenney 16種・ambientCG Grass005（3マップ）・Poly Haven planks（2マップ）をBlenderへ実適用。
+- Phase 3: `artifacts/3d/source_blender/world1_grassland_source.blend`（222 objects）→ `world1_grassland.glb` 1.76MB（98 meshes/5 images/22 materials）＋ `world1_graph.json`（nodes16/paths17）。
+- Phase 4: `player_character_source.blend`（Sola・21ボーン・rigid skin）→ `player_character.glb` 332KB（anims24/skins1、全名列挙検証）。
+- Phase 5: three 0.187 ランタイム `RpgWorld3d.tsx`（GLB並列読込＋進捗UI・Mixer・追従/全体カメラ・D-pad/キー/タップ・保存・クリーンアップ）。
+- Phase 6-8: 3D移動（Catmull-Rom中心線・arc・分岐・タップBFS）・特殊（jump/ladder/stairs/slope/fall＋逆走）・ステージ3・W1サムネ実写化。
+- Phase 10: 本報告の検証節を参照。受け入れ21項目のうち3D・主人公・操作・カメラ・進行の主要項目を達成（詳細は `docs/RPG_IMPLEMENTATION_REPORT.md`）。
+- 未着手: W2〜W9の3D化、水泳経路、App直接遷移配線、カメラコリジョン、GLB更なる軽量化（Draco等）。
 
 ## 調査結果（Step1, 2026-11-04）
 

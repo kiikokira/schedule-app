@@ -21,7 +21,8 @@ export const DEFAULT_RPG_PROGRESS: RpgProgressState = {
   visitedWorldIds: [],
   clearedStageIds: [],
   unlockedStageIds: ['grass-stage-1'],
-  unlockedPathIds: ['g-p0', 'g-p1', 'g-p2a', 'g-p3a', 'g-p4a'],
+  // 2.5D SVG版 (g-*) と3D版 (p*) の両方の初期解放パスを保持する。ID衝突なし。
+  unlockedPathIds: ['g-p0', 'g-p1', 'g-p2a', 'g-p3a', 'g-p4a', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p7', 'p8', 'p9', 'p10'],
   lastKnownNodeId: { '1': 'g-n0' },
   settings: { reducedMotion: false },
 }

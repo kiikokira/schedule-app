@@ -22,6 +22,8 @@ export type MoveState =
   | 'SWIM_EXIT'
   | 'ENTER_BUILDING'
   | 'EXIT_BUILDING'
+  | 'ENTER_CAVE'
+  | 'EXIT_CAVE'
   | 'ENTER_STAGE'
   | 'RETURN_STAGE'
   | 'EVENT'
@@ -72,6 +74,8 @@ const LOCKED: Set<MoveState> = new Set([  'JUMP_PREPARE',
   'LAND',
   'FALL',
   'ENTER_STAGE',
+  'ENTER_CAVE',
+  'EXIT_CAVE',
   'RETURN_STAGE',
   'EVENT',
 ])

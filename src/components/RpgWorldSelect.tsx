@@ -9,6 +9,17 @@ type Props = {
 }
 
 function ThemePreview({ world }: { world: WorldDef }) {
+  if (world.id === 1) {
+    return (
+      <img
+        src={`${import.meta.env.BASE_URL}rpg/thumb-w1.png`}
+        alt={`${world.name}の3Dプレビュー`}
+        width="72"
+        height="40"
+        style={{ borderRadius: 5, objectFit: 'cover', display: 'block' }}
+      />
+    )
+  }
   return (
     <svg viewBox="0 0 48 30" width="40" height="26" role="img" aria-label={`${world.name}のプレビュー`}>
       <rect x="0" y="0" width="48" height="30" rx="5" fill={world.sky[0]} />
