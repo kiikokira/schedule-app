@@ -46,4 +46,19 @@ describe('rpgProgress', () => {
     expect(loaded.currentWorldId).toBe(1)
     expect(loaded.visitedWorldIds).toContain(1)
   })
+
+  it('migrates old saves without 3D paths to include default 3D unlocks (all worlds can move)', () => {
+    const oldSave = {
+      ...DEFAULT_RPG_PROGRESS,
+      unlockedPathIds: ['g-p0', 'g-p1', 'g-p2a', 'g-p3a', 'g-p4a'],
+      unlockedStageIds: ['grass-stage-1'],
+    }
+    localStorage.setItem(RPG_PROGRESS_KEY, JSON.stringify(oldSave))
+    const loaded = loadRpgProgress()
+    // 旧セーブのg-*は保持しつつ、3D用p*をマージする
+    expect(loaded.unlockedPathIds).toEqual(expect.arrayContaining(['g-p0', 'g-p1']))
+    for (const p of ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p7', 'p8', 'p9', 'p10', 'w4-swim-walk', 'w4-swim']) {
+      expect(loaded.unlockedPathIds).toContain(p)
+    }
+  })
 })

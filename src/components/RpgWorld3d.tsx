@@ -184,7 +184,9 @@ export default function RpgWorld3d({
   const [graph, setGraph] = useState<W3Graph | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [progress, setProgress] = useState<RpgProgressState>(() => initialProgress ?? loadRpgProgress())
-  const [currentNodeId, setCurrentNodeId] = useState(initialNodeId ?? initialProgress?.lastKnownNodeId?.[cfg.progressKey] ?? 'n0')
+  const [currentNodeId, setCurrentNodeId] = useState(
+    () => initialNodeId ?? (initialProgress ?? loadRpgProgress()).lastKnownNodeId?.[cfg.progressKey] ?? 'n0',
+  )
   const [cameraMode, setCameraMode] = useState<'follow' | 'overview'>(initialCameraMode)
   const [anim, setAnimState] = useState<MoveState>('IDLE')
   const [panelStageId, setPanelStageId] = useState<string | null>(null)
@@ -219,16 +221,16 @@ export default function RpgWorld3d({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [cfg.graph])
 
-  // 訪問記録
+  // 訪問記録（全ワールド対応: 固定1ではなく現在のworldIdを記録する）
   useEffect(() => {
     setProgress((prev) => {
-      const next = markWorldVisited(prev, 1)
+      const next = markWorldVisited(prev, worldId)
       saveRpgProgress(next)
       return next
     })
-  }, [])
+  }, [worldId])
 
   useEffect(() => {
     if (!graph || !mountRef.current) return
@@ -447,7 +449,7 @@ export default function RpgWorld3d({
             best = { step: { path: p, fromId: live.nodeId, toId: to, length: pathLength3d(graph, p.id, live.nodeId) }, dot }
           }
         }
-        if (best && best.dot > 0.25) {
+        if (best && best.dot > 0) {
           setPanelStageId(null)
           startRoute([best.step], false)
         }
@@ -835,11 +837,11 @@ export default function RpgWorld3d({
       <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'stretch' }}>
         <div data-testid="rpg-3d-pad" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 52px)', gridTemplateRows: 'repeat(2, 44px)', gap: 4, touchAction: 'none' }}>
           <span />
-          <button data-testid="rpg-3d-up" type="button" aria-label="北へ" onPointerDown={() => apiRef.current?.stepToward(0, -1)} style={{ minHeight: 44 }}>▲</button>
+          <button data-testid="rpg-3d-up" type="button" aria-label="北へ" onPointerDown={() => apiRef.current?.stepToward(0, -1)} onClick={() => apiRef.current?.stepToward(0, -1)} style={{ minHeight: 44 }}>▲</button>
           <span />
-          <button data-testid="rpg-3d-left" type="button" aria-label="西へ" onPointerDown={() => apiRef.current?.stepToward(-1, 0)} style={{ minHeight: 44 }}>◀</button>
-          <button data-testid="rpg-3d-down" type="button" aria-label="南へ" onPointerDown={() => apiRef.current?.stepToward(0, 1)} style={{ minHeight: 44 }}>▼</button>
-          <button data-testid="rpg-3d-right" type="button" aria-label="東へ" onPointerDown={() => apiRef.current?.stepToward(1, 0)} style={{ minHeight: 44 }}>▶</button>
+          <button data-testid="rpg-3d-left" type="button" aria-label="西へ" onPointerDown={() => apiRef.current?.stepToward(-1, 0)} onClick={() => apiRef.current?.stepToward(-1, 0)} style={{ minHeight: 44 }}>◀</button>
+          <button data-testid="rpg-3d-down" type="button" aria-label="南へ" onPointerDown={() => apiRef.current?.stepToward(0, 1)} onClick={() => apiRef.current?.stepToward(0, 1)} style={{ minHeight: 44 }}>▼</button>
+          <button data-testid="rpg-3d-right" type="button" aria-label="東へ" onPointerDown={() => apiRef.current?.stepToward(1, 0)} onClick={() => apiRef.current?.stepToward(1, 0)} style={{ minHeight: 44 }}>▶</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
           <button

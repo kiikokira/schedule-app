@@ -63,10 +63,10 @@ function normalize(raw: unknown): RpgProgressState {
     unlockedWorldIds: uniq([...base.unlockedWorldIds, ...asNumberArray(o['unlockedWorldIds'])]) as number[],
     visitedWorldIds: asNumberArray(o['visitedWorldIds']),
     clearedStageIds: asStringArray(o['clearedStageIds']),
-    unlockedStageIds:
-      asStringArray(o['unlockedStageIds']).length > 0 ? asStringArray(o['unlockedStageIds']) : [...base.unlockedStageIds],
-    unlockedPathIds:
-      asStringArray(o['unlockedPathIds']).length > 0 ? asStringArray(o['unlockedPathIds']) : [...base.unlockedPathIds],
+    unlockedStageIds: uniq([...base.unlockedStageIds, ...asStringArray(o['unlockedStageIds'])]) as string[],
+    // 旧セーブ救済: 3D化 (p*/w4-swim*) で追加された初期パスを既存セーブにもマージする。
+    // 従来は非空なら旧配列をそのまま採用していたため、旧ユーザーは3Dで一切移動できなかった。
+    unlockedPathIds: uniq([...base.unlockedPathIds, ...asStringArray(o['unlockedPathIds'])]) as string[],
     lastKnownNodeId: { ...base.lastKnownNodeId, ...lastKnownNodeId },
     settings: { reducedMotion: false },
   }
