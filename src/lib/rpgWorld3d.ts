@@ -105,6 +105,43 @@ export function findRoute3d(g: W3Graph, fromId: string, toId: string, unlocked: 
   return null
 }
 
+export type StepDecision =
+  | { type: 'step'; toId: string; pathId: string; dot: number }
+  | { type: 'nudge'; yawDelta: number }
+
+/**
+ * D-pad1押しの行き先決定。移動候補があれば step、なければ視点旋回の nudge。
+ * 候補ゼロで無応答になる設計が「矢印を押しても動かない」という故障知覚の根因のため、
+ * 全押下に可視応答（step または nudge）を返す。nudge は follow カメラの yaw を振り、
+ * tick 側の補間で滑らかに寄る（phase は idle のまま）。
+ */
+export function decideStep(
+  g: W3Graph,
+  fromId: string,
+  dx: number,
+  dz: number,
+  unlocked: Set<string>,
+): StepDecision {
+  const cur = w3NodeById(g, fromId)
+  let best: { toId: string; pathId: string; dot: number } | null = null
+  for (const p of g.paths) {
+    if (!unlocked.has(p.id)) continue
+    let to: string | null = null
+    if (p.from === fromId) to = p.to
+    else if (!p.oneWay && p.to === fromId) to = p.from
+    if (!to) continue
+    const n = w3NodeById(g, to)
+    const vx = n.x - cur.x
+    const vz = n.z - cur.z
+    const len = Math.hypot(vx, vz) || 1
+    const dot = (vx / len) * dx + (vz / len) * dz
+    if (!best || dot > best.dot) best = { toId: to, pathId: p.id, dot }
+  }
+  if (best && best.dot > 0) return { type: 'step', ...best }
+  const yawDelta = dx !== 0 ? dx * 0.55 : dz !== 0 ? dz * 0.35 : 0.55
+  return { type: 'nudge', yawDelta }
+}
+
 function hermite(p0: V3, m0: V3, p1: V3, m1: V3, t: number): V3 {
   const t2 = t * t
   const t3 = t2 * t

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import {
+  decideStep,
   findRoute3d,
   normalizeW3Graph,
   pathLength3d,
@@ -338,6 +339,7 @@ export default function RpgWorld3d({
       camLook: new THREE.Vector3(0, 0, -1),
       paused: false,
       disposed: false,
+      nudgeAt: 0,
     }
     const startN = w3NodeById(graph, live.nodeId)
     live.pos.set(startN.x, startN.y, startN.z)
@@ -432,26 +434,20 @@ export default function RpgWorld3d({
     apiRef.current = {
       stepToward(dx, dz) {
         if (live.moving || live.phase !== 'idle' || cameraModeRef.current === 'overview') return
-        const cur = w3NodeById(graph, live.nodeId)
-        let best: { step: RouteStep; dot: number } | null = null
-        for (const p of graph.paths) {
-          if (!unlockedRef.current.has(p.id)) continue
-          let to: string | null = null
-          if (p.from === live.nodeId) to = p.to
-          else if (!p.oneWay && p.to === live.nodeId) to = p.from
-          if (!to) continue
-          const n = w3NodeById(graph, to)
-          const vx = n.x - cur.x
-          const vz = n.z - cur.z
-          const len = Math.hypot(vx, vz) || 1
-          const dot = (vx / len) * dx + (vz / len) * dz
-          if (!best || dot > best.dot) {
-            best = { step: { path: p, fromId: live.nodeId, toId: to, length: pathLength3d(graph, p.id, live.nodeId) }, dot }
-          }
-        }
-        if (best && best.dot > 0) {
+        const d = decideStep(graph, live.nodeId, dx, dz, unlockedRef.current)
+        if (d.type === 'step') {
+          const path = graph.paths.find((p) => p.id === d.pathId)!
           setPanelStageId(null)
-          startRoute([best.step], false)
+          startRoute(
+            [{ path, fromId: live.nodeId, toId: d.toId, length: pathLength3d(graph, d.pathId, live.nodeId) }],
+            false,
+          )
+        } else {
+          // 移動候補なし: 無応答にせず視点を振る（全押下に可視応答）。phaseはidleのまま。
+          const now = performance.now()
+          if (now - live.nudgeAt < 220) return
+          live.nudgeAt = now
+          live.targetYaw += d.yawDelta
         }
       },
       tapNode(nodeId) {
@@ -620,6 +616,11 @@ export default function RpgWorld3d({
       // 移動
       if (mixer) mixer.update(dt)
       const mode = cameraModeRef.current
+      // 不変条件の修復: turn/prepare/move は pending を必ず伴う。欠けたら idle に戻す（固まり防止）。
+      if ((live.phase === 'turn' || live.phase === 'prepare' || live.phase === 'move') && !live.pending) {
+        live.phase = 'idle'
+        live.moving = false
+      }
       if (live.phase === 'turn' || live.phase === 'prepare') {
         live.phaseTime += dt
         const need = live.phase === 'turn' ? 0.28 : 0.24

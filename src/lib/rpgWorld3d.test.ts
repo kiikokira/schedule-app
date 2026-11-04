@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   W3_DEFAULT_UNLOCKED,
   W3_UNLOCKS,
+  decideStep,
   findRoute3d,
   normalizeW3Graph,
   samplePath3d,
@@ -207,5 +208,60 @@ describe('rpgWorld3d W4 swim route', () => {
     }
     const route = findRoute3d(g, 'w4-swim-out', 'n11', open)!
     expect(route[1]).toBe('w4-swim-in')
+  })
+})
+
+describe('decideStep (D-pad never goes silent)', () => {
+  const g1 = normalizeW3Graph(realGraphJson as unknown as W3Graph)
+  const g3raw = graphModules['../../artifacts/3d/world3_graph.json'].default as unknown as W3Graph
+  const g3 = normalizeW3Graph(g3raw)
+  const open = () => new Set(W3_DEFAULT_UNLOCKED)
+
+  it('w1 start: right/up step forward, left/down nudge the viewpoint instead of silence', () => {
+    const right = decideStep(g1, 'n0', 1, 0, open())
+    expect(right.type).toBe('step')
+    if (right.type === 'step') expect(right.toId).toBe('n1')
+    const up = decideStep(g1, 'n0', 0, -1, open())
+    expect(up.type).toBe('step')
+    const left = decideStep(g1, 'n0', -1, 0, open())
+    expect(left.type).toBe('nudge')
+    if (left.type === 'nudge') expect(left.yawDelta).not.toBe(0)
+    const down = decideStep(g1, 'n0', 0, 1, open())
+    expect(down.type).toBe('nudge')
+    if (down.type === 'nudge') expect(down.yawDelta).not.toBe(0)
+  })
+
+  it('w3 start (mirrored layout): left steps while right nudges', () => {
+    const left = decideStep(g3, 'n0', -1, 0, open())
+    expect(left.type).toBe('step')
+    const right = decideStep(g3, 'n0', 1, 0, open())
+    expect(right.type).toBe('nudge')
+  })
+
+  it('every arrow from n0 in every world yields step or nudge (never silent)', () => {
+    const worlds: W3Graph[] = [g1, normalizeW3Graph(desertGraphJson as unknown as W3Graph)]
+    for (const raw of Object.values(graphModules)) {
+      worlds.push(normalizeW3Graph((raw as { default: W3Graph }).default))
+    }
+    const dirs: [number, number][] = [[0, -1], [0, 1], [-1, 0], [1, 0]]
+    for (const g of worlds) {
+      for (const [dx, dz] of dirs) {
+        const d = decideStep(g, 'n0', dx, dz, open())
+        if (d.type === 'step') {
+          expect(d.dot).toBeGreaterThan(0)
+          expect(d.toId).not.toBe('n0')
+        } else {
+          expect(d.yawDelta).not.toBe(0)
+        }
+      }
+    }
+  })
+
+  it('with nothing unlocked every arrow still nudges (worst-case save)', () => {
+    const empty = new Set<string>()
+    for (const [dx, dz] of [[0, -1], [0, 1], [-1, 0], [1, 0]] as const) {
+      const d = decideStep(g1, 'n0', dx, dz, empty)
+      expect(d.type).toBe('nudge')
+    }
   })
 })
