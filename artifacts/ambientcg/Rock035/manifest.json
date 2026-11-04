@@ -1,0 +1,29 @@
+{
+  "assetId": "Rock035",
+  "assetName": "Rock 035",
+  "assetType": "material",
+  "source": "ambientCG",
+  "originalUrl": "https://ambientcg.com/a/Rock035",
+  "license": "CC0",
+  "license_url": "https://ambientcg.com/license",
+  "credit": "Created using assets from ambientCG.com, licensed under the Creative Commons CC0 1.0 Universal License.",
+  "resolution": "1K",
+  "fileFormat": "JPG",
+  "downloadedFiles": [
+    "Rock035_1K-JPG.zip",
+    "Rock035_1K-JPG.usdc",
+    "Rock035_1K-JPG_AmbientOcclusion.jpg",
+    "Rock035_1K-JPG_Color.jpg",
+    "Rock035_1K-JPG_Displacement.jpg",
+    "Rock035_1K-JPG_NormalDX.jpg",
+    "Rock035_1K-JPG_NormalGL.jpg",
+    "Rock035_1K-JPG_Roughness.jpg",
+    "Rock035_1K-JPG.blend",
+    "Rock035_1K-JPG.mtlx",
+    "Rock035_1K-JPG.tres",
+    "Rock035.png"
+  ],
+  "total_bytes": 9547643,
+  "downloaded_at": "2026-11-04T11:16:26.063Z",
+  "downloadDate": "2026-11-04T11:16:26.063Z"
+}

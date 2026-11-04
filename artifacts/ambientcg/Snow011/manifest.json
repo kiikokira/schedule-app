@@ -1,0 +1,29 @@
+{
+  "assetId": "Snow011",
+  "assetName": "Snow 011",
+  "assetType": "material",
+  "source": "ambientCG",
+  "originalUrl": "https://ambientcg.com/a/Snow011",
+  "license": "CC0",
+  "license_url": "https://ambientcg.com/license",
+  "credit": "Created using assets from ambientCG.com, licensed under the Creative Commons CC0 1.0 Universal License.",
+  "resolution": "1K",
+  "fileFormat": "JPG",
+  "downloadedFiles": [
+    "Snow011_1K-JPG.zip",
+    "Snow011_1K-JPG.usdc",
+    "Snow011_1K-JPG_AmbientOcclusion.jpg",
+    "Snow011_1K-JPG_Color.jpg",
+    "Snow011_1K-JPG_Displacement.jpg",
+    "Snow011_1K-JPG_NormalDX.jpg",
+    "Snow011_1K-JPG_NormalGL.jpg",
+    "Snow011_1K-JPG_Roughness.jpg",
+    "Snow011_1K-JPG.blend",
+    "Snow011_1K-JPG.mtlx",
+    "Snow011_1K-JPG.tres",
+    "Snow011.png"
+  ],
+  "total_bytes": 8693751,
+  "downloaded_at": "2026-11-04T11:16:23.632Z",
+  "downloadDate": "2026-11-04T11:16:23.632Z"
+}

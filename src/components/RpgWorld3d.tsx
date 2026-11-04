@@ -25,8 +25,8 @@ type Props = {
   hasBooks: boolean
   onStageAction?: (stageId: string, target: string) => void
   onBack?: () => void
-  /** 3DワールドID（1=草原・2=砂漠）。省略時は1。 */
-  worldId?: 1 | 2
+  /** 3DワールドID（1=草原〜9=幻想）。省略時は1。 */
+  worldId?: number
   initialNodeId?: string
   initialCameraMode?: 'follow' | 'overview'
   initialProgress?: RpgProgressState
@@ -47,34 +47,105 @@ type World3dConfig = {
   nodeLabels: Record<string, string>
   stageTitles: Record<string, string>
   stageOrder: string[]
+  sky: { bg: string; horizon: string; top: string; fog: string }
 }
 
-const WORLD3D_CONFIG: Record<1 | 2, World3dConfig> = {
+const N = (
+  n0: string, n1: string, n2: string, n3a: string, n3b: string, n4: string,
+  n5a: string, n5b: string, n5c: string, n5d: string,
+  n6: string, n7: string, n8: string, n9: string, n10: string, n11: string,
+): Record<string, string> => ({ n0, n1, n2, n3a, n3b, n4, n5a, n5b, n5c, n5d, n6, n7, n8, n9, n10, n11 })
+
+const WORLD3D_CONFIG: Record<number, World3dConfig> = {
   1: {
     glb: `${BASE}rpg/world1_grassland.glb`,
     graph: `${BASE}rpg/world1_graph.json`,
     title: '草原ワールド3D・風見の丘陵',
     progressKey: '3d-1',
-    nodeLabels: {
-      n0: 'はじまりの門', n1: '花畑', n2: '西の道', n3a: '橋のたもと', n3b: '橋のむこう',
-      n4: 'わかれ道', n5a: '階段下', n5b: '丘の上', n5c: 'はしご下', n5d: 'はしご上',
-      n6: '丘の小屋', n7: '崖っぷち', n8: '風見の丘', n9: '洞窟まえ', n10: '帰り道', n11: '出口の門',
-    },
+    nodeLabels: N('はじまりの門', '花畑', '西の道', '橋のたもと', '橋のむこう', 'わかれ道', '階段下', '丘の上', 'はしご下', 'はしご上', '丘の小屋', '崖っぷち', '風見の丘', '洞窟まえ', '帰り道', '出口の門'),
     stageTitles: { 'grass-stage-1': '丘の小屋', 'grass-stage-2': '風見の丘', 'grass-stage-3': '洞窟まえ' },
     stageOrder: ['grass-stage-1', 'grass-stage-2', 'grass-stage-3'],
+    sky: { bg: '#8fc7f5', horizon: '#d8efff', top: '#4f9df0', fog: '#cfe4f5' },
   },
   2: {
     glb: `${BASE}rpg/world2_desert.glb`,
     graph: `${BASE}rpg/world2_graph.json`,
     title: '砂漠ワールド3D・黄金の砂海',
     progressKey: '3d-2',
-    nodeLabels: {
-      n0: '旅立ちの門', n1: '砂の道', n2: '西の砂丘', n3a: '涸れ川のたもと', n3b: '橋のむこう',
-      n4: 'わかれ道', n5a: '階段下', n5b: 'メサの上', n5c: 'はしご下', n5d: 'はしご上',
-      n6: '日干し小屋', n7: '崖っぷち', n8: '風紋の丘', n9: '遺跡まえ', n10: '帰り道', n11: '出口の門',
-    },
+    nodeLabels: N('旅立ちの門', '砂の道', '西の砂丘', '涸れ川のたもと', '橋のむこう', 'わかれ道', '階段下', 'メサの上', 'はしご下', 'はしご上', '日干し小屋', '崖っぷち', '風紋の丘', '遺跡まえ', '帰り道', '出口の門'),
     stageTitles: { 'desert-stage-1': '日干し小屋', 'desert-stage-2': '風紋の丘', 'desert-stage-3': '遺跡まえ' },
     stageOrder: ['desert-stage-1', 'desert-stage-2', 'desert-stage-3'],
+    sky: { bg: '#93c9f2', horizon: '#f2e4c8', top: '#5aa8ec', fog: '#e8d9b8' },
+  },
+  3: {
+    glb: `${BASE}rpg/world3_snow.glb`,
+    graph: `${BASE}rpg/world3_graph.json`,
+    title: '雪原ワールド3D・白銀の雪稜',
+    progressKey: '3d-3',
+    nodeLabels: N('ゆきの門', '雪原の道', '東の森', '凍り川のたもと', '橋のむこう', 'わかれ道', '階段下', '雪の丘', 'はしご下', 'はしご上', '山小屋', '崖っぷち', '雪見の丘', '氷の洞窟', '帰り道', '出口の門'),
+    stageTitles: { 'snow-stage-1': '山小屋', 'snow-stage-2': '雪見の丘', 'snow-stage-3': '氷の洞窟' },
+    stageOrder: ['snow-stage-1', 'snow-stage-2', 'snow-stage-3'],
+    sky: { bg: '#9ecdf2', horizon: '#eef6ff', top: '#5f9fe8', fog: '#dceaf7' },
+  },
+  4: {
+    glb: `${BASE}rpg/world4_sea.glb`,
+    graph: `${BASE}rpg/world4_graph.json`,
+    title: '海ワールド3D・青い多島海',
+    progressKey: '3d-4',
+    nodeLabels: N('うみの門', '浜の道', '西の入江', '浅瀬のたもと', '橋のむこう', 'わかれ道', '階段下', '丘の上', 'はしご下', 'はしご上', '海のテント', '崖っぷち', '見晴らし丘', '洞窟まえ', '帰り道', '出口の門'),
+    stageTitles: { 'sea-stage-1': '海のテント', 'sea-stage-2': '見晴らし丘', 'sea-stage-3': '洞窟まえ' },
+    stageOrder: ['sea-stage-1', 'sea-stage-2', 'sea-stage-3'],
+    sky: { bg: '#6ec2ee', horizon: '#d8f2ff', top: '#3f9ae0', fog: '#c4e4f2' },
+  },
+  5: {
+    glb: `${BASE}rpg/world5_forest.glb`,
+    graph: `${BASE}rpg/world5_graph.json`,
+    title: '深森ワールド3D・古代の深森',
+    progressKey: '3d-5',
+    nodeLabels: N('森の門', '苔の道', '東の林', '小川のたもと', '橋のむこう', 'わかれ道', '階段下', '木漏れ日の丘', 'はしご下', 'はしご上', '森の小屋', '崖っぷち', '巨木の丘', '大樹の洞', '帰り道', '出口の門'),
+    stageTitles: { 'forest-stage-1': '森の小屋', 'forest-stage-2': '巨木の丘', 'forest-stage-3': '大樹の洞' },
+    stageOrder: ['forest-stage-1', 'forest-stage-2', 'forest-stage-3'],
+    sky: { bg: '#7fc0e8', horizon: '#dcf0dc', top: '#4f9ad0', fog: '#c8e0d0' },
+  },
+  6: {
+    glb: `${BASE}rpg/world6_rock.glb`,
+    graph: `${BASE}rpg/world6_graph.json`,
+    title: '岩山ワールド3D・岩峰の峡谷',
+    progressKey: '3d-6',
+    nodeLabels: N('岩の門', '岩の道', '西の岩場', '渓谷のたもと', '橋のむこう', 'わかれ道', '階段下', '頂の丘', 'はしご下', 'はしご上', '山小屋', '崖っぷち', '岩の丘', '岩の洞窟', '帰り道', '出口の門'),
+    stageTitles: { 'rock-stage-1': '山小屋', 'rock-stage-2': '岩の丘', 'rock-stage-3': '岩の洞窟' },
+    stageOrder: ['rock-stage-1', 'rock-stage-2', 'rock-stage-3'],
+    sky: { bg: '#7a92ac', horizon: '#d0dce8', top: '#4a6a8c', fog: '#bcc8d4' },
+  },
+  7: {
+    glb: `${BASE}rpg/world7_cloud.glb`,
+    graph: `${BASE}rpg/world7_graph.json`,
+    title: '雲ワールド3D・雲上の浮島',
+    progressKey: '3d-7',
+    nodeLabels: N('雲の門', '雲の道', '東の島', '空橋のたもと', '橋のむこう', 'わかれ道', '階段下', '丘の上', 'はしご下', 'はしご上', '雲の家', '崖っぷち', '風見の丘', '霧の洞', '帰り道', '出口の門'),
+    stageTitles: { 'cloud-stage-1': '雲の家', 'cloud-stage-2': '風見の丘', 'cloud-stage-3': '霧の洞' },
+    stageOrder: ['cloud-stage-1', 'cloud-stage-2', 'cloud-stage-3'],
+    sky: { bg: '#6fb8f5', horizon: '#e8f4ff', top: '#3f8fe8', fog: '#d4e8fa' },
+  },
+  8: {
+    glb: `${BASE}rpg/world8_lava.glb`,
+    graph: `${BASE}rpg/world8_graph.json`,
+    title: '火山ワールド3D・赤熱の火山地帯',
+    progressKey: '3d-8',
+    nodeLabels: N('黒岩の門', '溶岩の道', '西の岩場', '熱川のたもと', '橋のむこう', 'わかれ道', '階段下', '火口の丘', 'はしご下', 'はしご上', '溶岩の小屋', '崖っぷち', '黒曜の丘', '炎の洞窟', '帰り道', '出口の門'),
+    stageTitles: { 'lava-stage-1': '溶岩の小屋', 'lava-stage-2': '黒曜の丘', 'lava-stage-3': '炎の洞窟' },
+    stageOrder: ['lava-stage-1', 'lava-stage-2', 'lava-stage-3'],
+    sky: { bg: '#5a3a44', horizon: '#c0785a', top: '#2e1e28', fog: '#6a4038' },
+  },
+  9: {
+    glb: `${BASE}rpg/world9_star.glb`,
+    graph: `${BASE}rpg/world9_graph.json`,
+    title: '幻想ワールド3D・星明かりの幻想郷',
+    progressKey: '3d-9',
+    nodeLabels: N('星の門', '星屑の道', '東の丘', '天の川のたもと', '橋のむこう', 'わかれ道', '階段下', '月光の丘', 'はしご下', 'はしご上', '星屑の小屋', '崖っぷち', '結晶の丘', '結晶洞', '帰り道', '出口の門'),
+    stageTitles: { 'star-stage-1': '星屑の小屋', 'star-stage-2': '結晶の丘', 'star-stage-3': '結晶洞' },
+    stageOrder: ['star-stage-1', 'star-stage-2', 'star-stage-3'],
+    sky: { bg: '#5a5a9a', horizon: '#c8b8e8', top: '#2e2e5a', fog: '#7a6aaa' },
   },
 }
 
@@ -107,7 +178,7 @@ export default function RpgWorld3d({
   todayPages, totalPages, firstBookId, hasBooks, onStageAction, onBack,
   worldId = 1, initialNodeId, initialCameraMode = 'follow', initialProgress, autoRoute,
 }: Props) {
-  const cfg = WORLD3D_CONFIG[worldId]
+  const cfg = WORLD3D_CONFIG[worldId] ?? WORLD3D_CONFIG[1]
   const mountRef = useRef<HTMLDivElement | null>(null)
   const [graph, setGraph] = useState<W3Graph | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -174,8 +245,8 @@ export default function RpgWorld3d({
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
     mount.appendChild(renderer.domElement)
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color('#8fc7f5')
-    scene.fog = new THREE.Fog('#cfe4f5', 42, 175)
+    scene.background = new THREE.Color(cfg.sky.bg)
+    scene.fog = new THREE.Fog(cfg.sky.fog, 42, 175)
     const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 400)
 
     const hemi = new THREE.HemisphereLight('#cfe8ff', '#6a9a55', 1.05)
@@ -195,8 +266,8 @@ export default function RpgWorld3d({
     const skyGeo = new THREE.SphereGeometry(160, 16, 12)
     const skyMat = new THREE.MeshBasicMaterial({ side: THREE.BackSide, fog: false })
     const skyColors = new Float32Array(skyGeo.attributes.position.count * 3)
-    const top = new THREE.Color('#4f9df0')
-    const horizon = new THREE.Color('#d8efff')
+    const top = new THREE.Color(cfg.sky.top)
+    const horizon = new THREE.Color(cfg.sky.horizon)
     const pos = skyGeo.attributes.position
     for (let i = 0; i < pos.count; i++) {
       const t = THREE.MathUtils.clamp(pos.getY(i) / 160, -0.1, 1)

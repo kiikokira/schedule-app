@@ -73,4 +73,16 @@ describe('RpgAdventure', () => {
     fireEvent.click(screen.getByTestId('rpg-3d-close'))
     expect(screen.getByTestId('rpg-map')).toBeInTheDocument()
   })
+
+  it.each([
+    [3, 23], [4, 33], [5, 43], [6, 53], [7, 63], [8, 73], [9, 83],
+  ])('opens the 3D view from world %i (level %i)', (world, level) => {
+    void world
+    const { unmount } = render(<RpgAdventure level={level} token="🌱" />)
+    fireEvent.click(screen.getByTestId('rpg-3d-open'))
+    expect(screen.getByTestId('rpg-world3d')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('rpg-3d-close'))
+    expect(screen.getByTestId('rpg-map')).toBeInTheDocument()
+    unmount()
+  })
 })

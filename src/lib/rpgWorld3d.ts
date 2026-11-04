@@ -23,15 +23,16 @@ export function pathArc(p: W3Path): number {
 export type W3Graph = { nodes: W3Node[]; paths: W3Path[] }
 
 export const W3_DEFAULT_UNLOCKED: string[] = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p7', 'p8', 'p9', 'p10']
-// W1とW2でパスID体系を共有するため解放表も共有する
-export const W3_UNLOCKS: Record<string, string[]> = {
-  'grass-stage-1': ['p6', 'p16', 'p11', 'p12'],
-  'grass-stage-2': ['p13'],
-  'grass-stage-3': ['p14', 'p15'],
-  'desert-stage-1': ['p6', 'p16', 'p11', 'p12'],
-  'desert-stage-2': ['p13'],
-  'desert-stage-3': ['p14', 'p15'],
+// 全9ワールドでパスID体系を共有するため、解放表は接尾辞ごとに生成する
+const W3_STAGE_UNLOCKS: Record<string, string[]> = {
+  'stage-1': ['p6', 'p16', 'p11', 'p12'],
+  'stage-2': ['p13'],
+  'stage-3': ['p14', 'p15'],
 }
+const W3_PREFIXES = ['grass', 'desert', 'snow', 'sea', 'forest', 'rock', 'cloud', 'lava', 'star']
+export const W3_UNLOCKS: Record<string, string[]> = Object.fromEntries(
+  W3_PREFIXES.flatMap((pre) => Object.entries(W3_STAGE_UNLOCKS).map(([suf, paths]) => [`${pre}-${suf}`, paths])),
+)
 
 export function w3NodeById(g: W3Graph, id: string): W3Node {
   const n = g.nodes.find((v) => v.id === id)

@@ -1,0 +1,236 @@
+{
+ "nodes": [
+  {
+   "id": "n0",
+   "kind": "start",
+   "x": 9,
+   "z": 7.5,
+   "y": -0.111
+  },
+  {
+   "id": "n1",
+   "x": 6,
+   "z": 7,
+   "y": -0.136
+  },
+  {
+   "id": "n2",
+   "x": 3,
+   "z": 5.5,
+   "y": 0.169
+  },
+  {
+   "id": "n3a",
+   "x": 1.8,
+   "z": 4.2,
+   "y": -0.086
+  },
+  {
+   "id": "n3b",
+   "x": -2.3,
+   "z": 3.2,
+   "y": 0.019
+  },
+  {
+   "id": "n4",
+   "kind": "branch",
+   "x": -4.5,
+   "z": 1.5,
+   "y": -0.413
+  },
+  {
+   "id": "n5a",
+   "x": -5.5,
+   "z": -0.5,
+   "y": -0.012
+  },
+  {
+   "id": "n5b",
+   "x": -4.2,
+   "z": -5.2,
+   "y": 2.746
+  },
+  {
+   "id": "n5c",
+   "kind": "ladder_bottom",
+   "x": -6.8,
+   "z": -0.2,
+   "y": -0.028
+  },
+  {
+   "id": "n5d",
+   "kind": "ladder_top",
+   "x": -6.2,
+   "z": -3.0,
+   "y": 2.684
+  },
+  {
+   "id": "n6",
+   "kind": "stage",
+   "stageId": "snow-stage-1",
+   "x": -5.0,
+   "z": -6.8,
+   "y": 2.955
+  },
+  {
+   "id": "n7",
+   "kind": "jump_from",
+   "x": -7.8,
+   "z": -5.8,
+   "y": 1.652
+  },
+  {
+   "id": "n8",
+   "kind": "stage",
+   "stageId": "snow-stage-2",
+   "x": -10.8,
+   "z": -5.6,
+   "y": 2.051
+  },
+  {
+   "id": "n9",
+   "kind": "stage",
+   "stageId": "snow-stage-3",
+   "x": -8.0,
+   "z": -9.5,
+   "y": 0.021
+  },
+  {
+   "id": "n10",
+   "x": -3.5,
+   "z": -10.5,
+   "y": 0.581
+  },
+  {
+   "id": "n11",
+   "kind": "gate",
+   "x": 4,
+   "z": -10,
+   "y": -0.031
+  }
+ ],
+ "paths": [
+  {
+   "id": "p0",
+   "from": "n0",
+   "to": "n1",
+   "kind": "walk",
+   "speed": 2.2
+  },
+  {
+   "id": "p1",
+   "from": "n1",
+   "to": "n2",
+   "kind": "walk",
+   "speed": 2.2
+  },
+  {
+   "id": "p2",
+   "from": "n2",
+   "to": "n3a",
+   "kind": "walk",
+   "speed": 2.2
+  },
+  {
+   "id": "p3",
+   "from": "n3a",
+   "to": "n3b",
+   "kind": "bridge",
+   "speed": 2.0,
+   "arcHeight": 0.781
+  },
+  {
+   "id": "p4",
+   "from": "n3b",
+   "to": "n4",
+   "kind": "walk",
+   "speed": 2.2
+  },
+  {
+   "id": "p5",
+   "from": "n4",
+   "to": "n5a",
+   "kind": "walk",
+   "speed": 2.2
+  },
+  {
+   "id": "p6",
+   "from": "n5a",
+   "to": "n5b",
+   "kind": "stairs_up",
+   "speed": 1.3
+  },
+  {
+   "id": "p7",
+   "from": "n4",
+   "to": "n5c",
+   "kind": "walk",
+   "speed": 2.2
+  },
+  {
+   "id": "p8",
+   "from": "n5c",
+   "to": "n5d",
+   "kind": "ladder_up",
+   "speed": 1.0
+  },
+  {
+   "id": "p9",
+   "from": "n5d",
+   "to": "n6",
+   "kind": "walk",
+   "speed": 2.2
+  },
+  {
+   "id": "p10",
+   "from": "n5b",
+   "to": "n6",
+   "kind": "walk",
+   "speed": 2.2
+  },
+  {
+   "id": "p11",
+   "from": "n6",
+   "to": "n7",
+   "kind": "run",
+   "speed": 3.6
+  },
+  {
+   "id": "p12",
+   "from": "n7",
+   "to": "n8",
+   "kind": "jump",
+   "speed": 3.2,
+   "oneWay": true,
+   "arcHeight": 1.6
+  },
+  {
+   "id": "p13",
+   "from": "n8",
+   "to": "n9",
+   "kind": "slope_down",
+   "speed": 1.8
+  },
+  {
+   "id": "p14",
+   "from": "n9",
+   "to": "n10",
+   "kind": "walk",
+   "speed": 2.2
+  },
+  {
+   "id": "p15",
+   "from": "n10",
+   "to": "n11",
+   "kind": "walk",
+   "speed": 2.2
+  },
+  {
+   "id": "p16",
+   "from": "n5b",
+   "to": "n5d",
+   "kind": "walk",
+   "speed": 2.2
+  }
+ ]
+}

@@ -236,6 +236,292 @@
         "RpgWorld3d worldId=2"
       ],
       "notes": "デューン地形H2・メサ・ワジ・オアシス・遺跡。道リボンと経路JSONは同一スクリプト生成。p3橋はraycast実測でarcHeight付与。ladder rise 2.62m, jump gap 3.01m をassert検証。"
+    },
+    {
+      "source": "Kenney",
+      "assetName": "Nature Kit snow/forest/rock/cloud/star models",
+      "assetId": "nature-kit",
+      "sourceUrl": "https://kenney.nl/assets/nature-kit",
+      "license": "CC0 (https://kenney.nl/support)",
+      "downloadedFiles": [
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_pineTallA_detailed.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_pineTallB_detailed.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_pineDefaultA.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_oak.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_detailed.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_fat.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_thin.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_palmShort.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_palmTall.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_palmDetailedShort.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_palmBend.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_pineSmallA.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_pineSmallB.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/tree_pineSmallC.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/rock_smallC.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/rock_smallD.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/rock_tallC.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/rock_largeB.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/rock_largeC.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/rock_largeD.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/rock_smallFlatA.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/rock_smallFlatB.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/stone_largeA.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/stone_smallA.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/stone_tallA.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/stone_tallB.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/bridge_woodRound.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/bridge_woodNarrow.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/bridge_stoneNarrow.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/bridge_stoneRound.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/stump_roundDetailed.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/stump_square.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/mushroom_redGroup.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/mushroom_redTall.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/mushroom_tanGroup.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/mushroom_tanTall.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/plant_bushLarge.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/plant_bushDetailed.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/plant_bushLargeTriangle.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/campfire_logs.glb",
+        "artifacts/kenney/nature-kit/Models/GLTF format/path_stoneCircle.glb"
+      ],
+      "usedInBlender": [
+        "W3-W9 pines/oaks/palms",
+        "W3-W9 rocks/stones",
+        "W4 tent/jetty area",
+        "W5 stumps/mushrooms/bushes",
+        "W6 cliffs/falls",
+        "W7 pads",
+        "W8 camp",
+        "W9 mushrooms/crystal accents"
+      ],
+      "usedInGame": [
+        "public/rpg/world3_snow.glb",
+        "public/rpg/world4_sea.glb",
+        "public/rpg/world5_forest.glb",
+        "public/rpg/world6_rock.glb",
+        "public/rpg/world7_cloud.glb",
+        "public/rpg/world8_lava.glb",
+        "public/rpg/world9_star.glb",
+        "RpgWorld3d worldId=3..9"
+      ],
+      "notes": "import_scene.gltf配置・回転・スケール。重複マテリアルはベースへ統合。W7は円盤パッド・雲パフと併用。"
+    },
+    {
+      "source": "ambientCG",
+      "assetName": "Snow011 1K-JPG set",
+      "assetId": "Snow011",
+      "sourceUrl": "https://ambientcg.com/a/Snow011",
+      "license": "CC0 1.0 Universal (https://docs.ambientcg.com/license/)",
+      "downloadedFiles": [
+        "artifacts/ambientcg/Snow011/Snow011_1K-JPG_Color.jpg",
+        "artifacts/ambientcg/Snow011/Snow011_1K-JPG_NormalGL.jpg",
+        "artifacts/ambientcg/Snow011/Snow011_1K-JPG_Roughness.jpg"
+      ],
+      "usedInBlender": [
+        "W3_SnowTop (UVx6)"
+      ],
+      "usedInGame": [
+        "public/rpg/world3_snow.glb (embedded)"
+      ],
+      "notes": "ambientcg_downloadで取得。512pxへ縮小（原本 untouched）。GLBへ埋込。"
+    },
+    {
+      "source": "ambientCG",
+      "assetName": "Rock030 1K-JPG set",
+      "assetId": "Rock030",
+      "sourceUrl": "https://ambientcg.com/a/Rock030",
+      "license": "CC0 1.0 Universal (https://docs.ambientcg.com/license/)",
+      "downloadedFiles": [
+        "artifacts/ambientcg/Rock030/Rock030_1K-JPG_Color.jpg",
+        "artifacts/ambientcg/Rock030/Rock030_1K-JPG_NormalGL.jpg",
+        "artifacts/ambientcg/Rock030/Rock030_1K-JPG_Roughness.jpg"
+      ],
+      "usedInBlender": [
+        "W3_RockSide (UVx2)",
+        "W6_RockTop (UVx6)",
+        "W6_RockSide (UVx2)"
+      ],
+      "usedInGame": [
+        "public/rpg/world3_snow.glb",
+        "public/rpg/world6_rock.glb (embedded)"
+      ],
+      "notes": "ambientcg_downloadで取得。512pxへ縮小（原本 untouched）。GLBへ埋込。"
+    },
+    {
+      "source": "ambientCG",
+      "assetName": "Rock035 1K-JPG set",
+      "assetId": "Rock035",
+      "sourceUrl": "https://ambientcg.com/a/Rock035",
+      "license": "CC0 1.0 Universal (https://docs.ambientcg.com/license/)",
+      "downloadedFiles": [
+        "artifacts/ambientcg/Rock035/Rock035_1K-JPG_Color.jpg",
+        "artifacts/ambientcg/Rock035/Rock035_1K-JPG_NormalGL.jpg",
+        "artifacts/ambientcg/Rock035/Rock035_1K-JPG_Roughness.jpg"
+      ],
+      "usedInBlender": [
+        "W8_BlackTop (UVx6)",
+        "W8_BlackSide (UVx2)"
+      ],
+      "usedInGame": [
+        "public/rpg/world8_lava.glb (embedded)"
+      ],
+      "notes": "ambientcg_downloadで取得。512pxへ縮小（原本 untouched）。GLBへ埋込。"
+    },
+    {
+      "source": "Blender",
+      "assetName": "W3 snow terrain/structures + graph",
+      "assetId": "world3_snow_source.blend",
+      "sourceUrl": "",
+      "license": "original (project)",
+      "downloadedFiles": [
+        "artifacts/3d/source_blender/world3_snow_source.blend"
+      ],
+      "usedInBlender": [
+        "W3_SnowTop+W3_RockSide",
+        "2110 top",
+        "ladder/hut/arch/flag per theme",
+        "scripts/blender/build_world3_snow.py"
+      ],
+      "usedInGame": [
+        "public/rpg/world3_snow.glb (1.64MB/60/22)",
+        "public/rpg/world3_graph.json (nodes16/paths17)",
+        "RpgWorld3d worldId=3"
+      ],
+      "notes": "道リボン（W7除く）と経路JSONは同一スクリプト生成。ladder rise・jump gap・bridge spanをassert検証。"
+    },
+    {
+      "source": "Blender",
+      "assetName": "W4 sea terrain/structures + graph",
+      "assetId": "world4_sea_source.blend",
+      "sourceUrl": "",
+      "license": "original (project)",
+      "downloadedFiles": [
+        "artifacts/3d/source_blender/world4_sea_source.blend"
+      ],
+      "usedInBlender": [
+        "W4_SandTop+W4_SandSide+sea plane",
+        "2124 top",
+        "ladder/hut/arch/flag per theme",
+        "scripts/blender/build_world4_sea.py"
+      ],
+      "usedInGame": [
+        "public/rpg/world4_sea.glb (1.15MB/66/18)",
+        "public/rpg/world4_graph.json (nodes16/paths17)",
+        "RpgWorld3d worldId=4"
+      ],
+      "notes": "道リボン（W7除く）と経路JSONは同一スクリプト生成。ladder rise・jump gap・bridge spanをassert検証。"
+    },
+    {
+      "source": "Blender",
+      "assetName": "W5 forest terrain/structures + graph",
+      "assetId": "world5_forest_source.blend",
+      "sourceUrl": "",
+      "license": "original (project)",
+      "downloadedFiles": [
+        "artifacts/3d/source_blender/world5_forest_source.blend"
+      ],
+      "usedInBlender": [
+        "W5_ForestTop(tint)+W5_DirtSide",
+        "3818 top",
+        "ladder/hut/arch/flag per theme",
+        "scripts/blender/build_world5_forest.py"
+      ],
+      "usedInGame": [
+        "public/rpg/world5_forest.glb (1.29MB/60/22)",
+        "public/rpg/world5_graph.json (nodes16/paths17)",
+        "RpgWorld3d worldId=5"
+      ],
+      "notes": "道リボン（W7除く）と経路JSONは同一スクリプト生成。ladder rise・jump gap・bridge spanをassert検証。"
+    },
+    {
+      "source": "Blender",
+      "assetName": "W6 rock terrain/structures + graph",
+      "assetId": "world6_rock_source.blend",
+      "sourceUrl": "",
+      "license": "original (project)",
+      "downloadedFiles": [
+        "artifacts/3d/source_blender/world6_rock_source.blend"
+      ],
+      "usedInBlender": [
+        "W6_RockTop+W6_RockSide+gorge+falls",
+        "3728 top",
+        "ladder/hut/arch/flag per theme",
+        "scripts/blender/build_world6_rock.py"
+      ],
+      "usedInGame": [
+        "public/rpg/world6_rock.glb (1.24MB/59/18)",
+        "public/rpg/world6_graph.json (nodes16/paths17)",
+        "RpgWorld3d worldId=6"
+      ],
+      "notes": "道リボン（W7除く）と経路JSONは同一スクリプト生成。ladder rise・jump gap・bridge spanをassert検証。"
+    },
+    {
+      "source": "Blender",
+      "assetName": "W7 cloud terrain/structures + graph",
+      "assetId": "world7_cloud_source.blend",
+      "sourceUrl": "",
+      "license": "original (project)",
+      "downloadedFiles": [
+        "artifacts/3d/source_blender/world7_cloud_source.blend"
+      ],
+      "usedInBlender": [
+        "islands+mesa+pads+puffs (no ribbons)",
+        "6 islands",
+        "ladder/hut/arch/flag per theme",
+        "scripts/blender/build_world7_cloud.py"
+      ],
+      "usedInGame": [
+        "public/rpg/world7_cloud.glb (0.87MB/44/18)",
+        "public/rpg/world7_graph.json (nodes16/paths17)",
+        "RpgWorld3d worldId=7"
+      ],
+      "notes": "道リボン（W7除く）と経路JSONは同一スクリプト生成。ladder rise・jump gap・bridge spanをassert検証。"
+    },
+    {
+      "source": "Blender",
+      "assetName": "W8 lava terrain/structures + graph",
+      "assetId": "world8_lava_source.blend",
+      "sourceUrl": "",
+      "license": "original (project)",
+      "downloadedFiles": [
+        "artifacts/3d/source_blender/world8_lava_source.blend"
+      ],
+      "usedInBlender": [
+        "W8_BlackTop/Side+emissive lava+smoke",
+        "3847 top",
+        "ladder/hut/arch/flag per theme",
+        "scripts/blender/build_world8_lava.py"
+      ],
+      "usedInGame": [
+        "public/rpg/world8_lava.glb (1.15MB/57/17)",
+        "public/rpg/world8_graph.json (nodes16/paths17)",
+        "RpgWorld3d worldId=8"
+      ],
+      "notes": "道リボン（W7除く）と経路JSONは同一スクリプト生成。ladder rise・jump gap・bridge spanをassert検証。"
+    },
+    {
+      "source": "Blender",
+      "assetName": "W9 star terrain/structures + graph",
+      "assetId": "world9_star_source.blend",
+      "sourceUrl": "",
+      "license": "original (project)",
+      "downloadedFiles": [
+        "artifacts/3d/source_blender/world9_star_source.blend"
+      ],
+      "usedInBlender": [
+        "W9_PastelTop(tint)+emissive crystals/blooms",
+        "3857 top",
+        "ladder/hut/arch/flag per theme",
+        "scripts/blender/build_world9_star.py"
+      ],
+      "usedInGame": [
+        "public/rpg/world9_star.glb (1.26MB/71/19)",
+        "public/rpg/world9_graph.json (nodes16/paths17)",
+        "RpgWorld3d worldId=9"
+      ],
+      "notes": "道リボン（W7除く）と経路JSONは同一スクリプト生成。ladder rise・jump gap・bridge spanをassert検証。"
     }
   ]
 }

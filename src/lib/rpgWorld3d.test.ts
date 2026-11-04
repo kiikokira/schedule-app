@@ -133,3 +133,52 @@ describe('rpgWorld3d desert (W2)', () => {
     expect(jump.oneWay).toBe(true)
   })
 })
+
+const WORLD_FILES = [
+  { file: 'world3_graph.json', prefix: 'snow' },
+  { file: 'world4_graph.json', prefix: 'sea' },
+  { file: 'world5_graph.json', prefix: 'forest' },
+  { file: 'world6_graph.json', prefix: 'rock' },
+  { file: 'world7_graph.json', prefix: 'cloud' },
+  { file: 'world8_graph.json', prefix: 'lava' },
+  { file: 'world9_graph.json', prefix: 'star' },
+] as const
+
+// artifacts配下の全ワールドグラフを一括検証する
+const graphModules = import.meta.glob('../../artifacts/3d/world*_graph.json', { eager: true }) as Record<string, { default: W3Graph }>
+
+describe.each(WORLD_FILES)('rpgWorld3d $prefix', ({ file, prefix }) => {
+  const raw = graphModules[`../../artifacts/3d/${file}`].default as unknown as W3Graph
+  const g = normalizeW3Graph(raw)
+
+  it('validates with no issues and exposes 16 nodes / 17 paths', () => {
+    expect(validateWorld3dGraph(g)).toEqual([])
+    expect(g.nodes).toHaveLength(16)
+    expect(g.paths).toHaveLength(17)
+  })
+
+  it('exposes three stage entries and unlocks the full journey', () => {
+    const byId = new Map(g.nodes.map((n) => [n.id, n]))
+    expect(byId.get('n6')?.stageId).toBe(`${prefix}-stage-1`)
+    expect(byId.get('n8')?.stageId).toBe(`${prefix}-stage-2`)
+    expect(byId.get('n9')?.stageId).toBe(`${prefix}-stage-3`)
+    const open = new Set(W3_DEFAULT_UNLOCKED)
+    expect(findRoute3d(g, 'n0', 'n6', open)).not.toBeNull()
+    expect(findRoute3d(g, 'n0', 'n8', open)).toBeNull()
+    for (const s of [`${prefix}-stage-1`, `${prefix}-stage-2`, `${prefix}-stage-3`]) {
+      for (const p of W3_UNLOCKS[s]) open.add(p)
+    }
+    const route = findRoute3d(g, 'n0', 'n11', open)
+    expect(route).not.toBeNull()
+    expect(route![route!.length - 1]).toBe('n11')
+  })
+
+  it('has bridge arc and one-way jump', () => {
+    const bridge = g.paths.find((x) => x.id === 'p3')!
+    expect(bridge.kind).toBe('bridge')
+    expect(bridge.arcHeight ?? 0).toBeGreaterThan(0.3)
+    const jump = g.paths.find((x) => x.id === 'p12')!
+    expect(jump.kind).toBe('jump')
+    expect(jump.oneWay).toBe(true)
+  })
+})

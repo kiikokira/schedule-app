@@ -19,7 +19,17 @@
 - 新規素材: ambientCG Ground093C（砂・3マップ・512px）／Kenney砂漠18種（cactus/rock/stone/bridge_stone/fence/sign/cave/steps/flowers/bush/riverRocks/pathCircle/campfire）。
 - デューン地形・メサ・涸れ川・オアシス・日干し小屋・遺跡・石橋（raycast実測arc）。ladder rise 2.62m・jump gap 3.01mをassert検証。Cyclesレンダーで目視確認。
 - ランタイム多世界化: `RpgWorld3d worldId`＋`WORLD3D_CONFIG`、W2導線・サムネ・ desert-stage対応、W2グラフテスト4件・W2導線テスト1件。
-- 残り: W3〜W9、水泳、App直接遷移、カメラコリジョン。
+- 残り: 水泳、App直接遷移、カメラコリジョン。
+
+## v4 Phase 9 全世界完成（2026-11-04・W3〜W9）
+- 共有kit `scripts/blender/wkit.py` をW2実績から抽出（地形・リボン・Kenney・はしご・橋適合・graph・export検証）。
+- W3雪原 / W4海 / W5深森 / W6岩山 / W7浮島 / W8火山 / W9幻想を各専用スクリプトで制作。全てBUILD_OK（assert付）＋Cycles目視。
+- 新規PBR: Snow011・Rock030・Rock035（各3マップ・512px・GLB埋込）。Kenney追加40種（パーム・テント・切株・キノコ・崖・滝・丸橋等）。
+- W5帯問題を系統 debug：等高線バンドと特定→閾値0.5→0.4＋smooth＋細分化で解消（W5/W6再構築）。
+- ランタイム9世界化: `WORLD3D_CONFIG` 1-9・空色・adapter接尾辞方式・解放表自動生成・導線一般化・サムネ実写9種（軽量jpg）。
+- テスト: グラフ34件（7世界×3＋既存）・導線14件。全てPASS。
+- 実機: 9世界すべて追従表示・キャラ・影・ラベルを確認（W7は接地を数値でも確認）。
+- 残り: 水泳、App直接遷移、カメラコリジョン、Draco。
 
 ## 調査結果（Step1, 2026-11-04）
 
