@@ -25,64 +25,30 @@ describe('RpgWorldSelect', () => {
 })
 
 describe('RpgAdventure', () => {
-  it('shows the map of the level world by default', () => {
+  it('shows the 3D world by default without the 2D map or manual buttons', () => {
     render(<RpgAdventure level={15} token="🌱" />)
-    expect(screen.getByTestId('rpg-map')).toHaveAttribute('data-world', '2')
-    expect(screen.getByTestId('rpg-token')).toBeInTheDocument()
+    expect(screen.getByTestId('rpg-world3d')).toBeInTheDocument()
+    expect(screen.queryByTestId('rpg-map')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('rpg-play')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('rpg-3d-open')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('rpg-grass-open')).not.toBeInTheDocument()
   })
 
-  it('spins once and then enters the selected world', () => {
+  it('spins once and then enters the selected world in 3D', () => {
     vi.useFakeTimers()
     render(<RpgAdventure level={15} token="🌱" />)
     fireEvent.click(screen.getByTestId('rpg-world-card-1'))
     expect(screen.getByTestId('rpg-entering')).toBeInTheDocument()
     act(() => { vi.advanceTimersByTime(2000) })
-    expect(screen.getByTestId('rpg-map')).toHaveAttribute('data-world', '1')
-  })
-
-  it('advances the token to the target on manual play', () => {
-    vi.useFakeTimers()
-    render(<RpgAdventure level={3} token="🌱" />)
-    fireEvent.click(screen.getByTestId('rpg-play'))
-    act(() => { vi.advanceTimersByTime(10000) })
-    expect(screen.getByTestId('rpg-node-2')).toHaveAttribute('data-current', 'true')
-    expect(screen.getByTestId('rpg-token')).toBeInTheDocument()
-  })
-
-  it('opens the explorable grass world from world 1', () => {
-    render(<RpgAdventure level={3} token="🌱" />)
-    fireEvent.click(screen.getByTestId('rpg-grass-open'))
-    expect(screen.getByTestId('rpg-grass-map')).toBeInTheDocument()
-    expect(screen.getByTestId('rpg-grass-pad')).toBeInTheDocument()
-    fireEvent.click(screen.getByTestId('rpg-grass-close'))
-    expect(screen.getByTestId('rpg-map')).toBeInTheDocument()
-  })
-
-  it('opens the 3D grass world from world 1', () => {
-    render(<RpgAdventure level={3} token="🌱" />)
-    fireEvent.click(screen.getByTestId('rpg-3d-open'))
     expect(screen.getByTestId('rpg-world3d')).toBeInTheDocument()
-    fireEvent.click(screen.getByTestId('rpg-3d-close'))
-    expect(screen.getByTestId('rpg-map')).toBeInTheDocument()
-  })
-
-  it('opens the 3D desert world from world 2', () => {
-    render(<RpgAdventure level={13} token="🌱" />)
-    fireEvent.click(screen.getByTestId('rpg-3d-open'))
-    expect(screen.getByTestId('rpg-world3d')).toBeInTheDocument()
-    fireEvent.click(screen.getByTestId('rpg-3d-close'))
-    expect(screen.getByTestId('rpg-map')).toBeInTheDocument()
   })
 
   it.each([
-    [3, 23], [4, 33], [5, 43], [6, 53], [7, 63], [8, 73], [9, 83],
-  ])('opens the 3D view from world %i (level %i)', (world, level) => {
-    void world
+    [1, 3], [2, 13], [3, 23], [4, 33], [5, 43], [6, 53], [7, 63], [8, 73], [9, 83],
+  ])('renders the 3D view directly for level %i (world %i)', (_world, level) => {
     const { unmount } = render(<RpgAdventure level={level} token="🌱" />)
-    fireEvent.click(screen.getByTestId('rpg-3d-open'))
     expect(screen.getByTestId('rpg-world3d')).toBeInTheDocument()
-    fireEvent.click(screen.getByTestId('rpg-3d-close'))
-    expect(screen.getByTestId('rpg-map')).toBeInTheDocument()
+    expect(screen.queryByTestId('rpg-map')).not.toBeInTheDocument()
     unmount()
   })
 })
