@@ -29,6 +29,15 @@ const STAGE_TITLES: Record<string, string> = {
   'star-stage-1': '星屑の小屋', 'star-stage-2': '結晶の丘', 'star-stage-3': '結晶洞',
 }
 
+export function stageAppRoute(
+  target: 'today' | 'book' | 'ranking',
+  bookId: string | null | undefined,
+): { name: 'today' } | { name: 'detail'; bookId: string } | null {
+  if (target === 'today') return { name: 'today' }
+  if (target === 'book') return bookId ? { name: 'detail', bookId } : null
+  return null
+}
+
 export function stageActionFor(stageId: string, ctx: StageContext): StageAction | null {
   const title = STAGE_TITLES[stageId]
   if (!title) return null

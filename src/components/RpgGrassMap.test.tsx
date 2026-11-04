@@ -47,6 +47,32 @@ describe('RpgGrassMap', () => {
     })
   })
 
+  it('passes bookId as the third onStageAction arg on stage-2 decide', () => {
+    localStorage.clear()
+    const onStageAction = vi.fn()
+    render(
+      <RpgGrassMap
+        {...baseProps}
+        todayPages={3}
+        initialNodeId="g-n6"
+        initialProgress={{ ...DEFAULT_RPG_PROGRESS, lastKnownNodeId: { '1': 'g-n6' } }}
+        onStageAction={onStageAction}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('rpg-grass-decide'))
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        const clearBtn = screen.queryByTestId('rpg-grass-clear')
+        expect(clearBtn).not.toBeNull()
+        fireEvent.click(clearBtn!)
+        setTimeout(() => {
+          expect(onStageAction).toHaveBeenCalledWith('grass-stage-2', 'book', 'book-1')
+          resolve()
+        }, 100)
+      }, 800)
+    })
+  })
+
   it('toggles between follow and overview camera', () => {
     render(<RpgGrassMap {...baseProps} initialProgress={{ ...DEFAULT_RPG_PROGRESS }} />)
     const btn = screen.getByTestId('rpg-grass-camera')

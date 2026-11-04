@@ -22,7 +22,7 @@ export function pathArc(p: W3Path): number {
 }
 export type W3Graph = { nodes: W3Node[]; paths: W3Path[] }
 
-export const W3_DEFAULT_UNLOCKED: string[] = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p7', 'p8', 'p9', 'p10']
+export const W3_DEFAULT_UNLOCKED: string[] = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p7', 'p8', 'p9', 'p10', 'w4-swim-walk', 'w4-swim']
 // 全9ワールドでパスID体系を共有するため、解放表は接尾辞ごとに生成する
 const W3_STAGE_UNLOCKS: Record<string, string[]> = {
   'stage-1': ['p6', 'p16', 'p11', 'p12'],

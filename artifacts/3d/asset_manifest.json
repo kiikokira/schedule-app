@@ -408,7 +408,7 @@
       ],
       "usedInGame": [
         "public/rpg/world4_sea.glb (1.15MB/66/18)",
-        "public/rpg/world4_graph.json (nodes16/paths17)",
+        "public/rpg/world4_graph.json (nodes18/paths19, lagoon swim spur w4-swim)",
         "RpgWorld3d worldId=4"
       ],
       "notes": "道リボン（W7除く）と経路JSONは同一スクリプト生成。ladder rise・jump gap・bridge spanをassert検証。"

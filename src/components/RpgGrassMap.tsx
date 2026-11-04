@@ -19,7 +19,7 @@ type Props = {
   totalPages: number
   firstBookId: string | null
   hasBooks: boolean
-  onStageAction?: (stageId: string, target: string) => void
+  onStageAction?: (stageId: string, target: string, bookId?: string | null) => void
   onBack?: () => void
   initialNodeId?: string
   initialCameraMode?: 'follow' | 'overview'
@@ -376,7 +376,7 @@ export default function RpgGrassMap({
       unlockedStageIds: [...new Set([...next.unlockedStageIds, ...(nextStage ? [nextStage.id] : [])])],
     }
     persist(withNext)
-    onStageAction?.(panelStage.id, panelAction?.target ?? 'today')
+    onStageAction?.(panelStage.id, panelAction?.target ?? 'today', panelAction?.bookId)
   }
 
   return (

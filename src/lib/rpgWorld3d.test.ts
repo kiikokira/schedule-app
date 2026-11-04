@@ -135,26 +135,26 @@ describe('rpgWorld3d desert (W2)', () => {
 })
 
 const WORLD_FILES = [
-  { file: 'world3_graph.json', prefix: 'snow' },
-  { file: 'world4_graph.json', prefix: 'sea' },
-  { file: 'world5_graph.json', prefix: 'forest' },
-  { file: 'world6_graph.json', prefix: 'rock' },
-  { file: 'world7_graph.json', prefix: 'cloud' },
-  { file: 'world8_graph.json', prefix: 'lava' },
-  { file: 'world9_graph.json', prefix: 'star' },
+  { file: 'world3_graph.json', prefix: 'snow', nodes: 16, paths: 17 },
+  { file: 'world4_graph.json', prefix: 'sea', nodes: 18, paths: 19 },
+  { file: 'world5_graph.json', prefix: 'forest', nodes: 16, paths: 17 },
+  { file: 'world6_graph.json', prefix: 'rock', nodes: 16, paths: 17 },
+  { file: 'world7_graph.json', prefix: 'cloud', nodes: 16, paths: 17 },
+  { file: 'world8_graph.json', prefix: 'lava', nodes: 16, paths: 17 },
+  { file: 'world9_graph.json', prefix: 'star', nodes: 16, paths: 17 },
 ] as const
 
 // artifacts配下の全ワールドグラフを一括検証する
 const graphModules = import.meta.glob('../../artifacts/3d/world*_graph.json', { eager: true }) as Record<string, { default: W3Graph }>
 
-describe.each(WORLD_FILES)('rpgWorld3d $prefix', ({ file, prefix }) => {
+describe.each(WORLD_FILES)('rpgWorld3d $prefix', ({ file, prefix, nodes, paths }) => {
   const raw = graphModules[`../../artifacts/3d/${file}`].default as unknown as W3Graph
   const g = normalizeW3Graph(raw)
 
-  it('validates with no issues and exposes 16 nodes / 17 paths', () => {
+  it('validates with no issues and exposes expected node/path counts', () => {
     expect(validateWorld3dGraph(g)).toEqual([])
-    expect(g.nodes).toHaveLength(16)
-    expect(g.paths).toHaveLength(17)
+    expect(g.nodes).toHaveLength(nodes)
+    expect(g.paths).toHaveLength(paths)
   })
 
   it('exposes three stage entries and unlocks the full journey', () => {
@@ -180,5 +180,32 @@ describe.each(WORLD_FILES)('rpgWorld3d $prefix', ({ file, prefix }) => {
     const jump = g.paths.find((x) => x.id === 'p12')!
     expect(jump.kind).toBe('jump')
     expect(jump.oneWay).toBe(true)
+  })
+})
+
+describe('rpgWorld3d W4 swim route', () => {
+  const raw = graphModules['../../artifacts/3d/world4_graph.json'].default as unknown as W3Graph
+  const g = normalizeW3Graph(raw)
+
+  it('has a two-way swim path across the lagoon reachable by default', () => {
+    const swim = g.paths.find((x) => x.id === 'w4-swim')!
+    expect(swim.kind).toBe('swim')
+    expect(swim.oneWay).toBe(false)
+    expect(W3_DEFAULT_UNLOCKED).toContain('w4-swim')
+    expect(W3_DEFAULT_UNLOCKED).toContain('w4-swim-walk')
+    const open = new Set(W3_DEFAULT_UNLOCKED)
+    const route = findRoute3d(g, 'n0', 'w4-swim-out', open)
+    expect(route).not.toBeNull()
+    expect(route).toContain('w4-swim-in')
+    expect(route![route!.length - 1]).toBe('w4-swim-out')
+  })
+
+  it('keeps the swim spur off the main journey (no shortcut)', () => {
+    const open = new Set(W3_DEFAULT_UNLOCKED)
+    for (const s of ['sea-stage-1', 'sea-stage-2', 'sea-stage-3']) {
+      for (const p of W3_UNLOCKS[s]) open.add(p)
+    }
+    const route = findRoute3d(g, 'w4-swim-out', 'n11', open)!
+    expect(route[1]).toBe('w4-swim-in')
   })
 })

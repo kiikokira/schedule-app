@@ -4,6 +4,7 @@ import RpgAdventure from '../components/RpgAdventure'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { combinedActivityOnDate, totalCycleUnits, pagesRecordsForTotals, cycleRecordsForTotals, todayStr } from '../lib/progress'
+import { stageAppRoute } from '../lib/rpgStageAdapter'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
 import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leaguePopulationFor, leagueRankForPages, leagueRankForRating, decideRoundOutcome, tallyToResults, PROMOTION_LINES, STAY_LINES } from '../lib/seasonLeague'
 import { loadSeasonState, saveSeasonState, finalizeRoundEarly } from '../data/seasonStore'
@@ -11,7 +12,7 @@ import { loadProfile } from '../data/profileStore'
 import { levelForExp } from '../lib/seasonExp'
 import { parseSlotKey } from '../lib/slotLeague'
 
-type Props = { onBack: () => void; today?: string }
+type Props = { onBack: () => void; today?: string; onOpenStage?: (route: { name: 'today' } | { name: 'detail'; bookId: string }) => void }
 
 // Divロゴ画像（添付の10枚を public/divs/div-1.jpg〜div-10.jpg として配置して使用）
 export function divEmblemSrc(div: number): string {
@@ -27,7 +28,7 @@ function tabStyle(active: boolean, variant: 'national' | 'league' | 'rpg' = 'nat
   return { background: '#ffffff', color: '#111111', border: '2px solid #111111', fontWeight: 800 }
 }
 
-export default function RankingScreen({ onBack, today: todayProp }: Props) {
+export default function RankingScreen({ onBack, today: todayProp, onOpenStage }: Props) {
   const { books } = useBooks()
   const { records } = useRecords()
   const { cycleRecords } = useCycleRecords()
@@ -587,6 +588,7 @@ export default function RankingScreen({ onBack, today: todayProp }: Props) {
             totalPages={totalPages}
             firstBookId={books.length > 0 ? books[0].id : null}
             hasBooks={books.length > 0}
+            onStageAction={(_stageId, target, bookId) => { const r = stageAppRoute(target as 'today' | 'book' | 'ranking', bookId ?? null); if (r) onOpenStage?.(r); }}
           />
           <section
             data-testid="rpg-hero"

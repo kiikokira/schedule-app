@@ -19,7 +19,7 @@
 - 新規素材: ambientCG Ground093C（砂・3マップ・512px）／Kenney砂漠18種（cactus/rock/stone/bridge_stone/fence/sign/cave/steps/flowers/bush/riverRocks/pathCircle/campfire）。
 - デューン地形・メサ・涸れ川・オアシス・日干し小屋・遺跡・石橋（raycast実測arc）。ladder rise 2.62m・jump gap 3.01mをassert検証。Cyclesレンダーで目視確認。
 - ランタイム多世界化: `RpgWorld3d worldId`＋`WORLD3D_CONFIG`、W2導線・サムネ・ desert-stage対応、W2グラフテスト4件・W2導線テスト1件。
-- 残り: 水泳、App直接遷移、カメラコリジョン。
+- 残り: App直接遷移、カメラコリジョン（当初は未着手だったが本セッションで対応、下記）。
 
 ## v4 Phase 9 全世界完成（2026-11-04・W3〜W9）
 - 共有kit `scripts/blender/wkit.py` をW2実績から抽出（地形・リボン・Kenney・はしご・橋適合・graph・export検証）。
@@ -109,3 +109,10 @@
 - コミット/プッシュ未実施（破壊的操作の許可なしのため。AGENTS.mdの運用ルールと競合するため許可待ち）。
 - ユーザーの未コミット変更（画像のD/??）には一切触れていない。
 - ブラウザ実機スクショ手段が未確定（取得できなければ「未検証」と明記する）。
+
+## SDD残件セッション（水泳/App遷移/カメラ）
+- Task A: ステージ→App直接遷移。stageAppRoute純粋関数＋bookId貫通＋RankingScreen onOpenStage＋App setRoute接続。74件PASS・tsc clean。
+- Task B: カメラコリジョン。resolveCameraCollision純粋関数（5件テスト）＋3フレーム毎raycast＋0.6mマージン。19件PASS・tsc clean。
+- Task C: W4ラグーン水泳。graphにw4-swim-in/out＋2パス追加、実行時デフォルト反映漏れをDOM計測で発見→修正。spurのため本線短絡なし。41件PASS、TURN開始をDOM確認。
+- Ruling: subagentにcommitさせずcontrollerが最終検証後に一括commit。Ruling: worktreeを作らずmain直作業（AGENTS.md＋Pages連動、git add限定で回避）。
+- 残り: Draco（park — GLBは0.87〜1.76MB済み）、ジャンプ空中ピクセル（論理検証のみ）。

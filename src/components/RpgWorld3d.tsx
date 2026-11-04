@@ -14,6 +14,7 @@ import {
   type W3Path,
 } from '../lib/rpgWorld3d'
 import { advanceAlongPath, canCancelState, pathKindToAnimDirected } from '../lib/rpgMovement'
+import { resolveCameraCollision } from '../lib/rpgCamera3d'
 import type { MoveState } from '../lib/rpgMovement'
 import { clearRpgStage, loadRpgProgress, markWorldVisited, saveRpgProgress, type RpgProgressState } from '../lib/rpgProgress'
 import { stageActionFor } from '../lib/rpgStageAdapter'
@@ -23,7 +24,7 @@ type Props = {
   totalPages: number
   firstBookId: string | null
   hasBooks: boolean
-  onStageAction?: (stageId: string, target: string) => void
+  onStageAction?: (stageId: string, target: string, bookId?: string | null) => void
   onBack?: () => void
   /** 3DワールドID（1=草原〜9=幻想）。省略時は1。 */
   worldId?: number
@@ -494,6 +495,12 @@ export default function RpgWorld3d({
 
     const raycaster = new THREE.Raycaster()
     const pointer = new THREE.Vector2()
+    // 追従カメラ用の地形衝突レイ（ポインタ用 raycaster とは別インスタンス）。
+    // collide タグ付きメッシュ群に対して注視点→希望位置のレイを飛ばす。
+    const camRay = new THREE.Raycaster()
+    let collideMeshes: THREE.Mesh[] = []
+    let camFrame = 0
+    let cachedCamHit: number | null = null
     const onPointerDown = (e: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect()
       pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1)
@@ -540,6 +547,9 @@ export default function RpgWorld3d({
         world.traverse((o) => {
           if (o instanceof THREE.Mesh) {
             o.receiveShadow = true
+            // 地形衝突用タグ（キャラ・ノードマーカー・背景は world 配下にないため対象外）
+            o.userData.collide = true
+            collideMeshes.push(o)
             const mats = Array.isArray(o.material) ? o.material : [o.material]
             for (const m of mats) {
               if (m instanceof THREE.MeshStandardMaterial && /water/i.test(m.name)) waterMats.push(m)
@@ -692,6 +702,32 @@ export default function RpgWorld3d({
         )
         camTargetLook.set(live.pos.x + fx * 3.0, live.pos.y + 0.8, live.pos.z + fz * 3.0)
       }
+      // 追従カメラの地形めり込み補正（overview時は全体表示を妨げないため適用しない）。
+      // 注視点→希望位置のレイで collide タグ付き地形にヒットしたら 0.6m マージンを取って寄せる。
+      // レイキャストは3フレームに1回だけ実行し、間はキャッシュしたヒット距離を使い回す。
+      if (mode !== 'overview' && collideMeshes.length > 0) {
+        camFrame += 1
+        if (camFrame % 3 === 1) {
+          const wantDist = camTargetPos.distanceTo(camTargetLook)
+          if (wantDist > 1e-6) {
+            const dir = camTargetPos.clone().sub(camTargetLook).divideScalar(wantDist)
+            camRay.set(camTargetLook, dir)
+            camRay.far = wantDist
+            const hits = camRay.intersectObjects(collideMeshes, false)
+            cachedCamHit = hits.length > 0 ? hits[0].distance : null
+          } else {
+            cachedCamHit = null
+          }
+        }
+        if (cachedCamHit !== null) {
+          const corrected = resolveCameraCollision(
+            [camTargetLook.x, camTargetLook.y, camTargetLook.z],
+            [camTargetPos.x, camTargetPos.y, camTargetPos.z],
+            cachedCamHit,
+          )
+          camTargetPos.set(corrected[0], corrected[1], corrected[2])
+        }
+      }
       const k = reduced ? 1 : 1 - Math.exp(-4.5 * dt)
       live.camPos.lerp(camTargetPos, k)
       live.camLook.lerp(camTargetLook, k)
@@ -757,7 +793,7 @@ export default function RpgWorld3d({
     }
     setProgress(withNext)
     saveRpgProgress(withNext)
-    onStageAction?.(stageId, panelAction?.target ?? 'today')
+    onStageAction?.(stageId, panelAction?.target ?? 'today', panelAction?.bookId)
   }
 
   return (

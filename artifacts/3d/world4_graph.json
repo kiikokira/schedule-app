@@ -61,14 +61,14 @@
    "id": "n5d",
    "kind": "ladder_top",
    "x": 6.2,
-   "z": -3.0,
+   "z": -3,
    "y": 2.504
   },
   {
    "id": "n6",
    "kind": "stage",
    "stageId": "sea-stage-1",
-   "x": 5.0,
+   "x": 5,
    "z": -6.8,
    "y": 2.465
   },
@@ -91,7 +91,7 @@
    "id": "n9",
    "kind": "stage",
    "stageId": "sea-stage-3",
-   "x": 8.0,
+   "x": 8,
    "z": -9.5,
    "y": 0.115
   },
@@ -107,6 +107,20 @@
    "x": -4,
    "z": -10,
    "y": 0.229
+  },
+  {
+   "id": "w4-swim-in",
+   "kind": "stop",
+   "x": -3,
+   "y": -0.02,
+   "z": 4.8
+  },
+  {
+   "id": "w4-swim-out",
+   "kind": "stop",
+   "x": -7,
+   "y": -0.02,
+   "z": 3.2
   }
  ],
  "paths": [
@@ -136,7 +150,7 @@
    "from": "n3a",
    "to": "n3b",
    "kind": "bridge",
-   "speed": 2.0,
+   "speed": 2,
    "arcHeight": 0.754
   },
   {
@@ -172,7 +186,7 @@
    "from": "n5c",
    "to": "n5d",
    "kind": "ladder_up",
-   "speed": 1.0
+   "speed": 1
   },
   {
    "id": "p9",
@@ -231,6 +245,21 @@
    "to": "n5d",
    "kind": "walk",
    "speed": 2.2
+  },
+  {
+   "id": "w4-swim-walk",
+   "from": "n2",
+   "to": "w4-swim-in",
+   "kind": "walk",
+   "speed": 2.2
+  },
+  {
+   "id": "w4-swim",
+   "from": "w4-swim-in",
+   "to": "w4-swim-out",
+   "kind": "swim",
+   "speed": 1.6,
+   "oneWay": false
   }
  ]
 }

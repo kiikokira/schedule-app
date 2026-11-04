@@ -27,7 +27,7 @@ type Props = {
   totalPages?: number
   firstBookId?: string | null
   hasBooks?: boolean
-  onStageAction?: (stageId: string, target: string) => void
+  onStageAction?: (stageId: string, target: string, bookId?: string | null) => void
 }
 
 function prefersReducedMotion(): boolean {
