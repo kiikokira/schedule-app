@@ -9,10 +9,10 @@ type Props = {
 }
 
 function ThemePreview({ world }: { world: WorldDef }) {
-  if (world.id === 1) {
+  if (world.id === 1 || world.id === 2) {
     return (
       <img
-        src={`${import.meta.env.BASE_URL}rpg/thumb-w1.png`}
+        src={`${import.meta.env.BASE_URL}rpg/thumb-w${world.id}.png`}
         alt={`${world.name}の3Dプレビュー`}
         width="72"
         height="40"

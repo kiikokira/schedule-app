@@ -14,6 +14,13 @@
 - Phase 10: 本報告の検証節を参照。受け入れ21項目のうち3D・主人公・操作・カメラ・進行の主要項目を達成（詳細は `docs/RPG_IMPLEMENTATION_REPORT.md`）。
 - 未着手: W2〜W9の3D化、水泳経路、App直接遷移配線、カメラコリジョン、GLB更なる軽量化（Draco等）。
 
+## v4 Phase 9 第一弾：W2砂漠（2026-11-04）
+- `scripts/blender/build_world2_desert.py`（再現可能・assert付）→ `world2_desert_source.blend`（135 objects）→ `world2_desert.glb` 1.24MB（75 meshes/22 mats/5 images）＋ `world2_graph.json`（nodes16/paths17）。
+- 新規素材: ambientCG Ground093C（砂・3マップ・512px）／Kenney砂漠18種（cactus/rock/stone/bridge_stone/fence/sign/cave/steps/flowers/bush/riverRocks/pathCircle/campfire）。
+- デューン地形・メサ・涸れ川・オアシス・日干し小屋・遺跡・石橋（raycast実測arc）。ladder rise 2.62m・jump gap 3.01mをassert検証。Cyclesレンダーで目視確認。
+- ランタイム多世界化: `RpgWorld3d worldId`＋`WORLD3D_CONFIG`、W2導線・サムネ・ desert-stage対応、W2グラフテスト4件・W2導線テスト1件。
+- 残り: W3〜W9、水泳、App直接遷移、カメラコリジョン。
+
 ## 調査結果（Step1, 2026-11-04）
 
 - 技術: React 18 + Vite 5 + TS + Vitest（`package.json`）。3D描画ライブラリ未導入（three/R3F なし）。

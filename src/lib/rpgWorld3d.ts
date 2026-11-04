@@ -23,10 +23,14 @@ export function pathArc(p: W3Path): number {
 export type W3Graph = { nodes: W3Node[]; paths: W3Path[] }
 
 export const W3_DEFAULT_UNLOCKED: string[] = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p7', 'p8', 'p9', 'p10']
+// W1とW2でパスID体系を共有するため解放表も共有する
 export const W3_UNLOCKS: Record<string, string[]> = {
   'grass-stage-1': ['p6', 'p16', 'p11', 'p12'],
   'grass-stage-2': ['p13'],
   'grass-stage-3': ['p14', 'p15'],
+  'desert-stage-1': ['p6', 'p16', 'p11', 'p12'],
+  'desert-stage-2': ['p13'],
+  'desert-stage-3': ['p14', 'p15'],
 }
 
 export function w3NodeById(g: W3Graph, id: string): W3Node {

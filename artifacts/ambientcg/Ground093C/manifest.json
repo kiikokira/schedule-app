@@ -1,0 +1,29 @@
+{
+  "assetId": "Ground093C",
+  "assetName": "Ground 093 C",
+  "assetType": "material",
+  "source": "ambientCG",
+  "originalUrl": "https://ambientcg.com/a/Ground093C",
+  "license": "CC0",
+  "license_url": "https://ambientcg.com/license",
+  "credit": "Created using assets from ambientCG.com, licensed under the Creative Commons CC0 1.0 Universal License.",
+  "resolution": "1K",
+  "fileFormat": "JPG",
+  "downloadedFiles": [
+    "Ground093C_1K-JPG.zip",
+    "Ground093C_1K-JPG.usdc",
+    "Ground093C_1K-JPG_AmbientOcclusion.jpg",
+    "Ground093C_1K-JPG_Color.jpg",
+    "Ground093C_1K-JPG_Displacement.jpg",
+    "Ground093C_1K-JPG_NormalDX.jpg",
+    "Ground093C_1K-JPG_NormalGL.jpg",
+    "Ground093C_1K-JPG_Roughness.jpg",
+    "Ground093C_1K-JPG.blend",
+    "Ground093C_1K-JPG.mtlx",
+    "Ground093C_1K-JPG.tres",
+    "Ground093C.png"
+  ],
+  "total_bytes": 5088593,
+  "downloaded_at": "2026-11-03T12:41:44.274Z",
+  "downloadDate": "2026-11-03T12:41:44.274Z"
+}

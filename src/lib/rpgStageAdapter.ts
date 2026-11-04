@@ -20,18 +20,26 @@ export type StageContext = {
 
 export function stageActionFor(stageId: string, ctx: StageContext): StageAction | null {
   const def = GRASS_STAGES.find((s) => s.id === stageId)
-  if (!def) return null
-  if (def.id === 'grass-stage-1') {
-    return { stageId, target: 'today', title: def.title, hint: '今日の計画を開いて1ページ進めるとクエストクリア' }
+  const desert = !def && stageId.startsWith('desert-stage-')
+  if (!def && !desert) return null
+  const title = def?.title ?? desertTitle(stageId)
+  if (stageId === 'grass-stage-1' || stageId === 'desert-stage-1') {
+    return { stageId, target: 'today', title, hint: '今日の計画を開いて1ページ進めるとクエストクリア' }
   }
-  if (def.id === 'grass-stage-2') {
+  if (stageId === 'grass-stage-2' || stageId === 'desert-stage-2') {
     if (ctx.hasBooks && ctx.firstBookId) {
-      return { stageId, target: 'book', title: def.title, hint: '参考書の記録を開いてページを記録する', bookId: ctx.firstBookId }
+      return { stageId, target: 'book', title, hint: '参考書の記録を開いてページを記録する', bookId: ctx.firstBookId }
     }
-    return { stageId, target: 'today', title: def.title, hint: '今日の計画を開いて記録する' }
+    return { stageId, target: 'today', title, hint: '今日の計画を開いて記録する' }
   }
-  if (def.id === 'grass-stage-3') {
-    return { stageId, target: 'ranking', title: def.title, hint: 'ランキングのクエスト状況を確認する' }
+  if (stageId === 'grass-stage-3' || stageId === 'desert-stage-3') {
+    return { stageId, target: 'ranking', title, hint: 'ランキングのクエスト状況を確認する' }
   }
   return null
+}
+
+function desertTitle(stageId: string): string {
+  if (stageId === 'desert-stage-1') return '日干し小屋'
+  if (stageId === 'desert-stage-2') return '風紋の丘'
+  return '遺跡まえ'
 }

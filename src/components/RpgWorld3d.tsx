@@ -25,6 +25,8 @@ type Props = {
   hasBooks: boolean
   onStageAction?: (stageId: string, target: string) => void
   onBack?: () => void
+  /** 3DワールドID（1=草原・2=砂漠）。省略時は1。 */
+  worldId?: 1 | 2
   initialNodeId?: string
   initialCameraMode?: 'follow' | 'overview'
   initialProgress?: RpgProgressState
@@ -35,9 +37,46 @@ type Props = {
 type RouteStep = { path: W3Path; fromId: string; toId: string; length: number; prevId?: string; nextId?: string }
 
 const BASE = import.meta.env.BASE_URL || '/'
-const WORLD_URL = `${BASE}rpg/world1_grassland.glb`
 const CHARA_URL = `${BASE}rpg/player_character.glb`
-const GRAPH_URL = `${BASE}rpg/world1_graph.json`
+
+type World3dConfig = {
+  glb: string
+  graph: string
+  title: string
+  progressKey: string
+  nodeLabels: Record<string, string>
+  stageTitles: Record<string, string>
+  stageOrder: string[]
+}
+
+const WORLD3D_CONFIG: Record<1 | 2, World3dConfig> = {
+  1: {
+    glb: `${BASE}rpg/world1_grassland.glb`,
+    graph: `${BASE}rpg/world1_graph.json`,
+    title: '草原ワールド3D・風見の丘陵',
+    progressKey: '3d-1',
+    nodeLabels: {
+      n0: 'はじまりの門', n1: '花畑', n2: '西の道', n3a: '橋のたもと', n3b: '橋のむこう',
+      n4: 'わかれ道', n5a: '階段下', n5b: '丘の上', n5c: 'はしご下', n5d: 'はしご上',
+      n6: '丘の小屋', n7: '崖っぷち', n8: '風見の丘', n9: '洞窟まえ', n10: '帰り道', n11: '出口の門',
+    },
+    stageTitles: { 'grass-stage-1': '丘の小屋', 'grass-stage-2': '風見の丘', 'grass-stage-3': '洞窟まえ' },
+    stageOrder: ['grass-stage-1', 'grass-stage-2', 'grass-stage-3'],
+  },
+  2: {
+    glb: `${BASE}rpg/world2_desert.glb`,
+    graph: `${BASE}rpg/world2_graph.json`,
+    title: '砂漠ワールド3D・黄金の砂海',
+    progressKey: '3d-2',
+    nodeLabels: {
+      n0: '旅立ちの門', n1: '砂の道', n2: '西の砂丘', n3a: '涸れ川のたもと', n3b: '橋のむこう',
+      n4: 'わかれ道', n5a: '階段下', n5b: 'メサの上', n5c: 'はしご下', n5d: 'はしご上',
+      n6: '日干し小屋', n7: '崖っぷち', n8: '風紋の丘', n9: '遺跡まえ', n10: '帰り道', n11: '出口の門',
+    },
+    stageTitles: { 'desert-stage-1': '日干し小屋', 'desert-stage-2': '風紋の丘', 'desert-stage-3': '遺跡まえ' },
+    stageOrder: ['desert-stage-1', 'desert-stage-2', 'desert-stage-3'],
+  },
+}
 
 const CLIP_FOR: Record<MoveState, string> = {
   IDLE: 'Idle', WALK: 'Walk', RUN: 'Run', TURN: 'Walk',
@@ -66,13 +105,14 @@ function routeSteps(g: W3Graph, nodes: string[], unlocked: Set<string>): RouteSt
 
 export default function RpgWorld3d({
   todayPages, totalPages, firstBookId, hasBooks, onStageAction, onBack,
-  initialNodeId, initialCameraMode = 'follow', initialProgress, autoRoute,
+  worldId = 1, initialNodeId, initialCameraMode = 'follow', initialProgress, autoRoute,
 }: Props) {
+  const cfg = WORLD3D_CONFIG[worldId]
   const mountRef = useRef<HTMLDivElement | null>(null)
   const [graph, setGraph] = useState<W3Graph | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [progress, setProgress] = useState<RpgProgressState>(() => initialProgress ?? loadRpgProgress())
-  const [currentNodeId, setCurrentNodeId] = useState(initialNodeId ?? initialProgress?.lastKnownNodeId?.['3d-1'] ?? 'n0')
+  const [currentNodeId, setCurrentNodeId] = useState(initialNodeId ?? initialProgress?.lastKnownNodeId?.[cfg.progressKey] ?? 'n0')
   const [cameraMode, setCameraMode] = useState<'follow' | 'overview'>(initialCameraMode)
   const [anim, setAnimState] = useState<MoveState>('IDLE')
   const [panelStageId, setPanelStageId] = useState<string | null>(null)
@@ -85,7 +125,7 @@ export default function RpgWorld3d({
 
   useEffect(() => {
     let cancelled = false
-    fetch(GRAPH_URL)
+    fetch(cfg.graph)
       .then((r) => {
         if (!r.ok) throw new Error(`graph ${r.status}`)
         return r.json()
@@ -265,7 +305,7 @@ export default function RpgWorld3d({
       live.pos.set(node.x, node.y, node.z)
       setCurrentNodeId(nodeId)
       setProgress((prev) => {
-        const next: RpgProgressState = { ...prev, lastKnownNodeId: { ...prev.lastKnownNodeId, '3d-1': nodeId } }
+        const next: RpgProgressState = { ...prev, lastKnownNodeId: { ...prev.lastKnownNodeId, [cfg.progressKey]: nodeId } }
         saveRpgProgress(next)
         return next
       })
@@ -421,7 +461,7 @@ export default function RpgWorld3d({
           (err) => reject(err),
         )
       })
-    Promise.all([loadOne(WORLD_URL, 'world'), loadOne(CHARA_URL, 'chara')])
+    Promise.all([loadOne(cfg.glb, 'world'), loadOne(CHARA_URL, 'chara')])
       .then(([worldRes, charaRes]) => {
         if (live.disposed) return
         setLoadStage('build')
@@ -638,7 +678,7 @@ export default function RpgWorld3d({
   const handleClear = () => {
     if (!stageId) return
     const next = clearRpgStage(progress, stageId, [...(W3_UNLOCKS[stageId] ?? []), `unlock-after-${stageId}`])
-    const order = ['grass-stage-1', 'grass-stage-2', 'grass-stage-3']
+    const order = cfg.stageOrder
     const nxt = order[order.indexOf(stageId) + 1]
     const withNext: RpgProgressState = {
       ...next,
@@ -653,8 +693,8 @@ export default function RpgWorld3d({
     <div data-testid="rpg-world3d" data-node={currentNodeId} style={{ position: 'relative', width: '100%' }}>
       <div style={{ marginBottom: 6 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-          <strong style={{ fontSize: 15 }}>草原ワールド3D・風見の丘陵</strong>
-          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>いま: {currentNode ? nodeLabel(currentNode) : currentNodeId}</span>
+          <strong style={{ fontSize: 15 }}>{cfg.title}</strong>
+          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>いま: {currentNode ? nodeLabel(cfg, currentNode) : currentNodeId}</span>
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
           <button data-testid="rpg-3d-camera" type="button" onClick={() => setCameraMode((m) => (m === 'follow' ? 'overview' : 'follow'))} style={{ minHeight: 44, padding: '0 12px', flex: 1 }}>
@@ -711,7 +751,7 @@ export default function RpgWorld3d({
       </div>
       {stageId && panelAction && (
         <section data-testid="rpg-3d-stage" style={{ marginTop: 8, padding: 12, borderRadius: 12, background: '#fffdf0', border: '2px solid #eab308' }}>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>{stageTitle(stageId)}</div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>{cfg.stageTitles[stageId] ?? stageId}</div>
           <div style={{ fontSize: 13, marginTop: 4 }}>つながり: {panelAction.hint}</div>
           <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
             今日 {todayPages}ページ ／ 累計 {totalPages}ページ
@@ -738,18 +778,6 @@ export default function RpgWorld3d({
   )
 }
 
-function stageTitle(stageId: string): string {
-  if (stageId === 'grass-stage-1') return '丘の小屋'
-  if (stageId === 'grass-stage-2') return '風見の丘'
-  return '洞窟まえ'
-}
-
-const NODE_LABEL_JA: Record<string, string> = {
-  n0: 'はじまりの門', n1: '花畑', n2: '西の道', n3a: '橋のたもと', n3b: '橋のむこう',
-  n4: 'わかれ道', n5a: '階段下', n5b: '丘の上', n5c: 'はしご下', n5d: 'はしご上',
-  n6: '丘の小屋', n7: '崖っぷち', n8: '風見の丘', n9: '洞窟まえ', n10: '帰り道', n11: '出口の門',
-}
-
-function nodeLabel(node: { id: string; label?: string }): string {
-  return NODE_LABEL_JA[node.id] ?? node.label ?? node.id
+function nodeLabel(cfg: World3dConfig, node: { id: string; label?: string }): string {
+  return cfg.nodeLabels[node.id] ?? node.label ?? node.id
 }

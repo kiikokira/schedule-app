@@ -111,9 +111,10 @@ export default function RpgAdventure({ level, token, todayPages = 0, totalPages 
         </div>
       ) : (
         <div style={{ marginTop: 8 }}>
-          {selected === 1 && world3dOpen ? (
+          {(selected === 1 || selected === 2) && world3dOpen ? (
             <>
               <RpgWorld3d
+                worldId={selected === 2 ? 2 : 1}
                 todayPages={todayPages}
                 totalPages={totalPages}
                 firstBookId={firstBookId}
@@ -163,7 +164,7 @@ export default function RpgAdventure({ level, token, todayPages = 0, totalPages 
                   草原ワールド（立体版）であそぶ
                 </button>
               )}
-              {selected === 1 && (
+              {(selected === 1 || selected === 2) && (
                 <button
                   data-testid="rpg-3d-open"
                   type="button"
@@ -171,7 +172,7 @@ export default function RpgAdventure({ level, token, todayPages = 0, totalPages 
                   disabled={busy}
                   style={{ marginTop: 8, width: '100%', fontWeight: 800 }}
                 >
-                  草原ワールド3Dであそぶ
+                  {selected === 2 ? '砂漠ワールド3Dであそぶ' : '草原ワールド3Dであそぶ'}
                 </button>
               )}
               <button

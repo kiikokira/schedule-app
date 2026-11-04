@@ -9,6 +9,7 @@ import {
   type W3Graph,
 } from './rpgWorld3d'
 import realGraphJson from '../../artifacts/3d/world1_graph.json'
+import desertGraphJson from '../../artifacts/3d/world2_graph.json'
 
 const MINI: W3Graph = {
   nodes: [
@@ -92,5 +93,43 @@ describe('rpgWorld3d', () => {
     expect(byId.get('n8')?.stageId).toBe('grass-stage-2')
     expect(byId.get('n9')?.stageId).toBe('grass-stage-3')
     expect(validateWorld3dGraph(g)).toEqual([])
+  })
+})
+
+describe('rpgWorld3d desert (W2)', () => {
+  const g = normalizeW3Graph(desertGraphJson as unknown as W3Graph)
+
+  it('validates the Blender-exported W2 graph with no issues', () => {
+    expect(validateWorld3dGraph(g)).toEqual([])
+  })
+
+  it('exposes 16 nodes and 17 paths with desert stages', () => {
+    expect(g.nodes).toHaveLength(16)
+    expect(g.paths).toHaveLength(17)
+    const byId = new Map(g.nodes.map((n) => [n.id, n]))
+    expect(byId.get('n6')?.stageId).toBe('desert-stage-1')
+    expect(byId.get('n8')?.stageId).toBe('desert-stage-2')
+    expect(byId.get('n9')?.stageId).toBe('desert-stage-3')
+  })
+
+  it('reaches stage-1 with default unlocks, full journey stage by stage', () => {
+    const open = new Set(W3_DEFAULT_UNLOCKED)
+    expect(findRoute3d(g, 'n0', 'n6', open)).not.toBeNull()
+    expect(findRoute3d(g, 'n0', 'n8', open)).toBeNull()
+    for (const s of ['desert-stage-1', 'desert-stage-2', 'desert-stage-3']) {
+      for (const p of W3_UNLOCKS[s]) open.add(p)
+    }
+    const route = findRoute3d(g, 'n0', 'n11', open)
+    expect(route).not.toBeNull()
+    expect(route![route!.length - 1]).toBe('n11')
+  })
+
+  it('has a measured bridge arc and a valid jump gap', () => {
+    const bridge = g.paths.find((x) => x.id === 'p3')!
+    expect(bridge.kind).toBe('bridge')
+    expect(bridge.arcHeight ?? 0).toBeGreaterThan(0.3)
+    const jump = g.paths.find((x) => x.id === 'p12')!
+    expect(jump.kind).toBe('jump')
+    expect(jump.oneWay).toBe(true)
   })
 })
