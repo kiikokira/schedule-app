@@ -14,9 +14,7 @@ function ThemePreview({ world }: { world: WorldDef }) {
       <img
         src={`${import.meta.env.BASE_URL}rpg/thumb-w${world.id}.jpg`}
         alt={`${world.name}の3Dプレビュー`}
-        width="72"
-        height="40"
-        style={{ borderRadius: 5, objectFit: 'cover', display: 'block' }}
+        style={{ borderRadius: 6, objectFit: 'cover', display: 'block', width: '100%', height: 64 }}
       />
     )
   }
@@ -73,7 +71,16 @@ export default function RpgWorldSelect({ worlds, unlocked, selected, onSelect, d
               <span style={{ fontSize: 12, fontWeight: 900, background: '#8a5a2a', color: '#fff', borderRadius: 4, padding: '0 6px' }}>
                 W{w.id}
               </span>
-              <span style={{ fontSize: 22, lineHeight: 1 }}>{locked ? <LockIcon /> : <ThemePreview world={w} />}</span>
+              <span style={{ position: 'relative', display: 'block', width: '100%' }}>
+                <span style={{ display: 'block', filter: locked ? 'grayscale(0.9) brightness(0.72)' : undefined }}>
+                  <ThemePreview world={w} />
+                </span>
+                {locked && (
+                  <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <LockIcon />
+                  </span>
+                )}
+              </span>
               <span style={{ fontSize: 11 }}>{locked ? `Lv${(w.id - 1) * 10 + 1}〜` : w.name}</span>
             </button>
           )

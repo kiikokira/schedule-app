@@ -15,7 +15,7 @@ import {
   type W3Path,
 } from '../lib/rpgWorld3d'
 import { advanceAlongPath, canCancelState, pathKindToAnimDirected } from '../lib/rpgMovement'
-import { resolveCameraCollision } from '../lib/rpgCamera3d'
+import { resolveCameraCollision, fitCameraToBounds, overviewDistance } from '../lib/rpgCamera3d'
 import type { MoveState } from '../lib/rpgMovement'
 import { clearRpgStage, loadRpgProgress, markWorldVisited, saveRpgProgress, type RpgProgressState } from '../lib/rpgProgress'
 import { stageActionFor } from '../lib/rpgStageAdapter'
@@ -321,6 +321,9 @@ export default function RpgWorld3d({
 
     const loader = new GLTFLoader()
     const waterMats: THREE.MeshStandardMaterial[] = []
+    // カメラのフレーミングはグラフ実寸から決める（固定値だと空だけ・隅に小さい表示になり得る）
+    const frame = fitCameraToBounds(graph.nodes)
+    const view = { aspect: 16 / 10 }
     const live = {
       nodeId: currentNodeId,
       steps: [] as RouteStep[],
@@ -341,6 +344,9 @@ export default function RpgWorld3d({
       disposed: false,
       nudgeAt: 0,
     }
+    // 初期カメラは全体が収まるoverview位置から開始する（空だけの初回表示を防ぐ）
+    live.camPos.set(frame.overviewPos[0], frame.overviewPos[1], frame.overviewPos[2])
+    live.camLook.set(frame.overviewLook[0], frame.overviewLook[1], frame.overviewLook[2])
     const startN = w3NodeById(graph, live.nodeId)
     live.pos.set(startN.x, startN.y, startN.z)
 
@@ -433,7 +439,9 @@ export default function RpgWorld3d({
 
     apiRef.current = {
       stepToward(dx, dz) {
-        if (live.moving || live.phase !== 'idle' || cameraModeRef.current === 'overview') return
+        if (live.moving || live.phase !== 'idle') return
+        // 全体表示中の操作は追従に復帰してから通常処理する（無応答にしない）
+        if (cameraModeRef.current === 'overview') setCameraMode('follow')
         const d = decideStep(graph, live.nodeId, dx, dz, unlockedRef.current)
         if (d.type === 'step') {
           const path = graph.paths.find((p) => p.id === d.pathId)!
@@ -451,7 +459,8 @@ export default function RpgWorld3d({
         }
       },
       tapNode(nodeId) {
-        if (live.moving || live.phase !== 'idle' || cameraModeRef.current === 'overview') return
+        if (live.moving || live.phase !== 'idle') return
+        if (cameraModeRef.current === 'overview') setCameraMode('follow')
         if (nodeId === live.nodeId) return
         const nodes = findRoute3d(graph, live.nodeId, nodeId, unlockedRef.current)
         if (!nodes) return
@@ -514,12 +523,15 @@ export default function RpgWorld3d({
     const resize = () => {
       const w = mount.clientWidth || 360
       const h = mount.clientHeight || 225
+      view.aspect = w / Math.max(1, h)
       renderer.setSize(w, h, false)
       camera.aspect = w / h
       camera.updateProjectionMatrix()
     }
     resize()
     window.addEventListener('resize', resize)
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null
+    ro?.observe(mount)
 
     // ロード（並列＋進捗表示）
     setLoadStage('world')
@@ -586,7 +598,9 @@ export default function RpgWorld3d({
           if (steps) startRoute(steps, true)
         }
       })
-      .catch(() => setLoadError('3Dモデル読込失敗'))
+      .catch((e) => {
+        if (!live.disposed) setLoadError(`${cfg.glb} 読込失敗: ${String(e)}`)
+      })
 
     let raf = 0
     const camTargetPos = new THREE.Vector3()
@@ -691,19 +705,24 @@ export default function RpgWorld3d({
         charGroup.position.copy(live.pos)
         charGroup.rotation.y = live.yaw
       }
-      // カメラ
+      // カメラ（目標値はワールド実寸から算出する）
       if (mode === 'overview') {
-        camTargetPos.set(0, 27, 16)
-        camTargetLook.set(0.5, 0, -1)
+        const dist = overviewDistance(frame.radius, view.aspect)
+        camTargetPos.set(
+          frame.center[0],
+          frame.center[1] + (27 / Math.hypot(27, 17)) * dist,
+          frame.center[2] + (17 / Math.hypot(27, 17)) * dist,
+        )
+        camTargetLook.set(frame.center[0], frame.center[1], frame.center[2])
       } else {
         const fx = Math.sin(live.yaw + Math.PI)
         const fz = Math.cos(live.yaw + Math.PI)
         camTargetPos.set(
-          THREE.MathUtils.clamp(live.pos.x - fx * 9.0, -14, 14),
-          Math.max(2.5, live.pos.y + 5.5),
-          THREE.MathUtils.clamp(live.pos.z - fz * 9.0, -13, 13),
+          THREE.MathUtils.clamp(live.pos.x - fx * frame.followBack, frame.center[0] - 16, frame.center[0] + 16),
+          Math.max(2.5, live.pos.y + frame.followUp),
+          THREE.MathUtils.clamp(live.pos.z - fz * frame.followBack, frame.center[2] - 15, frame.center[2] + 15),
         )
-        camTargetLook.set(live.pos.x + fx * 3.0, live.pos.y + 0.8, live.pos.z + fz * 3.0)
+        camTargetLook.set(live.pos.x + fx * frame.followFwd, live.pos.y + frame.followLookUp, live.pos.z + fz * frame.followFwd)
       }
       // 追従カメラの地形めり込み補正（overview時は全体表示を妨げないため適用しない）。
       // 注視点→希望位置のレイで collide タグ付き地形にヒットしたら 0.6m マージンを取って寄せる。
@@ -749,6 +768,7 @@ export default function RpgWorld3d({
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onUp)
       window.removeEventListener('resize', resize)
+      ro?.disconnect()
       renderer.domElement.removeEventListener('pointerdown', onPointerDown)
       scene.traverse((o) => {
         if (o instanceof THREE.Mesh) {
@@ -855,7 +875,7 @@ export default function RpgWorld3d({
             {currentNode?.stageId ? 'ステージをみる' : 'ステージなし'}
           </button>
           <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-            十字キー/WASD・タップ・D-padで移動。Mで全体表示。
+            十字キー/WASD・タップ・D-padで移動。Mで全体表示（全体表示中の操作で追従に戻る）。
           </div>
         </div>
       </div>

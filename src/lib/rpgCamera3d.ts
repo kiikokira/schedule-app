@@ -3,6 +3,104 @@
 /** 注視点方向へ戻すマージン(m)。 */
 export const CAMERA_COLLISION_MARGIN = 0.6
 
+/** overviewの基準画角(度)。RpgWorld3dのPerspectiveCamera(55)と一致させる。 */
+export const CAMERA_FOV_DEG = 55
+
+/** overviewの基準仰角。従来値(0,27,16)->(0.5,0,-1)の方向を維持する。 */
+const OVERVIEW_DIR: Vec3Tuple = [0, 27 / Math.hypot(27, 17), 17 / Math.hypot(27, 17)]
+
+export type FramingNode = { x: number; y: number; z: number }
+
+export type WorldFraming = {
+  /** ワールド中心（グラフbounds基準） */
+  center: [number, number, number]
+  /** ワールド半径（半幅の最大、最低4m） */
+  radius: number
+  /** overviewの注視点（ワールド中心） */
+  overviewLook: [number, number, number]
+  /** overviewのカメラ位置（aspect=16/10基準。狭い画面は overviewDistance で再計算） */
+  overviewPos: [number, number, number]
+  /** followカメラの後方距離（基準9mを半径でスケール） */
+  followBack: number
+  /** followカメラの高さ（基準5.5m） */
+  followUp: number
+  /** follow注視点の前方距離（基準3m） */
+  followFwd: number
+  /** follow注視点の高さ（基準0.8m） */
+  followLookUp: number
+}
+
+/**
+ * ワールド全体が画面に収まる距離。半径rの球が画角に収まる距離r/sin(halfMin)に余裕を掛けたもの。
+ */
+export function overviewDistance(
+  radius: number,
+  aspect: number,
+  fovDeg: number = CAMERA_FOV_DEG,
+  margin: number = 1.18,
+): number {
+  const a = Number.isFinite(aspect) && aspect > 0 ? aspect : 16 / 10
+  const tanV = Math.tan((fovDeg * Math.PI) / 360)
+  const halfMin = Math.min(Math.atan(tanV), Math.atan(tanV * a))
+  return (Math.max(1, radius) / Math.sin(halfMin)) * margin
+}
+
+/**
+ * グラフのノードboundsからカメラのフレーミングを求める（純粋関数）。
+ * 固定マジック数値(0,27,16等)の代わりにワールド実寸から決めることで、
+ * 空だけ・地形が隅に小さい表示を構造的に起こさない。
+ */
+export function fitCameraToBounds(
+  nodes: FramingNode[],
+  opts?: { aspect?: number; fovDeg?: number },
+): WorldFraming {
+  const aspect = opts?.aspect ?? 16 / 10
+  const fovDeg = opts?.fovDeg ?? CAMERA_FOV_DEG
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+  let minZ = Infinity
+  let maxZ = -Infinity
+  for (const n of nodes) {
+    if (minX > n.x) minX = n.x
+    if (maxX < n.x) maxX = n.x
+    if (minY > n.y) minY = n.y
+    if (maxY < n.y) maxY = n.y
+    if (minZ > n.z) minZ = n.z
+    if (maxZ < n.z) maxZ = n.z
+  }
+  if (!Number.isFinite(minX)) {
+    minX = -12
+    maxX = 12
+    minY = -2
+    maxY = 6
+    minZ = -12
+    maxZ = 12
+  }
+  const cx = (minX + maxX) / 2
+  const cy = (minY + maxY) / 2
+  const cz = (minZ + maxZ) / 2
+  const radius = Math.max((maxX - minX) / 2, (maxZ - minZ) / 2, (maxY - minY) / 2, 4)
+  const dist = overviewDistance(radius, aspect, fovDeg)
+  const overviewPos: [number, number, number] = [
+    cx + OVERVIEW_DIR[0] * dist,
+    cy + OVERVIEW_DIR[1] * dist,
+    cz + OVERVIEW_DIR[2] * dist,
+  ]
+  const s = radius / 12
+  return {
+    center: [cx, cy, cz],
+    radius,
+    overviewLook: [cx, cy, cz],
+    overviewPos,
+    followBack: Math.min(14, Math.max(6, 9 * s)),
+    followUp: 5.5 * s,
+    followFwd: 3 * s,
+    followLookUp: 0.8 * s,
+  }
+}
+
 export type Vec3Tuple = readonly [number, number, number]
 
 /**
