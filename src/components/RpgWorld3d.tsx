@@ -15,7 +15,7 @@ import {
   type W3Path,
 } from '../lib/rpgWorld3d'
 import { advanceAlongPath, canCancelState, pathKindToAnimDirected } from '../lib/rpgMovement'
-import { resolveCameraCollision, fitCameraToBounds, overviewDistance } from '../lib/rpgCamera3d'
+import { resolveCameraCollision, fitCameraToBounds, overviewDistance, followCameraTargets } from '../lib/rpgCamera3d'
 import type { MoveState } from '../lib/rpgMovement'
 import { clearRpgStage, loadRpgProgress, markWorldVisited, saveRpgProgress, type RpgProgressState } from '../lib/rpgProgress'
 import { stageActionFor } from '../lib/rpgStageAdapter'
@@ -151,7 +151,7 @@ const WORLD3D_CONFIG: Record<number, World3dConfig> = {
   },
 }
 
-const CLIP_FOR: Record<MoveState, string> = {
+export const CLIP_FOR: Record<MoveState, string> = {
   IDLE: 'Idle', WALK: 'Walk', RUN: 'Run', TURN: 'Walk',
   JUMP_PREPARE: 'JumpStart', JUMP_ASCEND: 'JumpLoop', JUMP_AIR: 'JumpLoop', JUMP_DESCEND: 'JumpLoop',
   LAND: 'JumpLand', LADDER_UP: 'ClimbUp', LADDER_DOWN: 'ClimbDown',
@@ -194,7 +194,12 @@ export default function RpgWorld3d({
   const [ready, setReady] = useState(false)
   const [loadStage, setLoadStage] = useState('graph')
   const [loadPct, setLoadPct] = useState(0)
-  const apiRef = useRef<{ stepToward(dx: number, dz: number): void; tapNode(id: string): void } | null>(null)
+  const apiRef = useRef<{
+    stepToward(dx: number, dz: number): void
+    tapNode(id: string): void
+    holdToward(dx: number, dz: number): void
+    releaseHold(): void
+  } | null>(null)
 
   const unlocked = useMemo(() => new Set(progress.unlockedPathIds), [progress])
 
@@ -343,6 +348,7 @@ export default function RpgWorld3d({
       paused: false,
       disposed: false,
       nudgeAt: 0,
+      held: null as { dx: number; dz: number } | null,
     }
     // 初期カメラは全体が収まるoverview位置から開始する（空だけの初回表示を防ぐ）
     live.camPos.set(frame.overviewPos[0], frame.overviewPos[1], frame.overviewPos[2])
@@ -397,6 +403,24 @@ export default function RpgWorld3d({
         setAnim(nodeId === 'n9' ? 'ENTER_CAVE' : 'ENTER_STAGE')
       } else {
         setAnim('IDLE')
+        // D-pad長押し中は到着後に同方向へ自動で次区間へ進む（離すと停止）
+        animRef.current = 'IDLE'
+        if (live.held && cameraModeRef.current !== 'overview') {
+          const d = decideStep(graph, nodeId, live.held.dx, live.held.dz, unlockedRef.current)
+          if (d.type === 'step') {
+            const path = graph.paths.find((p) => p.id === d.pathId)!
+            startRoute(
+              [{ path, fromId: nodeId, toId: d.toId, length: pathLength3d(graph, d.pathId, nodeId) }],
+              false,
+            )
+          } else {
+            const now = performance.now()
+            if (now - live.nudgeAt >= 220) {
+              live.nudgeAt = now
+              live.targetYaw += d.yawDelta
+            }
+          }
+        }
       }
     }
 
@@ -458,6 +482,13 @@ export default function RpgWorld3d({
           live.targetYaw += d.yawDelta
         }
       },
+      holdToward(dx, dz) {
+        live.held = { dx, dz }
+        apiRef.current?.stepToward(dx, dz)
+      },
+      releaseHold() {
+        live.held = null
+      },
       tapNode(nodeId) {
         if (live.moving || live.phase !== 'idle') return
         if (cameraModeRef.current === 'overview') setCameraMode('follow')
@@ -499,6 +530,12 @@ export default function RpgWorld3d({
     }
     window.addEventListener('keydown', onKey)
     window.addEventListener('keyup', onUp)
+    // 長押し状態の取りこぼし防止：フォーカス喪失・非表示化で必ず停止する
+    const onBlur = () => {
+      live.held = null
+    }
+    window.addEventListener('blur', onBlur)
+    document.addEventListener('visibilitychange', onBlur)
 
     const raycaster = new THREE.Raycaster()
     const pointer = new THREE.Vector2()
@@ -715,14 +752,9 @@ export default function RpgWorld3d({
         )
         camTargetLook.set(frame.center[0], frame.center[1], frame.center[2])
       } else {
-        const fx = Math.sin(live.yaw + Math.PI)
-        const fz = Math.cos(live.yaw + Math.PI)
-        camTargetPos.set(
-          THREE.MathUtils.clamp(live.pos.x - fx * frame.followBack, frame.center[0] - 16, frame.center[0] + 16),
-          Math.max(2.5, live.pos.y + frame.followUp),
-          THREE.MathUtils.clamp(live.pos.z - fz * frame.followBack, frame.center[2] - 15, frame.center[2] + 15),
-        )
-        camTargetLook.set(live.pos.x + fx * frame.followFwd, live.pos.y + frame.followLookUp, live.pos.z + fz * frame.followFwd)
+        const t = followCameraTargets({ pos: [live.pos.x, live.pos.y, live.pos.z], yaw: live.yaw }, frame)
+        camTargetPos.set(t.camPos[0], t.camPos[1], t.camPos[2])
+        camTargetLook.set(t.camLook[0], t.camLook[1], t.camLook[2])
       }
       // 追従カメラの地形めり込み補正（overview時は全体表示を妨げないため適用しない）。
       // 注視点→希望位置のレイで collide タグ付き地形にヒットしたら 0.6m マージンを取って寄せる。
@@ -764,9 +796,12 @@ export default function RpgWorld3d({
 
     return () => {
       live.disposed = true
+      live.held = null
       cancelAnimationFrame(raf)
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('keyup', onUp)
+      window.removeEventListener('blur', onBlur)
+      document.removeEventListener('visibilitychange', onBlur)
       window.removeEventListener('resize', resize)
       ro?.disconnect()
       renderer.domElement.removeEventListener('pointerdown', onPointerDown)
@@ -856,13 +891,13 @@ export default function RpgWorld3d({
         {currentNodeId}
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'stretch' }}>
-        <div data-testid="rpg-3d-pad" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 52px)', gridTemplateRows: 'repeat(2, 44px)', gap: 4, touchAction: 'none' }}>
+        <div data-testid="rpg-3d-pad" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 52px)', gridTemplateRows: 'repeat(2, 44px)', gap: 4, touchAction: 'none', userSelect: 'none', WebkitTouchCallout: 'none' }}>
           <span />
-          <button data-testid="rpg-3d-up" type="button" aria-label="北へ" onPointerDown={() => apiRef.current?.stepToward(0, -1)} onClick={() => apiRef.current?.stepToward(0, -1)} style={{ minHeight: 44 }}>▲</button>
+          <button data-testid="rpg-3d-up" type="button" aria-label="北へ" onPointerDown={() => apiRef.current?.holdToward(0, -1)} onPointerUp={() => apiRef.current?.releaseHold()} onPointerCancel={() => apiRef.current?.releaseHold()} onPointerLeave={() => apiRef.current?.releaseHold()} onContextMenu={(e) => e.preventDefault()} style={{ minHeight: 44 }}>▲</button>
           <span />
-          <button data-testid="rpg-3d-left" type="button" aria-label="西へ" onPointerDown={() => apiRef.current?.stepToward(-1, 0)} onClick={() => apiRef.current?.stepToward(-1, 0)} style={{ minHeight: 44 }}>◀</button>
-          <button data-testid="rpg-3d-down" type="button" aria-label="南へ" onPointerDown={() => apiRef.current?.stepToward(0, 1)} onClick={() => apiRef.current?.stepToward(0, 1)} style={{ minHeight: 44 }}>▼</button>
-          <button data-testid="rpg-3d-right" type="button" aria-label="東へ" onPointerDown={() => apiRef.current?.stepToward(1, 0)} onClick={() => apiRef.current?.stepToward(1, 0)} style={{ minHeight: 44 }}>▶</button>
+          <button data-testid="rpg-3d-left" type="button" aria-label="西へ" onPointerDown={() => apiRef.current?.holdToward(-1, 0)} onPointerUp={() => apiRef.current?.releaseHold()} onPointerCancel={() => apiRef.current?.releaseHold()} onPointerLeave={() => apiRef.current?.releaseHold()} onContextMenu={(e) => e.preventDefault()} style={{ minHeight: 44 }}>◀</button>
+          <button data-testid="rpg-3d-down" type="button" aria-label="南へ" onPointerDown={() => apiRef.current?.holdToward(0, 1)} onPointerUp={() => apiRef.current?.releaseHold()} onPointerCancel={() => apiRef.current?.releaseHold()} onPointerLeave={() => apiRef.current?.releaseHold()} onContextMenu={(e) => e.preventDefault()} style={{ minHeight: 44 }}>▼</button>
+          <button data-testid="rpg-3d-right" type="button" aria-label="東へ" onPointerDown={() => apiRef.current?.holdToward(1, 0)} onPointerUp={() => apiRef.current?.releaseHold()} onPointerCancel={() => apiRef.current?.releaseHold()} onPointerLeave={() => apiRef.current?.releaseHold()} onContextMenu={(e) => e.preventDefault()} style={{ minHeight: 44 }}>▶</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
           <button

@@ -4,6 +4,7 @@ import {
   CAMERA_COLLISION_MARGIN,
   fitCameraToBounds,
   overviewDistance,
+  followCameraTargets,
 } from './rpgCamera3d'
 
 const graphModules = import.meta.glob('../../artifacts/3d/world*_graph.json', { eager: true }) as Record<
@@ -113,5 +114,48 @@ describe('fitCameraToBounds (world fills the frame)', () => {
     const wide = overviewDistance(10, 16 / 10)
     const narrow = overviewDistance(10, 0.75)
     expect(narrow).toBeGreaterThan(wide)
+  })
+})
+
+describe('followCameraTargets (character stays framed)', () => {
+  const worlds = Object.entries(graphModules).map(([file, mod]) => ({
+    file,
+    nodes: mod.default.nodes,
+  }))
+
+  it('keeps every node near the look point with sane distance on all worlds', () => {
+    for (const { file, nodes } of worlds) {
+      const fit = fitCameraToBounds(nodes, { aspect: 16 / 10 })
+      for (const n of nodes) {
+        const t = followCameraTargets({ pos: [n.x, n.y, n.z], yaw: 0 }, fit)
+        const dx = t.camLook[0] - n.x
+        const dy = t.camLook[1] - n.y
+        const dz = t.camLook[2] - n.z
+        // 注視点はキャラ近傍（前方3*s・上方0.8*s以内）
+        expect(Math.hypot(dx, dy, dz), `${file} ${n.id} look`).toBeLessThan(4.5)
+        const dist = Math.hypot(
+          t.camPos[0] - n.x,
+          t.camPos[1] - n.y,
+          t.camPos[2] - n.z,
+        )
+        // カメラ距離は遊べる範囲（近すぎず遠すぎず）
+        expect(dist, `${file} ${n.id} dist`).toBeGreaterThan(4)
+        expect(dist, `${file} ${n.id} dist`).toBeLessThan(20)
+      }
+    }
+  })
+
+  it('clamps the camera around the world center', () => {
+    const fit = fitCameraToBounds(
+      [
+        { x: -9, y: 0, z: 7.5 },
+        { x: 11, y: 3, z: -10.5 },
+      ],
+      { aspect: 16 / 10 },
+    )
+    const t = followCameraTargets({ pos: [100, 0, 100], yaw: 0 }, fit)
+    expect(t.camPos[0]).toBeLessThanOrEqual(fit.center[0] + 16)
+    expect(t.camPos[2]).toBeLessThanOrEqual(fit.center[2] + 15)
+    expect(t.camPos[1]).toBeGreaterThanOrEqual(2.5)
   })
 })

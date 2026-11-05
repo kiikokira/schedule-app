@@ -30,6 +30,38 @@ export type WorldFraming = {
   followLookUp: number
 }
 
+export type FollowPose = {
+  /** キャラ位置 */
+  pos: [number, number, number]
+  /** キャラyaw */
+  yaw: number
+}
+
+/**
+ * 追従カメラの目標位置/注視点（純粋関数。tick内の計算と同一）。
+ * キャラ後方から見下ろし、キャラを画角中央付近に保つ。
+ */
+export function followCameraTargets(
+  pose: FollowPose,
+  frame: WorldFraming,
+): { camPos: [number, number, number]; camLook: [number, number, number] } {
+  const fx = Math.sin(pose.yaw + Math.PI)
+  const fz = Math.cos(pose.yaw + Math.PI)
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+  return {
+    camPos: [
+      clamp(pose.pos[0] - fx * frame.followBack, frame.center[0] - 16, frame.center[0] + 16),
+      Math.max(2.5, pose.pos[1] + frame.followUp),
+      clamp(pose.pos[2] - fz * frame.followBack, frame.center[2] - 15, frame.center[2] + 15),
+    ],
+    camLook: [
+      pose.pos[0] + fx * frame.followFwd,
+      pose.pos[1] + frame.followLookUp,
+      pose.pos[2] + fz * frame.followFwd,
+    ],
+  }
+}
+
 /**
  * ワールド全体が画面に収まる距離。半径rの球が画角に収まる距離r/sin(halfMin)に余裕を掛けたもの。
  */
