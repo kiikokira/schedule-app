@@ -400,6 +400,8 @@ export default function RpgWorld3d({
       if (node.stageId) {
         live.phase = 'stage'
         live.phaseTime = 0
+        // ステージ到着で長押し連鎖を打ち切る（パネル操作を挟むため再押しで再開）
+        live.held = null
         setAnim(nodeId === 'n9' ? 'ENTER_CAVE' : 'ENTER_STAGE')
       } else {
         setAnim('IDLE')
@@ -515,10 +517,11 @@ export default function RpgWorld3d({
         return
       }
       const k = e.key.toLowerCase()
-      if (k === 'arrowup' || k === 'w') apiRef.current?.stepToward(0, -1)
-      else if (k === 'arrowdown' || k === 's') apiRef.current?.stepToward(0, 1)
-      else if (k === 'arrowleft' || k === 'a') apiRef.current?.stepToward(-1, 0)
-      else if (k === 'arrowright' || k === 'd') apiRef.current?.stepToward(1, 0)
+      // キーボードもhold扱いにし、離すと停止する（D-padと同一仕様）
+      if (k === 'arrowup' || k === 'w') apiRef.current?.holdToward(0, -1)
+      else if (k === 'arrowdown' || k === 's') apiRef.current?.holdToward(0, 1)
+      else if (k === 'arrowleft' || k === 'a') apiRef.current?.holdToward(-1, 0)
+      else if (k === 'arrowright' || k === 'd') apiRef.current?.holdToward(1, 0)
       else if (k === 'enter' || k === ' ') {
         const node = w3NodeById(graph, live.nodeId)
         if (node.stageId) setPanelStageId(node.stageId)
@@ -527,6 +530,10 @@ export default function RpgWorld3d({
     }
     const onUp = (e: KeyboardEvent) => {
       if (e.key === 'Shift') shiftRun = false
+      const k = e.key.toLowerCase()
+      if (k.startsWith('arrow') || k === 'w' || k === 'a' || k === 's' || k === 'd') {
+        apiRef.current?.releaseHold()
+      }
     }
     window.addEventListener('keydown', onKey)
     window.addEventListener('keyup', onUp)
@@ -671,6 +678,7 @@ export default function RpgWorld3d({
       if ((live.phase === 'turn' || live.phase === 'prepare' || live.phase === 'move') && !live.pending) {
         live.phase = 'idle'
         live.moving = false
+        animRef.current = 'IDLE'
       }
       if (live.phase === 'turn' || live.phase === 'prepare') {
         live.phaseTime += dt
@@ -818,6 +826,7 @@ export default function RpgWorld3d({
       })
       skyGeo.dispose()
       moteGeo.dispose()
+      motes.material.dispose()
       renderer.dispose()
       mount.removeChild(renderer.domElement)
       apiRef.current = null

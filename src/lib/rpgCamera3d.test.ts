@@ -91,7 +91,7 @@ describe('fitCameraToBounds (world fills the frame)', () => {
 
   it('fits every node of all 9 worlds in narrow frames', () => {
     for (const { file, nodes } of worlds) {
-      for (const aspect of [1.0, 0.75]) {
+      for (const aspect of [1.0, 0.75, 0.5]) {
         const fit = fitCameraToBounds(nodes, { aspect })
         expect(
           allNodesInFrame(nodes, fit.overviewPos, fit.overviewLook, aspect, 55),

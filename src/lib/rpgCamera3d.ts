@@ -113,7 +113,8 @@ export function fitCameraToBounds(
   const cx = (minX + maxX) / 2
   const cy = (minY + maxY) / 2
   const cz = (minZ + maxZ) / 2
-  const radius = Math.max((maxX - minX) / 2, (maxZ - minZ) / 2, (maxY - minY) / 2, 4)
+  // 半径はboundsの半対角（コーナーまで収める）。最低4m。
+  const radius = Math.max(Math.hypot(maxX - minX, maxY - minY, maxZ - minZ) / 2, 4)
   const dist = overviewDistance(radius, aspect, fovDeg)
   const overviewPos: [number, number, number] = [
     cx + OVERVIEW_DIR[0] * dist,
