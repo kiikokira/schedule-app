@@ -20,13 +20,13 @@ export type WorldFraming = {
   overviewLook: [number, number, number]
   /** overviewのカメラ位置（aspect=16/10基準。狭い画面は overviewDistance で再計算） */
   overviewPos: [number, number, number]
-  /** followカメラの後方距離（基準9mを半径でスケール） */
+  /** followカメラの後方距離（キャラ中心固定・全ワールド共通） */
   followBack: number
-  /** followカメラの高さ（基準5.5m） */
+  /** followカメラの高さ */
   followUp: number
-  /** follow注視点の前方距離（基準3m） */
+  /** follow注視点の前方距離 */
   followFwd: number
-  /** follow注視点の高さ（基準0.8m） */
+  /** follow注視点の高さ */
   followLookUp: number
 }
 
@@ -121,16 +121,16 @@ export function fitCameraToBounds(
     cy + OVERVIEW_DIR[1] * dist,
     cz + OVERVIEW_DIR[2] * dist,
   ]
-  const s = radius / 12
+  // 追従カメラはキャラを見失わない固定距離（ワールドの大きさに連動させない）
   return {
     center: [cx, cy, cz],
     radius,
     overviewLook: [cx, cy, cz],
     overviewPos,
-    followBack: Math.min(14, Math.max(6, 9 * s)),
-    followUp: 5.5 * s,
-    followFwd: 3 * s,
-    followLookUp: 0.8 * s,
+    followBack: 9,
+    followUp: 5.5,
+    followFwd: 3,
+    followLookUp: 0.8,
   }
 }
 

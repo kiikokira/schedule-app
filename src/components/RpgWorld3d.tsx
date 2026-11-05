@@ -16,8 +16,8 @@ import {
 } from '../lib/rpgWorld3d'
 import { advanceAlongPath, canCancelState, pathKindToAnimDirected } from '../lib/rpgMovement'
 import { resolveCameraCollision, fitCameraToBounds, overviewDistance, followCameraTargets } from '../lib/rpgCamera3d'
+import { buildWorld1Terrain } from '../lib/rpgWorld1Terrain'
 import { ringPlacements } from '../lib/rpgVista'
-import { buildWindmill, buildBalloon } from '../lib/rpgVistaModels'
 import type { MoveState } from '../lib/rpgMovement'
 import { clearRpgStage, loadRpgProgress, markWorldVisited, saveRpgProgress, type RpgProgressState } from '../lib/rpgProgress'
 import { stageActionFor } from '../lib/rpgStageAdapter'
@@ -328,7 +328,6 @@ export default function RpgWorld3d({
 
     const loader = new GLTFLoader()
     const waterMats: THREE.MeshStandardMaterial[] = []
-    const vistaAnims: { (dt: number, t: number): void }[] = []
     // W1草原の広がり演出（オリジナル）：外洋・遠景丘陵・遠方小島。プレイアブル域の外側のみ。
     if (worldId === 1) {
       const seaMat = new THREE.MeshStandardMaterial({ color: '#3aa7d8', transparent: true, opacity: 0.86, roughness: 0.6, metalness: 0 })
@@ -362,31 +361,6 @@ export default function RpgWorld3d({
         bottom.position.set(p.x, -4.2, p.z)
         scene.add(bottom)
       }
-      // 風車小屋：最初の遠景丘の頂上に配置（接地保証・中央向き）
-      const firstHill = ringPlacements({ count: 12, rMin: 26, rMax: 64, seed: 11, y: 0 })[0]
-      const hillH = 9 + firstHill.scale * 7
-      const mill = buildWindmill()
-      mill.position.set(firstHill.x, hillH - 2.5, firstHill.z)
-      mill.rotation.y = Math.atan2(-firstHill.x, -firstHill.z)
-      scene.add(mill)
-      const blades = mill.userData.blades as THREE.Object3D
-      // 気球：上空をゆっくり周回
-      const balloon = buildBalloon()
-      const balloonState = { angle: 0.6 }
-      scene.add(balloon)
-      vistaAnims.push(
-        (dt) => {
-          blades.rotation.z += dt * 0.7
-        },
-        (dt, t) => {
-          balloonState.angle += dt * 0.025
-          balloon.position.set(
-            Math.cos(balloonState.angle) * 42,
-            15 + Math.sin(t * 0.4) * 1.2,
-            Math.sin(balloonState.angle) * 42,
-          )
-        },
-      )
     }
     // カメラのフレーミングはグラフ実寸から決める（固定値だと空だけ・隅に小さい表示になり得る）
     const frame = fitCameraToBounds(graph.nodes)
@@ -655,17 +629,23 @@ export default function RpgWorld3d({
           (err) => reject(err),
         )
       })
-    Promise.all([loadOne(cfg.glb, 'world'), loadOne(CHARA_URL, 'chara')])
+    Promise.all([
+      worldId === 1
+        // then経由で投げてcatchに集約する（同期的throwを避ける）
+        ? Promise.resolve().then(() => ({ scene: buildWorld1Terrain(graph), animations: [] as THREE.AnimationClip[] }))
+        : loadOne(cfg.glb, 'world'),
+      loadOne(CHARA_URL, 'chara'),
+    ])
       .then(([worldRes, charaRes]) => {
         if (live.disposed) return
         setLoadStage('build')
         const world = worldRes.scene
         world.traverse((o) => {
-          if (o instanceof THREE.Mesh) {
+          if (o instanceof THREE.Mesh && !(o as THREE.InstancedMesh).isInstancedMesh) {
             o.receiveShadow = true
-            // 地形衝突用タグ（キャラ・ノードマーカー・背景は world 配下にないため対象外）
+            // 地形衝突用タグ（キャラ・ノードマーカー・背景・草木インスタンスは対象外）
             o.userData.collide = true
-            collideMeshes.push(o)
+            collideMeshes.push(o as THREE.Mesh)
             const mats = Array.isArray(o.material) ? o.material : [o.material]
             for (const m of mats) {
               if (m instanceof THREE.MeshStandardMaterial && /water/i.test(m.name)) waterMats.push(m)
@@ -717,7 +697,6 @@ export default function RpgWorld3d({
       const t = clock.elapsedTime
       // 環境アニメ
       if (!reduced) {
-        for (const anim of vistaAnims) anim(dt, t)
         clouds.forEach((c, i) => {
           c.position.x += dt * (0.35 + (i % 3) * 0.12)
           if (c.position.x > 52) c.position.x = -52
@@ -878,6 +857,7 @@ export default function RpgWorld3d({
       renderer.domElement.removeEventListener('pointerdown', onPointerDown)
       scene.traverse((o) => {
         if (o instanceof THREE.Mesh) {
+          if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose()
           o.geometry.dispose()
           const mats = Array.isArray(o.material) ? o.material : [o.material]
           for (const m of mats) {
