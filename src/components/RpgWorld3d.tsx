@@ -16,6 +16,7 @@ import {
 } from '../lib/rpgWorld3d'
 import { advanceAlongPath, canCancelState, pathKindToAnimDirected } from '../lib/rpgMovement'
 import { resolveCameraCollision, fitCameraToBounds, overviewDistance, followCameraTargets } from '../lib/rpgCamera3d'
+import { ringPlacements } from '../lib/rpgVista'
 import type { MoveState } from '../lib/rpgMovement'
 import { clearRpgStage, loadRpgProgress, markWorldVisited, saveRpgProgress, type RpgProgressState } from '../lib/rpgProgress'
 import { stageActionFor } from '../lib/rpgStageAdapter'
@@ -326,6 +327,40 @@ export default function RpgWorld3d({
 
     const loader = new GLTFLoader()
     const waterMats: THREE.MeshStandardMaterial[] = []
+    // W1草原の広がり演出（オリジナル）：外洋・遠景丘陵・遠方小島。プレイアブル域の外側のみ。
+    if (worldId === 1) {
+      const seaMat = new THREE.MeshStandardMaterial({ color: '#3aa7d8', transparent: true, opacity: 0.86, roughness: 0.6, metalness: 0 })
+      seaMat.name = 'W1_VistaWater'
+      const sea = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), seaMat)
+      sea.rotation.x = -Math.PI / 2
+      sea.position.y = -1.2
+      scene.add(sea)
+      waterMats.push(seaMat)
+      const hillGreen = new THREE.MeshBasicMaterial({ color: '#69a856' })
+      const hillLight = new THREE.MeshBasicMaterial({ color: '#8fd07a' })
+      const isleTop = new THREE.MeshBasicMaterial({ color: '#7cc46a' })
+      const isleRock = new THREE.MeshBasicMaterial({ color: '#8a5f36' })
+      for (const p of ringPlacements({ count: 12, rMin: 26, rMax: 64, seed: 11, y: 0 })) {
+        const h = 9 + p.scale * 7
+        const base = new THREE.Mesh(new THREE.ConeGeometry(5 + p.scale * 4, h, 6), hillGreen)
+        base.position.set(p.x, h / 2 - 2.5, p.z)
+        base.rotation.y = p.rotY
+        scene.add(base)
+        const top = new THREE.Mesh(new THREE.ConeGeometry((5 + p.scale * 4) * 0.55, h * 0.45, 6), hillLight)
+        top.position.set(p.x, h - 2.5 - h * 0.22, p.z)
+        top.rotation.y = p.rotY
+        scene.add(top)
+      }
+      for (const p of ringPlacements({ count: 3, rMin: 30, rMax: 55, seed: 23, y: 0 })) {
+        const top = new THREE.Mesh(new THREE.CylinderGeometry(4.5 * p.scale, 5.2 * p.scale, 2.4, 8), isleTop)
+        top.position.set(p.x, 0.4, p.z)
+        scene.add(top)
+        const bottom = new THREE.Mesh(new THREE.ConeGeometry(4.6 * p.scale, 7, 8), isleRock)
+        bottom.rotation.x = Math.PI
+        bottom.position.set(p.x, -4.2, p.z)
+        scene.add(bottom)
+      }
+    }
     // カメラのフレーミングはグラフ実寸から決める（固定値だと空だけ・隅に小さい表示になり得る）
     const frame = fitCameraToBounds(graph.nodes)
     const view = { aspect: 16 / 10 }
