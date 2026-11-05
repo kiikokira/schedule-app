@@ -15,7 +15,7 @@ import {
   type W3Path,
 } from '../lib/rpgWorld3d'
 import { advanceAlongPath, canCancelState, pathKindToAnimDirected } from '../lib/rpgMovement'
-import { resolveCameraCollision, fitCameraToBounds, overviewDistance, followCameraTargets } from '../lib/rpgCamera3d'
+import { resolveCameraCollision, fitCameraToBounds, overviewDistance, followCameraTargets, orbitView, isTapGesture, TAP_MAX_MOVE_PX } from '../lib/rpgCamera3d'
 import { buildWorld1Terrain } from '../lib/rpgWorld1Terrain'
 import { ringPlacements } from '../lib/rpgVista'
 import type { MoveState } from '../lib/rpgMovement'
@@ -201,7 +201,9 @@ export default function RpgWorld3d({
     tapNode(id: string): void
     holdToward(dx: number, dz: number): void
     releaseHold(): void
+    resetView(): void
   } | null>(null)
+  const [expanded, setExpanded] = useState(false)
 
   const unlocked = useMemo(() => new Set(progress.unlockedPathIds), [progress])
 
@@ -385,6 +387,7 @@ export default function RpgWorld3d({
       disposed: false,
       nudgeAt: 0,
       held: null as { dx: number; dz: number } | null,
+      orbit: { yaw: 0, pitch: 0, zoom: 1 },
     }
     // 初期カメラは全体が収まるoverview位置から開始する（空だけの初回表示を防ぐ）
     live.camPos.set(frame.overviewPos[0], frame.overviewPos[1], frame.overviewPos[2])
@@ -502,8 +505,11 @@ export default function RpgWorld3d({
     apiRef.current = {
       stepToward(dx, dz) {
         if (live.moving || live.phase !== 'idle') return
-        // 全体表示中の操作は追従に復帰してから通常処理する（無応答にしない）
-        if (cameraModeRef.current === 'overview') setCameraMode('follow')
+        // 全体表示中の操作は追従に復帰（視点リセット付き）してから通常処理する
+        if (cameraModeRef.current === 'overview') {
+          apiRef.current?.resetView()
+          setCameraMode('follow')
+        }
         const d = decideStep(graph, live.nodeId, dx, dz, unlockedRef.current)
         if (d.type === 'step') {
           const path = graph.paths.find((p) => p.id === d.pathId)!
@@ -527,9 +533,15 @@ export default function RpgWorld3d({
       releaseHold() {
         live.held = null
       },
+      resetView() {
+        live.orbit = { yaw: 0, pitch: 0, zoom: 1 }
+      },
       tapNode(nodeId) {
         if (live.moving || live.phase !== 'idle') return
-        if (cameraModeRef.current === 'overview') setCameraMode('follow')
+        if (cameraModeRef.current === 'overview') {
+          apiRef.current?.resetView()
+          setCameraMode('follow')
+        }
         if (nodeId === live.nodeId) return
         const nodes = findRoute3d(graph, live.nodeId, nodeId, unlockedRef.current)
         if (!nodes) return
@@ -561,8 +573,11 @@ export default function RpgWorld3d({
       else if (k === 'enter' || k === ' ') {
         const node = w3NodeById(graph, live.nodeId)
         if (node.stageId) setPanelStageId(node.stageId)
-      } else if (k === 'escape') onBackRef.current?.()
-      else if (k === 'm') setCameraMode((m) => (m === 'follow' ? 'overview' : 'follow'))
+      }       else if (k === 'escape') onBackRef.current?.()
+      else if (k === 'm') {
+        apiRef.current?.resetView()
+        setCameraMode((m) => (m === 'follow' ? 'overview' : 'follow'))
+      }
     }
     const onUp = (e: KeyboardEvent) => {
       if (e.key === 'Shift') shiftRun = false
@@ -588,9 +603,13 @@ export default function RpgWorld3d({
     let collideMeshes: THREE.Mesh[] = []
     let camFrame = 0
     let cachedCamHit: number | null = null
-    const onPointerDown = (e: PointerEvent) => {
+    // 自由視点：1本指ドラッグで旋回、2本指ピンチで拡縮、短いタップでノード選択
+    const viewPointers = new Map<number, { x: number; y: number }>()
+    let downInfo: { id: number; x: number; y: number; t: number; moved: boolean } | null = null
+    let pinchDist = 0
+    const doTap = (clientX: number, clientY: number) => {
       const rect = renderer.domElement.getBoundingClientRect()
-      pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1)
+      pointer.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1)
       raycaster.setFromCamera(pointer, camera)
       const hits = raycaster.intersectObjects([...nodeHit.values()], false)
       if (hits.length > 0) {
@@ -598,7 +617,63 @@ export default function RpgWorld3d({
         if (id) apiRef.current?.tapNode(id)
       }
     }
+    const onPointerDown = (e: PointerEvent) => {
+      // マウスは左ボタンのみ操作対象にする
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      try {
+        renderer.domElement.setPointerCapture(e.pointerId)
+      } catch {
+        /* ignore */
+      }
+      viewPointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (viewPointers.size === 1) {
+        downInfo = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), moved: false }
+      } else if (viewPointers.size === 2) {
+        const [a, b] = [...viewPointers.values()]
+        pinchDist = Math.hypot(a.x - b.x, a.y - b.y)
+        if (downInfo) downInfo.moved = true
+      }
+    }
+    const onPointerMove = (e: PointerEvent) => {
+      const prev = viewPointers.get(e.pointerId)
+      if (!prev) return
+      const dx = e.clientX - prev.x
+      const dy = e.clientY - prev.y
+      viewPointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (viewPointers.size === 1 && downInfo && e.pointerId === downInfo.id) {
+        if (Math.hypot(e.clientX - downInfo.x, e.clientY - downInfo.y) > TAP_MAX_MOVE_PX) downInfo.moved = true
+        if (downInfo.moved) {
+          const yaw = live.orbit.yaw - dx * 0.0055
+          live.orbit.yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw))
+          live.orbit.pitch = Math.min(18, Math.max(-10, live.orbit.pitch - dy * 0.03))
+        }
+      } else if (viewPointers.size === 2) {
+        const [a, b] = [...viewPointers.values()]
+        const d = Math.hypot(a.x - b.x, a.y - b.y)
+        if (pinchDist > 0) {
+          live.orbit.zoom = Math.min(2.2, Math.max(0.6, live.orbit.zoom * (pinchDist / (d || 1))))
+        }
+        pinchDist = d
+        if (downInfo) downInfo.moved = true
+      }
+    }
+    const onPointerUp = (e: PointerEvent) => {
+      viewPointers.delete(e.pointerId)
+      if (viewPointers.size < 2) pinchDist = 0
+      if (downInfo && e.pointerId === downInfo.id) {
+        if (isTapGesture(downInfo.moved, performance.now() - downInfo.t)) doTap(e.clientX, e.clientY)
+        downInfo = null
+      }
+    }
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      live.orbit.zoom = Math.min(2.2, Math.max(0.6, live.orbit.zoom * (1 + e.deltaY * 0.001)))
+    }
     renderer.domElement.addEventListener('pointerdown', onPointerDown)
+    renderer.domElement.addEventListener('pointermove', onPointerMove)
+    renderer.domElement.addEventListener('pointerup', onPointerUp)
+    renderer.domElement.addEventListener('pointercancel', onPointerUp)
+    renderer.domElement.addEventListener('wheel', onWheel, { passive: false })
 
     const resize = () => {
       const w = mount.clientWidth || 360
@@ -806,6 +881,25 @@ export default function RpgWorld3d({
         camTargetPos.set(t.camPos[0], t.camPos[1], t.camPos[2])
         camTargetLook.set(t.camLook[0], t.camLook[1], t.camLook[2])
       }
+      // 自由視点：ドラッグ旋回・ピンチ/ホイール拡縮を注視点中心に適用する
+      // 全体表示では世界を見失わないよう可動域を絞る
+      {
+        const orbIn =
+          mode === 'overview'
+            ? {
+                yaw: live.orbit.yaw,
+                pitch: Math.min(8, Math.max(-6, live.orbit.pitch)),
+                zoom: Math.min(1.5, Math.max(0.7, live.orbit.zoom)),
+              }
+            : live.orbit
+        const orb = orbitView(
+          [camTargetPos.x, camTargetPos.y, camTargetPos.z],
+          [camTargetLook.x, camTargetLook.y, camTargetLook.z],
+          orbIn,
+        )
+        camTargetPos.set(orb.pos[0], orb.pos[1], orb.pos[2])
+        camTargetLook.set(orb.look[0], orb.look[1], orb.look[2])
+      }
       // 追従カメラの地形めり込み補正（overview時は全体表示を妨げないため適用しない）。
       // 注視点→希望位置のレイで collide タグ付き地形にヒットしたら 0.6m マージンを取って寄せる。
       // レイキャストは3フレームに1回だけ実行し、間はキャッシュしたヒット距離を使い回す。
@@ -855,6 +949,10 @@ export default function RpgWorld3d({
       window.removeEventListener('resize', resize)
       ro?.disconnect()
       renderer.domElement.removeEventListener('pointerdown', onPointerDown)
+    renderer.domElement.removeEventListener('pointermove', onPointerMove)
+    renderer.domElement.removeEventListener('pointerup', onPointerUp)
+    renderer.domElement.removeEventListener('pointercancel', onPointerUp)
+    renderer.domElement.removeEventListener('wheel', onWheel)
       scene.traverse((o) => {
         if (o instanceof THREE.Mesh) {
           if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose()
@@ -914,8 +1012,11 @@ export default function RpgWorld3d({
           <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>いま: {currentNode ? nodeLabel(cfg, currentNode) : currentNodeId}</span>
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-          <button data-testid="rpg-3d-camera" type="button" onClick={() => setCameraMode((m) => (m === 'follow' ? 'overview' : 'follow'))} style={{ minHeight: 44, padding: '0 12px', flex: 1 }}>
+          <button data-testid="rpg-3d-camera" type="button" onClick={() => { apiRef.current?.resetView(); setCameraMode((m) => (m === 'follow' ? 'overview' : 'follow')) }} style={{ minHeight: 44, padding: '0 12px', flex: 1 }}>
             {cameraMode === 'follow' ? '全体をみる' : '追従にもどる'}
+          </button>
+          <button data-testid="rpg-3d-expand" type="button" onClick={() => setExpanded((v) => !v)} style={{ minHeight: 44, padding: '0 12px', flex: 1 }}>
+            {expanded ? '標準にもどす' : '大きくみる'}
           </button>
           {onBack && (
             <button data-testid="rpg-3d-back" type="button" onClick={onBack} style={{ minHeight: 44, padding: '0 12px', flex: 1 }}>
@@ -927,7 +1028,8 @@ export default function RpgWorld3d({
       <div
         ref={mountRef}
         data-testid="rpg-3d-canvas"
-        style={{ position: 'relative', width: '100%', aspectRatio: '16 / 10', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', touchAction: 'manipulation', background: '#8fc7f5' }}
+        data-expanded={expanded ? 'true' : 'false'}
+        style={{ position: 'relative', width: '100%', aspectRatio: expanded ? '1 / 1' : '16 / 10', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', touchAction: 'none', background: '#8fc7f5' }}
       />
       {!ready && !loadError && (
         <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 4 }}>
@@ -952,17 +1054,18 @@ export default function RpgWorld3d({
           <button data-testid="rpg-3d-right" type="button" aria-label="東へ" onPointerDown={() => apiRef.current?.holdToward(1, 0)} onPointerUp={() => apiRef.current?.releaseHold()} onPointerCancel={() => apiRef.current?.releaseHold()} onPointerLeave={() => apiRef.current?.releaseHold()} onContextMenu={(e) => e.preventDefault()} style={{ minHeight: 44 }}>▶</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-          <button
-            data-testid="rpg-3d-decide"
-            type="button"
-            disabled={!currentNode?.stageId}
-            onClick={() => currentNode?.stageId && setPanelStageId(currentNode.stageId)}
-            style={{ minHeight: 48, fontWeight: 800 }}
-          >
-            {currentNode?.stageId ? 'ステージをみる' : 'ステージなし'}
-          </button>
+          {currentNode?.stageId ? (
+            <button
+              data-testid="rpg-3d-decide"
+              type="button"
+              onClick={() => currentNode?.stageId && setPanelStageId(currentNode.stageId)}
+              style={{ minHeight: 48, fontWeight: 800 }}
+            >
+              ステージをみる
+            </button>
+          ) : null}
           <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-            十字キー/WASD・タップ・D-padで移動。Mで全体表示（全体表示中の操作で追従に戻る）。
+            十字キー/WASD・D-pad長押しで移動。画面ドラッグで視点回転、ピンチで拡大縮小。Mで全体表示。
           </div>
         </div>
       </div>

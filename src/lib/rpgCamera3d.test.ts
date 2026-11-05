@@ -5,6 +5,10 @@ import {
   fitCameraToBounds,
   overviewDistance,
   followCameraTargets,
+  orbitView,
+  isTapGesture,
+  TAP_MAX_MOVE_PX,
+  TAP_MAX_MS,
 } from './rpgCamera3d'
 
 const graphModules = import.meta.glob('../../artifacts/3d/world*_graph.json', { eager: true }) as Record<
@@ -157,5 +161,65 @@ describe('followCameraTargets (character stays framed)', () => {
     expect(t.camPos[0]).toBeLessThanOrEqual(fit.center[0] + 16)
     expect(t.camPos[2]).toBeLessThanOrEqual(fit.center[2] + 15)
     expect(t.camPos[1]).toBeGreaterThanOrEqual(2.5)
+  })
+})
+
+describe('orbitView (free viewpoint)', () => {
+  const pos: [number, number, number] = [0, 10, 12]
+  const look: [number, number, number] = [0, 0, 0]
+
+  it('is identity with zero offsets and zoom 1', () => {
+    const r = orbitView(pos, look, { yaw: 0, pitch: 0, zoom: 1 })
+    expect(r.pos).toEqual([0, 10, 12])
+    expect(r.look).toEqual([0, 0, 0])
+  })
+
+  it('rotates the camera around the look point with yaw', () => {
+    const r = orbitView(pos, look, { yaw: Math.PI, pitch: 0, zoom: 1 })
+    expect(r.pos[0]).toBeCloseTo(0, 6)
+    expect(r.pos[2]).toBeCloseTo(-12, 6)
+    expect(r.look).toEqual([0, 0, 0])
+  })
+
+  it('scales the distance with zoom', () => {
+    const near = orbitView(pos, look, { yaw: 0, pitch: 0, zoom: 0.5 })
+    const far = orbitView(pos, look, { yaw: 0, pitch: 0, zoom: 2 })
+    const d = (p: readonly number[]) => Math.hypot(p[0], p[1], p[2])
+    expect(d(near.pos)).toBeLessThan(d(pos))
+    expect(d(far.pos)).toBeGreaterThan(d(pos))
+    expect(near.look).toEqual([0, 0, 0])
+  })
+
+  it('raises the camera with positive pitch while keeping the look point', () => {
+    const r = orbitView(pos, look, { yaw: 0, pitch: 5, zoom: 1 })
+    expect(r.pos[1]).toBeGreaterThan(pos[1])
+    expect(r.look).toEqual([0, 0, 0])
+  })
+
+  it('never lets the camera drop to or below the look height', () => {
+    const r = orbitView([0, 3, 6], [0, 2, 0], { yaw: 0, pitch: -100, zoom: 1 })
+    expect(r.pos[1]).toBeGreaterThan(2)
+  })
+
+  it('clamps zoom to the documented range', () => {
+    const near = orbitView([0, 10, 12], [0, 0, 0], { yaw: 0, pitch: 0, zoom: 0 })
+    const far = orbitView([0, 10, 12], [0, 0, 0], { yaw: 0, pitch: 0, zoom: 99 })
+    const base = Math.hypot(10, 12)
+    expect(Math.hypot(near.pos[0], near.pos[1], near.pos[2])).toBeCloseTo(base * 0.6, 5)
+    expect(Math.hypot(far.pos[0], far.pos[1], far.pos[2])).toBeCloseTo(base * 2.2, 5)
+  })
+})
+
+describe('isTapGesture (tap/drag contract)', () => {
+  it('exposes sane thresholds', () => {
+    expect(TAP_MAX_MOVE_PX).toBeGreaterThan(0)
+    expect(TAP_MAX_MS).toBeGreaterThan(0)
+  })
+
+  it('accepts only quick untouched presses', () => {
+    expect(isTapGesture(false, 0)).toBe(true)
+    expect(isTapGesture(false, TAP_MAX_MS - 1)).toBe(true)
+    expect(isTapGesture(true, 0)).toBe(false)
+    expect(isTapGesture(false, TAP_MAX_MS)).toBe(false)
   })
 })

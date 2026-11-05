@@ -136,6 +136,47 @@ export function fitCameraToBounds(
 
 export type Vec3Tuple = readonly [number, number, number]
 
+/** タップとみなす条件（ドラッグとの判別用）。UIとテストの共通契約。 */
+export const TAP_MAX_MOVE_PX = 8
+export const TAP_MAX_MS = 600
+
+/** 短い・小さいポインタ操作だけをタップ選択にする。 */
+export function isTapGesture(moved: boolean, durationMs: number): boolean {
+  return !moved && durationMs < TAP_MAX_MS
+}
+
+export type OrbitOffset = {
+  /** 注視点回りの水平旋回角（ラジアン） */
+  yaw: number
+  /** カメラ高さの加算（m） */
+  pitch: number
+  /** 注視点からの距離倍率 */
+  zoom: number
+}
+
+/**
+ * 自由視点の適用（純粋関数）。注視点を中心にカメラ位置を旋回・拡縮する。
+ * 注視点は動かさない。カメラが注視点の高さ以下に落ちないよう下限を守る。
+ */
+export function orbitView(
+  pos: [number, number, number],
+  look: [number, number, number],
+  offset: OrbitOffset,
+): { pos: [number, number, number]; look: [number, number, number] } {
+  const zoom = Math.min(2.2, Math.max(0.6, offset.zoom))
+  const dx = pos[0] - look[0]
+  const dy = pos[1] - look[1]
+  const dz = pos[2] - look[2]
+  const cos = Math.cos(offset.yaw)
+  const sin = Math.sin(offset.yaw)
+  const h = Math.hypot(dx, dz) * zoom
+  const dist = Math.hypot(dx, dz) || 1
+  const nx = (dx * cos - dz * sin) / dist
+  const nz = (dx * sin + dz * cos) / dist
+  const y = Math.max(look[1] + 1.5, look[1] + dy * zoom + offset.pitch)
+  return { pos: [look[0] + nx * h, y, look[2] + nz * h], look: [look[0], look[1], look[2]] }
+}
+
 /**
  * 注視点→希望カメラ位置のレイが地形にヒットした場合、希望位置を
  * 「ヒット点から注視点方向へ margin 戻した位置」に寄せる。
