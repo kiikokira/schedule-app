@@ -30,7 +30,7 @@ import {
   w1IsComplete,
   normalizeW1Cleared,
 } from '../lib/rpgW1Stages'
-import { stopForNodeId } from '../lib/rpgW1Stops'
+import { DWELL_SEC, segmentStops, stopForNodeId } from '../lib/rpgW1Stops'
 import { buildW1StopPad, w1PadY } from '../lib/rpgW1Pads'
 import { ringPlacements } from '../lib/rpgVista'
 import type { MoveState } from '../lib/rpgMovement'
@@ -420,6 +420,10 @@ export default function RpgWorld3d({
       phaseTime: 0,
       pending: null as RouteStep | null,
       landTo: '',
+      // W1円中心停止のdwell（idle+phaseTimeで実装、新規phaseなし）。
+      // dwellNext: タップ連続移動の次区間 / dwellHold: 長押し継続の待機中
+      dwellNext: null as RouteStep | null,
+      dwellHold: false,
       pos: new THREE.Vector3(),
       yaw: 0,
       targetYaw: 0,
@@ -470,6 +474,8 @@ export default function RpgWorld3d({
       live.moving = false
       live.phase = 'idle'
       live.pending = null
+      live.dwellNext = null
+      live.dwellHold = false
       const node = w3NodeById(graph, nodeId)
       live.pos.set(node.x, node.y, node.z)
       setCurrentNodeId(nodeId)
@@ -486,12 +492,25 @@ export default function RpgWorld3d({
         setAnim(nodeId === 'n9' ? 'ENTER_CAVE' : 'ENTER_STAGE')
       } else {
         setAnim('IDLE')
-        // D-pad長押し中は到着後に同方向へ自動で次区間へ進む（離すと停止）
+        // W1は各円でDWELL_SECだけ中心停止（idle呼吸）してから同方向へ自動継続する（離すと停止）。
+        // W1以外は従来どおり即時継続する。
         animRef.current = 'IDLE'
         if (live.held && cameraModeRef.current !== 'overview') {
           const d = decideStep(graph, nodeId, live.held.dx, live.held.dz, unlockedRef.current)
           if (d.type === 'step') {
-            if (worldIdRef.current === 1 && w1RouteBlockedRef.current([d.toId])) {
+            if (worldIdRef.current === 1) {
+              const target = w3NodeById(graph, d.toId)
+              if (target.stageId && !w1CanEnter(target.stageId, w1ClearedRef.current)) {
+                live.held = null
+              } else if (w1RouteBlockedRef.current([d.toId])) {
+                live.held = null
+              } else {
+                live.phase = 'idle'
+                live.phaseTime = 0
+                live.dwellNext = null
+                live.dwellHold = true
+              }
+            } else if (w1RouteBlockedRef.current([d.toId])) {
               live.held = null
             } else {
               const path = graph.paths.find((p) => p.id === d.pathId)!
@@ -545,12 +564,16 @@ export default function RpgWorld3d({
       live.steps = steps
       live.stepIndex = 0
       live.autoThrough = autoThrough
+      live.dwellNext = null
+      live.dwellHold = false
       beginStep(steps[0])
     }
 
     apiRef.current = {
       stepToward(dx, dz) {
         if (live.moving || live.phase !== 'idle') return
+        // W1 dwell中（円中心停止の0.4秒）は次の入力を受け付けない
+        if (live.dwellNext || live.dwellHold) return
         // 全体表示中の操作は追従に復帰（視点リセット付き）してから通常処理する
         if (cameraModeRef.current === 'overview') {
           apiRef.current?.resetView()
@@ -597,6 +620,8 @@ export default function RpgWorld3d({
       },
       tapNode(nodeId) {
         if (live.moving || live.phase !== 'idle') return
+        // W1 dwell中（円中心停止の0.4秒）は次の入力を受け付けない
+        if (live.dwellNext || live.dwellHold) return
         if (cameraModeRef.current === 'overview') {
           apiRef.current?.resetView()
           setCameraMode('follow')
@@ -609,8 +634,25 @@ export default function RpgWorld3d({
         }
         const nodes = findRoute3d(graph, live.nodeId, nodeId, unlockedRef.current)
         if (!nodes) return
-        if (worldIdRef.current === 1 && w1RouteBlockedRef.current(nodes)) return
-        const steps = routeSteps(graph, nodes, unlockedRef.current)
+        // W1：locked円を含む経路は手前円まで短縮する（通過しない）。
+        // 終点自体がlockedの場合は上でreturn済みのため移動しない。
+        let w1Nodes = nodes
+        if (worldIdRef.current === 1) {
+          const segs = segmentStops(nodes)
+          let cut = segs.length
+          for (let i = 0; i < segs.length; i += 1) {
+            const stageOf = Object.entries(W1_STAGE_NODE).find(([, n]) => n === segs[i])?.[0]
+            if (stageOf && !w1CanEnter(stageOf, w1ClearedRef.current)) {
+              cut = i
+              break
+            }
+          }
+          if (cut < segs.length) {
+            if (cut <= 1) return
+            w1Nodes = segs.slice(0, cut)
+          }
+        }
+        const steps = routeSteps(graph, w1Nodes, unlockedRef.current)
         if (!steps) return
         // 向き付きサンプリングのため前後ノードを付与する
         const withCtx = steps.map((s, i) => ({
@@ -951,15 +993,84 @@ export default function RpgWorld3d({
             const idx = live.steps.indexOf(st)
             const next = live.steps[idx + 1]
             if (next) {
-              live.stepIndex = idx + 1
-              live.dist = 0
-              live.pending = next
-              setAnim(pathKindToAnimDirected(next.path.kind, next.fromId !== next.path.from))
+              if (worldIdRef.current === 1) {
+                // W1：中間円の中心で停止し、DWELL_SECだけidle呼吸してから次区間へ自動継続する。
+                // 最終到達は従来どおりarriveAt（ステージパネル／idle待機）とする。
+                const arrived = w3NodeById(graph, arrivedId)
+                live.nodeId = arrivedId
+                live.pos.set(arrived.x, arrived.y, arrived.z)
+                live.moving = false
+                live.pending = null
+                live.dist = 0
+                live.stepIndex = idx + 1
+                setCurrentNodeId(arrivedId)
+                setProgress((prev) => {
+                  const nextp: RpgProgressState = { ...prev, lastKnownNodeId: { ...prev.lastKnownNodeId, [cfg.progressKey]: arrivedId } }
+                  saveRpgProgress(nextp)
+                  return nextp
+                })
+                setAnim('IDLE')
+                animRef.current = 'IDLE'
+                live.phase = 'idle'
+                live.phaseTime = 0
+                live.dwellNext = next
+                live.dwellHold = false
+              } else {
+                live.stepIndex = idx + 1
+                live.dist = 0
+                live.pending = next
+                setAnim(pathKindToAnimDirected(next.path.kind, next.fromId !== next.path.from))
+              }
             } else {
               arriveAt(arrivedId)
             }
           } else {
             arriveAt(arrivedId)
+          }
+        }
+      } else if (live.phase === 'idle' && (live.dwellNext || live.dwellHold)) {
+        // W1円中心停止のdwell（idle呼吸DWELL_SEC）。継続前にlockedを再判定する。
+        live.phaseTime += dt
+        if (live.phaseTime >= DWELL_SEC) {
+          const nxt = live.dwellNext
+          live.dwellNext = null
+          live.dwellHold = false
+          if (nxt) {
+            // タップ連続移動の継続。locked判明時は手前円に留まる。
+            if (worldIdRef.current === 1 && w1RouteBlockedRef.current([nxt.toId])) {
+              live.autoThrough = false
+              live.pending = null
+            } else {
+              live.phaseTime = 0
+              beginStep(nxt)
+            }
+          } else if (live.held && cameraModeRef.current !== 'overview') {
+            // 長押し継続。離されていたら何もせずidle待機のままにする。
+            const d = decideStep(graph, live.nodeId, live.held.dx, live.held.dz, unlockedRef.current)
+            if (d.type === 'step') {
+              let blocked = false
+              if (worldIdRef.current === 1) {
+                const target = w3NodeById(graph, d.toId)
+                if (target.stageId && !w1CanEnter(target.stageId, w1ClearedRef.current)) blocked = true
+                else if (w1RouteBlockedRef.current([d.toId])) blocked = true
+              }
+              if (blocked) {
+                live.held = null
+              } else {
+                const path = graph.paths.find((p) => p.id === d.pathId)!
+                live.phaseTime = 0
+                startRoute(
+                  [{ path, fromId: live.nodeId, toId: d.toId, length: pathLength3d(graph, d.pathId, live.nodeId) }],
+                  false,
+                )
+              }
+            } else {
+              const now = performance.now()
+              if (now - live.nudgeAt >= 220) {
+                live.nudgeAt = now
+                live.targetYaw += d.yawDelta
+              }
+            }
           }
         }
       } else if (live.phase === 'land') {
