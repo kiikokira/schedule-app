@@ -878,22 +878,25 @@ export default function RpgWorld3d({
         const hitMat = new THREE.MeshBasicMaterial({ visible: false })
         const clearedW1 = worldId === 1 ? normalizeW1Cleared(loadRpgProgress().clearedStageIds) : []
         if (worldId === 1) {
-          // W1先道半透明（fixed）: merge済み道路はpathIdを持たないため material名で判定する。
-          // next以降へ延びる道が1本でもあれば W1_Road/W1_RoadEdge を透過させる。W2-9は対象外。
-          const hasFutureRoad = graph.paths.some((p) => isPathBeyondNext(p.from, p.to, clearedW1))
-          if (hasFutureRoad) {
-            world.traverse((o) => {
-              if (o instanceof THREE.Mesh) {
-                const mats = Array.isArray(o.material) ? o.material : [o.material]
-                for (const m of mats) {
-                  if (m instanceof THREE.MeshStandardMaterial && (m.name === 'W1_Road' || m.name === 'W1_RoadEdge')) {
-                    m.transparent = true
-                    m.opacity = 0.35
-                  }
+          // W1先道半透明（per-path）: 道路はpath毎メッシュ（userData.pathId）なので
+          // isPathBeyondNextな道だけを透過させる。cleared/nextは不透明のまま。W2-9は対象外。
+          const pathById = new Map(graph.paths.map((p) => [p.id, p]))
+          world.traverse((o) => {
+            if (o instanceof THREE.Mesh) {
+              const pid = (o.userData as { pathId?: string } | undefined)?.pathId
+              if (!pid) return
+              const p = pathById.get(pid)
+              if (!p) return
+              if (!isPathBeyondNext(p.from, p.to, clearedW1)) return
+              const mats = Array.isArray(o.material) ? o.material : [o.material]
+              for (const m of mats) {
+                if (m instanceof THREE.MeshStandardMaterial && (m.name === 'W1_Road' || m.name === 'W1_RoadEdge' || m.name === 'W1_Wood')) {
+                  m.transparent = true
+                  m.opacity = 0.35
                 }
               }
-            })
-          }
+            }
+          })
         }
         for (const n of graph.nodes) {
           const hit = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 8), hitMat)

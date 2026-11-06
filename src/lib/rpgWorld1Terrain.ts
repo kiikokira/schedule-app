@@ -116,9 +116,11 @@ function ribbonGeometry(g: W3Graph, path: W3Path, fromId: string, half: number, 
 
 function buildRoads(g: W3Graph): THREE.Group {
   const group = new THREE.Group();
-  const dirt: THREE.BufferGeometry[] = [];
-  const edge: THREE.BufferGeometry[] = [];
-  const wood: THREE.BufferGeometry[] = [];
+  const mat = (c: string) =>
+    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, name: c });
+  // Per-path meshes (not merged across paths) so callers can dim only
+  // beyond-next segments via `mesh.userData.pathId`. Draw calls grow
+  // with path count (~dozens) but stay trivial for W1 scale.
   for (const p of g.paths) {
     const len = pathLength3d(g, p.id, p.from);
     const isBridge = p.kind === 'bridge';
@@ -127,13 +129,24 @@ function buildRoads(g: W3Graph): THREE.Group {
     const w = isBridge ? 1.2 : 1.1;
     const top = ribbonGeometry(g, ribbonPath, p.from, w, 0.07);
     paint(top, isBridge ? WOOD : DIRT);
-    (isBridge ? wood : dirt).push(top);
+    const topMesh = new THREE.Mesh(
+      mergeGeometries([top])!,
+      mat(isBridge ? 'W1_Wood' : 'W1_Road'),
+    );
+    topMesh.userData.pathId = p.id;
+    topMesh.receiveShadow = true;
+    if (isBridge) topMesh.castShadow = true;
+    group.add(topMesh);
     if (!isBridge) {
       const skirt = ribbonGeometry(g, ribbonPath, p.from, w + 0.45, 0.035);
       paint(skirt, DIRT_EDGE);
-      edge.push(skirt);
+      const edgeMesh = new THREE.Mesh(mergeGeometries([skirt])!, mat('W1_RoadEdge'));
+      edgeMesh.userData.pathId = p.id;
+      edgeMesh.receiveShadow = true;
+      group.add(edgeMesh);
     } else {
-      // bridge posts
+      // bridge posts belong to the same path so the whole bridge dims together
+      const posts: THREE.BufferGeometry[] = [];
       const n = Math.max(2, Math.floor(len / 2.5));
       for (let i = 0; i <= n; i++) {
         const pose = samplePath3d(g, p, p.from, (len * i) / n, undefined, undefined, len);
@@ -143,28 +156,17 @@ function buildRoads(g: W3Graph): THREE.Group {
         const pz = dirx;
         for (const s of [-1, 1]) {
           // 橋脚は河床(-1.7)まで届く長さにする
-          wood.push(box(0.24, 5.4, 0.24, WOOD_DARK, pose.pos[0] + px * s * 1.3, pose.pos[1] - 2.2, pose.pos[2] + pz * s * 1.3));
+          posts.push(box(0.24, 5.4, 0.24, WOOD_DARK, pose.pos[0] + px * s * 1.3, pose.pos[1] - 2.2, pose.pos[2] + pz * s * 1.3));
         }
       }
+      if (posts.length > 0) {
+        const postMesh = new THREE.Mesh(mergeGeometries(posts)!, mat('W1_Wood'));
+        postMesh.userData.pathId = p.id;
+        postMesh.castShadow = true;
+        postMesh.receiveShadow = true;
+        group.add(postMesh);
+      }
     }
-  }
-  const mat = (c: string) =>
-    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, name: c });
-  if (dirt.length > 0) {
-    const m = new THREE.Mesh(mergeGeometries(dirt)!, mat('W1_Road'));
-    m.receiveShadow = true;
-    group.add(m);
-  }
-  if (edge.length > 0) {
-    const m = new THREE.Mesh(mergeGeometries(edge)!, mat('W1_RoadEdge'));
-    m.receiveShadow = true;
-    group.add(m);
-  }
-  if (wood.length > 0) {
-    const m = new THREE.Mesh(mergeGeometries(wood)!, mat('W1_Wood'));
-    m.castShadow = true;
-    m.receiveShadow = true;
-    group.add(m);
   }
   return group;
 }
