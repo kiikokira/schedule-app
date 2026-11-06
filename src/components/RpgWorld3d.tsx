@@ -31,6 +31,7 @@ import {
   normalizeW1Cleared,
 } from '../lib/rpgW1Stages'
 import { DWELL_SEC, segmentStops, stopForNodeId } from '../lib/rpgW1Stops'
+import { isPathBeyondNext } from '../lib/rpgW1Visual'
 import { buildW1StopPad, w1PadY } from '../lib/rpgW1Pads'
 import { ringPlacements } from '../lib/rpgVista'
 import type { MoveState } from '../lib/rpgMovement'
@@ -751,9 +752,11 @@ export default function RpgWorld3d({
       const dx = e.clientX - prev.x
       const dy = e.clientY - prev.y
       viewPointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      const isW1Fixed = worldId === 1
       if (viewPointers.size === 1 && downInfo && e.pointerId === downInfo.id) {
         if (Math.hypot(e.clientX - downInfo.x, e.clientY - downInfo.y) > TAP_MAX_MOVE_PX) downInfo.moved = true
         if (downInfo.moved) {
+          if (isW1Fixed) return // W1は固定視点：ドラッグ旋回無効（タップ選択は維持）
           const yaw = live.orbit.yaw - dx * 0.0055
           live.orbit.yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw))
           live.orbit.pitch = Math.min(18, Math.max(-10, live.orbit.pitch - dy * 0.03))
@@ -761,6 +764,11 @@ export default function RpgWorld3d({
       } else if (viewPointers.size === 2) {
         const [a, b] = [...viewPointers.values()]
         const d = Math.hypot(a.x - b.x, a.y - b.y)
+        if (isW1Fixed) {
+          pinchDist = d
+          if (downInfo) downInfo.moved = true
+          return // W1は固定視点：ピンチ拡縮無効
+        }
         if (pinchDist > 0) {
           live.orbit.zoom = Math.min(2.2, Math.max(0.6, live.orbit.zoom * (pinchDist / (d || 1))))
         }
@@ -778,6 +786,7 @@ export default function RpgWorld3d({
     }
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
+      if (worldId === 1) return // W1は固定視点：ホイール拡縮無効
       live.orbit.zoom = Math.min(2.2, Math.max(0.6, live.orbit.zoom * (1 + e.deltaY * 0.001)))
     }
     renderer.domElement.addEventListener('pointerdown', onPointerDown)
@@ -868,6 +877,24 @@ export default function RpgWorld3d({
         // ノードマーカー（不可視ヒット球＋可視ステージ印）
         const hitMat = new THREE.MeshBasicMaterial({ visible: false })
         const clearedW1 = worldId === 1 ? normalizeW1Cleared(loadRpgProgress().clearedStageIds) : []
+        if (worldId === 1) {
+          // W1先道半透明（fixed）: merge済み道路はpathIdを持たないため material名で判定する。
+          // next以降へ延びる道が1本でもあれば W1_Road/W1_RoadEdge を透過させる。W2-9は対象外。
+          const hasFutureRoad = graph.paths.some((p) => isPathBeyondNext(p.from, p.to, clearedW1))
+          if (hasFutureRoad) {
+            world.traverse((o) => {
+              if (o instanceof THREE.Mesh) {
+                const mats = Array.isArray(o.material) ? o.material : [o.material]
+                for (const m of mats) {
+                  if (m instanceof THREE.MeshStandardMaterial && (m.name === 'W1_Road' || m.name === 'W1_RoadEdge')) {
+                    m.transparent = true
+                    m.opacity = 0.35
+                  }
+                }
+              }
+            })
+          }
+        }
         for (const n of graph.nodes) {
           const hit = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 8), hitMat)
           hit.position.set(n.x, n.y + 0.6, n.z)
@@ -1301,6 +1328,7 @@ export default function RpgWorld3d({
             <span>⬜ 灰円＝ロック中🔒（進めない）</span>
           </div>
         )}
+        {isW1 && <div data-testid="w1-legend">青黄クリア・赤黄つぎ・黒黄この先・先道は半透明</div>}
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
           <button data-testid="rpg-3d-camera" type="button" onClick={() => { apiRef.current?.resetView(); setCameraMode((m) => (m === 'follow' ? 'overview' : 'follow')) }} style={{ minHeight: 44, padding: '0 12px', flex: 1 }}>
             {cameraMode === 'follow' ? '全体をみる' : '追従にもどす'}
