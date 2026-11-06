@@ -22,7 +22,7 @@ import math
 import json
 import random
 
-PROJ = r"C:\anki\スケジュール管理アプリ"
+PROJ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 sys.path.insert(0, os.path.join(PROJ, "scripts", "blender"))
 import wkit
 from wkit import sstep
@@ -93,6 +93,7 @@ def H_bed(x, z):
 
 # ---------------------------------------------------------------- scene setup
 wkit.fresh_scene("W1", sky=(0.55, 0.80, 1.0))
+bpy.context.scene.render.engine = 'CYCLES'
 cam_over = wkit.make_cam("W1_Overview", (-3, -74, 62), (-3, -4, 2))
 bpy.context.scene.camera = cam_over
 bpy.context.scene.render.resolution_x = 640
