@@ -28,14 +28,14 @@ export const W1_STAGE_NODE: Record<W1StageId, string> = {
 }
 
 export const W1_STAGE_TITLES: Record<W1StageId, string> = {
-  'w1-stage-1': '花畑のはじまり',
-  'w1-stage-2': 'わかれ道の森',
-  'w1-stage-3': '丘の小屋',
-  'w1-stage-4': '崖っぷちチャレンジ',
-  'w1-stage-5': '風見の丘',
-  'w1-stage-6': '洞窟まえ',
-  'w1-stage-7': '中間砦',
-  'w1-stage-8': '最終塔',
+  'w1-stage-1': '村入口の広場',
+  'w1-stage-2': '井戸の丘',
+  'w1-stage-3': '石橋のたもと',
+  'w1-stage-4': '上段牧場',
+  'w1-stage-5': '守護像の丘',
+  'w1-stage-6': '滝裏の道',
+  'w1-stage-7': '赤橋のたもと',
+  'w1-stage-8': '桟橋の守護',
 }
 
 /** 各ステージクリアで開く区間（既存path ID）。直列＋s2→s3の分岐両ルートを同時開放。 */
