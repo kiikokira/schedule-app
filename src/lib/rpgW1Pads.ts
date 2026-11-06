@@ -1,11 +1,18 @@
 import * as THREE from 'three'
 import { w1TerrainHeight } from './rpgWorldGen'
 import type { W1StageStatus } from './rpgW1Stages'
+import { W1_YELLOW_RING, W1_FUTURE_CENTER, type W1VisualStatus } from './rpgW1Visual'
 
 export const W1_PAD_COLORS: Record<W1StageStatus, string> = {
   cleared: '#2f7bff',
   next: '#ef2d2d',
   locked: '#9aa3b2',
+}
+
+export const W1_PAD_COLORS_EXT: Record<W1VisualStatus, string> = {
+  cleared: '#2f7bff',
+  next: '#ef2d2d',
+  future: '#20242c',
 }
 
 const INNER = '#c9a06a'
@@ -41,4 +48,23 @@ export function buildW1StopPad(status: W1StageStatus, radius: number): THREE.Gro
 /** 台座の接地Y（地形＋0.05）。 */
 export function w1PadY(x: number, z: number): number {
   return w1TerrainHeight(x, z) + 0.05
+}
+
+export function buildW1StopPadV3(status: W1VisualStatus, radius: number): THREE.Group {
+  const g = buildW1StopPad(status === 'future' ? 'locked' : status, radius)
+  const outer = new THREE.Mesh(
+    new THREE.RingGeometry(radius, radius + 0.28, 48),
+    new THREE.MeshStandardMaterial({ color: W1_YELLOW_RING, roughness: 0.6, side: THREE.DoubleSide }),
+  )
+  outer.rotation.x = -Math.PI / 2
+  outer.position.y = 0.09
+  g.add(outer)
+  if (status === 'future') {
+    for (const m of g.children) {
+      if (m instanceof THREE.Mesh && m.material instanceof THREE.MeshStandardMaterial) {
+        if (m.material.color.getStyle() === 'rgb(154,163,178)') m.material.color.set(W1_FUTURE_CENTER)
+      }
+    }
+  }
+  return g
 }
