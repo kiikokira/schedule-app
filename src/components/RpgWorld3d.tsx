@@ -36,6 +36,7 @@ import { buildW1StopPad, w1PadY } from '../lib/rpgW1Pads'
 import { ringPlacements } from '../lib/rpgVista'
 import type { MoveState } from '../lib/rpgMovement'
 import { clearRpgStage, loadRpgProgress, markWorldVisited, saveRpgProgress, type RpgProgressState } from '../lib/rpgProgress'
+import { loadRpgProgressV2, saveRpgProgressV2 } from '../lib/rpgProgressV2'
 import { stageActionFor } from '../lib/rpgStageAdapter'
 
 type Props = {
@@ -82,12 +83,12 @@ const N = (
 
 const WORLD3D_CONFIG: Record<number, World3dConfig> = {
   1: {
-    glb: `${BASE}rpg/world1_grassland.glb`,
-    graph: `${BASE}rpg/world1_v2_graph.json`,
-    fallbackGraph: `${BASE}rpg/world1_graph.json`,
-    title: 'ワールド1・緑豊かな草原の島',
+    glb: `${BASE}rpg/world1_isle.glb`,
+    graph: `${BASE}rpg/world1_v3_graph.json`,
+    fallbackGraph: `${BASE}rpg/world1_v2_graph.json`,
+    title: 'ワールド1・自然の浮遊島',
     progressKey: '3d-1',
-    nodeLabels: N('はじまりの門', '花畑のはじまり', '西の道', '橋のたもと', '橋のむこう', 'わかれ道の森', '階段下', '丘の上', 'はしご下', 'はしご上', '丘の小屋', '崖っぷちチャレンジ', '風見の丘', '洞窟まえ', '中間砦', '最終塔'),
+    nodeLabels: N('はじまりの門', '村入口の広場', '西の小道', '石橋西たもと', '石橋東たもと', '井戸の丘', '階段下広場', '丘の中腹', 'はしご下', 'はしご上', '石橋のたもと', '上段牧場', '守護像の丘', '滝裏の道', '赤橋のたもと', '桟橋の守護'),
     stageTitles: { ...(W1_STAGE_TITLES as Record<string, string>) },
     stageOrder: [...W1_STAGE_ORDER],
     sky: { bg: '#8fc7f5', horizon: '#d8efff', top: '#4f9df0', fog: '#cfe4f5' },
@@ -207,9 +208,11 @@ export default function RpgWorld3d({
   const mountRef = useRef<HTMLDivElement | null>(null)
   const [graph, setGraph] = useState<W3Graph | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [progress, setProgress] = useState<RpgProgressState>(() => initialProgress ?? loadRpgProgress())
+  const [w1Missing, setW1Missing] = useState(false)
+  // W1は進行v2キー（旧v1吸収移行）。W2-9は従来v1のまま。
+  const [progress, setProgress] = useState<RpgProgressState>(() => initialProgress ?? (worldId === 1 ? loadRpgProgressV2() : loadRpgProgress()))
   const [currentNodeId, setCurrentNodeId] = useState(
-    () => initialNodeId ?? (initialProgress ?? loadRpgProgress()).lastKnownNodeId?.[cfg.progressKey] ?? 'n0',
+    () => initialNodeId ?? (initialProgress ?? (worldId === 1 ? loadRpgProgressV2() : loadRpgProgress())).lastKnownNodeId?.[cfg.progressKey] ?? 'n0',
   )
   const [cameraMode, setCameraMode] = useState<'follow' | 'overview'>(initialCameraMode)
   const [anim, setAnimState] = useState<MoveState>('IDLE')
@@ -277,10 +280,12 @@ export default function RpgWorld3d({
   }, [cfg.graph, cfg.fallbackGraph, worldId])
 
   // 訪問記録（全ワールド対応: 固定1ではなく現在のworldIdを記録する）
+  // W1はv2キーへ永続化、W2-9はv1のまま（混在防止）。
   useEffect(() => {
     setProgress((prev) => {
       const next = markWorldVisited(prev, worldId)
-      saveRpgProgress(next)
+      if (worldId === 1) saveRpgProgressV2(next)
+      else saveRpgProgress(next)
       return next
     })
   }, [worldId])
@@ -440,7 +445,12 @@ export default function RpgWorld3d({
     live.camPos.set(frame.overviewPos[0], frame.overviewPos[1], frame.overviewPos[2])
     live.camLook.set(frame.overviewLook[0], frame.overviewLook[1], frame.overviewLook[2])
     const startN = w3NodeById(graph, live.nodeId)
-    live.pos.set(startN.x, startN.y, startN.z)
+    // NaN guard: 開始ノード座標が欠損時は原点にフォールバック（描画破綻防止）。
+    live.pos.set(
+      Number.isFinite(startN.x) ? startN.x : 0,
+      Number.isFinite(startN.y) ? startN.y : 0,
+      Number.isFinite(startN.z) ? startN.z : 0,
+    )
 
     let mixer: THREE.AnimationMixer | null = null
     let charGroup: THREE.Group | null = null
@@ -482,7 +492,8 @@ export default function RpgWorld3d({
       setCurrentNodeId(nodeId)
       setProgress((prev) => {
         const next: RpgProgressState = { ...prev, lastKnownNodeId: { ...prev.lastKnownNodeId, [cfg.progressKey]: nodeId } }
-        saveRpgProgress(next)
+        if (worldIdRef.current === 1) saveRpgProgressV2(next)
+        else saveRpgProgress(next)
         return next
       })
       if (node.stageId) {
@@ -825,12 +836,15 @@ export default function RpgWorld3d({
         )
       })
     let w1Adv: W1Adventurer | null = null
+    let w1Fallback = false
     Promise.all([
       worldId === 1
-        // then経由で投げてcatchに集約する（同期的throwを避ける）
-        ? Promise.resolve().then(() => {
+        // W1浮遊島GLB。欠落時のみprocedural島で縮退継続＋w1-missing表示（W2-9は従来通り）。
+        ? loadOne(cfg.glb, 'world').catch(() => {
+            w1Fallback = true
+            if (!live.disposed) setW1Missing(true)
             const island = buildWorld1Terrain(graph)
-            // 島の厚み＋最終塔・中間砦（新規v2の立体感）
+            // 島の厚み＋最終塔・中間砦（縮退時の立体感）
             island.add(buildW1IslandSkirt())
             island.add(buildW1Forts(graph))
             return { scene: island, animations: [] as THREE.AnimationClip[] }
@@ -876,7 +890,7 @@ export default function RpgWorld3d({
         setAnim('IDLE')
         // ノードマーカー（不可視ヒット球＋可視ステージ印）
         const hitMat = new THREE.MeshBasicMaterial({ visible: false })
-        const clearedW1 = worldId === 1 ? normalizeW1Cleared(loadRpgProgress().clearedStageIds) : []
+        const clearedW1 = worldId === 1 ? normalizeW1Cleared((loadRpgProgressV2()).clearedStageIds) : []
         if (worldId === 1) {
           // W1先道半透明（per-path）: 道路はpath毎メッシュ（userData.pathId）なので
           // isPathBeyondNextな道だけを透過させる。cleared/nextは不透明のまま。W2-9は対象外。
@@ -899,18 +913,23 @@ export default function RpgWorld3d({
           })
         }
         for (const n of graph.nodes) {
+          // NaN guard: 欠損座標ノードはマーカー・台座とも配置しない（描画破綻防止）。W1のみならず全ワールド共通。
+          if (!Number.isFinite(n.x) || !Number.isFinite(n.y) || !Number.isFinite(n.z)) continue
           const hit = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 8), hitMat)
           hit.position.set(n.x, n.y + 0.6, n.z)
           scene.add(hit)
           nodeHit.set(n.id, hit)
           if (worldId === 1) {
             // W1は16円形停止点パッド（青赤灰の状態色＋非stage点は中立土系）。octahedron gemは使用しない。
+            // 接地はBlender島H基準のv3ノードy（y=H+0.05）に合わせ、台座原点はH（y-0.05）に置く。
+            // 縮退フォールバック時（GLB欠落）は旧procedural地形に合わせw1PadYを使用。NaN時は配置しない（上記guard済み）。
             const stop = stopForNodeId(n.id)
             const radius = stop?.radius ?? 2.0
+            const padY = w1Fallback ? w1PadY(n.x, n.z) : n.y - 0.05
             if (n.stageId) {
               const st = w1StageStatus(n.stageId, clearedW1)
               const pad = buildW1StopPad(st, radius)
-              pad.position.set(n.x, w1PadY(n.x, n.z), n.z)
+              pad.position.set(n.x, padY, n.z)
               scene.add(pad)
               stagePulse.set(n.id, pad)
             } else {
@@ -923,7 +942,7 @@ export default function RpgWorld3d({
               }
               const center = pad.children[2]
               if (center) center.visible = false
-              pad.position.set(n.x, w1PadY(n.x, n.z), n.z)
+              pad.position.set(n.x, padY, n.z)
               scene.add(pad)
               stagePulse.set(n.id, pad)
             }
@@ -1036,7 +1055,8 @@ export default function RpgWorld3d({
                 setCurrentNodeId(arrivedId)
                 setProgress((prev) => {
                   const nextp: RpgProgressState = { ...prev, lastKnownNodeId: { ...prev.lastKnownNodeId, [cfg.progressKey]: arrivedId } }
-                  saveRpgProgress(nextp)
+                  if (worldIdRef.current === 1) saveRpgProgressV2(nextp)
+                  else saveRpgProgress(nextp)
                   return nextp
                 })
                 setAnim('IDLE')
@@ -1306,7 +1326,8 @@ export default function RpgWorld3d({
       unlockedStageIds: [...new Set([...next.unlockedStageIds, ...(nxt ? [nxt] : [])])],
     }
     setProgress(withNext)
-    saveRpgProgress(withNext)
+    if (isW1) saveRpgProgressV2(withNext)
+    else saveRpgProgress(withNext)
     onStageAction?.(stageId, panelAction?.target ?? 'today', panelAction?.bookId)
   }
 
@@ -1360,6 +1381,11 @@ export default function RpgWorld3d({
       {loadError && (
         <div data-testid="rpg-3d-error" style={{ fontSize: 13, color: 'var(--danger)', marginTop: 4 }}>
           3D読込エラー: {loadError}（簡易マップで遊べます）
+        </div>
+      )}
+      {isW1 && w1Missing && (
+        <div data-testid="w1-missing" style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 4 }}>
+          浮遊島GLBが見つからないため簡易地形で表示中
         </div>
       )}
       <div data-testid="rpg-3d-char" data-anim={anim} data-node={currentNodeId} style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 }}>

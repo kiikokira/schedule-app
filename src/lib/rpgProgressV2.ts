@@ -16,6 +16,13 @@ export function migrateV1toV2(v1: unknown): RpgProgressState {
     settings: { reducedMotion: false },
   }
 }
+export function saveRpgProgressV2(state: RpgProgressState): void {
+  try {
+    localStorage.setItem(RPG_PROGRESS_V2_KEY, JSON.stringify({ ...state, schemaVersion: 1 }))
+  } catch {
+    /* ignore: storage full/blocked keeps in-memory progress */
+  }
+}
 export function loadRpgProgressV2(): RpgProgressState {
   try {
     const raw = localStorage.getItem(RPG_PROGRESS_V2_KEY)
