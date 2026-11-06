@@ -74,6 +74,7 @@ export function loadRpgProgressV2(): RpgProgressState {
       try {
         return normalizeV2(JSON.parse(raw))
       } catch {
+        try { localStorage.setItem(RPG_PROGRESS_V2_BACKUP_KEY, raw) } catch { /* ignore */ }
         return { ...DEFAULT_RPG_PROGRESS, lastKnownNodeId: { ...DEFAULT_RPG_PROGRESS.lastKnownNodeId, '3d-1': 'n0' } }
       }
     }

@@ -79,7 +79,7 @@ Blender source（新規 world1_isle_source.blend）
 
 - エラー:
   - 地形NaN・ノード欠落時は該当台座のみ非生成で進行継続
-  - GLB欠落時はW1選択不可表示（旧島フォールバックなし）
+  - フォールバック（実装準拠）: GLB欠落時はprocedural簡易地形で縮退継続＋`w1-missing`注意表示（選択不可にしない）、v3グラフ取得失敗時は`fallbackGraph`（v2）へ自動切替する。fail-closed（生成中止）ではなく遊べる縮退を優先する。
   - 透過・黄環のreduced-motion時は点滅抑制、停止・待機の意味は維持
   - locked判定は表示層だけでなく移動・決定・クリア記録の全層で実施
 - テスト:

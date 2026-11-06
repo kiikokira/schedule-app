@@ -60,9 +60,12 @@ export function buildW1StopPadV3(status: W1VisualStatus, radius: number): THREE.
   outer.position.y = 0.09
   g.add(outer)
   if (status === 'future') {
-    for (const m of g.children) {
+    // children[0]=ring, children[1]=inner dirt, children[2]=center, children[3]=yellow outer.
+    // Direct refs (no getStyle string compare — brittle across three versions).
+    for (const idx of [0, 2]) {
+      const m = g.children[idx]
       if (m instanceof THREE.Mesh && m.material instanceof THREE.MeshStandardMaterial) {
-        if (m.material.color.getStyle() === 'rgb(154,163,178)') m.material.color.set(W1_FUTURE_CENTER)
+        m.material.color.set(W1_FUTURE_CENTER)
       }
     }
   }

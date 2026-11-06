@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { migrateV1toV2, loadRpgProgressV2, saveRpgProgressV2, RPG_PROGRESS_V2_KEY } from './rpgProgressV2'
+import { migrateV1toV2, loadRpgProgressV2, saveRpgProgressV2, RPG_PROGRESS_V2_KEY, RPG_PROGRESS_V2_BACKUP_KEY } from './rpgProgressV2'
 import { DEFAULT_RPG_PROGRESS, RPG_PROGRESS_KEY } from './rpgProgress'
 
 beforeEach(() => {
@@ -46,6 +46,13 @@ describe('rpgProgressV2', () => {
     const v2 = loadRpgProgressV2()
     expect(v2.clearedStageIds).toContain('w1-stage-1')
     expect(v2.lastKnownNodeId['3d-1']).toBe('n6')
+  })
+  it('corrupt v2 payload is backed up before returning defaults (V1 parity)', () => {
+    localStorage.setItem(RPG_PROGRESS_V2_KEY, '{broken-json')
+    const v2 = loadRpgProgressV2()
+    expect(v2.clearedStageIds).toEqual([])
+    expect(v2.lastKnownNodeId['3d-1']).toBe('n0')
+    expect(localStorage.getItem(RPG_PROGRESS_V2_BACKUP_KEY)).toBe('{broken-json')
   })
   it('garbage v2 falls back to validated defaults', () => {
     localStorage.setItem(

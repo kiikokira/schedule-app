@@ -26,13 +26,13 @@ describe('RpgWorld3d view controls', () => {
 
   it('shows W1 strict progress legend and next stage', () => {
     render(<RpgAdventure level={5} token="🌱" />)
-    expect(screen.getByTestId('rpg-w1-legend')).toHaveTextContent('ロック中')
+    expect(screen.getByTestId('w1-legend')).toHaveTextContent('この先')
     expect(screen.getByTestId('rpg-w1-progress')).toHaveTextContent('村入口の広場')
   })
 
   it('shows W1 pad legend for circular stops', () => {
     render(<RpgAdventure level={5} token="🌱" />)
-    expect(screen.getByTestId('rpg-w1-legend')).toHaveTextContent('青円')
+    expect(screen.getByTestId('w1-legend')).toHaveTextContent('青黄')
   })
 
   it('shows yellow-ring legend for W1 v3', () => {

@@ -31,8 +31,8 @@ import {
   normalizeW1Cleared,
 } from '../lib/rpgW1Stages'
 import { DWELL_SEC, segmentStops, stopForNodeId } from '../lib/rpgW1Stops'
-import { isPathBeyondNext } from '../lib/rpgW1Visual'
-import { buildW1StopPad, w1PadY } from '../lib/rpgW1Pads'
+import { isPathBeyondNext, w1VisualFor, w1ShouldDimRoadSamples } from '../lib/rpgW1Visual'
+import { buildW1StopPad, buildW1StopPadV3, w1PadY } from '../lib/rpgW1Pads'
 import { ringPlacements } from '../lib/rpgVista'
 import type { MoveState } from '../lib/rpgMovement'
 import { clearRpgStage, loadRpgProgress, markWorldVisited, saveRpgProgress, type RpgProgressState } from '../lib/rpgProgress'
@@ -230,6 +230,8 @@ export default function RpgWorld3d({
   const [expanded, setExpanded] = useState(false)
 
   const unlocked = useMemo(() => new Set(progress.unlockedPathIds), [progress])
+  // Reactive W1 cleared key — pads/translucency rebuild when it changes (no stale storage read).
+  const w1ClearedKey = worldId === 1 ? normalizeW1Cleared(progress.clearedStageIds).join(',') : ''
 
   useEffect(() => {
     let cancelled = false
@@ -890,10 +892,12 @@ export default function RpgWorld3d({
         setAnim('IDLE')
         // ノードマーカー（不可視ヒット球＋可視ステージ印）
         const hitMat = new THREE.MeshBasicMaterial({ visible: false })
-        const clearedW1 = worldId === 1 ? normalizeW1Cleared((loadRpgProgressV2()).clearedStageIds) : []
+        // Reactive progress (rebuild on w1Cleared change) — not one-time storage read.
+        const clearedW1 = worldId === 1 ? [...w1ClearedRef.current] : []
         if (worldId === 1) {
-          // W1先道半透明（per-path）: 道路はpath毎メッシュ（userData.pathId）なので
-          // isPathBeyondNextな道だけを透過させる。cleared/nextは不透明のまま。W2-9は対象外。
+          // W1先道半透明: procedural fast-path (userData.pathId) + GLB proximity dimming.
+          // GLB road meshes lack pathId and share one W1_Road material, so clone per-mesh
+          // and dim when majority of sampled vertices lie on beyond-next paths.
           const pathById = new Map(graph.paths.map((p) => [p.id, p]))
           world.traverse((o) => {
             if (o instanceof THREE.Mesh) {
@@ -909,6 +913,43 @@ export default function RpgWorld3d({
                   m.opacity = 0.35
                 }
               }
+            }
+          })
+          world.updateMatrixWorld(true)
+          const v = new THREE.Vector3()
+          world.traverse((o) => {
+            if (!(o instanceof THREE.Mesh)) return
+            if ((o.userData as { pathId?: string } | undefined)?.pathId) return
+            const mats = (Array.isArray(o.material) ? o.material : [o.material]) as THREE.Material[]
+            const isRoad = mats.some((m) => m instanceof THREE.MeshStandardMaterial && m.name.startsWith('W1_Road'))
+            if (!isRoad) return
+            const pos = o.geometry.attributes.position as THREE.BufferAttribute | undefined
+            if (!pos || pos.count === 0) return
+            const step = Math.max(1, Math.floor(pos.count / 12))
+            const samples: { x: number; z: number }[] = []
+            for (let i = 0; i < pos.count; i += step) {
+              v.set(pos.getX(i), pos.getY(i), pos.getZ(i))
+              o.localToWorld(v)
+              samples.push({ x: v.x, z: v.z })
+              if (samples.length >= 12) break
+            }
+            if (!w1ShouldDimRoadSamples(samples, clearedW1, graph, 2.5)) return
+            // Clone shared GLB material per-mesh so only beyond-next spans dim.
+            if (Array.isArray(o.material)) {
+              o.material = o.material.map((m) => {
+                if (m instanceof THREE.MeshStandardMaterial && m.name.startsWith('W1_Road')) {
+                  const c = m.clone()
+                  c.transparent = true
+                  c.opacity = 0.35
+                  return c
+                }
+                return m
+              })
+            } else if (o.material instanceof THREE.MeshStandardMaterial) {
+              const c = o.material.clone()
+              c.transparent = true
+              c.opacity = 0.35
+              o.material = c
             }
           })
         }
@@ -927,8 +968,8 @@ export default function RpgWorld3d({
             const radius = stop?.radius ?? 2.0
             const padY = w1Fallback ? w1PadY(n.x, n.z) : n.y - 0.05
             if (n.stageId) {
-              const st = w1StageStatus(n.stageId, clearedW1)
-              const pad = buildW1StopPad(st, radius)
+              const vis = w1VisualFor(n.stageId, clearedW1)
+              const pad = buildW1StopPadV3(vis, radius)
               pad.position.set(n.x, padY, n.z)
               scene.add(pad)
               stagePulse.set(n.id, pad)
@@ -1254,7 +1295,7 @@ export default function RpgWorld3d({
       apiRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph])
+  }, [graph, w1ClearedKey])
 
   const animRef = useRef(anim)
   animRef.current = anim
@@ -1346,13 +1387,12 @@ export default function RpgWorld3d({
           )}
         </div>
         {isW1 && (
-          <div data-testid="rpg-w1-legend" style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 12, flexWrap: 'wrap' }}>
-            <span>🟦 青円＝クリア済み✓（再戦可）</span>
-            <span>🟥 赤円＝次に挑戦（●脈動）</span>
-            <span>⬜ 灰円＝ロック中🔒（進めない）</span>
+          <div data-testid="w1-legend" style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 12, flexWrap: 'wrap' }}>
+            <span>🟦 青黄＝クリア済み✓（再戦可）</span>
+            <span>🟥 赤黄＝次に挑戦（●脈動）</span>
+            <span>⬛ 黒黄＝この先🔒（進めない）・先道は半透明</span>
           </div>
         )}
-        {isW1 && <div data-testid="w1-legend">青黄クリア・赤黄つぎ・黒黄この先・先道は半透明</div>}
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
           <button data-testid="rpg-3d-camera" type="button" onClick={() => { apiRef.current?.resetView(); setCameraMode((m) => (m === 'follow' ? 'overview' : 'follow')) }} style={{ minHeight: 44, padding: '0 12px', flex: 1 }}>
             {cameraMode === 'follow' ? '全体をみる' : '追従にもどす'}
@@ -1417,7 +1457,9 @@ export default function RpgWorld3d({
             </button>
           ) : null}
           <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-            十字キー/WASD・D-pad長押しで移動。画面ドラッグで視点回転、ピンチで拡大縮小。Mで全体表示。
+            {isW1
+              ? '十字キー/WASD・D-pad長押しで移動。W1は固定視点（ドラッグ・ピンチ無効）。Mで全体表示。'
+              : '十字キー/WASD・D-pad長押しで移動。画面ドラッグで視点回転、ピンチで拡大縮小。Mで全体表示。'}
           </div>
         </div>
       </div>
@@ -1426,7 +1468,7 @@ export default function RpgWorld3d({
           <div style={{ fontWeight: 800, fontSize: 16 }}>{cfg.stageTitles[stageId] ?? stageId}</div>
           {isW1 && stageId && (W1_STAGE_ORDER as readonly string[]).includes(stageId) && (
             <div data-testid="rpg-w1-stage-status" style={{ fontSize: 13, fontWeight: 800, marginTop: 4 }}>
-              {w1StageStatus(stageId, w1Cleared) === 'cleared' ? '🟦 クリア済み✓' : w1StageStatus(stageId, w1Cleared) === 'next' ? '🟥 次に挑戦！' : '⬜ ロック中🔒（前のステージをクリアしよう）'}
+              {w1StageStatus(stageId, w1Cleared) === 'cleared' ? '🟦 クリア済み✓' : w1StageStatus(stageId, w1Cleared) === 'next' ? '🟥 次に挑戦！' : '⬛ ロック中🔒（前のステージをクリアしよう）'}
             </div>
           )}
           <div style={{ fontSize: 13, marginTop: 4 }}>つながり: {panelAction.hint}</div>
