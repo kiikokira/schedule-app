@@ -17,6 +17,19 @@ import {
 import { advanceAlongPath, canCancelState, pathKindToAnimDirected } from '../lib/rpgMovement'
 import { resolveCameraCollision, fitCameraToBounds, overviewDistance, followCameraTargets, orbitView, isTapGesture, TAP_MAX_MOVE_PX } from '../lib/rpgCamera3d'
 import { buildWorld1Terrain } from '../lib/rpgWorld1Terrain'
+import { buildW1Adventurer, updateW1Adventurer, type W1Adventurer } from '../lib/rpgW1Character'
+import { buildW1IslandSkirt, buildW1Forts } from '../lib/rpgW1Decor'
+import {
+  W1_STAGE_ORDER,
+  W1_STAGE_TITLES,
+  W1_STAGE_NODE,
+  W1_UNLOCKS,
+  w1NextStage,
+  w1StageStatus,
+  w1CanEnter,
+  w1IsComplete,
+  normalizeW1Cleared,
+} from '../lib/rpgW1Stages'
 import { ringPlacements } from '../lib/rpgVista'
 import type { MoveState } from '../lib/rpgMovement'
 import { clearRpgStage, loadRpgProgress, markWorldVisited, saveRpgProgress, type RpgProgressState } from '../lib/rpgProgress'
@@ -46,6 +59,7 @@ const CHARA_URL = `${BASE}rpg/player_character.glb`
 type World3dConfig = {
   glb: string
   graph: string
+  fallbackGraph?: string
   title: string
   progressKey: string
   nodeLabels: Record<string, string>
@@ -63,12 +77,13 @@ const N = (
 const WORLD3D_CONFIG: Record<number, World3dConfig> = {
   1: {
     glb: `${BASE}rpg/world1_grassland.glb`,
-    graph: `${BASE}rpg/world1_graph.json`,
-    title: '草原ワールド3D・風見の丘陵',
+    graph: `${BASE}rpg/world1_v2_graph.json`,
+    fallbackGraph: `${BASE}rpg/world1_graph.json`,
+    title: 'ワールド1・緑豊かな草原の島',
     progressKey: '3d-1',
-    nodeLabels: N('はじまりの門', '花畑', '西の道', '橋のたもと', '橋のむこう', 'わかれ道', '階段下', '丘の上', 'はしご下', 'はしご上', '丘の小屋', '崖っぷち', '風見の丘', '洞窟まえ', '帰り道', '出口の門'),
-    stageTitles: { 'grass-stage-1': '丘の小屋', 'grass-stage-2': '風見の丘', 'grass-stage-3': '洞窟まえ' },
-    stageOrder: ['grass-stage-1', 'grass-stage-2', 'grass-stage-3'],
+    nodeLabels: N('はじまりの門', '花畑のはじまり', '西の道', '橋のたもと', '橋のむこう', 'わかれ道の森', '階段下', '丘の上', 'はしご下', 'はしご上', '丘の小屋', '崖っぷちチャレンジ', '風見の丘', '洞窟まえ', '中間砦', '最終塔'),
+    stageTitles: { ...(W1_STAGE_TITLES as Record<string, string>) },
+    stageOrder: [...W1_STAGE_ORDER],
     sky: { bg: '#8fc7f5', horizon: '#d8efff', top: '#4f9df0', fog: '#cfe4f5' },
   },
   2: {
@@ -209,29 +224,51 @@ export default function RpgWorld3d({
 
   useEffect(() => {
     let cancelled = false
-    fetch(cfg.graph)
-      .then((r) => {
-        if (!r.ok) throw new Error(`graph ${r.status}`)
-        return r.json()
-      })
-      .then((g: { nodes: (W3Node & { stage?: string })[]; paths: W3Graph['paths'] }) => {
-        if (cancelled) return
-        // Blender由来JSONは stage キーで出力されるため stageId へ正規化する
-        const normalized = normalizeW3Graph(g)
-        const issues = validateWorld3dGraph(normalized)
-        if (issues.length > 0) {
-          setLoadError(`地形データ異常: ${issues[0]}`)
+    const load = async () => {
+      const urls = [cfg.graph, ...(cfg.fallbackGraph ? [cfg.fallbackGraph] : [])]
+      let lastErr: unknown = null
+      for (const url of urls) {
+        try {
+          const r = await fetch(url)
+          if (!r.ok) throw new Error(`graph ${r.status}`)
+          const g = (await r.json()) as { nodes: (W3Node & { stage?: string })[]; paths: W3Graph['paths'] }
+          if (cancelled) return
+          // Blender由来JSONは stage キーで出力されるため stageId へ正規化する
+          let normalized = normalizeW3Graph(g)
+          // W1 v2：旧グラフ混在でも8ステージに正規化する
+          if (worldId === 1) {
+            normalized = {
+              ...normalized,
+              nodes: normalized.nodes.map((n) => {
+                const entry = Object.entries(W1_STAGE_NODE).find(([, nodeId]) => nodeId === n.id)?.[0]
+                if (entry) return { ...n, stageId: entry }
+                if (n.stageId?.startsWith('grass-stage-')) {
+                  const { stageId: _drop, ...rest } = n
+                  void _drop
+                  return rest
+                }
+                return n
+              }),
+            }
+          }
+          const issues = validateWorld3dGraph(normalized)
+          if (issues.length > 0) {
+            setLoadError(`地形データ異常: ${issues[0]}`)
+            return
+          }
+          setGraph(normalized)
           return
+        } catch (e) {
+          lastErr = e
         }
-        setGraph(normalized)
-      })
-      .catch((e) => {
-        if (!cancelled) setLoadError(String(e))
-      })
+      }
+      if (!cancelled) setLoadError(String(lastErr))
+    }
+    void load()
     return () => {
       cancelled = true
     }
-  }, [cfg.graph])
+  }, [cfg.graph, cfg.fallbackGraph, worldId])
 
   // 訪問記録（全ワールド対応: 固定1ではなく現在のworldIdを記録する）
   useEffect(() => {
@@ -449,11 +486,15 @@ export default function RpgWorld3d({
         if (live.held && cameraModeRef.current !== 'overview') {
           const d = decideStep(graph, nodeId, live.held.dx, live.held.dz, unlockedRef.current)
           if (d.type === 'step') {
-            const path = graph.paths.find((p) => p.id === d.pathId)!
-            startRoute(
-              [{ path, fromId: nodeId, toId: d.toId, length: pathLength3d(graph, d.pathId, nodeId) }],
-              false,
-            )
+            if (worldIdRef.current === 1 && w1RouteBlockedRef.current([d.toId])) {
+              live.held = null
+            } else {
+              const path = graph.paths.find((p) => p.id === d.pathId)!
+              startRoute(
+                [{ path, fromId: nodeId, toId: d.toId, length: pathLength3d(graph, d.pathId, nodeId) }],
+                false,
+              )
+            }
           } else {
             const now = performance.now()
             if (now - live.nudgeAt >= 220) {
@@ -512,6 +553,19 @@ export default function RpgWorld3d({
         }
         const d = decideStep(graph, live.nodeId, dx, dz, unlockedRef.current)
         if (d.type === 'step') {
+          // W1：locked stage へは進めない（灰色タップ・キー突破の防止）
+          if (worldIdRef.current === 1) {
+            const target = w3NodeById(graph, d.toId)
+            if (target.stageId && !w1CanEnter(target.stageId, w1ClearedRef.current)) {
+              const now = performance.now()
+              if (now - live.nudgeAt >= 220) {
+                live.nudgeAt = now
+                live.targetYaw += 0.3 * Math.sign(dx !== 0 ? dx : 1)
+              }
+              return
+            }
+            if (w1RouteBlocked([d.toId])) return
+          }
           const path = graph.paths.find((p) => p.id === d.pathId)!
           setPanelStageId(null)
           startRoute(
@@ -543,8 +597,14 @@ export default function RpgWorld3d({
           setCameraMode('follow')
         }
         if (nodeId === live.nodeId) return
+        // W1：locked stage へのタップ移動を禁止（URL・状態操作での突破も不可）
+        if (worldIdRef.current === 1) {
+          const target = w3NodeById(graph, nodeId)
+          if (target.stageId && !w1CanEnter(target.stageId, w1ClearedRef.current)) return
+        }
         const nodes = findRoute3d(graph, live.nodeId, nodeId, unlockedRef.current)
         if (!nodes) return
+        if (worldIdRef.current === 1 && w1RouteBlockedRef.current(nodes)) return
         const steps = routeSteps(graph, nodes, unlockedRef.current)
         if (!steps) return
         // 向き付きサンプリングのため前後ノードを付与する
@@ -572,7 +632,11 @@ export default function RpgWorld3d({
       else if (k === 'arrowright' || k === 'd') apiRef.current?.holdToward(1, 0)
       else if (k === 'enter' || k === ' ') {
         const node = w3NodeById(graph, live.nodeId)
-        if (node.stageId) setPanelStageId(node.stageId)
+        if (node.stageId) {
+          if (worldIdRef.current === 1 && !w1CanEnter(node.stageId, w1ClearedRef.current)) {
+            // locked stage は開始できない（キー突破防止）
+          } else setPanelStageId(node.stageId)
+        }
       }       else if (k === 'escape') onBackRef.current?.()
       else if (k === 'm') {
         apiRef.current?.resetView()
@@ -704,12 +768,21 @@ export default function RpgWorld3d({
           (err) => reject(err),
         )
       })
+    let w1Adv: W1Adventurer | null = null
     Promise.all([
       worldId === 1
         // then経由で投げてcatchに集約する（同期的throwを避ける）
-        ? Promise.resolve().then(() => ({ scene: buildWorld1Terrain(graph), animations: [] as THREE.AnimationClip[] }))
+        ? Promise.resolve().then(() => {
+            const island = buildWorld1Terrain(graph)
+            // 島の厚み＋最終塔・中間砦（新規v2の立体感）
+            island.add(buildW1IslandSkirt())
+            island.add(buildW1Forts(graph))
+            return { scene: island, animations: [] as THREE.AnimationClip[] }
+          })
         : loadOne(cfg.glb, 'world'),
-      loadOne(CHARA_URL, 'chara'),
+      worldId === 1
+        ? Promise.resolve({ scene: new THREE.Group(), animations: [] as THREE.AnimationClip[] })
+        : loadOne(CHARA_URL, 'chara'),
     ])
       .then(([worldRes, charaRes]) => {
         if (live.disposed) return
@@ -728,27 +801,53 @@ export default function RpgWorld3d({
           }
         })
         scene.add(world)
-        charGroup = charaRes.scene
-        charGroup.traverse((o) => {
-          if (o instanceof THREE.Mesh) o.castShadow = true
-        })
-        // SolaはBlender北(+Y)→glTF -Zを向く。ゲーム北(-Z相当に見える方)へ補正はyaw側で行う。
-        scene.add(charGroup)
-        mixer = new THREE.AnimationMixer(charGroup)
-        for (const clip of charaRes.animations) clips.set(clip.name, clip)
+        if (worldId === 1) {
+          // W1はprocedural冒険者（GLB不使用）
+          w1Adv = buildW1Adventurer()
+          charGroup = w1Adv.group
+          scene.add(charGroup)
+        } else {
+          charGroup = charaRes.scene
+          charGroup.traverse((o) => {
+            if (o instanceof THREE.Mesh) o.castShadow = true
+          })
+          // SolaはBlender北(+Y)→glTF -Zを向く。ゲーム北(-Z相当に見える方)へ補正はyaw側で行う。
+          scene.add(charGroup)
+          mixer = new THREE.AnimationMixer(charGroup)
+          for (const clip of charaRes.animations) clips.set(clip.name, clip)
+        }
         setLoadStage('ready')
         setAnim('IDLE')
         // ノードマーカー（不可視ヒット球＋可視ステージ印）
         const hitMat = new THREE.MeshBasicMaterial({ visible: false })
-        const stageMat = new THREE.MeshBasicMaterial({ color: '#eab308', transparent: true, opacity: 0.85 })
+        const clearedW1 = worldId === 1 ? normalizeW1Cleared(loadRpgProgress().clearedStageIds) : []
+        const nextW1 = worldId === 1 ? w1NextStage(clearedW1) : null
         for (const n of graph.nodes) {
-          const hit = new THREE.Mesh(new THREE.SphereGeometry(1.1, 8, 8), hitMat)
+          const hit = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 8), hitMat)
           hit.position.set(n.x, n.y + 0.6, n.z)
           scene.add(hit)
           nodeHit.set(n.id, hit)
           if (n.stageId) {
-            const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.42), stageMat.clone())
-            gem.position.set(n.x, n.y + 2.2, n.z)
+            let color = '#eab308'
+            let opacity = 0.85
+            if (worldId === 1) {
+              const st = w1StageStatus(n.stageId, clearedW1)
+              if (st === 'cleared') {
+                color = '#2f7bff'
+                opacity = 0.95
+              } else if (st === 'next') {
+                color = '#ef2d2d'
+                opacity = 1
+              } else {
+                color = '#9aa3b2'
+                opacity = 0.6
+              }
+            }
+            const gem = new THREE.Mesh(
+              new THREE.OctahedronGeometry(n.stageId === nextW1 ? 0.55 : 0.42),
+              new THREE.MeshBasicMaterial({ color, transparent: true, opacity }),
+            )
+            gem.position.set(n.x, n.y + 2.4, n.z)
             scene.add(gem)
             stagePulse.set(n.id, gem)
           }
@@ -790,6 +889,12 @@ export default function RpgWorld3d({
       }
       // 移動
       if (mixer) mixer.update(dt)
+      if (w1Adv) {
+        const st = animRef.current
+        const wAnim =
+          st === 'WALK' ? 'walk' : st === 'RUN' ? 'run' : st === 'TURN' ? 'turn' : st === 'ENTER_STAGE' || st === 'ENTER_CAVE' ? 'arrive' : 'idle'
+        updateW1Adventurer(w1Adv, wAnim, t)
+      }
       const mode = cameraModeRef.current
       // 不変条件の修復: turn/prepare/move は pending を必ず伴う。欠けたら idle に戻す（固まり防止）。
       if ((live.phase === 'turn' || live.phase === 'prepare' || live.phase === 'move') && !live.pending) {
@@ -983,16 +1088,61 @@ export default function RpgWorld3d({
   cameraModeRef.current = cameraMode
   const onBackRef = useRef(onBack)
   onBackRef.current = onBack
+  const w1ClearedRef = useRef<string[]>(normalizeW1Cleared(progress.clearedStageIds))
+  w1ClearedRef.current = normalizeW1Cleared(progress.clearedStageIds)
+  const worldIdRef = useRef(worldId)
+  worldIdRef.current = worldId
+  const w1RouteBlockedRef = useRef((nodeIds: string[]): boolean => {
+    const cleared = w1ClearedRef.current
+    for (const id of nodeIds) {
+      const stageOf = Object.entries(W1_STAGE_NODE).find(([, nodeId]) => nodeId === id)?.[0]
+      if (stageOf && !w1CanEnter(stageOf, cleared)) return true
+    }
+    return false
+  })
+  const isW1 = worldId === 1
+  const w1Cleared = normalizeW1Cleared(progress.clearedStageIds)
+  const w1Next = isW1 ? w1NextStage(w1Cleared) : null
+  const w1Complete = isW1 ? w1IsComplete(w1Cleared) : false
+
+  /** W1：locked stage への進入・通過を禁止する。 */
+  const w1RouteBlocked = (nodeIds: string[]): boolean => {
+    if (!isW1) return false
+    const cleared = w1ClearedRef.current
+    for (const id of nodeIds) {
+      const stageOf = Object.entries(W1_STAGE_NODE).find(([, nodeId]) => nodeId === id)?.[0]
+      if (stageOf && !w1CanEnter(stageOf, cleared)) return true
+    }
+    return false
+  }
 
   const currentNode = graph ? w3NodeById(graph, currentNodeId) : null
   const stageId = panelStageId
-  const panelAction = stageId ? stageActionFor(stageId, { hasBooks, firstBookId, todayPages, totalPages }) : null
+  const baseAction = stageId ? stageActionFor(stageId, { hasBooks, firstBookId, todayPages, totalPages }) : null
+  // W1 8ステージは既存adapter外のため、クエスト導線をここで付与する
+  const w1FallbackAction =
+    isW1 && stageId && (W1_STAGE_ORDER as readonly string[]).includes(stageId)
+      ? {
+          stageId,
+          target: (stageId.endsWith('-8') ? 'ranking' : stageId.endsWith('-4') || stageId.endsWith('-5') ? 'book' : 'today') as 'today' | 'book' | 'ranking',
+          title: W1_STAGE_TITLES[stageId as keyof typeof W1_STAGE_TITLES] ?? stageId,
+          hint: '記録を進めるとクエストクリア',
+          bookId: firstBookId ?? undefined,
+        }
+      : null
+  const panelAction = baseAction ?? w1FallbackAction
   const questReady = todayPages > 0
-  const cleared = stageId ? progress.clearedStageIds.includes(stageId) : false
+  const cleared = stageId ? progress.clearedStageIds.includes(stageId) || (isW1 && (w1Cleared as string[]).includes(stageId)) : false
+  const w1Locked = isW1 && stageId ? !w1CanEnter(stageId, w1Cleared) && !cleared : false
 
   const handleClear = () => {
     if (!stageId) return
-    const next = clearRpgStage(progress, stageId, [...(W3_UNLOCKS[stageId] ?? []), `unlock-after-${stageId}`])
+    // W1：locked stage のクリア記録を禁止（表示だけでなく内部で判定）
+    if (isW1 && !w1CanEnter(stageId, w1Cleared)) return
+    const extraUnlocks = isW1
+      ? [...(W1_UNLOCKS[stageId as keyof typeof W1_UNLOCKS] ?? []), `unlock-after-${stageId}`]
+      : [...(W3_UNLOCKS[stageId] ?? []), `unlock-after-${stageId}`]
+    const next = clearRpgStage(progress, stageId, extraUnlocks)
     const order = cfg.stageOrder
     const nxt = order[order.indexOf(stageId) + 1]
     const withNext: RpgProgressState = {
@@ -1004,16 +1154,30 @@ export default function RpgWorld3d({
     onStageAction?.(stageId, panelAction?.target ?? 'today', panelAction?.bookId)
   }
 
+  const w1DefaultExpanded = isW1 && !expanded ? true : expanded
+  void w1DefaultExpanded
   return (
     <div data-testid="rpg-world3d" data-node={currentNodeId} style={{ position: 'relative', width: '100%' }}>
       <div style={{ marginBottom: 6 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
           <strong style={{ fontSize: 15 }}>{cfg.title}</strong>
           <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>いま: {currentNode ? nodeLabel(cfg, currentNode) : currentNodeId}</span>
+          {isW1 && (
+            <span data-testid="rpg-w1-progress" style={{ fontSize: 12, fontWeight: 800 }}>
+              {w1Complete ? 'ワールド1完全クリア！' : w1Next ? `次: ${W1_STAGE_TITLES[w1Next]}（${w1Cleared.length}/8）` : ''}
+            </span>
+          )}
         </div>
+        {isW1 && (
+          <div data-testid="rpg-w1-legend" style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 12, flexWrap: 'wrap' }}>
+            <span>🟦 青＝クリア済み✓（再戦可）</span>
+            <span>🟥 赤＝次に挑戦（●脈動）</span>
+            <span>⬜ 灰＝ロック中🔒（進めない）</span>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
           <button data-testid="rpg-3d-camera" type="button" onClick={() => { apiRef.current?.resetView(); setCameraMode((m) => (m === 'follow' ? 'overview' : 'follow')) }} style={{ minHeight: 44, padding: '0 12px', flex: 1 }}>
-            {cameraMode === 'follow' ? '全体をみる' : '追従にもどる'}
+            {cameraMode === 'follow' ? '全体をみる' : '追従にもどす'}
           </button>
           <button data-testid="rpg-3d-expand" type="button" onClick={() => setExpanded((v) => !v)} style={{ minHeight: 44, padding: '0 12px', flex: 1 }}>
             {expanded ? '標準にもどす' : '大きくみる'}
@@ -1029,7 +1193,7 @@ export default function RpgWorld3d({
         ref={mountRef}
         data-testid="rpg-3d-canvas"
         data-expanded={expanded ? 'true' : 'false'}
-        style={{ position: 'relative', width: '100%', aspectRatio: expanded ? '1 / 1' : '16 / 10', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', touchAction: 'none', background: '#8fc7f5' }}
+        style={{ position: 'relative', width: '100%', aspectRatio: isW1 ? (expanded ? '1 / 1' : '4 / 3') : (expanded ? '1 / 1' : '16 / 10'), minHeight: isW1 ? 380 : undefined, borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', touchAction: 'none', background: '#8fc7f5' }}
       />
       {!ready && !loadError && (
         <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 4 }}>
@@ -1058,10 +1222,15 @@ export default function RpgWorld3d({
             <button
               data-testid="rpg-3d-decide"
               type="button"
-              onClick={() => currentNode?.stageId && setPanelStageId(currentNode.stageId)}
-              style={{ minHeight: 48, fontWeight: 800 }}
+              disabled={isW1 && !w1CanEnter(currentNode.stageId, w1Cleared)}
+              onClick={() => {
+                if (!currentNode?.stageId) return
+                if (isW1 && !w1CanEnter(currentNode.stageId, w1Cleared)) return
+                setPanelStageId(currentNode.stageId)
+              }}
+              style={{ minHeight: 48, fontWeight: 800, opacity: isW1 && !w1CanEnter(currentNode.stageId, w1Cleared) ? 0.45 : 1 }}
             >
-              ステージをみる
+              {isW1 && !w1CanEnter(currentNode.stageId, w1Cleared) ? '🔒ロック中' : 'ステージをみる'}
             </button>
           ) : null}
           <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
@@ -1072,11 +1241,20 @@ export default function RpgWorld3d({
       {stageId && panelAction && (
         <section data-testid="rpg-3d-stage" style={{ marginTop: 8, padding: 12, borderRadius: 12, background: '#fffdf0', border: '2px solid #eab308' }}>
           <div style={{ fontWeight: 800, fontSize: 16 }}>{cfg.stageTitles[stageId] ?? stageId}</div>
+          {isW1 && stageId && (W1_STAGE_ORDER as readonly string[]).includes(stageId) && (
+            <div data-testid="rpg-w1-stage-status" style={{ fontSize: 13, fontWeight: 800, marginTop: 4 }}>
+              {w1StageStatus(stageId, w1Cleared) === 'cleared' ? '🟦 クリア済み✓' : w1StageStatus(stageId, w1Cleared) === 'next' ? '🟥 次に挑戦！' : '⬜ ロック中🔒（前のステージをクリアしよう）'}
+            </div>
+          )}
           <div style={{ fontSize: 13, marginTop: 4 }}>つながり: {panelAction.hint}</div>
           <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
             今日 {todayPages}ページ ／ 累計 {totalPages}ページ
           </div>
-          {cleared ? (
+          {w1Locked ? (
+            <div data-testid="rpg-w1-locked" style={{ marginTop: 8, fontWeight: 800, color: '#6b7280' }}>
+              🔒ロック中：前のステージをクリアすると挑戦できるよ
+            </div>
+          ) : cleared ? (
             <div data-testid="rpg-3d-cleared" style={{ marginTop: 8, fontWeight: 800, color: '#1a7f37' }}>
               クリアずみ！新しい道が開いたよ
             </div>

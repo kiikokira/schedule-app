@@ -23,4 +23,10 @@ describe('RpgWorld3d view controls', () => {
     expect(screen.getByTestId('rpg-world3d')).toHaveAttribute('data-node', 'n0')
     expect(screen.queryByTestId('rpg-3d-decide')).toBeNull()
   })
+
+  it('shows W1 strict progress legend and next stage', () => {
+    render(<RpgAdventure level={5} token="🌱" />)
+    expect(screen.getByTestId('rpg-w1-legend')).toHaveTextContent('ロック中')
+    expect(screen.getByTestId('rpg-w1-progress')).toHaveTextContent('花畑のはじまり')
+  })
 })
