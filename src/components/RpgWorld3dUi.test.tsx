@@ -29,4 +29,9 @@ describe('RpgWorld3d view controls', () => {
     expect(screen.getByTestId('rpg-w1-legend')).toHaveTextContent('ロック中')
     expect(screen.getByTestId('rpg-w1-progress')).toHaveTextContent('花畑のはじまり')
   })
+
+  it('shows W1 pad legend for circular stops', () => {
+    render(<RpgAdventure level={5} token="🌱" />)
+    expect(screen.getByTestId('rpg-w1-legend')).toHaveTextContent('青円')
+  })
 })

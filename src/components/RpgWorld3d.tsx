@@ -30,6 +30,8 @@ import {
   w1IsComplete,
   normalizeW1Cleared,
 } from '../lib/rpgW1Stages'
+import { stopForNodeId } from '../lib/rpgW1Stops'
+import { buildW1StopPad, w1PadY } from '../lib/rpgW1Pads'
 import { ringPlacements } from '../lib/rpgVista'
 import type { MoveState } from '../lib/rpgMovement'
 import { clearRpgStage, loadRpgProgress, markWorldVisited, saveRpgProgress, type RpgProgressState } from '../lib/rpgProgress'
@@ -55,6 +57,9 @@ type RouteStep = { path: W3Path; fromId: string; toId: string; length: number; p
 
 const BASE = import.meta.env.BASE_URL || '/'
 const CHARA_URL = `${BASE}rpg/player_character.glb`
+
+/** 非stage点パッドの土系色。rpgW1Pads.ts 内の INNER と同値（非公開のため局所定義。向こうを変えたらこちらも更新）。 */
+const W1_NEUTRAL_PAD = '#c9a06a'
 
 type World3dConfig = {
   glb: string
@@ -437,7 +442,7 @@ export default function RpgWorld3d({
     const clips = new Map<string, THREE.AnimationClip>()
     let currentClip = ''
     const nodeHit = new Map<string, THREE.Mesh>()
-    let stagePulse = new Map<string, THREE.Mesh>()
+    let stagePulse = new Map<string, THREE.Object3D>()
     const clock = new THREE.Clock()
 
     const setClip = (name: string, fade = 0.22) => {
@@ -821,30 +826,40 @@ export default function RpgWorld3d({
         // ノードマーカー（不可視ヒット球＋可視ステージ印）
         const hitMat = new THREE.MeshBasicMaterial({ visible: false })
         const clearedW1 = worldId === 1 ? normalizeW1Cleared(loadRpgProgress().clearedStageIds) : []
-        const nextW1 = worldId === 1 ? w1NextStage(clearedW1) : null
         for (const n of graph.nodes) {
           const hit = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 8), hitMat)
           hit.position.set(n.x, n.y + 0.6, n.z)
           scene.add(hit)
           nodeHit.set(n.id, hit)
-          if (n.stageId) {
-            let color = '#eab308'
-            let opacity = 0.85
-            if (worldId === 1) {
+          if (worldId === 1) {
+            // W1は16円形停止点パッド（青赤灰の状態色＋非stage点は中立土系）。octahedron gemは使用しない。
+            const stop = stopForNodeId(n.id)
+            const radius = stop?.radius ?? 2.0
+            if (n.stageId) {
               const st = w1StageStatus(n.stageId, clearedW1)
-              if (st === 'cleared') {
-                color = '#2f7bff'
-                opacity = 0.95
-              } else if (st === 'next') {
-                color = '#ef2d2d'
-                opacity = 1
-              } else {
-                color = '#9aa3b2'
-                opacity = 0.6
+              const pad = buildW1StopPad(st, radius)
+              pad.position.set(n.x, w1PadY(n.x, n.z), n.z)
+              scene.add(pad)
+              stagePulse.set(n.id, pad)
+            } else {
+              // 非stage点: 状態色なしの中立パッド（土系INNERのみ）。builderは必ず状態色を塗るため局所で上書きする。
+              const pad = buildW1StopPad('cleared', radius)
+              const ringMesh = pad.children[0]
+              if (ringMesh instanceof THREE.Mesh) {
+                const m = ringMesh.material
+                if (m instanceof THREE.MeshStandardMaterial) m.color.set(W1_NEUTRAL_PAD)
               }
+              const center = pad.children[2]
+              if (center) center.visible = false
+              pad.position.set(n.x, w1PadY(n.x, n.z), n.z)
+              scene.add(pad)
+              stagePulse.set(n.id, pad)
             }
+          } else if (n.stageId) {
+            const color = '#eab308'
+            const opacity = 0.85
             const gem = new THREE.Mesh(
-              new THREE.OctahedronGeometry(n.stageId === nextW1 ? 0.55 : 0.42),
+              new THREE.OctahedronGeometry(0.42),
               new THREE.MeshBasicMaterial({ color, transparent: true, opacity }),
             )
             gem.position.set(n.x, n.y + 2.4, n.z)
@@ -1170,9 +1185,9 @@ export default function RpgWorld3d({
         </div>
         {isW1 && (
           <div data-testid="rpg-w1-legend" style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 12, flexWrap: 'wrap' }}>
-            <span>🟦 青＝クリア済み✓（再戦可）</span>
-            <span>🟥 赤＝次に挑戦（●脈動）</span>
-            <span>⬜ 灰＝ロック中🔒（進めない）</span>
+            <span>🟦 青円＝クリア済み✓（再戦可）</span>
+            <span>🟥 赤円＝次に挑戦（●脈動）</span>
+            <span>⬜ 灰円＝ロック中🔒（進めない）</span>
           </div>
         )}
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
