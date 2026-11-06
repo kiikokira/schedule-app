@@ -88,7 +88,7 @@ const WORLD3D_CONFIG: Record<number, World3dConfig> = {
     fallbackGraph: `${BASE}rpg/world1_v2_graph.json`,
     title: 'ワールド1・自然の浮遊島',
     progressKey: '3d-1',
-    nodeLabels: N('はじまりの門', '村入口の広場', '西の小道', '石橋西たもと', '石橋東たもと', '井戸の丘', '階段下広場', '丘の中腹', 'はしご下', 'はしご上', '石橋のたもと', '上段牧場', '守護像の丘', '滝裏の道', '赤橋のたもと', '桟橋の守護'),
+    nodeLabels: N('はじまりの門', '村入口の広場', '西の道', '橋のたもと', '橋のむこう', '井戸の丘', '階段下', '丘の上', 'はしご下', 'はしご上', '石橋のたもと', '上段牧場', '守護像の丘', '滝裏の道', '赤橋のたもと', '桟橋の守護'),
     stageTitles: { ...(W1_STAGE_TITLES as Record<string, string>) },
     stageOrder: [...W1_STAGE_ORDER],
     sky: { bg: '#8fc7f5', horizon: '#d8efff', top: '#4f9df0', fog: '#cfe4f5' },

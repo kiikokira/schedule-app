@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { migrateV1toV2, loadRpgProgressV2, saveRpgProgressV2, RPG_PROGRESS_V2_KEY } from './rpgProgressV2'
-import { DEFAULT_RPG_PROGRESS } from './rpgProgress'
+import { DEFAULT_RPG_PROGRESS, RPG_PROGRESS_KEY } from './rpgProgress'
 
 beforeEach(() => {
   localStorage.clear()
@@ -20,14 +20,14 @@ describe('rpgProgressV2', () => {
   it('v2-hit returns stored v2 without touching v1', () => {
     const stored = { ...DEFAULT_RPG_PROGRESS, clearedStageIds: ['w1-stage-1', 'w1-stage-2'], lastKnownNodeId: { '3d-1': 'n4' } }
     localStorage.setItem(RPG_PROGRESS_V2_KEY, JSON.stringify(stored))
-    localStorage.setItem('schedule-app-rpg-progress-v1', JSON.stringify({ ...DEFAULT_RPG_PROGRESS, clearedStageIds: [] }))
+    localStorage.setItem(RPG_PROGRESS_KEY, JSON.stringify({ ...DEFAULT_RPG_PROGRESS, clearedStageIds: [] }))
     const v2 = loadRpgProgressV2()
     expect(v2.clearedStageIds).toEqual(['w1-stage-1', 'w1-stage-2'])
     expect(v2.lastKnownNodeId['3d-1']).toBe('n4')
   })
   it('v1-absorb migrates and persists to v2', () => {
     const v1 = { ...DEFAULT_RPG_PROGRESS, clearedStageIds: ['w1-stage-1'], lastKnownNodeId: { '3d-1': 'n5b' } }
-    localStorage.setItem('schedule-app-rpg-progress-v1', JSON.stringify(v1))
+    localStorage.setItem(RPG_PROGRESS_KEY, JSON.stringify(v1))
     const v2 = loadRpgProgressV2()
     expect(v2.clearedStageIds).toContain('w1-stage-1')
     expect(v2.lastKnownNodeId['3d-1']).toBe('n0')
@@ -41,11 +41,27 @@ describe('rpgProgressV2', () => {
     expect(v2.lastKnownNodeId['3d-1']).toBe('n0')
     expect(v2.currentWorldId).toBe(1)
   })
-  it('saveRpgProgressV2 round-trips through v2 key', () => {
-    const s = { ...DEFAULT_RPG_PROGRESS, clearedStageIds: ['w1-stage-1'], lastKnownNodeId: { '3d-1': 'n6' } }
+  it('saveRpgProgressV2 round-trips through v2 key', () => {    const s = { ...DEFAULT_RPG_PROGRESS, clearedStageIds: ['w1-stage-1'], lastKnownNodeId: { '3d-1': 'n6' } }
     saveRpgProgressV2(s)
     const v2 = loadRpgProgressV2()
     expect(v2.clearedStageIds).toContain('w1-stage-1')
     expect(v2.lastKnownNodeId['3d-1']).toBe('n6')
+  })
+  it('garbage v2 falls back to validated defaults', () => {
+    localStorage.setItem(
+      RPG_PROGRESS_V2_KEY,
+      JSON.stringify({
+        currentWorldId: NaN,
+        clearedStageIds: ['w1-stage-1', 42, null],
+        visitedWorldIds: [1, 'x', NaN],
+        lastKnownNodeId: { '3d-1': 99, '3d-2': 'n3' },
+      }),
+    )
+    const v2 = loadRpgProgressV2()
+    expect(v2.currentWorldId).toBe(1)
+    expect(v2.clearedStageIds).toEqual(['w1-stage-1'])
+    expect(v2.visitedWorldIds).toEqual([1])
+    expect(v2.lastKnownNodeId['3d-1']).toBe('n0')
+    expect(v2.lastKnownNodeId['3d-2']).toBe('n3')
   })
 })
