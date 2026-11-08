@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>新ワールド プレビュー（昼の森林・草原）</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #10140f; color: #eef3e6; font-family: system-ui, sans-serif; }
+  header { padding: 16px; background: #1c2417; position: sticky; top: 0; z-index: 10; }
+  header h1 { font-size: 17px; margin: 0 0 4px; }
+  header p { font-size: 12px; margin: 0; color: #b9c7a8; }
+  main { max-width: 900px; margin: 0 auto; padding: 12px 12px 40px; }
+  figure { margin: 0 0 20px; background: #182015; border-radius: 12px; overflow: hidden; }
+  figure img { width: 100%; display: block; }
+  figcaption { padding: 10px 14px; font-size: 13px; }
+  figcaption b { display: block; font-size: 14px; margin-bottom: 2px; }
+  h2 { font-size: 15px; margin: 24px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; background: #182015; border-radius: 12px; overflow: hidden; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #2a3524; }
+  th { color: #b9c7a8; font-weight: 600; }
+  tr:last-child th, tr:last-child td { border-bottom: none; }
+  footer { padding: 16px; font-size: 11px; color: #8a957d; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🌲 新ワールド プレビュー（昼の森林・草原）</h1>
+  <p>固定道 11 stops・写実4Kテクスチャ・夕景HDRI — 静止画ギャラリー（GLB 541MBのため3D表示はPC版のみ）</p>
+</header>
+<main>
+  <figure>
+    <img src="./rpg/nw_newworld_preview.png" alt="新ワールド全景" loading="eager" />
+    <figcaption><b>全景（本番シーン）</b>くねくね道・小川・樹木・岩・ベンチ。右奥の岩山が終点の展望台（s10）。</figcaption>
+  </figure>
+  <figure>
+    <img src="./rpg/thumb-newworld.jpg" alt="終点テラス周辺" loading="lazy" />
+    <figcaption><b>終点テラス周辺</b>夕景に照らされた道と樹木。固定道歩行のゴール地点イメージ。</figcaption>
+  </figure>
+  <figure>
+    <img src="./rpg/nw_trial.png" alt="質感試作" loading="lazy" />
+    <figcaption><b>質感試作</b>左から芝・土・岩・土道・水面。PBR決定版の見本。</figcaption>
+  </figure>
+
+  <h2>11 stops（起点→終点）</h2>
+  <table>
+    <tr><th>stop</th><th>名称</th><th>主素材</th></tr>
+    <tr><td>s0</td><td>入口ゲート</td><td>石畳</td></tr>
+    <tr><td>s1</td><td>森の入口</td><td>芝＋土</td></tr>
+    <tr><td>s2</td><td>大岩スポット</td><td>岩4K</td></tr>
+    <tr><td>s3</td><td>小川沿い</td><td>湿地土＋水面</td></tr>
+    <tr><td>s4</td><td>分岐点</td><td>土道</td></tr>
+    <tr><td>s5</td><td>林間の広場</td><td>芝＋丸太休憩物</td></tr>
+    <tr><td>s6</td><td>草原の開け</td><td>芝</td></tr>
+    <tr><td>s7</td><td>針葉樹の木立ち</td><td>写実松（密植）</td></tr>
+    <tr><td>s8</td><td>古道の石畳</td><td>石畳</td></tr>
+    <tr><td>s9</td><td>夕景テラス</td><td>土道＋石＋夕景</td></tr>
+    <tr><td>s10</td><td>終点・展望台</td><td>岩＋草原</td></tr>
+  </table>
+
+  <h2>使用素材（全てCC0）</h2>
+  <table>
+    <tr><th>素材</th><th>配布元</th></tr>
+    <tr><td>Grass004／Grass005（芝4K）</td><td>ambientCG</td></tr>
+    <tr><td>Ground037／Ground106（土4K）</td><td>ambientCG</td></tr>
+    <tr><td>Rock030／Rock035（岩4K）</td><td>ambientCG</td></tr>
+    <tr><td>Gravel043（土道4K）</td><td>ambientCG</td></tr>
+    <tr><td>PavingStones152（石畳4K）</td><td>ambientCG</td></tr>
+    <tr><td>松・針葉樹・広葉樹（3種）</td><td>Poly Haven</td></tr>
+    <tr><td>夕景HDRI quarry_01_puresky</td><td>Poly Haven</td></tr>
+  </table>
+</main>
+<footer>出典: Textures from ambientCG.com (CC0) / Powered by Poly Haven (CC0)</footer>
+</body>
+</html>
