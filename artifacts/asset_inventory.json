@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "updated": "2026-11-08T06:33:18.769387+00:00",
+  "note": "Poly Haven / ambientCG 4K資産台帳。既存index.jsonと併用。",
+  "credit_polyhaven": "Powered by Poly Haven (https://polyhaven.com/)",
+  "credit_ambientcg": "Created using assets from ambientCG.com, licensed under the Creative Commons CC0 1.0 Universal License.",
+  "assets": [
+    {
+      "id": "Grass005",
+      "name": "Grass 005",
+      "source": "ambientCG",
+      "url": "https://ambientcg.com/a/Grass005",
+      "path": "artifacts/ambientcg/Grass005",
+      "resolution": "1K",
+      "format": "JPG",
+      "license": "CC0",
+      "bytes": 10442657,
+      "downloaded_at": "2026-11-03T10:35:00.000Z"
+    },
+    {
+      "id": "Ground093C",
+      "name": "Ground 093 C",
+      "source": "ambientCG",
+      "url": "https://ambientcg.com/a/Ground093C",
+      "path": "artifacts/ambientcg/Ground093C",
+      "resolution": "1K",
+      "format": "JPG",
+      "license": "CC0",
+      "bytes": 5088593,
+      "downloaded_at": "2026-11-03T12:41:44.274Z"
+    },
+    {
+      "id": "Rock030",
+      "name": "Rock 030",
+      "source": "ambientCG",
+      "url": "https://ambientcg.com/a/Rock030",
+      "path": "artifacts/ambientcg/Rock030",
+      "resolution": "1K",
+      "format": "JPG",
+      "license": "CC0",
+      "bytes": 9677446,
+      "downloaded_at": "2026-11-04T11:16:28.395Z"
+    },
+    {
+      "id": "Rock035",
+      "name": "Rock 035",
+      "source": "ambientCG",
+      "url": "https://ambientcg.com/a/Rock035",
+      "path": "artifacts/ambientcg/Rock035",
+      "resolution": "1K",
+      "format": "JPG",
+      "license": "CC0",
+      "bytes": 9547643,
+      "downloaded_at": "2026-11-04T11:16:26.063Z"
+    },
+    {
+      "id": "Snow011",
+      "name": "Snow 011",
+      "source": "ambientCG",
+      "url": "https://ambientcg.com/a/Snow011",
+      "path": "artifacts/ambientcg/Snow011",
+      "resolution": "1K",
+      "format": "JPG",
+      "license": "CC0",
+      "bytes": 8693751,
+      "downloaded_at": "2026-11-04T11:16:23.632Z"
+    },
+    {
+      "id": "brown_planks_03",
+      "name": "Brown Planks 03",
+      "source": "polyhaven",
+      "url": "https://polyhaven.com/a/brown_planks_03",
+      "path": "artifacts/polyhaven/brown_planks_03",
+      "resolution": "-",
+      "format": "-",
+      "license": "CC0",
+      "bytes": 0,
+      "downloaded_at": "2026-11-03T01:21:37.685Z"
+    }
+  ]
+}
