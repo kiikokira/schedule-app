@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-11-08T06:58:55.623981+00:00",
+  "updated": "2026-11-08T07:21:52.940535+00:00",
   "note": "Poly Haven / ambientCG 4K資産台帳。既存index.jsonと併用。",
   "credit_polyhaven": "Powered by Poly Haven (https://polyhaven.com/)",
   "credit_ambientcg": "Created using assets from ambientCG.com, licensed under the Creative Commons CC0 1.0 Universal License.",
@@ -32,6 +32,34 @@
       "downloaded_at": "2026-11-03T12:41:44.274Z"
     },
     {
+      "id": "Ground106",
+      "name": "Ground 106",
+      "source": "ambientCG",
+      "url": "https://ambientcg.com/a/Ground106",
+      "path": "artifacts/ambientcg/Ground106",
+      "resolution": "4K",
+      "format": "JPG",
+      "license": "CC0",
+      "bytes": 129314747,
+      "downloaded_at": "2026-11-08T07:18:24.098551+00:00",
+      "md5": "",
+      "verified": "size-checked"
+    },
+    {
+      "id": "Road007",
+      "name": "Road 007",
+      "source": "ambientCG",
+      "url": "https://ambientcg.com/a/Road007",
+      "path": "artifacts/ambientcg/Road007",
+      "resolution": "4K",
+      "format": "JPG",
+      "license": "CC0",
+      "bytes": 121547851,
+      "downloaded_at": "2026-11-08T07:20:05.058009+00:00",
+      "md5": "",
+      "verified": "size-checked"
+    },
+    {
       "id": "Rock030",
       "name": "Rock 030",
       "source": "ambientCG",
@@ -49,11 +77,13 @@
       "source": "ambientCG",
       "url": "https://ambientcg.com/a/Rock035",
       "path": "artifacts/ambientcg/Rock035",
-      "resolution": "1K",
+      "resolution": "4K",
       "format": "JPG",
       "license": "CC0",
-      "bytes": 9547643,
-      "downloaded_at": "2026-11-04T11:16:26.063Z"
+      "bytes": 123697253,
+      "downloaded_at": "2026-11-08T07:21:52.940073+00:00",
+      "md5": "",
+      "verified": "size-checked"
     },
     {
       "id": "Snow011",
