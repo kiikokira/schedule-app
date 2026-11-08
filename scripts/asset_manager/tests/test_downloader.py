@@ -31,6 +31,18 @@ def test_extract_ok(tmp_path):
     z = zipfile.ZipFile(buf, "w")
     z.writestr("a/b.txt", "hello")
     z.close()
-    saved = d.extract_bytes(buf.getvalue(), tmp_path)
-    assert saved == ["a/b.txt"]
+    saved, skipped = d.extract_bytes(buf.getvalue(), tmp_path)
+    assert saved == ["a/b.txt"] and skipped == []
     assert (tmp_path / "a" / "b.txt").read_text() == "hello"
+
+
+def test_extract_skips_existing(tmp_path):
+    (tmp_path / "keep.txt").write_text("old")
+    buf = io.BytesIO()
+    z = zipfile.ZipFile(buf, "w")
+    z.writestr("keep.txt", "new")
+    z.writestr("fresh.txt", "hi")
+    z.close()
+    saved, skipped = d.extract_bytes(buf.getvalue(), tmp_path)
+    assert saved == ["fresh.txt"] and skipped == ["keep.txt"]
+    assert (tmp_path / "keep.txt").read_text() == "old"

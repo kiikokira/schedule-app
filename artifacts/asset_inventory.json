@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-11-08T06:33:18.769387+00:00",
+  "updated": "2026-11-08T06:58:55.623981+00:00",
   "note": "Poly Haven / ambientCG 4K資産台帳。既存index.jsonと併用。",
   "credit_polyhaven": "Powered by Poly Haven (https://polyhaven.com/)",
   "credit_ambientcg": "Created using assets from ambientCG.com, licensed under the Creative Commons CC0 1.0 Universal License.",
@@ -11,11 +11,13 @@
       "source": "ambientCG",
       "url": "https://ambientcg.com/a/Grass005",
       "path": "artifacts/ambientcg/Grass005",
-      "resolution": "1K",
+      "resolution": "4K",
       "format": "JPG",
       "license": "CC0",
-      "bytes": 10442657,
-      "downloaded_at": "2026-11-03T10:35:00.000Z"
+      "bytes": 157029833,
+      "downloaded_at": "2026-11-08T06:58:04.626074+00:00",
+      "md5": "",
+      "verified": "size-checked"
     },
     {
       "id": "Ground093C",
@@ -67,15 +69,17 @@
     },
     {
       "id": "brown_planks_03",
-      "name": "Brown Planks 03",
+      "name": "brown_planks_03",
       "source": "polyhaven",
       "url": "https://polyhaven.com/a/brown_planks_03",
       "path": "artifacts/polyhaven/brown_planks_03",
-      "resolution": "-",
-      "format": "-",
+      "resolution": "4K",
+      "format": "blend,gltf,mtlx,png",
       "license": "CC0",
-      "bytes": 0,
-      "downloaded_at": "2026-11-03T01:21:37.685Z"
+      "bytes": 199979323,
+      "downloaded_at": "2026-11-08T06:58:55.623417+00:00",
+      "md5": "650229572fbec984bdfbe4e7fe2ca5e8;c919a229889a0222eb54c320f0bf2571;99a181890f0e9da3deeabfd6d5cf4a7a;10593adc851a0072a87d879993b40c32;bab2055349b8645b572035894d1d56ff;c332b85f1659c516ea0e061557642b0d;91fd3cda08140a754dff5a7a1338dcb6;5e1823a739ff0481af790146cb2b084c;d88b26a1b6116bb83a740154da8efc4e;51715500c9b1f0b7a08cee266d118f33;0ce7150774f738d72096ba946fa03bb7;2284022de7cc20c8f6ffbbde78948d83",
+      "verified": "md5-checked"
     }
   ]
 }

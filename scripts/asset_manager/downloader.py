@@ -103,10 +103,16 @@ def download_file(url: str, dest: Path, expected_size: int | None = None,
     raise last_err  # type: ignore[misc]
 
 
-def extract_bytes(data: bytes, dest_dir: Path) -> list:
+def extract_bytes(data: bytes, dest_dir: Path) -> tuple:
+    """ZIP展開。既存ファイルは上書きせずスキップして続行し (saved, skipped) を返す。
+
+    1K/4KのZIP間で同名のプレビュー画像等が共有されるため、
+    既存ファイルでの中断はしない（上書きは一切行わない）。
+    """
     import io
     U.safe_mkdir(dest_dir)
     saved: list = []
+    skipped: list = []
     with zipfile.ZipFile(io.BytesIO(data)) as z:
         for info in z.infolist():
             safe = U.assert_safe_zip_name(info.filename)
@@ -118,16 +124,15 @@ def extract_bytes(data: bytes, dest_dir: Path) -> list:
             if resolved != base and base not in resolved.parents:
                 raise ValueError(f"保存先が許可範囲外です: {safe}")
             if target.exists():
-                raise FileExistsError(
-                    f"既存ファイルのためスキップ（上書き禁止）: {safe}"
-                )
+                skipped.append(safe)
+                continue
             target.parent.mkdir(parents=True, exist_ok=True)
             with z.open(info) as src, open(target, "wb") as out:
                 out.write(src.read())
             saved.append(safe)
-    if not saved:
+    if not saved and not skipped:
         raise ValueError("ZIP内にファイルが無いため中断しました")
-    return saved
+    return saved, skipped
 
 
 def extract_zip_file(zippath: Path, dest_dir: Path) -> list:

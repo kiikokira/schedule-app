@@ -158,9 +158,14 @@ def cmd_download(args) -> int:
         print("安全ゲート: --yes が無いためDLしません。先に dry-run で容量・保存先を確認してください。")
         return 2
     rows = INV.load_inventory(ROOT)
-    # 既存manifestも取り込み（二重防止）
+    # 既存manifestも取り込み（二重防止）。
+    # 台帳に既にある行は残す（古いmanifestで上書きしない）。
+    # 追加のみ：manifest由来の行は、同一キーが無い場合だけ採用する。
+    have = {(r.get("source"), r.get("id")) for r in rows}
     for r in INV.scan_existing(ROOT):
-        rows = INV.upsert(rows, r)
+        if (r.get("source"), r.get("id")) not in have:
+            rows.append(r)
+            have.add((r.get("source"), r.get("id")))
     for source, tid in pairs:
         try:
             if source == "polyhaven":
@@ -185,10 +190,17 @@ def cmd_download(args) -> int:
                     dest = dest_dir / fname
                     if dest.exists():
                         print(f"  既存スキップ: {fname}")
+                        try:
+                            total_b += dest.stat().st_size
+                        except OSError:
+                            total_b += e.get("size", 0)
                         continue
                     DL.download_file(e["url"], dest, e["size"], e.get("md5"), show_progress=not args.quiet)
                     saved.append(fname)
-                    total_b += dest.stat().st_size
+                    try:
+                        total_b += dest.stat().st_size
+                    except OSError:
+                        total_b += e.get("size", 0)
                 rows = INV.upsert(rows, {"id": tid, "name": tid, "source": "polyhaven",
                                          "url": f"https://polyhaven.com/a/{tid}",
                                          "path": f"{C.SAVE_ROOT_POLYHAVEN}/{tid}",
@@ -223,8 +235,8 @@ def cmd_download(args) -> int:
                     DL.download_file(best["url"], dest, best.get("size"), None, show_progress=not args.quiet)
                     if ext == "zip":
                         data = dest.read_bytes()
-                        extracted = DL.extract_bytes(data, dest_dir)
-                        print(f"  展開: {len(extracted)}件")
+                        saved, skipped = DL.extract_bytes(data, dest_dir)
+                        print(f"  展開: {len(saved)}件" + (f"（既存スキップ {len(skipped)}件）" if skipped else ""))
                 rows = INV.upsert(rows, {"id": tid, "name": a.get("title", tid), "source": "ambientCG",
                                          "url": a.get("url", f"https://ambientcg.com/a/{tid}"),
                                          "path": f"{C.SAVE_ROOT_AMBIENTCG}/{tid}",
@@ -243,10 +255,13 @@ def cmd_download(args) -> int:
 
 
 def cmd_inventory(args) -> int:
-    rows = INV.scan_existing(ROOT)
+    # 台帳にある4K記録を古いmanifestで上書きしないよう、走査分は追加のみとする
     merged = INV.load_inventory(ROOT)
-    for r in rows:
-        merged = INV.upsert(merged, r)
+    have = {(r.get("source"), r.get("id")) for r in merged}
+    for r in INV.scan_existing(ROOT):
+        if (r.get("source"), r.get("id")) not in have:
+            merged.append(r)
+            have.add((r.get("source"), r.get("id")))
     p = INV.save_inventory(merged, ROOT)
     print(f"台帳再生成: {p}（{len(merged)}件）")
     for r in sorted(merged, key=lambda x: (x.get("source", ""), x.get("id", "")))[:50]:
