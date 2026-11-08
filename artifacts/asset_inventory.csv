@@ -1,9 +1,14 @@
 ﻿id,name,source,url,path,resolution,format,license,bytes,downloaded_at,md5,verified
+Grass004,Grass 004,ambientCG,https://ambientcg.com/a/Grass004,artifacts/ambientcg/Grass004,4K,JPG,CC0,151897993,2026-11-08T07:36:03.738311+00:00,,size-checked
 Grass005,Grass 005,ambientCG,https://ambientcg.com/a/Grass005,artifacts/ambientcg/Grass005,4K,JPG,CC0,157029833,2026-11-08T06:58:04.626074+00:00,,size-checked
-Ground093C,Ground 093 C,ambientCG,https://ambientcg.com/a/Ground093C,artifacts/ambientcg/Ground093C,1K,JPG,CC0,5088593,2026-11-03T12:41:44.274Z,,
+Ground037,Ground 037,ambientCG,https://ambientcg.com/a/Ground037,artifacts/ambientcg/Ground037,4K,JPG,CC0,139672777,2026-11-08T07:38:06.374142+00:00,,size-checked
+Ground093C,Ground 093 C,ambientCG,https://ambientcg.com/a/Ground093C,artifacts/ambientcg/Ground093C,4K,JPG,CC0,89172392,2026-11-08T07:39:26.058804+00:00,,size-checked
 Ground106,Ground 106,ambientCG,https://ambientcg.com/a/Ground106,artifacts/ambientcg/Ground106,4K,JPG,CC0,129314747,2026-11-08T07:18:24.098551+00:00,,size-checked
+PavingStones152,Paving Stones 152,ambientCG,https://ambientcg.com/a/PavingStones152,artifacts/ambientcg/PavingStones152,4K,JPG,CC0,105083362,2026-11-08T07:43:31.126992+00:00,,size-checked
 Road007,Road 007,ambientCG,https://ambientcg.com/a/Road007,artifacts/ambientcg/Road007,4K,JPG,CC0,121547851,2026-11-08T07:20:05.058009+00:00,,size-checked
-Rock030,Rock 030,ambientCG,https://ambientcg.com/a/Rock030,artifacts/ambientcg/Rock030,1K,JPG,CC0,9677446,2026-11-04T11:16:28.395Z,,
+Rock030,Rock 030,ambientCG,https://ambientcg.com/a/Rock030,artifacts/ambientcg/Rock030,4K,JPG,CC0,125103042,2026-11-08T07:41:37.347759+00:00,,size-checked
 Rock035,Rock 035,ambientCG,https://ambientcg.com/a/Rock035,artifacts/ambientcg/Rock035,4K,JPG,CC0,123697253,2026-11-08T07:21:52.940073+00:00,,size-checked
 Snow011,Snow 011,ambientCG,https://ambientcg.com/a/Snow011,artifacts/ambientcg/Snow011,1K,JPG,CC0,8693751,2026-11-04T11:16:23.632Z,,
+WoodFloor051,Wood Floor 051,ambientCG,https://ambientcg.com/a/WoodFloor051,artifacts/ambientcg/WoodFloor051,4K,JPG,CC0,59600904,2026-11-08T07:44:24.012097+00:00,,size-checked
 brown_planks_03,brown_planks_03,polyhaven,https://polyhaven.com/a/brown_planks_03,artifacts/polyhaven/brown_planks_03,4K,"blend,gltf,mtlx,png",CC0,199979323,2026-11-08T06:58:55.623417+00:00,650229572fbec984bdfbe4e7fe2ca5e8;c919a229889a0222eb54c320f0bf2571;99a181890f0e9da3deeabfd6d5cf4a7a;10593adc851a0072a87d879993b40c32;bab2055349b8645b572035894d1d56ff;c332b85f1659c516ea0e061557642b0d;91fd3cda08140a754dff5a7a1338dcb6;5e1823a739ff0481af790146cb2b084c;d88b26a1b6116bb83a740154da8efc4e;51715500c9b1f0b7a08cee266d118f33;0ce7150774f738d72096ba946fa03bb7;2284022de7cc20c8f6ffbbde78948d83,md5-checked
+quarry_01_puresky,quarry_01_puresky,polyhaven,https://polyhaven.com/a/quarry_01_puresky,artifacts/polyhaven/quarry_01_puresky,4K,hdr,CC0,18481884,2026-11-08T07:44:49.494366+00:00,120d01454fbbea370af90b62cce62516,md5-checked

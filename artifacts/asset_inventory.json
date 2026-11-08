@@ -1,10 +1,24 @@
 {
   "version": 1,
-  "updated": "2026-11-08T07:21:52.940535+00:00",
+  "updated": "2026-11-08T07:44:49.494791+00:00",
   "note": "Poly Haven / ambientCG 4K資産台帳。既存index.jsonと併用。",
   "credit_polyhaven": "Powered by Poly Haven (https://polyhaven.com/)",
   "credit_ambientcg": "Created using assets from ambientCG.com, licensed under the Creative Commons CC0 1.0 Universal License.",
   "assets": [
+    {
+      "id": "Grass004",
+      "name": "Grass 004",
+      "source": "ambientCG",
+      "url": "https://ambientcg.com/a/Grass004",
+      "path": "artifacts/ambientcg/Grass004",
+      "resolution": "4K",
+      "format": "JPG",
+      "license": "CC0",
+      "bytes": 151897993,
+      "downloaded_at": "2026-11-08T07:36:03.738311+00:00",
+      "md5": "",
+      "verified": "size-checked"
+    },
     {
       "id": "Grass005",
       "name": "Grass 005",
@@ -20,16 +34,32 @@
       "verified": "size-checked"
     },
     {
+      "id": "Ground037",
+      "name": "Ground 037",
+      "source": "ambientCG",
+      "url": "https://ambientcg.com/a/Ground037",
+      "path": "artifacts/ambientcg/Ground037",
+      "resolution": "4K",
+      "format": "JPG",
+      "license": "CC0",
+      "bytes": 139672777,
+      "downloaded_at": "2026-11-08T07:38:06.374142+00:00",
+      "md5": "",
+      "verified": "size-checked"
+    },
+    {
       "id": "Ground093C",
       "name": "Ground 093 C",
       "source": "ambientCG",
       "url": "https://ambientcg.com/a/Ground093C",
       "path": "artifacts/ambientcg/Ground093C",
-      "resolution": "1K",
+      "resolution": "4K",
       "format": "JPG",
       "license": "CC0",
-      "bytes": 5088593,
-      "downloaded_at": "2026-11-03T12:41:44.274Z"
+      "bytes": 89172392,
+      "downloaded_at": "2026-11-08T07:39:26.058804+00:00",
+      "md5": "",
+      "verified": "size-checked"
     },
     {
       "id": "Ground106",
@@ -42,6 +72,20 @@
       "license": "CC0",
       "bytes": 129314747,
       "downloaded_at": "2026-11-08T07:18:24.098551+00:00",
+      "md5": "",
+      "verified": "size-checked"
+    },
+    {
+      "id": "PavingStones152",
+      "name": "Paving Stones 152",
+      "source": "ambientCG",
+      "url": "https://ambientcg.com/a/PavingStones152",
+      "path": "artifacts/ambientcg/PavingStones152",
+      "resolution": "4K",
+      "format": "JPG",
+      "license": "CC0",
+      "bytes": 105083362,
+      "downloaded_at": "2026-11-08T07:43:31.126992+00:00",
       "md5": "",
       "verified": "size-checked"
     },
@@ -65,11 +109,13 @@
       "source": "ambientCG",
       "url": "https://ambientcg.com/a/Rock030",
       "path": "artifacts/ambientcg/Rock030",
-      "resolution": "1K",
+      "resolution": "4K",
       "format": "JPG",
       "license": "CC0",
-      "bytes": 9677446,
-      "downloaded_at": "2026-11-04T11:16:28.395Z"
+      "bytes": 125103042,
+      "downloaded_at": "2026-11-08T07:41:37.347759+00:00",
+      "md5": "",
+      "verified": "size-checked"
     },
     {
       "id": "Rock035",
@@ -98,6 +144,20 @@
       "downloaded_at": "2026-11-04T11:16:23.632Z"
     },
     {
+      "id": "WoodFloor051",
+      "name": "Wood Floor 051",
+      "source": "ambientCG",
+      "url": "https://ambientcg.com/a/WoodFloor051",
+      "path": "artifacts/ambientcg/WoodFloor051",
+      "resolution": "4K",
+      "format": "JPG",
+      "license": "CC0",
+      "bytes": 59600904,
+      "downloaded_at": "2026-11-08T07:44:24.012097+00:00",
+      "md5": "",
+      "verified": "size-checked"
+    },
+    {
       "id": "brown_planks_03",
       "name": "brown_planks_03",
       "source": "polyhaven",
@@ -109,6 +169,20 @@
       "bytes": 199979323,
       "downloaded_at": "2026-11-08T06:58:55.623417+00:00",
       "md5": "650229572fbec984bdfbe4e7fe2ca5e8;c919a229889a0222eb54c320f0bf2571;99a181890f0e9da3deeabfd6d5cf4a7a;10593adc851a0072a87d879993b40c32;bab2055349b8645b572035894d1d56ff;c332b85f1659c516ea0e061557642b0d;91fd3cda08140a754dff5a7a1338dcb6;5e1823a739ff0481af790146cb2b084c;d88b26a1b6116bb83a740154da8efc4e;51715500c9b1f0b7a08cee266d118f33;0ce7150774f738d72096ba946fa03bb7;2284022de7cc20c8f6ffbbde78948d83",
+      "verified": "md5-checked"
+    },
+    {
+      "id": "quarry_01_puresky",
+      "name": "quarry_01_puresky",
+      "source": "polyhaven",
+      "url": "https://polyhaven.com/a/quarry_01_puresky",
+      "path": "artifacts/polyhaven/quarry_01_puresky",
+      "resolution": "4K",
+      "format": "hdr",
+      "license": "CC0",
+      "bytes": 18481884,
+      "downloaded_at": "2026-11-08T07:44:49.494366+00:00",
+      "md5": "120d01454fbbea370af90b62cce62516",
       "verified": "md5-checked"
     }
   ]
