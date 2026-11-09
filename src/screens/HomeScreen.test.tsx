@@ -7,7 +7,7 @@ import { saveSchedule, resetSchedule, loadSchedule } from '../data/scheduleStore
 import { addDaysToDate, SCHEDULE, selectNowAndNext, type ScheduleEntry } from '../data/schedule'
 import { CATALOG } from '../data/catalog'
 import { quoteOf } from '../data/quotes'
-import { todayStr } from '../lib/progress'
+import { todayStr, daysBetween } from '../lib/progress'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
@@ -892,5 +892,29 @@ describe('HomeScreen', () => {
     render(<HomeScreen onOpenBook={() => {}} onRanking={() => {}} onMyPage={() => {}} />)
     const card = screen.getByTestId('ranking-card')
     expect(within(card).getByTestId('season-banner')).toBeInTheDocument()
+  })
+
+  it('shows exam countdown with days and approximate months without duplicate あと', () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const block = screen.getByTestId('exam-countdown')
+    const days = daysBetween(todayStr(), '2028-02-18')
+    const months = Math.floor(Math.max(days, 0) / 30)
+    expect(block).toHaveTextContent('入学試験日まであと')
+    expect(block).toHaveTextContent(`${Math.max(days, 0)}日`)
+    expect(block).toHaveTextContent(`約${months}か月`)
+    expect(block.textContent?.match(/あと/g)?.length).toBe(1)
+  })
+
+  it('clamps exam countdown to 0 days after the exam date', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2028, 1, 20))
+    try {
+      render(<HomeScreen onOpenBook={() => {}} />)
+      const block = screen.getByTestId('exam-countdown')
+      expect(block).toHaveTextContent('0日')
+      expect(block).toHaveTextContent('約0か月')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

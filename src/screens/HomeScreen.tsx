@@ -53,6 +53,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 const ROUND_BADGE_COUNT = 5
 
+const EXAM_COUNTDOWN_DATE = '2028-02-18'
+
 type Props = {
   onOpenBook: (id: string) => void
   onRanking?: () => void
@@ -433,6 +435,8 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
   const { records, addProgress } = useRecords()
   const { cycleRecords } = useCycleRecords()
   const today = todayStr()
+  const examDays = Math.max(daysBetween(today, EXAM_COUNTDOWN_DATE), 0)
+  const examMonths = Math.floor(examDays / 30)
   const todayQuote = quoteOf(today)
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(loadSchedule)
   const completedEntries = schedule.filter((e) => e.completed)
@@ -624,6 +628,14 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
 
   return (
     <div style={{ padding: 16 }}>
+      <div
+        data-testid="exam-countdown"
+        style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}
+      >
+        <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>入学試験日まであと</span>
+        <span style={{ fontSize: 32, fontWeight: 800, color: '#111' }}>{examDays}日</span>
+        <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>(約{examMonths}か月)</span>
+      </div>
       <h1 style={{ fontSize: 24 }}>
         {hasGoal && (
           <span data-testid="goal-badge" style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, color: '#1e2a5a', background: '#ffffff', border: '1px solid #1e2a5a', borderRadius: 999, padding: '1px 8px', marginRight: 8, verticalAlign: 'middle' }}>
