@@ -28,37 +28,37 @@ describe('schedule', () => {
     }
   })
 
-  it('schedules LEAP from Sep 26 to Oct 15', () => {
+  it('schedules LEAP from Oct 6 to Oct 25', () => {
     expect(scheduleEntryOf('leap')).toEqual({
       catalogId: 'leap',
-      startDate: '2026-09-26',
-      deadline: '2026-10-15',
+      startDate: '2026-10-06',
+      deadline: '2026-10-25',
     })
   })
 
-  it('starts 英文法ポラリス2 on 2026-09-21 and finishes by Sep 2026', () => {
+  it('starts 英文法ポラリス2 on 2026-10-01 and finishes by Oct 2026', () => {
     expect(scheduleEntryOf('eibunpo-polaris-2')).toEqual({
       catalogId: 'eibunpo-polaris-2',
-      startDate: '2026-09-21',
-      deadline: '2026-09-30',
+      startDate: '2026-10-01',
+      deadline: '2026-10-10',
     })
   })
 
   it('schedules やっておきたい700 and ハイパートレーニング3 in the final prep', () => {
     expect(scheduleEntryOf('yatteokitai-700')).toMatchObject({
-      startDate: '2027-06-16',
-      deadline: '2027-08-15',
+      startDate: '2027-06-26',
+      deadline: '2027-08-25',
     })
     expect(scheduleEntryOf('hyper-training-3')).toMatchObject({
-      startDate: '2027-07-16',
+      startDate: '2027-07-26',
       deadline: '2027-08-31',
     })
   })
 
-  it('keeps Eiken EX until the end of Apr 2027', () => {
+  it('keeps Eiken EX until the end of May 2027', () => {
     expect(scheduleEntryOf('eiken-jun1-tanjukugo')).toMatchObject({
-      startDate: '2026-11-01',
-      deadline: '2027-04-30',
+      startDate: '2026-11-11',
+      deadline: '2027-05-10',
     })
   })
 
@@ -111,8 +111,8 @@ describe('schedule', () => {
     expect(updatedBooks).toHaveLength(0)
     expect(newBooks).toHaveLength(18)
     const polaris2 = newBooks.find((b) => b.catalogId === 'eibunpo-polaris-2')
-    expect(polaris2?.startDate).toBe('2026-09-21')
-    expect(polaris2?.deadline).toBe('2026-09-30')
+    expect(polaris2?.startDate).toBe('2026-10-01')
+    expect(polaris2?.deadline).toBe('2026-10-10')
     expect(polaris2?.coverUrl).toMatch(/^https:\/\//)
     const kakomon = newBooks.find((b) => b.catalogId === 'sfc-eigo-kakomon')
     expect(kakomon?.deadline).toBe('2028-02-05')
@@ -137,7 +137,7 @@ describe('schedule', () => {
     expect(newBooks).toHaveLength(17)
     expect(updatedBooks).toHaveLength(1)
     expect(updatedBooks[0].id).toBe('b1')
-    expect(updatedBooks[0].deadline).toBe('2026-09-30')
+    expect(updatedBooks[0].deadline).toBe('2026-10-10')
     expect(updatedBooks[0].startDate).toBe('2026-06-01')
   })
 
@@ -158,7 +158,7 @@ describe('schedule', () => {
     expect(newBooks).toHaveLength(17)
     expect(updatedBooks).toHaveLength(1)
     expect(updatedBooks[0].catalogId).toBe('porepore')
-    expect(updatedBooks[0].deadline).toBe('2027-07-31')
+    expect(updatedBooks[0].deadline).toBe('2027-08-10')
   })
 })
 
@@ -220,16 +220,16 @@ describe('selectNowAndNext', () => {
   ]
 
   it('picks the active book with the least buffer left as now and the next in order as next', () => {
-    // 2026-09-21: a has 9 days left, b has 40 days left -> a is now, b is next
-    expect(selectNowAndNext(SCHEDULE, '2026-09-21')).toEqual({
+    // 2026-10-01: eibunpo has 9 days left -> eibunpo is now, nyumon is next
+    expect(selectNowAndNext(SCHEDULE, '2026-10-01')).toEqual({
       now: expect.objectContaining({ catalogId: 'eibunpo-polaris-2' }),
       next: expect.objectContaining({ catalogId: 'nyumon-kaishaku-70' }),
     })
   })
 
   it('moves now to the next book once the first one is past its deadline', () => {
-    // eibunpo grad 2026-09-30 で終了後、2026-10-01 は残り最短の LEAP が最優先
-    expect(selectNowAndNext(SCHEDULE, '2026-10-01')).toEqual({
+    // eibunpo grad 2026-10-10 で終了後、2026-10-11 は残り最短の LEAP が最優先
+    expect(selectNowAndNext(SCHEDULE, '2026-10-11')).toEqual({
       now: expect.objectContaining({ catalogId: 'leap' }),
       next: expect.objectContaining({ catalogId: 'final-enshu-polaris-2' }),
     })
