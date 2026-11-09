@@ -147,4 +147,31 @@ describe('scheduleStore', () => {
     saveSchedule([{ catalogId: 'eibunpo-polaris-2', startDate: '2026-09-21', deadline: '2026-11-05' }])
     expect(loadSchedule()).toEqual([{ catalogId: 'eibunpo-polaris-2', startDate: '2026-09-21', deadline: '2026-11-05' }])
   })
+
+  it('preserves note/completed through migration', () => {
+    saveSchedule([{ catalogId: 'leap', startDate: '2026-09-26', deadline: '2026-10-15', note: 'メモ', completed: true }])
+    expect(loadSchedule()).toEqual([{ catalogId: 'leap', startDate: '2026-10-06', deadline: '2026-10-25', note: 'メモ', completed: true }])
+  })
+
+  it('excludes entries with both bookId and catalogId from migration (bookId wins)', () => {
+    const stored = [{ bookId: 'custom-1', catalogId: 'leap', startDate: '2026-09-26', deadline: '2026-10-15' }]
+    saveSchedule(stored)
+    expect(loadSchedule()).toEqual(stored)
+  })
+
+  it('leaves partial matches untouched (old startDate + custom deadline)', () => {
+    const stored = [{ catalogId: 'leap', startDate: '2026-09-26', deadline: '2026-12-31' }]
+    saveSchedule(stored)
+    expect(loadSchedule()).toEqual(stored)
+  })
+
+  it('is idempotent: second load returns equal result without rewriting storage', () => {
+    saveSchedule([{ catalogId: 'leap', startDate: '2026-09-26', deadline: '2026-10-15' }])
+    const first = loadSchedule()
+    const rawBefore = localStorage.getItem('schedule-app-schedule')
+    const second = loadSchedule()
+    const rawAfter = localStorage.getItem('schedule-app-schedule')
+    expect(second).toEqual(first)
+    expect(rawAfter).toBe(rawBefore)
+  })
 })

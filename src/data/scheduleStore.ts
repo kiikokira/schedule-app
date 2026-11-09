@@ -34,8 +34,7 @@ function migrateOldDefaults(entries: ScheduleEntry[]): {
   entries: ScheduleEntry[]
   changed: boolean
 } {
-  // Task 1 の +10 日ずらしに対応する旧既定→新既定の対応表（関数内定数）。
-  // SFC2冊は不変のため対応表に含めない。
+  // 旧既定→新既定の対応表: new値は src/data/schedule.ts SCHEDULE と一致、old値は移行前の既定値（SFC2冊は不変のため除外）。
   const OLD_DEFAULT_TO_NEW: Record<
     string,
     { oldStart: string; oldDeadline: string; newStart: string; newDeadline: string }
@@ -55,7 +54,7 @@ function migrateOldDefaults(entries: ScheduleEntry[]): {
   'the-rules-4': { oldStart: '2027-05-15', oldDeadline: '2027-07-15', newStart: '2027-05-25', newDeadline: '2027-07-25' },
   'porepore': { oldStart: '2027-05-15', oldDeadline: '2027-07-31', newStart: '2027-05-25', newDeadline: '2027-08-10' },
   'yatteokitai-700': { oldStart: '2027-06-16', oldDeadline: '2027-08-15', newStart: '2027-06-26', newDeadline: '2027-08-25' },
-    'hyper-training-3': { oldStart: '2027-07-16', oldDeadline: '2027-08-31', newStart: '2027-07-26', newDeadline: '2027-08-31' },
+  'hyper-training-3': { oldStart: '2027-07-16', oldDeadline: '2027-08-31', newStart: '2027-07-26', newDeadline: '2027-08-31' },
   }
 
   let changed = false
