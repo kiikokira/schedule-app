@@ -240,7 +240,7 @@ describe('HomeScreen', () => {
   it('shows the deadline of each scheduled book', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     const row = screen.getByTestId('schedule-row-eibunpo-polaris-2')
-    expect(row).toHaveTextContent('2026-09-30')
+    expect(row).toHaveTextContent('2026-10-10')
   })
 
   it('marks a scheduled book as 未登録 when it is not in the database', () => {

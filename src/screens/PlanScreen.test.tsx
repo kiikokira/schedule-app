@@ -179,7 +179,7 @@ describe('PlanScreen', () => {
     expect(
       screen.getByTestId<HTMLInputElement>('entry-deadline-eibunpo-polaris-2')
         .value,
-    ).toBe('2026-09-30')
+    ).toBe('2026-10-10')
   })
 
   it('keeps edited dates when reset is cancelled', () => {
@@ -226,7 +226,7 @@ describe('PlanScreen', () => {
     expect(saved).toHaveLength(18)
     expect(
       saved.find((e) => e.catalogId === 'eibunpo-polaris-2')?.deadline,
-    ).toBe('2026-09-30')
+    ).toBe('2026-10-10')
     expect(
       saved.find((e) => e.catalogId === 'sfc-shoronbun')?.startDate,
     ).toBe('2027-08-31')
@@ -241,8 +241,8 @@ describe('PlanScreen', () => {
     const books = await db.books.toArray()
     expect(books).toHaveLength(18)
     const eibunpo = books.find((b) => b.catalogId === 'eibunpo-polaris-2')
-    expect(eibunpo?.deadline).toBe('2026-09-30')
-    expect(eibunpo?.startDate).toBe('2026-09-21')
+    expect(eibunpo?.deadline).toBe('2026-10-10')
+    expect(eibunpo?.startDate).toBe('2026-10-01')
     expect(eibunpo?.coverUrl).toMatch(/^https:\/\//)
   })
 
@@ -266,7 +266,7 @@ describe('PlanScreen', () => {
     )
     const books = await db.books.toArray()
     const eibunpo = books.find((b) => b.id === 'b1')
-    expect(eibunpo?.deadline).toBe('2026-09-30')
+    expect(eibunpo?.deadline).toBe('2026-10-10')
     expect(eibunpo?.startDate).toBe('2026-04-01')
     expect(eibunpo?.coverUrl).toBe('https://example.com/polaris2.jpg')
   })
