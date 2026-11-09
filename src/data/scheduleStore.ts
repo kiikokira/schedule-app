@@ -19,11 +19,56 @@ export function loadSchedule(): ScheduleEntry[] {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return SCHEDULE
     const parsed: unknown = JSON.parse(raw)
-    if (Array.isArray(parsed) && parsed.every(isScheduleEntry)) return parsed
+    if (Array.isArray(parsed) && parsed.every(isScheduleEntry)) {
+      const migrated = migrateOldDefaults(parsed)
+      if (migrated.changed) saveSchedule(migrated.entries)
+      return migrated.entries
+    }
   } catch {
     // 不正なデータは無視してデフォルトを返す
   }
   return SCHEDULE
+}
+
+function migrateOldDefaults(entries: ScheduleEntry[]): {
+  entries: ScheduleEntry[]
+  changed: boolean
+} {
+  // Task 1 の +10 日ずらしに対応する旧既定→新既定の対応表（関数内定数）。
+  // SFC2冊は不変のため対応表に含めない。
+  const OLD_DEFAULT_TO_NEW: Record<
+    string,
+    { oldStart: string; oldDeadline: string; newStart: string; newDeadline: string }
+  > = {
+  'eibunpo-polaris-2': { oldStart: '2026-09-21', oldDeadline: '2026-09-30', newStart: '2026-10-01', newDeadline: '2026-10-10' },
+  'nyumon-kaishaku-70': { oldStart: '2026-09-21', oldDeadline: '2026-11-20', newStart: '2026-10-01', newDeadline: '2026-11-30' },
+  'sokudoku-eijukugo': { oldStart: '2026-09-21', oldDeadline: '2027-01-31', newStart: '2026-10-01', newDeadline: '2027-02-10' },
+  'leap': { oldStart: '2026-09-26', oldDeadline: '2026-10-15', newStart: '2026-10-06', newDeadline: '2026-10-25' },
+  'final-enshu-polaris-2': { oldStart: '2026-10-01', oldDeadline: '2026-12-31', newStart: '2026-10-11', newDeadline: '2027-01-10' },
+  'the-rules-1': { oldStart: '2026-11-01', oldDeadline: '2027-01-31', newStart: '2026-11-11', newDeadline: '2027-02-10' },
+  'eiken-jun1-tanjukugo': { oldStart: '2026-11-01', oldDeadline: '2027-04-30', newStart: '2026-11-11', newDeadline: '2027-05-10' },
+  'final-mondai-nankan': { oldStart: '2027-01-01', oldDeadline: '2027-03-31', newStart: '2027-01-11', newDeadline: '2027-04-10' },
+  'the-rules-2': { oldStart: '2027-02-01', oldDeadline: '2027-03-31', newStart: '2027-02-11', newDeadline: '2027-04-10' },
+  'lingua-metallica': { oldStart: '2027-02-01', oldDeadline: '2027-04-30', newStart: '2027-02-11', newDeadline: '2027-05-10' },
+  'the-rules-3': { oldStart: '2027-04-01', oldDeadline: '2027-05-31', newStart: '2027-04-11', newDeadline: '2027-06-10' },
+  'yatteokitai-500': { oldStart: '2027-04-15', oldDeadline: '2027-06-15', newStart: '2027-04-25', newDeadline: '2027-06-25' },
+  'the-rules-4': { oldStart: '2027-05-15', oldDeadline: '2027-07-15', newStart: '2027-05-25', newDeadline: '2027-07-25' },
+  'porepore': { oldStart: '2027-05-15', oldDeadline: '2027-07-31', newStart: '2027-05-25', newDeadline: '2027-08-10' },
+  'yatteokitai-700': { oldStart: '2027-06-16', oldDeadline: '2027-08-15', newStart: '2027-06-26', newDeadline: '2027-08-25' },
+    'hyper-training-3': { oldStart: '2027-07-16', oldDeadline: '2027-08-31', newStart: '2027-07-26', newDeadline: '2027-08-31' },
+  }
+
+  let changed = false
+  const next = entries.map((e) => {
+    // bookId エントリは移行対象外
+    if (e.bookId !== undefined || e.catalogId === undefined) return e
+    const mapping = OLD_DEFAULT_TO_NEW[e.catalogId]
+    if (!mapping) return e
+    if (e.startDate !== mapping.oldStart || e.deadline !== mapping.oldDeadline) return e
+    changed = true
+    return { ...e, startDate: mapping.newStart, deadline: mapping.newDeadline }
+  })
+  return { entries: next, changed }
 }
 
 export function saveSchedule(entries: ScheduleEntry[]): void {

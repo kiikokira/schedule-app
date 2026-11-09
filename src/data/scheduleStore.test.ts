@@ -130,4 +130,21 @@ describe('scheduleStore', () => {
     resetSchedule()
     expect(loadSchedule()).toHaveLength(18)
   })
+
+  it('migrates stored old defaults by +10 days and keeps SFC fixed', () => {
+    saveSchedule([
+      { catalogId: 'eibunpo-polaris-2', startDate: '2026-09-21', deadline: '2026-09-30' },
+      { catalogId: 'hyper-training-3', startDate: '2027-07-16', deadline: '2027-08-31' },
+      { catalogId: 'sfc-eigo-kakomon', startDate: '2027-08-31', deadline: '2028-02-05' },
+    ])
+    const got = loadSchedule()
+    expect(got.find((e) => e.catalogId === 'eibunpo-polaris-2')).toEqual({ catalogId: 'eibunpo-polaris-2', startDate: '2026-10-01', deadline: '2026-10-10' })
+    expect(got.find((e) => e.catalogId === 'hyper-training-3')).toEqual({ catalogId: 'hyper-training-3', startDate: '2027-07-26', deadline: '2027-08-31' })
+    expect(got.find((e) => e.catalogId === 'sfc-eigo-kakomon')).toEqual({ catalogId: 'sfc-eigo-kakomon', startDate: '2027-08-31', deadline: '2028-02-05' })
+  })
+
+  it('keeps customized stored dates untouched', () => {
+    saveSchedule([{ catalogId: 'eibunpo-polaris-2', startDate: '2026-09-21', deadline: '2026-11-05' }])
+    expect(loadSchedule()).toEqual([{ catalogId: 'eibunpo-polaris-2', startDate: '2026-09-21', deadline: '2026-11-05' }])
+  })
 })
