@@ -105,12 +105,38 @@ function HeroHeader({ today }: { today: string }) {
   const rawDays = daysBetween(today, EXAM_END_DATE)
   const days = Math.max(rawDays, 0)
   const months = Math.round(days / 30)
-  const countdownText =
-    rawDays < 0
-      ? '入学試験は終了しました'
-      : rawDays === 0
-        ? '入学試験は当日です'
-        : `入学試験日まであと ${days}日（約${months}か月）`
+  if (rawDays < 0) {
+    return (
+      <section
+        data-testid="hero-header"
+        className="hero-card"
+        style={{
+          marginTop: 8,
+          marginBottom: 8,
+        }}
+      >
+        <p data-testid="hero-countdown" className="hero-countdown" style={{ fontSize: 18, fontWeight: 700, margin: '4px 0 0' }}>
+          入学試験は終了しました
+        </p>
+      </section>
+    )
+  }
+  if (rawDays === 0) {
+    return (
+      <section
+        data-testid="hero-header"
+        className="hero-card"
+        style={{
+          marginTop: 8,
+          marginBottom: 8,
+        }}
+      >
+        <p data-testid="hero-countdown" className="hero-countdown" style={{ fontSize: 18, fontWeight: 700, margin: '4px 0 0' }}>
+          入学試験は当日です
+        </p>
+      </section>
+    )
+  }
   return (
     <section
       data-testid="hero-header"
@@ -118,36 +144,13 @@ function HeroHeader({ today }: { today: string }) {
       style={{
         marginTop: 8,
         marginBottom: 8,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
       }}
     >
-      <svg
-        data-testid="hero-logo"
-        width="64"
-        height="64"
-        viewBox="0 0 64 64"
-        role="img"
-        aria-label="慶應義塾 Keio University ロゴ"
-        style={{ flexShrink: 0 }}
-      >
-        <rect x="2" y="2" width="60" height="60" rx="12" fill="#ffffff" />
-        <line x1="18" y1="50" x2="46" y2="18" stroke="#1e2a5a" strokeWidth="4" strokeLinecap="round" />
-        <line x1="18" y1="18" x2="46" y2="50" stroke="#b9975b" strokeWidth="4" strokeLinecap="round" />
-        <circle cx="32" cy="32" r="4" fill="#1e2a5a" />
-        <text x="32" y="12" textAnchor="middle" fontSize="7" fontWeight="700" fill="#1e2a5a">
-          慶應義塾
-        </text>
-        <text x="32" y="60" textAnchor="middle" fontSize="5" fontWeight="700" fill="#1e2a5a">
-          Keio University
-        </text>
-      </svg>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p data-testid="hero-countdown" className="hero-countdown" style={{ fontSize: 32, fontWeight: 800, margin: '4px 0 0' }}>
-          {countdownText}
-        </p>
-      </div>
+      <p data-testid="hero-countdown" className="hero-countdown" style={{ fontSize: 14, margin: '4px 0 0' }}>
+        <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>入学試験日まであと </span>
+        <span data-testid="hero-countdown-days" style={{ fontSize: 40, fontWeight: 800 }}>{days}日</span>
+        <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>（約{months}か月）</span>
+      </p>
     </section>
   )
 }
@@ -674,6 +677,12 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
 
   return (
     <div style={{ padding: 16 }}>
+      <img
+        data-testid="hero-logo"
+        src="./keiologo.png"
+        alt="慶應義塾大学ロゴ"
+        style={{ height: 56, width: 'auto', display: 'block', margin: '0 auto' }}
+      />
       <h1 style={{ fontSize: 24 }}>
         {hasGoal && (
           <span data-testid="goal-badge" style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, color: '#1e2a5a', background: '#ffffff', border: '1px solid #1e2a5a', borderRadius: 999, padding: '1px 8px', marginRight: 8, verticalAlign: 'middle' }}>
@@ -690,8 +699,8 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
         <div
           data-testid="today-quote-block"
           style={{
-            marginBottom: 16,
-            padding: '12px 14px',
+            marginBottom: 10,
+            padding: '8px 10px',
             borderRadius: 12,
             background: 'var(--surface)',
             border: '1px solid var(--border)',
@@ -699,19 +708,19 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
         >
           <p
             data-testid="today-quote"
-            style={{ fontSize: 15, fontStyle: 'italic' }}
+            style={{ fontSize: 13, fontStyle: 'italic', margin: '0 0 4px' }}
           >
             {todayQuote.text}
           </p>
           <p
             data-testid="today-quote-explanation"
-            style={{ fontSize: 12, color: 'var(--text-dim)' }}
+            style={{ fontSize: 11, color: 'var(--text-dim)', margin: '0 0 4px' }}
           >
             （{todayQuote.explanation}）
           </p>
           <p
             data-testid="today-quote-by"
-            style={{ fontSize: 12, textAlign: 'right', color: 'var(--text-dim)' }}
+            style={{ fontSize: 11, textAlign: 'right', color: 'var(--text-dim)', margin: 0 }}
           >
             by {todayQuote.author}（{todayQuote.role}）
           </p>

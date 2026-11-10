@@ -912,22 +912,27 @@ describe('HomeScreen', () => {
     }
   })
 
-  it('hero shows SVG logo and countdown from EXAM_END_DATE', async () => {
+  it('hero shows specified logo image above heading and countdown from EXAM_END_DATE', async () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     const logo = await screen.findByTestId('hero-logo')
     expect(logo).toBeInTheDocument()
-    expect(logo.tagName.toLowerCase()).toBe('svg')
-    expect(logo.tagName).toBe('svg')
+    expect(logo.tagName).toBe('IMG')
+    expect(logo.getAttribute('src')).toContain('keiologo.png')
+    expect(logo.getAttribute('alt')).toBe('慶應義塾大学ロゴ')
+    const heading = screen.getByRole('heading', { level: 1 })
+    expect(logo.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByTestId('hero-countdown')).toHaveTextContent('入学試験日まであと')
   })
 
-  it('hero countdown is emphasized over ranking summary', async () => {
+  it('hero countdown emphasizes days over ranking summary', async () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     const cd = await screen.findByTestId('hero-countdown')
+    const days = await screen.findByTestId('hero-countdown-days')
     const summary = screen.getByTestId('ranking-summary')
-    expect(Number(cd.style.fontSize.split('px')[0])).toBeGreaterThan(Number(summary.style.fontSize.split('px')[0]))
-    expect(Number(cd.style.fontSize.split('px')[0])).toBeGreaterThanOrEqual(32)
-    expect(cd.style.fontWeight).toBe('800')
+    expect(Number(days.style.fontSize.split('px')[0])).toBeGreaterThan(Number(summary.style.fontSize.split('px')[0]))
+    expect(Number(days.style.fontSize.split('px')[0])).toBeGreaterThanOrEqual(40)
+    expect(days.style.fontWeight).toBe('800')
+    expect(cd).toHaveTextContent('入学試験日まであと')
   })
 
   it('hero countdown shows exact days and months for a fixed date', async () => {
@@ -937,6 +942,7 @@ describe('HomeScreen', () => {
       render(<HomeScreen onOpenBook={() => {}} />)
       const cd = await screen.findByTestId('hero-countdown')
       expect(cd).toHaveTextContent('入学試験日まであと 386日（約13か月）')
+      expect(await screen.findByTestId('hero-countdown-days')).toHaveTextContent('386日')
     } finally {
       vi.useRealTimers()
     }
