@@ -555,8 +555,9 @@ describe('HomeScreen', () => {
     saveSchedule(custom)
     await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
     render(<HomeScreen onOpenBook={() => {}} />)
-    const now = await screen.findByTestId('now-next-now')
-    expect(now).toHaveTextContent('英単語1000')
+    await waitFor(() =>
+      expect(screen.getByTestId('now-next-now')).toHaveTextContent('英単語1000'),
+    )
   })
 
   it('shows the current book progress percent on the NOW card', async () => {
