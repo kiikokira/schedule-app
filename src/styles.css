@@ -107,21 +107,6 @@ main { padding-bottom: 80px; }
   overflow-wrap: anywhere;
   max-width: 100%;
 }
-.hero-logo-img {
-  display: block;
-  margin: 0 auto;
-  height: 56px;
-  width: auto;
-}
-.hero-countdown-days {
-  font-size: 40px;
-  font-weight: 800;
-  line-height: 1.1;
-}
-.hero-countdown-sub {
-  font-size: 12px;
-  color: var(--text-dim);
-}
 .hero-subtle {
   font-size: 12px;
   font-weight: 400;

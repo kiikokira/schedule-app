@@ -105,7 +105,8 @@ function HeroHeader({ today }: { today: string }) {
   const rawDays = daysBetween(today, EXAM_END_DATE)
   const days = Math.max(rawDays, 0)
   const months = Math.round(days / 30)
-  if (rawDays < 0) {
+  if (rawDays <= 0) {
+    const shortCopy = rawDays < 0 ? '入学試験は終了しました' : '入学試験は当日です'
     return (
       <section
         data-testid="hero-header"
@@ -116,23 +117,7 @@ function HeroHeader({ today }: { today: string }) {
         }}
       >
         <p data-testid="hero-countdown" className="hero-countdown" style={{ fontSize: 18, fontWeight: 700, margin: '4px 0 0' }}>
-          入学試験は終了しました
-        </p>
-      </section>
-    )
-  }
-  if (rawDays === 0) {
-    return (
-      <section
-        data-testid="hero-header"
-        className="hero-card"
-        style={{
-          marginTop: 8,
-          marginBottom: 8,
-        }}
-      >
-        <p data-testid="hero-countdown" className="hero-countdown" style={{ fontSize: 18, fontWeight: 700, margin: '4px 0 0' }}>
-          入学試験は当日です
+          {shortCopy}
         </p>
       </section>
     )
@@ -681,7 +666,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
         data-testid="hero-logo"
         src="./keiologo.png"
         alt="慶應義塾大学ロゴ"
-        style={{ height: 56, width: 'auto', display: 'block', margin: '0 auto' }}
+        style={{ height: 56, width: 'auto', maxWidth: '100%', display: 'block', margin: '0 auto' }}
       />
       <h1 style={{ fontSize: 24 }}>
         {hasGoal && (
