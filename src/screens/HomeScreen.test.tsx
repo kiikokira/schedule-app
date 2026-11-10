@@ -7,7 +7,7 @@ import { saveSchedule, resetSchedule, loadSchedule } from '../data/scheduleStore
 import { addDaysToDate, SCHEDULE, selectNowAndNext, type ScheduleEntry } from '../data/schedule'
 import { CATALOG } from '../data/catalog'
 import { quoteOf } from '../data/quotes'
-import { todayStr, daysBetween } from '../lib/progress'
+import { todayStr } from '../lib/progress'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
@@ -895,36 +895,67 @@ describe('HomeScreen', () => {
     expect(within(card).getByTestId('season-banner')).toBeInTheDocument()
   })
 
-  it('shows exam countdown with days and approximate months without duplicate あと', () => {
-    render(<HomeScreen onOpenBook={() => {}} />)
-    const block = screen.getByTestId('exam-countdown')
-    const days = daysBetween(todayStr(), '2028-02-18')
-    const months = Math.floor(Math.max(days, 0) / 30)
-    expect(block).toHaveTextContent('入学試験日まであと')
-    expect(block).toHaveTextContent(`${Math.max(days, 0)}日`)
-    expect(block).toHaveTextContent(`約${months}か月`)
-    expect(block.textContent?.match(/あと/g)?.length).toBe(1)
+  it('ranking card is compact and quote comes before now-next', async () => {
+    render(<HomeScreen onOpenBook={() => {}} onRanking={() => {}} onMyPage={() => {}} />)
+    const summary = await screen.findByTestId('ranking-summary')
+    expect(summary.textContent!.length).toBeLessThan(80)
+    const quote = screen.getByTestId('today-quote-block')
+    const nowNext = screen.getByTestId('now-next-section')
+    expect(quote.compareDocumentPosition(nowNext) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const ranking = screen.getByTestId('ranking-card')
+    expect(nowNext.compareDocumentPosition(ranking) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('clamps exam countdown to 0 days after the exam date', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date(2028, 1, 20))
+  it('hero shows SVG logo and countdown from EXAM_END_DATE', async () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(await screen.findByTestId('hero-logo')).toBeInTheDocument()
+    expect(screen.getByTestId('hero-countdown')).toHaveTextContent('入学試験日まであと')
+  })
+
+  it('hero countdown is emphasized over ranking summary', async () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const cd = await screen.findByTestId('hero-countdown')
+    const summary = screen.getByTestId('ranking-summary')
+    expect(Number(cd.style.fontSize.split('px')[0])).toBeGreaterThan(Number(summary.style.fontSize.split('px')[0]))
+    expect(Number(cd.style.fontSize.split('px')[0])).toBeGreaterThanOrEqual(32)
+    expect(cd.style.fontWeight).toBe('800')
+  })
+
+  it('hero countdown shows exact days and months for a fixed date', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true } as any)
     try {
+      vi.setSystemTime(new Date(2027, 0, 15, 12, 0, 0))
       render(<HomeScreen onOpenBook={() => {}} />)
-      const block = screen.getByTestId('exam-countdown')
-      expect(block).toHaveTextContent('0日')
-      expect(block).toHaveTextContent('約0か月')
+      const cd = await screen.findByTestId('hero-countdown')
+      expect(cd).toHaveTextContent('入学試験日まであと 386日（約13か月）')
     } finally {
       vi.useRealTimers()
     }
   })
 
-  it('shows the Keio logo above the goal heading', () => {
-    render(<HomeScreen onOpenBook={() => {}} />)
-    const logo = screen.getByTestId('keio-logo')
-    expect(logo.tagName).toBe('IMG')
-    expect(logo).toHaveAttribute('src', './keio-logo.png')
-    expect(logo).toHaveAttribute('alt', '慶應義塾大学ロゴ')
-    expect(logo).toHaveStyle({ width: '100%', objectFit: 'contain' })
+  it('hero countdown shows exam-day copy on EXAM_END_DATE', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true } as any)
+    try {
+      vi.setSystemTime(new Date(2028, 1, 5, 12, 0, 0))
+      render(<HomeScreen onOpenBook={() => {}} />)
+      const cd = await screen.findByTestId('hero-countdown')
+      expect(cd).toHaveTextContent('入学試験は当日です')
+      expect(cd).not.toHaveTextContent('あと')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('hero countdown shows finished copy after EXAM_END_DATE', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true } as any)
+    try {
+      vi.setSystemTime(new Date(2028, 1, 6, 12, 0, 0))
+      render(<HomeScreen onOpenBook={() => {}} />)
+      const cd = await screen.findByTestId('hero-countdown')
+      expect(cd).toHaveTextContent('入学試験は終了しました')
+      expect(cd).not.toHaveTextContent('あと')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

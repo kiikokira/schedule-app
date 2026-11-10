@@ -31,7 +31,7 @@ import { loadProfile } from '../data/profileStore'
 import { formalUniversityName } from '../data/universities'
 import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
-import { quoteOf } from '../data/quotes'
+import { EXAM_END_DATE, quoteOf } from '../data/quotes'
 import { loadSchedule, saveSchedule, syncEntryDatesForBook } from '../data/scheduleStore'
 import { loadSeasonState, recordSeasonDay } from '../data/seasonStore'
 import { seasonDayIndex } from '../lib/seasonLeague'
@@ -52,8 +52,6 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const ROUND_BADGE_COUNT = 5
-
-const EXAM_COUNTDOWN_DATE = '2028-02-18'
 
 type Props = {
   onOpenBook: (id: string) => void
@@ -101,6 +99,59 @@ type NowNextItemProps = {  label: string
   registered?: BookData
   testid: string
   progressPercent?: number
+}
+
+function HeroHeader({ univ, today }: { univ: string; today: string }) {
+  const rawDays = daysBetween(today, EXAM_END_DATE)
+  const days = Math.max(rawDays, 0)
+  const months = Math.round(days / 30)
+  const countdownText =
+    rawDays < 0
+      ? '入学試験は終了しました'
+      : rawDays === 0
+        ? '入学試験は当日です'
+        : `入学試験日まであと ${days}日（約${months}か月）`
+  return (
+    <section
+      data-testid="hero-header"
+      className="hero-card"
+      style={{
+        marginTop: 8,
+        marginBottom: 8,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+      }}
+    >
+      <svg
+        data-testid="hero-logo"
+        width="64"
+        height="64"
+        viewBox="0 0 64 64"
+        role="img"
+        aria-label="慶應義塾 Keio University ロゴ"
+      >
+        <rect x="2" y="2" width="60" height="60" rx="12" fill="#ffffff" />
+        <line x1="18" y1="50" x2="46" y2="18" stroke="#1e2a5a" strokeWidth="4" strokeLinecap="round" />
+        <line x1="18" y1="18" x2="46" y2="50" stroke="#b9975b" strokeWidth="4" strokeLinecap="round" />
+        <circle cx="32" cy="32" r="4" fill="#1e2a5a" />
+        <text x="32" y="12" textAnchor="middle" fontSize="7" fontWeight="700" fill="#1e2a5a">
+          慶應義塾
+        </text>
+        <text x="32" y="60" textAnchor="middle" fontSize="5" fontWeight="700" fill="#1e2a5a">
+          Keio University
+        </text>
+      </svg>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div data-testid="hero-univ" style={{ fontSize: 13, fontWeight: 700 }}>
+          {univ}
+        </div>
+        <p data-testid="hero-countdown" className="hero-countdown" style={{ fontSize: 32, fontWeight: 800, margin: '4px 0 0' }}>
+          {countdownText}
+        </p>
+      </div>
+    </section>
+  )
 }
 
 function NowNextItem({ label, entry, registered, testid, progressPercent }: NowNextItemProps) {
@@ -435,8 +486,6 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
   const { records, addProgress } = useRecords()
   const { cycleRecords } = useCycleRecords()
   const today = todayStr()
-  const examDays = Math.max(daysBetween(today, EXAM_COUNTDOWN_DATE), 0)
-  const examMonths = Math.floor(examDays / 30)
   const todayQuote = quoteOf(today)
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(loadSchedule)
   const completedEntries = schedule.filter((e) => e.completed)
@@ -585,7 +634,6 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
     streakScores[d] = combinedActivityOnDate(d, validRecords, validCycles)
   }
   const streak = calcStreakDays(streakScores, dailyQuota, today)
-  const todayPages = combinedActivityOnDate(today, validRecords, validCycles)
   const totalPages = totalActivity(validRecords) + totalCycleUnits(validCycles)
   const rank = totalPagesToRank(totalPages, today)
   const deviation = rankToDeviation(rank)
@@ -628,20 +676,6 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
 
   return (
     <div style={{ padding: 16 }}>
-      <img
-        data-testid="keio-logo"
-        src="./keio-logo.png"
-        alt="慶應義塾大学ロゴ"
-        style={{ width: '100%', maxHeight: 140, objectFit: 'contain', borderRadius: 12, display: 'block' }}
-      />
-      <div
-        data-testid="exam-countdown"
-        style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}
-      >
-        <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>入学試験日まであと</span>
-        <span style={{ fontSize: 32, fontWeight: 800, color: '#111' }}>{examDays}日</span>
-        <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>(約{examMonths}か月)</span>
-      </div>
       <h1 style={{ fontSize: 24 }}>
         {hasGoal && (
           <span data-testid="goal-badge" style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, color: '#1e2a5a', background: '#ffffff', border: '1px solid #1e2a5a', borderRadius: 999, padding: '1px 8px', marginRight: 8, verticalAlign: 'middle' }}>
@@ -650,27 +684,21 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
         )}
         {headerUniv}
       </h1>
-      <section data-testid="ranking-card" style={{ marginTop: 8, marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)' }}>
-        <div style={{ fontWeight: 800, fontSize: 16 }}>仮想全国ランキング</div>
-        <div data-testid="ranking-summary" style={{ fontSize: 14 }}>
-          全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{deviation}） 累計{totalPages.toLocaleString()}ページ（今日{todayPages.toLocaleString()}ページ）
-        </div>
-        <button data-testid="ranking-open" type="button" onClick={() => onRanking?.()}>
-          順位を見る
-        </button>
-        <button data-testid="mypage-open" type="button" onClick={() => onMyPage?.()} style={{ marginLeft: 8 }}>
-          マイページ
-        </button>
-        <div data-testid="season-banner">今季Div.{season.div} 残り{seasonRemain}節 順位はリーグタブで</div>
-      </section>
-      <button data-testid="home-school-open" type="button" onClick={() => onSchool?.()} style={{ fontSize: 13, color: 'var(--text-dim)', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
-        学校の日程 ▶
-      </button>
-      <p data-testid="today-date" style={{ fontWeight: 700, marginTop: 0 }}>
+      <HeroHeader univ={headerUniv} today={today} />
+      <p data-testid="today-date" className="hero-subtle" style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-dim)', marginTop: 0 }}>
         今日は {formatJaDate(today)}
       </p>
       {todayQuote && (
-        <div data-testid="today-quote-block">
+        <div
+          data-testid="today-quote-block"
+          style={{
+            marginBottom: 16,
+            padding: '12px 14px',
+            borderRadius: 12,
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+          }}
+        >
           <p
             data-testid="today-quote"
             style={{ fontSize: 15, fontStyle: 'italic' }}
@@ -791,6 +819,23 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
           </section>
         )
       })()}
+
+      <section data-testid="ranking-card" style={{ marginTop: 8, marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+        <div style={{ fontWeight: 800, fontSize: 16 }}>仮想全国ランキング</div>
+        <div data-testid="ranking-summary" style={{ fontSize: 14 }}>
+          全国{RANK_POPULATION.toLocaleString()}人中 {rank.toLocaleString()}位（偏差値{deviation}）
+        </div>
+        <button data-testid="ranking-open" type="button" onClick={() => onRanking?.()}>
+          順位を見る
+        </button>
+        <button data-testid="mypage-open" type="button" onClick={() => onMyPage?.()} style={{ marginLeft: 8 }}>
+          マイページ
+        </button>
+        <div data-testid="season-banner" style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>今季Div.{season.div} 残り{seasonRemain}節 順位はリーグタブで</div>
+      </section>
+      <button data-testid="home-school-open" type="button" onClick={() => onSchool?.()} className="hero-subtle" style={{ fontSize: 12, color: 'var(--text-dim)', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
+        学校の日程 ▶
+      </button>
 
       {books.length > 0 &&
         (diagnosis.behind ? (

@@ -93,6 +93,26 @@ main { padding-bottom: 80px; }
   flex-shrink: 0;
 }
 
+/* ヒーロー強調（360px安全：固定幅なし・折返し可） */
+.hero-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 100%;
+  color: var(--text);
+}
+.hero-countdown {
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.hero-subtle {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
 /* RPG草原ワールド：キャラクター・環境アニメ */
 .rpgc-idle { animation: rpgc-breathe 2.2s ease-in-out infinite; transform-origin: 32px 60px; }
 .rpgc-walk .rpgc-leg-l { animation: rpgc-step 0.5s ease-in-out infinite; transform-origin: 28px 54px; }
