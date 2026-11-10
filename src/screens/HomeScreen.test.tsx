@@ -896,19 +896,28 @@ describe('HomeScreen', () => {
   })
 
   it('ranking card is compact and quote comes before now-next', async () => {
-    render(<HomeScreen onOpenBook={() => {}} onRanking={() => {}} onMyPage={() => {}} />)
-    const summary = await screen.findByTestId('ranking-summary')
-    expect(summary.textContent!.length).toBeLessThan(80)
-    const quote = screen.getByTestId('today-quote-block')
-    const nowNext = screen.getByTestId('now-next-section')
-    expect(quote.compareDocumentPosition(nowNext) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    const ranking = screen.getByTestId('ranking-card')
-    expect(nowNext.compareDocumentPosition(ranking) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    vi.useFakeTimers({ shouldAdvanceTime: true } as any)
+    try {
+      vi.setSystemTime(new Date(2027, 0, 15, 12, 0, 0))
+      render(<HomeScreen onOpenBook={() => {}} onRanking={() => {}} onMyPage={() => {}} />)
+      const summary = await screen.findByTestId('ranking-summary')
+      expect(summary.textContent!.length).toBeLessThan(80)
+      const quote = screen.getByTestId('today-quote-block')
+      const nowNext = screen.getByTestId('now-next-section')
+      expect(quote.compareDocumentPosition(nowNext) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      const ranking = screen.getByTestId('ranking-card')
+      expect(nowNext.compareDocumentPosition(ranking) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('hero shows SVG logo and countdown from EXAM_END_DATE', async () => {
     render(<HomeScreen onOpenBook={() => {}} />)
-    expect(await screen.findByTestId('hero-logo')).toBeInTheDocument()
+    const logo = await screen.findByTestId('hero-logo')
+    expect(logo).toBeInTheDocument()
+    expect(logo.tagName.toLowerCase()).toBe('svg')
+    expect(logo.tagName).toBe('svg')
     expect(screen.getByTestId('hero-countdown')).toHaveTextContent('入学試験日まであと')
   })
 
@@ -954,6 +963,7 @@ describe('HomeScreen', () => {
       const cd = await screen.findByTestId('hero-countdown')
       expect(cd).toHaveTextContent('入学試験は終了しました')
       expect(cd).not.toHaveTextContent('あと')
+      expect(screen.queryByTestId('today-quote-block')).not.toBeInTheDocument()
     } finally {
       vi.useRealTimers()
     }

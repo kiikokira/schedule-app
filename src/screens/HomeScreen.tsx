@@ -101,7 +101,7 @@ type NowNextItemProps = {  label: string
   progressPercent?: number
 }
 
-function HeroHeader({ univ, today }: { univ: string; today: string }) {
+function HeroHeader({ today }: { today: string }) {
   const rawDays = daysBetween(today, EXAM_END_DATE)
   const days = Math.max(rawDays, 0)
   const months = Math.round(days / 30)
@@ -130,6 +130,7 @@ function HeroHeader({ univ, today }: { univ: string; today: string }) {
         viewBox="0 0 64 64"
         role="img"
         aria-label="慶應義塾 Keio University ロゴ"
+        style={{ flexShrink: 0 }}
       >
         <rect x="2" y="2" width="60" height="60" rx="12" fill="#ffffff" />
         <line x1="18" y1="50" x2="46" y2="18" stroke="#1e2a5a" strokeWidth="4" strokeLinecap="round" />
@@ -143,9 +144,6 @@ function HeroHeader({ univ, today }: { univ: string; today: string }) {
         </text>
       </svg>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div data-testid="hero-univ" style={{ fontSize: 13, fontWeight: 700 }}>
-          {univ}
-        </div>
         <p data-testid="hero-countdown" className="hero-countdown" style={{ fontSize: 32, fontWeight: 800, margin: '4px 0 0' }}>
           {countdownText}
         </p>
@@ -684,7 +682,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
         )}
         {headerUniv}
       </h1>
-      <HeroHeader univ={headerUniv} today={today} />
+      <HeroHeader today={today} />
       <p data-testid="today-date" className="hero-subtle" style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-dim)', marginTop: 0 }}>
         今日は {formatJaDate(today)}
       </p>
