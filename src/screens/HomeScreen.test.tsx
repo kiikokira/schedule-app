@@ -918,4 +918,13 @@ describe('HomeScreen', () => {
       vi.useRealTimers()
     }
   })
+
+  it('shows the Keio logo above the goal heading', () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const logo = screen.getByTestId('keio-logo')
+    expect(logo.tagName).toBe('IMG')
+    expect(logo).toHaveAttribute('src', './keio-logo.png')
+    expect(logo).toHaveAttribute('alt', '慶應義塾大学ロゴ')
+    expect(logo).toHaveStyle({ width: '100%', objectFit: 'contain' })
+  })
 })

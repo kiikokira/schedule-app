@@ -628,6 +628,12 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
 
   return (
     <div style={{ padding: 16 }}>
+      <img
+        data-testid="keio-logo"
+        src="./keio-logo.png"
+        alt="慶應義塾大学ロゴ"
+        style={{ width: '100%', maxHeight: 140, objectFit: 'contain', borderRadius: 12, display: 'block' }}
+      />
       <div
         data-testid="exam-countdown"
         style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}
