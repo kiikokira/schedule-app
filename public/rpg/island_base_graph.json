@@ -1,0 +1,47 @@
+{
+ "stops": [
+  {
+   "id": "s0",
+   "kind": "start",
+   "label": "top",
+   "x": 0.0,
+   "z": 0.0,
+   "y": 6.902
+  },
+  {
+   "id": "s1",
+   "kind": "stop",
+   "label": "pond",
+   "x": 12.0,
+   "z": 10.0,
+   "y": 0.847
+  }
+ ],
+ "nodes": [
+  {
+   "id": "s0",
+   "kind": "start",
+   "label": "top",
+   "x": 0.0,
+   "z": 0.0,
+   "y": 6.902
+  },
+  {
+   "id": "s1",
+   "kind": "stop",
+   "label": "pond",
+   "x": 12.0,
+   "z": 10.0,
+   "y": 0.847
+  }
+ ],
+ "paths": [
+  {
+   "id": "p0",
+   "from": "s0",
+   "to": "s1",
+   "kind": "walk",
+   "speed": 2.2
+  }
+ ]
+}

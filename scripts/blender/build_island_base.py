@@ -234,4 +234,21 @@ if __name__ == "__main__":
     bpy.context.scene.render.filepath = preview_path
     bpy.ops.render.render(write_still=True)
     print("PREVIEW:", preview_path, os.path.getsize(preview_path))
+
+    # ---------------------------------------------------------- walk graph (Task 2: ROAD centerline -> stops+paths)
+    sx0, sz0 = ROAD[0]
+    sx1, sz1 = ROAD[-1]
+    stops = [
+        {"id": "s0", "kind": "start", "label": "top",
+         "x": sx0, "z": sz0, "y": round(H(sx0, sz0) + 0.05, 3)},
+        {"id": "s1", "kind": "stop", "label": "pond",
+         "x": sx1, "z": sz1, "y": round(H(sx1, sz1) + 0.05, 3)},
+    ]
+    gpath = os.path.join(PROJ, "public", "rpg", "island_base_graph.json")
+    graph = {"stops": stops, "nodes": [dict(s) for s in stops],
+             "paths": [{"id": "p0", "from": "s0", "to": "s1",
+                        "kind": "walk", "speed": 2.2}]}
+    with open(gpath, "w") as f:
+        json.dump(graph, f, indent=1)
+    print("OK graph (%s)" % gpath)
     print("BUILD_ISLAND_BASE_OK")

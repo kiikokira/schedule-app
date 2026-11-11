@@ -9,7 +9,11 @@ Asserts:
   (over 3MB prints a warning only, per brief)
 - artifacts/3d/source_blender/island_base_source.blend exists
 - artifacts/3d/preview/island-base-iso.png exists
+- (Task 2) public/rpg/island_base_graph.json: every stop y == H+0.05
+  within +/-0.02, start s0 == ROAD top, end s1 == ROAD pond end,
+  all stops linked via paths.
 """
+import json
 import os
 import sys
 
@@ -17,6 +21,10 @@ PROJ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 GLB_PATH = os.path.join(PROJ, "public", "rpg", "island_base.glb")
 BLEND_PATH = os.path.join(PROJ, "artifacts", "3d", "source_blender", "island_base_source.blend")
 PREVIEW_PATH = os.path.join(PROJ, "artifacts", "3d", "preview", "island-base-iso.png")
+GRAPH_PATH = os.path.join(PROJ, "public", "rpg", "island_base_graph.json")
+
+sys.path.insert(0, os.path.join(PROJ, "scripts", "blender"))
+from build_island_base import H, ROAD
 
 MAX_BYTES = 5 * 1024 * 1024
 WARN_BYTES = 3 * 1024 * 1024
@@ -43,11 +51,58 @@ def test_preview_exists():
     return {"path": PREVIEW_PATH, "bytes": os.path.getsize(PREVIEW_PATH)}
 
 
+def _load_graph():
+    assert os.path.isfile(GRAPH_PATH), "missing graph JSON: %s" % GRAPH_PATH
+    with open(GRAPH_PATH) as f:
+        graph = json.load(f)
+    stops = graph.get("stops", graph.get("nodes"))
+    assert isinstance(stops, list) and len(stops) >= 2, "graph needs >=2 stops/nodes"
+    assert isinstance(graph.get("paths"), list) and len(graph["paths"]) >= 1, "graph needs >=1 path"
+    return graph, stops
+
+
+def test_road_follows_terrain():
+    """Every road stop y must equal H(x, z) + 0.05 within +/-0.02."""
+    _, stops = _load_graph()
+    for s in stops:
+        expect = H(s["x"], s["z"]) + 0.05
+        assert abs(s["y"] - expect) <= 0.02, \
+            "stop %s off terrain: y=%.3f H+0.05=%.3f" % (s.get("id"), s["y"], expect)
+    return {"path": GRAPH_PATH, "bytes": os.path.getsize(GRAPH_PATH)}
+
+
+def test_road_connected():
+    """Start stop s0 == ROAD top, end stop s1 == ROAD pond end, all stops linked."""
+    graph, stops = _load_graph()
+    assert stops[0]["id"] == "s0", "first stop must be s0, got %s" % stops[0].get("id")
+    assert stops[-1]["id"] == "s1", "last stop must be s1, got %s" % stops[-1].get("id")
+    for key, pt in (("start/top", ROAD[0]), ("end/pond", ROAD[-1])):
+        s = stops[0] if key.startswith("start") else stops[-1]
+        assert abs(s["x"] - pt[0]) < 1e-9 and abs(s["z"] - pt[1]) < 1e-9, \
+            "%s stop xz (%s, %s) != ROAD %s (%s, %s)" % (key, s["x"], s["z"], key, pt[0], pt[1])
+    adj = {}
+    for p in graph["paths"]:
+        adj.setdefault(p["from"], set()).add(p["to"])
+        adj.setdefault(p["to"], set()).add(p["from"])
+    seen, stack = set(["s0"]), ["s0"]
+    while stack:
+        cur = stack.pop()
+        for nxt in adj.get(cur, ()):
+            if nxt not in seen:
+                seen.add(nxt)
+                stack.append(nxt)
+    missing = [s["id"] for s in stops if s["id"] not in seen]
+    assert not missing, "stops not linked to s0: %s" % missing
+    return {"path": GRAPH_PATH, "bytes": os.path.getsize(GRAPH_PATH)}
+
+
 def main():
     tests = [
         ("test_glb_exists_and_light", test_glb_exists_and_light),
         ("test_source_blend_exists", test_source_blend_exists),
         ("test_preview_exists", test_preview_exists),
+        ("test_road_follows_terrain", test_road_follows_terrain),
+        ("test_road_connected", test_road_connected),
     ]
     failed = 0
     for name, fn in tests:
