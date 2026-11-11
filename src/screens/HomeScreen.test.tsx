@@ -156,6 +156,38 @@ describe('HomeScreen', () => {
     expect(screen.getByTestId('now-next-section')).toBeInTheDocument()
     expect(screen.getByTestId('now-next-now')).toHaveTextContent('英文法ポラリス2')
   })
+  it('ranks same-deadline books by remaining pages in now-next', async () => {
+    const polaris = CATALOG.find((c) => c.id === 'eibunpo-polaris-2')
+    const porepore = CATALOG.find((c) => c.id === 'porepore')
+    expect(polaris).toBeDefined()
+    expect(porepore).toBeDefined()
+    saveSchedule([
+      { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(2), deadline: daysAhead(6) },
+      { catalogId: 'porepore', startDate: daysAgo(2), deadline: daysAhead(6) },
+    ])
+    await db.books.add({
+      ...book,
+      id: 'b-pol',
+      catalogId: 'eibunpo-polaris-2',
+      totalPages: (polaris as { totalPages: number }).totalPages,
+    })
+    await db.records.add({
+      id: 'r-pol',
+      bookId: 'b-pol',
+      date: daysAgo(1),
+      pages: (polaris as { totalPages: number }).totalPages,
+    })
+    await db.books.add({
+      ...book,
+      id: 'b-pore',
+      catalogId: 'porepore',
+      totalPages: (porepore as { totalPages: number }).totalPages,
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await waitFor(() =>
+      expect(screen.getByTestId('now-next-now')).toHaveTextContent('ポレポレ'),
+    )
+  })
 
   it('shows a 周目 badge on the first five schedule rows only', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
