@@ -71,20 +71,23 @@ export type NowNext = {
 export function selectNowAndNext(
   entries: ScheduleEntry[],
   today: string,
+  remainingOf?: (entry: ScheduleEntry) => number,
 ): NowNext {
-  const active = entries.filter(
-    (e) => e.startDate <= today && today <= e.deadline,
-  )
-  if (active.length > 0) {
-    active.sort((a, b) => {
-      const aLeft = daysBetween(today, a.deadline)
-      const bLeft = daysBetween(today, b.deadline)
+  const candidates = entries
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => !entry.completed && entry.startDate <= today)
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => {
+      const aLeft = daysBetween(today, a.entry.deadline)
+      const bLeft = daysBetween(today, b.entry.deadline)
       if (aLeft !== bLeft) return aLeft - bLeft
-      return entries.indexOf(a) - entries.indexOf(b)
+      const aRemaining = remainingOf?.(a.entry) ?? 0
+      const bRemaining = remainingOf?.(b.entry) ?? 0
+      if (aRemaining !== bRemaining) return bRemaining - aRemaining
+      return a.index - b.index
     })
-    const now = active[0]
-    const idx = entries.indexOf(now)
-    const next = idx + 1 < entries.length ? entries[idx + 1] : undefined
+    const now = candidates[0].entry
+    const next = candidates.length > 1 ? candidates[1].entry : undefined
     return { now, next }
   }
   const upcoming = entries

@@ -214,49 +214,68 @@ describe('advanceSchedule', () => {
 })
 
 describe('selectNowAndNext', () => {
-  const mini: ScheduleEntry[] = [
-    { catalogId: 'a', startDate: '2026-09-01', deadline: '2026-09-30' },
-    { catalogId: 'b', startDate: '2026-09-15', deadline: '2026-10-31' },
-  ]
-
-  it('picks the active book with the least buffer left as now and the next in order as next', () => {
-    // 2026-10-01: eibunpo has 9 days left -> eibunpo is now, nyumon is next
-    expect(selectNowAndNext(SCHEDULE, '2026-10-01')).toEqual({
+  it('picks the active book with the least buffer left as now and the second most urgent as next', () => {
+    // NOTE: brief said '2026-10-01', but leap starts 2026-10-06 so it cannot be
+    // a candidate then (candidates require startDate <= today). Use 2026-10-06:
+    // eibunpo has 4 days left -> eibunpo is now, leap (19 days) is next.
+    expect(selectNowAndNext(SCHEDULE, '2026-10-06')).toEqual({
       now: expect.objectContaining({ catalogId: 'eibunpo-polaris-2' }),
-      next: expect.objectContaining({ catalogId: 'nyumon-kaishaku-70' }),
+      next: expect.objectContaining({ catalogId: 'leap' }),
     })
   })
-
-  it('moves now to the next book once the first one is past its deadline', () => {
-    // eibunpo grad 2026-10-10 で終了後、2026-10-11 は残り最短の LEAP が最優先
+  it('keeps an overdue unfinished book as now instead of moving on', () => {
     expect(selectNowAndNext(SCHEDULE, '2026-10-11')).toEqual({
-      now: expect.objectContaining({ catalogId: 'leap' }),
-      next: expect.objectContaining({ catalogId: 'final-enshu-polaris-2' }),
+      now: expect.objectContaining({ catalogId: 'eibunpo-polaris-2' }),
+      next: expect.objectContaining({ catalogId: 'leap' }),
     })
   })
-
-  it('breaks ties by schedule order', () => {
-    // a と b が同時期限(残り0)ならスケジュール順で先の a
-    const tied: ScheduleEntry[] = [
-      { catalogId: 'b', startDate: '2026-09-01', deadline: '2026-09-30' },
+  it('picks the overdue unfinished book as now and the next most urgent as next', () => {
+    const mini2: ScheduleEntry[] = [
       { catalogId: 'a', startDate: '2026-09-01', deadline: '2026-09-30' },
+      { catalogId: 'b', startDate: '2026-09-15', deadline: '2026-10-31' },
     ]
-    expect(selectNowAndNext(tied, '2026-09-30').now?.catalogId).toBe('b')
-  })
-
-  it('returns no next when now is the last schedule entry', () => {
-    const result = selectNowAndNext(mini, '2026-10-01')
-    expect(result.now?.catalogId).toBe('b')
-    expect(result.next).toBeUndefined()
-  })
-
-  it('treats the soonest upcoming book as now when nothing is active yet', () => {
-    const result = selectNowAndNext(mini, '2026-08-01')
+    const result = selectNowAndNext(mini2, '2026-10-01')
     expect(result.now?.catalogId).toBe('a')
     expect(result.next?.catalogId).toBe('b')
   })
-
-  it('returns no books when the whole schedule is over', () => {
-    expect(selectNowAndNext(mini, '2026-11-01')).toEqual({})
+  it('returns no next when only one candidate exists', () => {
+    const single: ScheduleEntry[] = [
+      { catalogId: 'a', startDate: '2026-09-01', deadline: '2026-10-31' },
+    ]
+    const result = selectNowAndNext(single, '2026-10-01')
+    expect(result.now?.catalogId).toBe('a')
+    expect(result.next).toBeUndefined()
+  })
+  it('keeps showing the most overdue unfinished book after the whole schedule is over', () => {
+    const mini3: ScheduleEntry[] = [
+      { catalogId: 'a', startDate: '2026-09-01', deadline: '2026-09-30' },
+      { catalogId: 'b', startDate: '2026-09-15', deadline: '2026-10-31' },
+    ]
+    const result = selectNowAndNext(mini3, '2026-11-01')
+    expect(result.now?.catalogId).toBe('a')
+    expect(result.next?.catalogId).toBe('b')
+  })
+  it('returns no books when every entry is completed', () => {
+    const done: ScheduleEntry[] = [
+      { catalogId: 'a', startDate: '2026-09-01', deadline: '2026-09-30', completed: true },
+      { catalogId: 'b', startDate: '2026-09-15', deadline: '2026-10-31', completed: true },
+    ]
+    expect(selectNowAndNext(done, '2026-10-01')).toEqual({})
+  })
+  it('excludes completed entries even when their dates match', () => {
+    const entries: ScheduleEntry[] = [
+      { catalogId: 'a', startDate: '2026-09-01', deadline: '2026-10-02', completed: true },
+      { catalogId: 'b', startDate: '2026-09-15', deadline: '2026-10-31' },
+    ]
+    const result = selectNowAndNext(entries, '2026-10-01')
+    expect(result.now?.catalogId).toBe('b')
+  })
+  it('breaks remaining-days ties by remaining pages', () => {
+    const tied: ScheduleEntry[] = [
+      { catalogId: 'thin', startDate: '2026-09-01', deadline: '2026-09-30' },
+      { catalogId: 'thick', startDate: '2026-09-01', deadline: '2026-09-30' },
+    ]
+    const remainingOf = (e: ScheduleEntry) => (e.catalogId === 'thick' ? 50 : 10)
+    expect(selectNowAndNext(tied, '2026-09-30', remainingOf).now?.catalogId).toBe('thick')
   })
 })
