@@ -125,32 +125,35 @@ describe('HomeScreen', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     const section = screen.getByTestId('now-next-section')
     expect(section).toBeInTheDocument()
-    const nowEl = screen.getByTestId('now-next-now')
-    expect(nowEl).toHaveTextContent('NOW')
+    const nowEl = screen.getByTestId('now-next-now-title')
+    expect(section).toHaveTextContent('NOW')
     const nowTitle = CATALOG.find((c) => c.id === now?.catalogId)?.title
     expect(nowTitle).toBeTruthy()
     expect(nowEl).toHaveTextContent((nowTitle as string) ?? '')
-    const nextEl = screen.getByTestId('now-next-next')
-    expect(nextEl).toHaveTextContent('NEXT')
     const nextTitle = next
       ? CATALOG.find((c) => c.id === next.catalogId)?.title
       : undefined
     if (nextTitle) {
-      expect(nextEl).toHaveTextContent(nextTitle)
+      expect(screen.getByTestId('now-next-next-title')).toHaveTextContent(nextTitle)
+      expect(section).toHaveTextContent('NEXT')
     }
     expect(screen.getByTestId('now-next-arrow')).toHaveTextContent('→')
   })
 
-  it('aligns now and next columns at the top with a centered arrow', () => {
+  it('places the arrow in the cover row, centered on the covers', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
-    expect(screen.getByTestId('now-next-row')).toHaveStyle({ alignItems: 'flex-start' })
-    expect(screen.getByTestId('now-next-arrow')).toHaveStyle({ alignSelf: 'center' })
+    const coverRow = screen.getByTestId('now-next-cover-row')
+    expect(coverRow).toHaveStyle({ alignItems: 'center' })
+    const arrow = screen.getByTestId('now-next-arrow')
+    expect(coverRow).toContainElement(arrow)
+    expect(
+      coverRow.querySelectorAll('img, [data-testid="cover-placeholder"]'),
+    ).toHaveLength(2)
   })
 
   it('reserves hidden progress space under NEXT', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
-    const nextEl = screen.getByTestId('now-next-next')
-    const spacer = within(nextEl).getByTestId('now-next-progress-spacer')
+    const spacer = screen.getByTestId('now-next-progress-spacer')
     expect(spacer).toHaveStyle({ visibility: 'hidden' })
     expect(spacer.getAttribute('aria-hidden')).toBe('true')
   })
@@ -168,7 +171,7 @@ describe('HomeScreen', () => {
     ])
     render(<HomeScreen onOpenBook={() => {}} />)
     expect(screen.getByTestId('now-next-section')).toBeInTheDocument()
-    expect(screen.getByTestId('now-next-now')).toHaveTextContent('英文法ポラリス2')
+    expect(screen.getByTestId('now-next-now-title')).toHaveTextContent('英文法ポラリス2')
   })
   it('ranks same-deadline books by remaining pages in now-next', async () => {
     const polaris = CATALOG.find((c) => c.id === 'eibunpo-polaris-2')
@@ -199,7 +202,7 @@ describe('HomeScreen', () => {
     })
     render(<HomeScreen onOpenBook={() => {}} />)
     await waitFor(() =>
-      expect(screen.getByTestId('now-next-now')).toHaveTextContent('ポレポレ'),
+      expect(screen.getByTestId('now-next-now-title')).toHaveTextContent('ポレポレ'),
     )
   })
 
@@ -611,7 +614,7 @@ describe('HomeScreen', () => {
     await db.books.add({ ...book, id: 'b1', totalPages: 100, deadline: daysAhead(6) })
     render(<HomeScreen onOpenBook={() => {}} />)
     await waitFor(() =>
-      expect(screen.getByTestId('now-next-now')).toHaveTextContent('英単語1000'),
+      expect(screen.getByTestId('now-next-now-title')).toHaveTextContent('英単語1000'),
     )
   })
 

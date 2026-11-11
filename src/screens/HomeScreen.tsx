@@ -91,13 +91,6 @@ type ExtendProposal = {
   plusDays: number | null
 }
 
-type NowNextItemProps = {  label: string
-  entry?: ScheduleEntry
-  registered?: BookData
-  testid: string
-  progressPercent?: number
-}
-
 function HeroHeader({ today }: { today: string }) {
   const rawDays = daysBetween(today, EXAM_END_DATE)
   const days = Math.max(rawDays, 0)
@@ -134,95 +127,6 @@ function HeroHeader({ today }: { today: string }) {
         <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>（約{months}か月）</span>
       </p>
     </section>
-  )
-}
-
-function NowNextItem({ label, entry, registered, testid, progressPercent }: NowNextItemProps) {
-  if (!entry) return null
-  const catalogBook = CATALOG.find((c) => c.id === entry.catalogId)
-  return (
-    <div
-      data-testid={testid}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-    >
-      <p
-        style={{
-          fontSize: 12,
-          fontWeight: 700,
-          letterSpacing: 1,
-          color: 'var(--accent)',
-          margin: 0,
-        }}
-      >
-        {label}
-      </p>
-      <CoverImage
-        src={registered?.coverUrl ?? catalogBook?.coverSrc ?? null}
-        width={64}
-        height={90}
-      />
-      <p
-        style={{
-          fontSize: 11,
-          textAlign: 'center',
-          margin: 0,
-          lineHeight: 1.3,
-          minHeight: '2.6em',
-        }}
-      >
-        {catalogBook?.title ?? registered?.title}
-      </p>
-      {progressPercent !== undefined ? (
-        <div
-          data-testid="now-next-progress"
-          style={{ width: 64 }}
-        >
-          <div
-            style={{
-              height: 6,
-              borderRadius: 3,
-              background: 'var(--border)',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                width: `${progressPercent}%`,
-                height: '100%',
-                background: 'var(--accent)',
-              }}
-            />
-          </div>
-          <p style={{ fontSize: 10, textAlign: 'center', margin: 2 }}>
-            {progressPercent}%
-          </p>
-        </div>
-      ) : (
-        <div
-          data-testid="now-next-progress-spacer"
-          aria-hidden="true"
-          style={{ width: 64, visibility: 'hidden' }}
-        >
-          <div
-            style={{
-              height: 6,
-              borderRadius: 3,
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                width: '0%',
-                height: '100%',
-              }}
-            />
-          </div>
-          <p style={{ fontSize: 10, textAlign: 'center', margin: 2 }}>
-            0%
-          </p>
-        </div>
-      )}
-    </div>
   )
 }
 
@@ -782,6 +686,34 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
             : 0
         const nowProgress = nowView.registered ? nowPercent : 0
         const nextView = next ? resolveEntry(books, next) : { catalogBook: undefined, registered: undefined }
+        const nowTitle = nowView.catalogBook?.title ?? nowView.registered?.title
+        const nextTitle = nextView.catalogBook?.title ?? nextView.registered?.title
+        const nowCover = nowView.registered?.coverUrl ?? nowView.catalogBook?.coverSrc ?? null
+        const nextCover = nextView.registered?.coverUrl ?? nextView.catalogBook?.coverSrc ?? null
+        const labelStyle = {
+          flex: 1,
+          fontSize: 12,
+          fontWeight: 700,
+          letterSpacing: 1,
+          color: 'var(--accent)',
+          margin: 0,
+          textAlign: 'center' as const,
+        }
+        const titleStyle = {
+          flex: 1,
+          fontSize: 11,
+          textAlign: 'center' as const,
+          margin: 0,
+          lineHeight: 1.3,
+          minHeight: '2.6em',
+        }
+        const rowStyle = {
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 12,
+        }
+        const arrowColStyle = { width: 44 }
         return (
           <section
             data-testid="now-next-section"
@@ -792,44 +724,109 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
               background: 'var(--surface)',
             }}
           >
-            <div
-              data-testid="now-next-row"
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'center',
-                gap: 12,
-              }}
-            >
-              <NowNextItem
-                testid="now-next-now"
-                label="NOW"
-                entry={now}
-                registered={nowView.registered}
-                progressPercent={nowProgress}
-              />
-              {next && (
-                <>
-                  <span
-                    data-testid="now-next-arrow"
-                    style={{
-                      fontSize: 32,
-                      fontWeight: 700,
-                      color: 'var(--accent)',
-                      lineHeight: 1,
-                      alignSelf: 'center',
-                    }}
-                  >
-                    →
-                  </span>
-                  <NowNextItem
-                    testid="now-next-next"
-                    label="NEXT"
-                    entry={next}
-                    registered={nextView.registered}
-                  />
-                </>
-              )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={rowStyle}>
+                <p style={labelStyle}>NOW</p>
+                {next && (
+                  <>
+                    <span style={arrowColStyle} />
+                    <p style={labelStyle}>NEXT</p>
+                  </>
+                )}
+              </div>
+              <div data-testid="now-next-cover-row" style={rowStyle}>
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                  <CoverImage src={nowCover} width={64} height={90} />
+                </div>
+                {next && (
+                  <>
+                    <span
+                      data-testid="now-next-arrow"
+                      style={{
+                        ...arrowColStyle,
+                        textAlign: 'center',
+                        fontSize: 32,
+                        fontWeight: 700,
+                        color: 'var(--accent)',
+                        lineHeight: 1,
+                      }}
+                    >
+                      →
+                    </span>
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                      <CoverImage src={nextCover} width={64} height={90} />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div style={{ ...rowStyle, alignItems: 'flex-start' }}>
+                <p data-testid="now-next-now-title" style={titleStyle}>
+                  {nowTitle}
+                </p>
+                {next && (
+                  <>
+                    <span style={arrowColStyle} />
+                    <p data-testid="now-next-next-title" style={titleStyle}>
+                      {nextTitle}
+                    </p>
+                  </>
+                )}
+              </div>
+              <div style={{ ...rowStyle, alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                  <div data-testid="now-next-progress" style={{ width: 64 }}>
+                    <div
+                      style={{
+                        height: 6,
+                        borderRadius: 3,
+                        background: 'var(--border)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${nowProgress}%`,
+                          height: '100%',
+                          background: 'var(--accent)',
+                        }}
+                      />
+                    </div>
+                    <p style={{ fontSize: 10, textAlign: 'center', margin: 2 }}>
+                      {nowProgress}%
+                    </p>
+                  </div>
+                </div>
+                {next && (
+                  <>
+                    <span style={arrowColStyle} />
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                      <div
+                        data-testid="now-next-progress-spacer"
+                        aria-hidden="true"
+                        style={{ width: 64, visibility: 'hidden' }}
+                      >
+                        <div
+                          style={{
+                            height: 6,
+                            borderRadius: 3,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '0%',
+                              height: '100%',
+                            }}
+                          />
+                        </div>
+                        <p style={{ fontSize: 10, textAlign: 'center', margin: 2 }}>
+                          0%
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </section>
         )
