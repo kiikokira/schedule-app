@@ -57,6 +57,7 @@ describe('HomeScreen', () => {
     saveProfile({ nickname: '', grade: '高2', university: '慶應', faculty: '環境情報学部', department: '', playMode: 'both' })
     render(<HomeScreen onOpenBook={() => {}} />)
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('goal-badge')).not.toBeInTheDocument()
     localStorage.clear()
   })
 
