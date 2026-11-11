@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": ["./.opencode/plugins/superpowers"],
+  "plugin": ["./.opencode/plugins/superpowers"],
   "instructions": ["artifacts/ASSETS.md"],
   "mcp": {
     "summer-engine": {
