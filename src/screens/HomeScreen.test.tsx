@@ -109,6 +109,15 @@ describe('HomeScreen', () => {
     )
   })
 
+  it('shows quote text slightly bolder than explanation', () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const text = screen.getByTestId('today-quote')
+    expect(text.style.fontWeight).toBe('600')
+    expect(text.style.fontSize).toBe('14px')
+    const explanation = screen.getByTestId('today-quote-explanation')
+    expect(Number(explanation.style.fontSize.split('px')[0])).toBeLessThan(14)
+  })
+
   it('shows current and next schedule books with covers and an arrow', () => {
     const { now, next } = selectNowAndNext(SCHEDULE, todayStr())
     expect(now).toBeDefined()

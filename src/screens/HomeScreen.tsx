@@ -676,7 +676,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
         >
           <p
             data-testid="today-quote"
-            style={{ fontSize: 13, fontStyle: 'italic', margin: '0 0 4px' }}
+            style={{ fontSize: 14, fontWeight: 600, fontStyle: 'italic', margin: '0 0 4px' }}
           >
             {todayQuote.text}
           </p>
