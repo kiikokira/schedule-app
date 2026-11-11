@@ -10,7 +10,6 @@ import { quoteOf } from '../data/quotes'
 import { todayStr } from '../lib/progress'
 
 const pad = (n: number) => String(n).padStart(2, '0')
-const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 const localDateStr = (d: Date) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 const daysAgo = (days: number) => {
@@ -46,22 +45,18 @@ afterEach(() => {
 })
 
 describe('HomeScreen', () => {
-  it('shows the goal university heading larger for motivation', () => {
+  it('does not show goal heading or badge', () => {
     localStorage.clear()
     render(<HomeScreen onOpenBook={() => {}} />)
-    const heading = screen.getByRole('heading', { level: 1 })
-    expect(heading).toHaveTextContent('慶應義塾大学環境情報学部')
-    expect(heading).toHaveStyle({ fontSize: '24px' })
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
     expect(screen.queryByTestId('goal-badge')).not.toBeInTheDocument()
   })
 
-  it('shows a 志望校 badge when the goal university is set', async () => {
+  it('does not show heading even when goal is set', async () => {
     const { saveProfile } = await import('../data/profileStore')
     saveProfile({ nickname: '', grade: '高2', university: '慶應', faculty: '環境情報学部', department: '', playMode: 'both' })
     render(<HomeScreen onOpenBook={() => {}} />)
-    const heading = screen.getByRole('heading', { level: 1 })
-    expect(heading).toHaveTextContent('慶應義塾大学環境情報学部')
-    expect(screen.getByTestId('goal-badge')).toHaveTextContent('志望校')
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
     localStorage.clear()
   })
 
@@ -83,12 +78,9 @@ describe('HomeScreen', () => {
     ).toBeGreaterThanOrEqual(1)
   })
 
-  it('shows today date as 月日（曜日）without a year', () => {
+  it('does not show today-date line', () => {
     render(<HomeScreen onOpenBook={() => {}} />)
-    const d = new Date()
-    const expected = `今日は ${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS[d.getDay()]}）`
-    expect(screen.getByTestId('today-date')).toHaveTextContent(expected)
-    expect(screen.getByTestId('today-date')).not.toHaveTextContent(String(d.getFullYear()))
+    expect(screen.queryByTestId('today-date')).not.toBeInTheDocument()
   })
 
   it('shows a daily quote with a one-line explanation and a by-author line', () => {
@@ -912,15 +904,15 @@ describe('HomeScreen', () => {
     }
   })
 
-  it('hero shows specified logo image above heading and countdown from EXAM_END_DATE', async () => {
+  it('hero shows specified logo image above countdown from EXAM_END_DATE', async () => {
     render(<HomeScreen onOpenBook={() => {}} />)
     const logo = await screen.findByTestId('hero-logo')
     expect(logo).toBeInTheDocument()
     expect(logo.tagName).toBe('IMG')
     expect(logo.getAttribute('src')).toContain('keiologo.png')
     expect(logo.getAttribute('alt')).toBe('慶應義塾大学ロゴ')
-    const heading = screen.getByRole('heading', { level: 1 })
-    expect(logo.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const countdown = screen.getByTestId('hero-countdown')
+    expect(logo.compareDocumentPosition(countdown) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByTestId('hero-countdown')).toHaveTextContent('入学試験日まであと')
   })
 

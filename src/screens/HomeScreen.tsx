@@ -13,7 +13,6 @@ import {
   calcScheduleStatus,
   currentRound,
   daysBetween,
-  formatJaDate,
   overallDiagnosis,
   combinedActivityOnDate,
   totalCycleUnits,
@@ -27,8 +26,6 @@ import {
 } from '../lib/progress'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { totalPagesToRank, rankToDeviation, totalActivity, RANK_POPULATION } from '../lib/ranking'
-import { loadProfile } from '../data/profileStore'
-import { formalUniversityName } from '../data/universities'
 import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
 import { EXAM_END_DATE, quoteOf } from '../data/quotes'
@@ -623,9 +620,6 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
   const totalPages = totalActivity(validRecords) + totalCycleUnits(validCycles)
   const rank = totalPagesToRank(totalPages, today)
   const deviation = rankToDeviation(rank)
-  const profile = loadProfile()
-  const hasGoal = profile.university !== '' && profile.faculty !== ''
-  const headerUniv = hasGoal ? `${formalUniversityName(profile.university)}${profile.faculty}` : '慶應義塾大学環境情報学部'
   const season = (() => {
     try {
       return loadSeasonState(today)
@@ -668,18 +662,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
         alt="慶應義塾大学ロゴ"
         style={{ height: 56, width: 'auto', maxWidth: '100%', display: 'block', margin: '0 auto' }}
       />
-      <h1 style={{ fontSize: 24 }}>
-        {hasGoal && (
-          <span data-testid="goal-badge" style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, color: '#1e2a5a', background: '#ffffff', border: '1px solid #1e2a5a', borderRadius: 999, padding: '1px 8px', marginRight: 8, verticalAlign: 'middle' }}>
-            志望校
-          </span>
-        )}
-        {headerUniv}
-      </h1>
       <HeroHeader today={today} />
-      <p data-testid="today-date" className="hero-subtle" style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-dim)', marginTop: 0 }}>
-        今日は {formatJaDate(today)}
-      </p>
       {todayQuote && (
         <div
           data-testid="today-quote-block"
