@@ -141,6 +141,20 @@ describe('HomeScreen', () => {
     expect(screen.getByTestId('now-next-arrow')).toHaveTextContent('→')
   })
 
+  it('aligns now and next columns at the top with a centered arrow', () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(screen.getByTestId('now-next-row')).toHaveStyle({ alignItems: 'flex-start' })
+    expect(screen.getByTestId('now-next-arrow')).toHaveStyle({ alignSelf: 'center' })
+  })
+
+  it('reserves hidden progress space under NEXT', () => {
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const nextEl = screen.getByTestId('now-next-next')
+    const spacer = within(nextEl).getByTestId('now-next-progress-spacer')
+    expect(spacer).toHaveStyle({ visibility: 'hidden' })
+    expect(spacer.getAttribute('aria-hidden')).toBe('true')
+  })
+
   it('does not show the now-and-next section when every schedule entry is completed', () => {
     saveSchedule([
       { catalogId: 'eibunpo-polaris-2', startDate: '2020-01-01', deadline: '2020-01-31', completed: true },

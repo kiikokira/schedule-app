@@ -167,11 +167,12 @@ function NowNextItem({ label, entry, registered, testid, progressPercent }: NowN
           textAlign: 'center',
           margin: 0,
           lineHeight: 1.3,
+          minHeight: '2.6em',
         }}
       >
         {catalogBook?.title ?? registered?.title}
       </p>
-      {progressPercent !== undefined && (
+      {progressPercent !== undefined ? (
         <div
           data-testid="now-next-progress"
           style={{ width: 64 }}
@@ -194,6 +195,30 @@ function NowNextItem({ label, entry, registered, testid, progressPercent }: NowN
           </div>
           <p style={{ fontSize: 10, textAlign: 'center', margin: 2 }}>
             {progressPercent}%
+          </p>
+        </div>
+      ) : (
+        <div
+          data-testid="now-next-progress-spacer"
+          aria-hidden="true"
+          style={{ width: 64, visibility: 'hidden' }}
+        >
+          <div
+            style={{
+              height: 6,
+              borderRadius: 3,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                width: '0%',
+                height: '100%',
+              }}
+            />
+          </div>
+          <p style={{ fontSize: 10, textAlign: 'center', margin: 2 }}>
+            0%
           </p>
         </div>
       )}
@@ -768,9 +793,10 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
             }}
           >
             <div
+              data-testid="now-next-row"
               style={{
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 justifyContent: 'center',
                 gap: 12,
               }}
@@ -791,6 +817,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
                       fontWeight: 700,
                       color: 'var(--accent)',
                       lineHeight: 1,
+                      alignSelf: 'center',
                     }}
                   >
                     →
