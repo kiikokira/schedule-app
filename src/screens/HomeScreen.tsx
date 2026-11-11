@@ -660,7 +660,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
         data-testid="hero-logo"
         src="./keiologo.png"
         alt="慶應義塾大学ロゴ"
-        style={{ height: 56, width: 'auto', maxWidth: '100%', display: 'block', margin: '0 auto' }}
+        style={{ height: 80, width: 'auto', maxWidth: '100%', display: 'block', margin: '0 auto' }}
       />
       <HeroHeader today={today} />
       {todayQuote && (
@@ -696,7 +696,20 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
       )}
 
       {(() => {
-        const { now, next } = selectNowAndNext(schedule, today)
+        const remainingOf = (entry: ScheduleEntry): number => {
+          const view = resolveEntry(books, entry)
+          if (!view.registered) return view.catalogBook?.totalPages ?? 0
+          if (view.registered.studyMode === 'cycles') {
+            const done = calcCycleDonePairs(
+              view.registered,
+              cycleRecords.filter((r) => r.bookId === view.registered!.id),
+            )
+            return Math.max(cycleGrandTotal(view.registered) - done, 0)
+          }
+          const total = view.registered.totalPages ?? view.catalogBook?.totalPages ?? 0
+          return Math.max(total - calcTotalDone(view.registered, records), 0)
+        }
+        const { now, next } = selectNowAndNext(schedule, today, remainingOf)
         if (!now && !next) return null
         const nowView = now ? resolveEntry(books, now) : { catalogBook: undefined, registered: undefined }
         const nowIsCycle = nowView.registered?.studyMode === 'cycles'

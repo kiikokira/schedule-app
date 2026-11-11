@@ -141,13 +141,20 @@ describe('HomeScreen', () => {
     expect(screen.getByTestId('now-next-arrow')).toHaveTextContent('→')
   })
 
-  it('does not show the now-and-next section when the whole schedule is over', () => {
-    const over: ScheduleEntry[] = [
-      { catalogId: 'eibunpo-polaris-2', startDate: '2020-01-01', deadline: '2020-01-31' },
-    ]
-    saveSchedule(over)
+  it('does not show the now-and-next section when every schedule entry is completed', () => {
+    saveSchedule([
+      { catalogId: 'eibunpo-polaris-2', startDate: '2020-01-01', deadline: '2020-01-31', completed: true },
+    ])
     render(<HomeScreen onOpenBook={() => {}} />)
     expect(screen.queryByTestId('now-next-section')).not.toBeInTheDocument()
+  })
+  it('keeps showing the most overdue unfinished book in now-next', () => {
+    saveSchedule([
+      { catalogId: 'eibunpo-polaris-2', startDate: '2020-01-01', deadline: '2020-01-31' },
+    ])
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(screen.getByTestId('now-next-section')).toBeInTheDocument()
+    expect(screen.getByTestId('now-next-now')).toHaveTextContent('英文法ポラリス2')
   })
 
   it('shows a 周目 badge on the first five schedule rows only', () => {
