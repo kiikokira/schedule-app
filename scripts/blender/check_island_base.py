@@ -24,7 +24,7 @@ PREVIEW_PATH = os.path.join(PROJ, "artifacts", "3d", "preview", "island-base-iso
 GRAPH_PATH = os.path.join(PROJ, "public", "rpg", "island_base_graph.json")
 
 sys.path.insert(0, os.path.join(PROJ, "scripts", "blender"))
-from build_island_base import H, ROAD
+from build_island_base import H, ROAD, POND, FALLS_A, FALLS_B, falls_dist, seg_dist
 
 MAX_BYTES = 5 * 1024 * 1024
 WARN_BYTES = 3 * 1024 * 1024
@@ -96,6 +96,80 @@ def test_road_connected():
     return {"path": GRAPH_PATH, "bytes": os.path.getsize(GRAPH_PATH)}
 
 
+def _load_glb_json():
+    import json as _json
+    import struct as _struct
+    assert os.path.isfile(GLB_PATH), "missing GLB: %s" % GLB_PATH
+    with open(GLB_PATH, "rb") as f:
+        f.read(12)
+        clen, _ctype = _struct.unpack("<II", f.read(8))
+        js = _json.loads(f.read(clen).decode("utf-8"))
+    return js
+
+
+def _tree_nodes():
+    import math as _math
+    js = _load_glb_json()
+    prefixes = ("ISLB_TreeBroadleaf", "ISLB_TreeAutumn", "ISLB_TreeConifer", "ISLB_Bush")
+    out = []
+    for n in js.get("nodes", []):
+        name = n.get("name", "")
+        if not any(name.startswith(p) for p in prefixes):
+            continue
+        t = n.get("translation", [0, 0, 0])
+        bx, bz_up, by = float(t[0]), float(t[1]), float(-t[2])
+        out.append((name, bx, by, bz_up))
+    return out
+
+
+def test_tree_counts():
+    js = _load_glb_json()
+    names = [n.get("name", "") for n in js.get("nodes", [])]
+    caps = {"ISLB_TreeBroadleaf": 14, "ISLB_TreeAutumn": 8,
+            "ISLB_TreeConifer": 10, "ISLB_Bush": 24}
+    for prefix, cap in caps.items():
+        c = sum(1 for nm in names if nm.startswith(prefix))
+        assert c > 0, "%s missing: 0 nodes" % prefix
+        assert c <= cap, "%s too many: %d > %d" % (prefix, c, cap)
+    return {"path": GLB_PATH, "bytes": os.path.getsize(GLB_PATH)}
+
+
+def test_trees_grounded():
+    import math as _math
+    trees = _tree_nodes()
+    assert trees, "no tree/bush nodes found"
+    for name, bx, by, bz_up in trees:
+        expect = H(bx, by)
+        assert abs(bz_up - expect) <= 0.3, \
+            "%s floats/buried: y=%.3f H=%.3f at (%.2f,%.2f)" % (name, bz_up, expect, bx, by)
+    return {"path": GLB_PATH, "bytes": os.path.getsize(GLB_PATH)}
+
+
+def test_trees_clear():
+    import math as _math
+    trees = _tree_nodes()
+    assert trees, "no tree/bush nodes found"
+    pcx, pcz, pr = POND[0], POND[1], POND[2]
+    for name, bx, by, bz_up in trees:
+        d_road = float("inf")
+        for i in range(len(ROAD) - 1):
+            d_road = min(d_road, seg_dist(bx, by, ROAD[i][0], ROAD[i][1],
+                                          ROAD[i + 1][0], ROAD[i + 1][1]))
+        d_falls = falls_dist(bx, by)
+        d_pond = _math.hypot(bx - pcx, by - pcz) - pr
+        d_min = min(d_road, d_falls, d_pond)
+        assert d_min >= 1.5, \
+            "%s too close: road=%.2f falls=%.2f pond_edge=%.2f" % (name, d_road, d_falls, d_pond)
+    return {"path": GLB_PATH, "bytes": os.path.getsize(GLB_PATH)}
+
+
+def test_no_images():
+    js = _load_glb_json()
+    imgs = js.get("images", [])
+    assert imgs == [], "image textures forbidden: %s" % (imgs,)
+    return {"path": GLB_PATH, "bytes": os.path.getsize(GLB_PATH)}
+
+
 def main():
     tests = [
         ("test_glb_exists_and_light", test_glb_exists_and_light),
@@ -103,6 +177,10 @@ def main():
         ("test_preview_exists", test_preview_exists),
         ("test_road_follows_terrain", test_road_follows_terrain),
         ("test_road_connected", test_road_connected),
+        ("test_tree_counts", test_tree_counts),
+        ("test_trees_grounded", test_trees_grounded),
+        ("test_trees_clear", test_trees_clear),
+        ("test_no_images", test_no_images),
     ]
     failed = 0
     for name, fn in tests:
