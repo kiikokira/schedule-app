@@ -121,12 +121,14 @@ if __name__ == "__main__":
     m_cliff = wkit.mat_simple("ISLB_Cliff", (0.45, 0.36, 0.28))
     m_road = wkit.mat_simple("ISLB_Road", (0.66, 0.60, 0.50))
     m_rbed = wkit.mat_simple("ISLB_PondBed", (0.72, 0.62, 0.44))
-    m_water = wkit.mat_simple("ISLB_Water", (0.25, 0.60, 0.90), 0.25)
+    m_water = wkit.mat_simple("ISLB_Water", (0.20, 0.55, 0.92), 0.25)
     m_water.blend_method = 'BLEND'
-    m_water.node_tree.nodes.get("Principled BSDF").inputs["Alpha"].default_value = 0.78
-    m_falls = wkit.mat_simple("ISLB_Falls", (0.85, 0.94, 1.0), 0.3)
-    m_foam = wkit.mat_simple("ISLB_Foam", (0.95, 0.97, 1.0), 0.9,
-                             emission=(0.7, 0.8, 0.9))
+    m_water.node_tree.nodes.get("Principled BSDF").inputs["Alpha"].default_value = 0.75
+    m_falls = wkit.mat_simple("ISLB_Falls", (0.88, 0.96, 1.0), 0.3)
+    m_falls.blend_method = 'BLEND'
+    m_falls.node_tree.nodes.get("Principled BSDF").inputs["Alpha"].default_value = 0.65
+    m_foam = wkit.mat_simple("ISLB_Foam", (0.97, 0.99, 1.0), 0.9,
+                             emission=(0.75, 0.85, 0.95))
 
     # ---------------------------------------------------------- terrain (3 terraces + carves)
     ntop, ntotal = wkit.build_terrain(H, "ISLB_Terrain", m_grass, m_cliff,
@@ -198,6 +200,120 @@ if __name__ == "__main__":
     sea.materials.append(m_water)
     bpy.context.scene.collection.objects.link(bpy.data.objects.new("ISLB_Sea", sea))
     print("OK sea")
+
+    # ---------------------------------------------------------- vegetation (Task 1: low-poly trees + bushes)
+    import random as _rnd
+    m_trunk = wkit.mat_simple("ISLB_Trunk", (0.45, 0.32, 0.20))
+    m_leaf = wkit.mat_simple("ISLB_Leaf", (0.38, 0.65, 0.30))
+    m_autumn = wkit.mat_simple("ISLB_Autumn", (0.85, 0.42, 0.20))
+    m_conifer = wkit.mat_simple("ISLB_Conifer", (0.25, 0.50, 0.28))
+    m_bushA = wkit.mat_simple("ISLB_BushA", (0.38, 0.68, 0.32))
+    m_bushB = wkit.mat_simple("ISLB_BushB", (0.30, 0.58, 0.28))
+
+    def _blob_tree(base_name, trunk_r1, trunk_r2, trunk_h, canopy_r, canopy_z, leaf_mat):
+        mesh = bpy.data.meshes.new(base_name)
+        bm = bmesh.new()
+        g = bmesh.ops.create_cone(bm, cap_ends=True, segments=7,
+                                  radius1=trunk_r1, radius2=trunk_r2, depth=trunk_h)
+        for v in g['verts']:
+            v.co.z += trunk_h / 2.0
+        n_trunk = len(bm.faces)
+        g2 = bmesh.ops.create_icosphere(bm, subdivisions=1, radius=canopy_r)
+        for v in g2['verts']:
+            v.co = Vector((v.co.x, v.co.y * 0.95, v.co.z * 0.9 + canopy_z))
+        for i, f in enumerate(bm.faces):
+            f.material_index = 0 if i < n_trunk else 1
+        bm.to_mesh(mesh)
+        bm.free()
+        mesh.update()
+        mesh.materials.append(m_trunk)
+        mesh.materials.append(leaf_mat)
+        wkit.box_uv(mesh)
+        return mesh
+
+    def _conifer_tree(base_name):
+        mesh = bpy.data.meshes.new(base_name)
+        bm = bmesh.new()
+        g = bmesh.ops.create_cone(bm, cap_ends=True, segments=7,
+                                  radius1=0.16, radius2=0.12, depth=0.9)
+        for v in g['verts']:
+            v.co.z += 0.45
+        n_trunk = len(bm.faces)
+        tiers = [(1.05, 0.75, 0.9, 1.15), (0.75, 0.45, 0.8, 1.75), (0.45, 0.02, 0.7, 2.30)]
+        for r1, r2, dep, zc in tiers:
+            gt = bmesh.ops.create_cone(bm, cap_ends=True, segments=7,
+                                       radius1=r1, radius2=r2, depth=dep)
+            for v in gt['verts']:
+                v.co.z += zc
+        for i, f in enumerate(bm.faces):
+            f.material_index = 0 if i < n_trunk else 1
+        bm.to_mesh(mesh)
+        bm.free()
+        mesh.update()
+        mesh.materials.append(m_trunk)
+        mesh.materials.append(m_conifer)
+        wkit.box_uv(mesh)
+        return mesh
+
+    def _bush_mesh(base_name, mat, radius=0.65):
+        mesh = bpy.data.meshes.new(base_name)
+        bm = bmesh.new()
+        g = bmesh.ops.create_icosphere(bm, subdivisions=1, radius=radius)
+        for v in g['verts']:
+            v.co = Vector((v.co.x, v.co.y * 0.9, v.co.z * 0.6 + 0.35))
+        bm.to_mesh(mesh)
+        bm.free()
+        mesh.update()
+        mesh.materials.append(mat)
+        wkit.box_uv(mesh)
+        return mesh
+
+    mesh_broad = _blob_tree("ISLB_Base_Broadleaf", 0.18, 0.13, 1.2, 1.05, 1.90, m_leaf)
+    mesh_autumn = _blob_tree("ISLB_Base_Autumn", 0.17, 0.12, 1.1, 0.95, 1.75, m_autumn)
+    mesh_conifer = _conifer_tree("ISLB_Base_Conifer")
+    mesh_bushA = _bush_mesh("ISLB_Base_BushA", m_bushA, 0.65)
+    mesh_bushB = _bush_mesh("ISLB_Base_BushB", m_bushB, 0.60)
+
+    road_pts = [(p.x, p.y) for p in wkit.chaikin([Vector((x, z)) for x, z in ROAD], iters=4)]
+
+    def water_dist(x, z):
+        return min(falls_dist(x, z), math.hypot(x - POND[0], z - POND[1]) - POND[2])
+
+    rng = _rnd.Random(11)
+    placed_xz = []
+    veg_items = [
+        (mesh_broad, "ISLB_TreeBroadleaf_", 14, 0.9, 1.15, 0),
+        (mesh_autumn, "ISLB_TreeAutumn_", 8, 0.9, 1.15, 0),
+        (mesh_conifer, "ISLB_TreeConifer_", 10, 0.9, 1.2, 0),
+        (mesh_bushA, "ISLB_Bush_", 12, 0.8, 1.2, 0),
+        (mesh_bushB, "ISLB_Bush_", 12, 0.8, 1.2, 12),
+    ]
+    for base_mesh, prefix, want, smin, smax, start_idx in veg_items:
+        c, tries = 0, 0
+        while c < want and tries < 200:
+            tries += 1
+            x = rng.uniform(-11, 11.5)
+            z = rng.uniform(-10.5, 10.5)
+            if coast_rn(x, z) > 0.9:
+                continue
+            if any(math.hypot(x - px, z - pz) < 1.6 for px, pz in road_pts):
+                continue
+            if water_dist(x, z) < 2.0:
+                continue
+            if any(math.hypot(x - qx, z - qz) < 1.2 for qx, qz in placed_xz):
+                continue
+            s = rng.uniform(smin, smax)
+            rot = rng.uniform(0, 6.28)
+            ob = bpy.data.objects.new("%s%d" % (prefix, start_idx + c), base_mesh)
+            ob.location = (x, z, H(x, z))
+            ob.rotation_euler = (0, 0, rot)
+            ob.scale = (s, s, s)
+            bpy.context.scene.collection.objects.link(ob)
+            placed_xz.append((x, z))
+            c += 1
+        print("OK veg %s: %d/%d (tries %d)" % (prefix, c, want, tries))
+        assert c == want, "veg placement short: %s %d/%d" % (prefix, c, want)
+    print("OK vegetation total=%d" % len(placed_xz))
 
     wkit.dedupe_materials()
 
