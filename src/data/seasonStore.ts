@@ -1,7 +1,11 @@
 import { seasonIdForDate, seasonDayIndex, tallyToResults, decideRoundOutcome, leagueRankForPages, leagueRankForRating, leaguePopulationFor, leagueDayInfo, ROUND_SIZE, type LeagueDayResult } from '../lib/seasonLeague'
 import { generateRivals, rivalPagesForDay } from '../lib/seasonRivals'
 import { pagesToExp } from '../lib/seasonExp'
-import { leagueSlotInfo, parseSlotKey, rivalForSlot, type SlotUnit } from '../lib/slotLeague'
+import { leagueSlotInfo, makeSlotKey, parseSlotKey, rivalForSlot, type SlotUnit } from '../lib/slotLeague'
+import { addDays, slotsForDate } from '../lib/dayplan'
+import { isLeapBook } from '../lib/leap'
+import type { BookData } from '../lib/progress'
+import type { AvailabilitySlot } from './dayplanStore'
 import { leagueRatingDelta, ratingBandForDiff, rivalRatingFor, RATING_START, RATING_DIV2, RATING_DIV1 } from '../lib/leagueRating'
 import { awardPhaseBadge } from '../lib/leagueBadges'
 export type SlotMatchEntry = { date: string; my: number; opp: number; oppName: string; result: LeagueDayResult; unit: SlotUnit }
@@ -223,6 +227,56 @@ export function syncLeagueSlot(today: string, slotKey: string, input: { my: numb
   next = applyMatchRatings(next, next.div, [{ date: stamp, result, oppRating }])
   saveSeasonState(next)
   return next
+}
+
+// 日またぎ一括の自動敗戦: `today` の前日まで過去30日分を走査し、
+// book付き・未確定の枠を `syncLeagueSlot(..., {forfeit:true})` で敗戦確定する。
+// 未来枠・確定済み枠・未割当枠には触れない。冪等なので二重実行安全。
+// 戻り値は今回敗戦確定した slotKey 一覧。
+export function autoForfeitPastSlots(today: string, availability: AvailabilitySlot[], books: BookData[]): string[] {
+  if (typeof today !== 'string' || today.length !== 10) return []
+  const slots = Array.isArray(availability) ? availability : []
+  const bookList = Array.isArray(books) ? books : []
+  const byId = new Map(bookList.map((b) => [b.id, b]))
+  let done: Set<string>
+  try {
+    done = new Set(Object.keys(loadSeasonState(today).slotMatches ?? {}))
+  } catch {
+    done = new Set()
+  }
+  const forfeited: string[] = []
+  for (let i = 1; i <= 30; i++) {
+    let date: string
+    try {
+      date = addDays(today, -i)
+    } catch {
+      continue
+    }
+    if (!(date < today)) continue
+    let daySlots: { startMin: number; endMin: number; bookId?: string }[]
+    try {
+      daySlots = slotsForDate(slots, date)
+    } catch {
+      continue
+    }
+    for (const s of daySlots) {
+      if (!s.bookId) continue
+      const key = makeSlotKey(date, s.startMin, s.endMin)
+      if (done.has(key)) continue
+      const book = byId.get(s.bookId)
+      const unit: SlotUnit =
+        book && book.studyMode === 'cycles' ? (isLeapBook(book) ? 'words' : 'sections') : 'pages'
+      const slotMinutes = s.endMin - s.startMin
+      try {
+        syncLeagueSlot(today, key, { my: 0, unit, slotMinutes, forfeit: true })
+      } catch {
+        continue
+      }
+      done.add(key)
+      forfeited.push(key)
+    }
+  }
+  return forfeited
 }
 
 export function loadSeasonState(today: string): SeasonState {
