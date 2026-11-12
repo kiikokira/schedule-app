@@ -121,12 +121,14 @@ if __name__ == "__main__":
     m_cliff = wkit.mat_simple("ISLB_Cliff", (0.45, 0.36, 0.28))
     m_road = wkit.mat_simple("ISLB_Road", (0.66, 0.60, 0.50))
     m_rbed = wkit.mat_simple("ISLB_PondBed", (0.72, 0.62, 0.44))
-    m_water = wkit.mat_simple("ISLB_Water", (0.25, 0.60, 0.90), 0.25)
+    m_water = wkit.mat_simple("ISLB_Water", (0.20, 0.55, 0.92), 0.25)
     m_water.blend_method = 'BLEND'
-    m_water.node_tree.nodes.get("Principled BSDF").inputs["Alpha"].default_value = 0.78
-    m_falls = wkit.mat_simple("ISLB_Falls", (0.85, 0.94, 1.0), 0.3)
-    m_foam = wkit.mat_simple("ISLB_Foam", (0.95, 0.97, 1.0), 0.9,
-                             emission=(0.7, 0.8, 0.9))
+    m_water.node_tree.nodes.get("Principled BSDF").inputs["Alpha"].default_value = 0.75
+    m_falls = wkit.mat_simple("ISLB_Falls", (0.88, 0.96, 1.0), 0.3)
+    m_falls.blend_method = 'BLEND'
+    m_falls.node_tree.nodes.get("Principled BSDF").inputs["Alpha"].default_value = 0.65
+    m_foam = wkit.mat_simple("ISLB_Foam", (0.97, 0.99, 1.0), 0.9,
+                             emission=(0.75, 0.85, 0.95))
 
     # ---------------------------------------------------------- terrain (3 terraces + carves)
     ntop, ntotal = wkit.build_terrain(H, "ISLB_Terrain", m_grass, m_cliff,

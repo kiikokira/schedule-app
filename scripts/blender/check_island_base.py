@@ -170,6 +170,17 @@ def test_no_images():
     return {"path": GLB_PATH, "bytes": os.path.getsize(GLB_PATH)}
 
 
+def test_water_blend_limited():
+    """(Task 2) GLB materials with alphaMode==BLEND <=3 AND images still empty."""
+    js = _load_glb_json()
+    mats = js.get("materials", [])
+    blends = [m.get("name", "") for m in mats if m.get("alphaMode") == "BLEND"]
+    assert len(blends) <= 3, "too many BLEND materials: %d (%s)" % (len(blends), blends)
+    imgs = js.get("images", [])
+    assert imgs == [], "image textures forbidden: %s" % (imgs,)
+    return {"path": GLB_PATH, "bytes": os.path.getsize(GLB_PATH)}
+
+
 def main():
     tests = [
         ("test_glb_exists_and_light", test_glb_exists_and_light),
@@ -181,6 +192,7 @@ def main():
         ("test_trees_grounded", test_trees_grounded),
         ("test_trees_clear", test_trees_clear),
         ("test_no_images", test_no_images),
+        ("test_water_blend_limited", test_water_blend_limited),
     ]
     failed = 0
     for name, fn in tests:
