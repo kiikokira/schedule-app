@@ -16,7 +16,7 @@ import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { isLeapBook } from '../lib/leap'
 import { makeSlotKey, type SlotUnit } from '../lib/slotLeague'
-import { loadSeasonState, syncLeagueSlot } from '../data/seasonStore'
+import { loadSeasonState, syncLeagueSlot, autoForfeitPastSlots } from '../data/seasonStore'
 import { appendGhostSnapshot, listGhostLogs } from '../data/ghostLogStore'
 import GhostBattleCard from '../components/GhostBattleCard'
 import { findGhostDate, buildGhostCurve, ghostTotalAt, todaySlotBounds } from '../lib/ghost'
@@ -308,6 +308,19 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   useEffect(() => {
     saveTodayDraft(today, bookOverrides, pinOverrides)
   }, [today, bookOverrides, pinOverrides])
+
+  // 日またぎ自動敗戦: 実日付が変わっていたら過去の未確定・book付き枠を敗戦確定する。
+  // カットオフは実日付 todayStr()（表示用 today prop ではない）。App起動時の sweep と冪等。
+  // 確定したら seasonTick を進めて「確定済み」表示に反映する。
+  useEffect(() => {
+    if (!availabilityLoaded) return
+    try {
+      const forfeited = autoForfeitPastSlots(todayStr(), availability, allBooks)
+      if (forfeited.length > 0) setSeasonTick((v) => v + 1)
+    } catch {
+      // 敗戦確定の失敗で表示を壊さない
+    }
+  }, [availabilityLoaded, availability, today, allBooks])
 
   const pageBooks = books.filter((b) => b.studyMode !== 'cycles')
   const cycleBooks = books.filter((b) => b.studyMode === 'cycles')

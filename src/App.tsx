@@ -22,6 +22,7 @@ import { buildSlotsPayload } from './lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from './lib/slotsPublish'
 import { slotsForDate } from './lib/dayplan'
 import { takeAutoSnapshotIfNeeded } from './data/autoBackup'
+import { autoForfeitPastSlots } from './data/seasonStore'
 import './styles.css'
 
 type Route =
@@ -50,6 +51,19 @@ export default function App() {
   useEffect(() => {
     void prunePastOverrides(todayStr())
   }, [])
+
+  // 起動時に日またぎの未確定・book付き枠を自動敗戦にする（prunePastOverrides の隣）。
+  // カットオフは実日付 todayStr()。冪等なので二重実行安全（TodayPlanScreen 側と重複しても無害）。
+  useEffect(() => {
+    if (books.length === 0) return
+    void listAvailability().then((availability) => {
+      try {
+        autoForfeitPastSlots(todayStr(), availability, books)
+      } catch {
+        // 敗戦確定の失敗で起動を壊さない
+      }
+    })
+  }, [books])
 
   // 起動時に1日1回だけ自動バックアップを取る（ボタン操作なし）
   useEffect(() => {

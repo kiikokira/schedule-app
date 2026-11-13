@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
-import { beforeEach, describe, it, expect, vi } from 'vitest'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import TodayPlanScreen from './TodayPlanScreen'
 import { db } from '../db/database'
 import { saveAvailabilitySlot, listAvailability, addAdjustment } from '../data/dayplanStore'
@@ -15,6 +15,10 @@ beforeEach(async () => {
   if (db.adjustments) await db.adjustments.clear()
   resetSchedule()
   saveFocusPeriods([])
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 const fillBook = (id: string, over: Record<string, unknown> = {}) => {
@@ -1026,56 +1030,64 @@ describe('today slot gate', () => {
     expect(screen.queryByTestId('slot-missed-b1')).not.toBeInTheDocument()
   })
 
-  it('過去の未確定枠は記録とやらなかったボタンを出す', async () => {
-    await fillBook('b1')
+  it('スキップは確認後に不戦敗が確定し確定済みになる', async () => {
+    // 未割当の過去枠は自動敗戦の対象外。選び直しで本を付けてからスキップする。
+    // （book付き過去枠は表示時に自動確定するため手動スキップの出番がない）
+    await fillBook('b1', { trainFit: 'home' })
     await saveAvailabilitySlot(
-      { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
+      { id: 'u1', weekday: null, date: '2026-09-21', start: '18:00', end: '19:00', onTrain: true },
       true,
     )
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
     await screen.findByTestId('today-table')
-    expect(screen.getByTestId('plan-record-b1')).toBeInTheDocument()
-    expect(screen.getByTestId('slot-missed-b1')).toHaveTextContent('スキップ')
-    expect(screen.queryByTestId('slot-gate-future')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('slot-locked')).not.toBeInTheDocument()
-  })
-
-  it('スキップは確認後に不戦敗が確定し確定済みになる', async () => {
-    await fillBook('b1')
-    await saveAvailabilitySlot(
-      { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
-      true,
-    )
-    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const target = rows.find((r) => r.textContent?.includes('未割当'))
+    fireEvent.change(within(target as HTMLElement).getByRole('combobox'), {
+      target: { value: 'b1' },
+    })
+    await waitFor(() => expect(screen.queryByText(/未割当/)).not.toBeInTheDocument())
     fireEvent.click(await screen.findByTestId('slot-missed-b1'))
     // 押下だけでは確定しない（確認ダイアログが出る）
     expect(await screen.findByTestId('record-confirm')).toHaveTextContent('スキップの確認')
     const { loadSeasonState } = await import('../data/seasonStore')
-    expect(loadSeasonState('2026-09-21').slotMatches['2026-09-21#1260-1380']).toBeUndefined()
+    expect(loadSeasonState('2026-09-21').slotMatches['2026-09-21#1080-1140']).toBeUndefined()
     fireEvent.click(screen.getByTestId('record-confirm-yes'))
-    const st = loadSeasonState('2026-09-21')
-    expect(st.slotMatches['2026-09-21#1260-1380']?.result).toBe('loss')
-    expect(st.slotMatches['2026-09-21#1260-1380']?.my).toBe(0)
+    await waitFor(async () => {
+      const st = loadSeasonState('2026-09-21')
+      expect(st.slotMatches['2026-09-21#1080-1140']?.result).toBe('loss')
+    })
     expect(await screen.findByTestId('slot-locked')).toHaveTextContent('確定済み')
   })
 
   it('スキップ確認でキャンセルすると確定しない', async () => {
-    await fillBook('b1')
+    // 未割当の過去枠は自動敗戦の対象外。選び直しで本を付けてから確認する。
+    await fillBook('b1', { trainFit: 'home' })
     await saveAvailabilitySlot(
-      { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
+      { id: 'u1', weekday: null, date: '2026-09-21', start: '18:00', end: '19:00', onTrain: true },
       true,
     )
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    await screen.findByTestId('today-table')
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const target = rows.find((r) => r.textContent?.includes('未割当'))
+    fireEvent.change(within(target as HTMLElement).getByRole('combobox'), {
+      target: { value: 'b1' },
+    })
+    await waitFor(() => expect(screen.queryByText(/未割当/)).not.toBeInTheDocument())
     fireEvent.click(await screen.findByTestId('slot-missed-b1'))
     await screen.findByTestId('record-confirm-no')
     fireEvent.click(screen.getByTestId('record-confirm-no'))
     const { loadSeasonState } = await import('../data/seasonStore')
-    expect(loadSeasonState('2026-09-21').slotMatches['2026-09-21#1260-1380']).toBeUndefined()
+    expect(loadSeasonState('2026-09-21').slotMatches['2026-09-21#1080-1140']).toBeUndefined()
     expect(screen.getByTestId('slot-missed-b1')).toBeInTheDocument()
     expect(screen.queryByTestId('slot-locked')).not.toBeInTheDocument()
   })
 
   it('確定済み枠は確定済み表示し記録UIを隠す', async () => {
+    // 表示日当日の夜前に固定。同日枠なので自動敗戦の対象外（season rollover による確定消去も防ぐ）。
+    // 21:00-23:00 枠は計画に残る（終了前）かつ確定済みのため記録UIは出ない。
+    vi.useFakeTimers({ shouldAdvanceTime: true } as any)
+    vi.setSystemTime(new Date(2026, 8, 21, 20, 0, 0))
     await fillBook('b1')
     await saveAvailabilitySlot(
       { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
@@ -1090,12 +1102,21 @@ describe('today slot gate', () => {
   })
 
   it('記録成功でリーグ枠が確定する', async () => {
-    await fillBook('b1')
+    // 未割当の過去枠は自動敗戦の対象外。選び直しで本を付けてから記録する。
+    // （book付き過去枠は表示時に自動確定するため記録の出番がない）
+    await fillBook('b1', { trainFit: 'home' })
     await saveAvailabilitySlot(
-      { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
+      { id: 'u1', weekday: null, date: '2026-09-21', start: '18:00', end: '19:00', onTrain: true },
       true,
     )
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    await screen.findByTestId('today-table')
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const target = rows.find((r) => r.textContent?.includes('未割当'))
+    fireEvent.change(within(target as HTMLElement).getByRole('combobox'), {
+      target: { value: 'b1' },
+    })
+    await waitFor(() => expect(screen.queryByText(/未割当/)).not.toBeInTheDocument())
     const input = await screen.findByTestId('plan-input-b1')
     fireEvent.change(input, { target: { value: '10' } })
     fireEvent.click(screen.getByTestId('plan-record-b1'))
@@ -1103,7 +1124,7 @@ describe('today slot gate', () => {
     await waitFor(async () => {
       const { loadSeasonState } = await import('../data/seasonStore')
       const st = loadSeasonState('2026-09-21')
-      expect(st.slotMatches['2026-09-21#1260-1380']?.my).toBe(10)
+      expect(st.slotMatches['2026-09-21#1080-1140']?.my).toBe(10)
     })
   })
 
@@ -1117,6 +1138,21 @@ describe('today slot gate', () => {
     await screen.findByTestId('today-table')
     expect(screen.queryByTestId('plan-record-b1')).not.toBeInTheDocument()
     expect(screen.queryByTestId('slot-missed-b1')).not.toBeInTheDocument()
+  })
+
+  it('過去日の未確定枠は表示時に自動で確定済みになる', async () => {
+    // 実日付 2026-09-22 で前日 2026-09-21 の表示。カットオフは表示日ではなく todayStr()。
+    vi.useFakeTimers({ shouldAdvanceTime: true } as any)
+    vi.setSystemTime(new Date(2026, 8, 22, 12, 0, 0))
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'p1', weekday: null, date: '2026-09-21', start: '21:00', end: '23:00', bookId: 'b1' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('slot-locked')).toHaveTextContent('確定済み')
+    const { loadSeasonState } = await import('../data/seasonStore')
+    expect(loadSeasonState('2026-09-22').slotMatches['2026-09-21#1260-1380']?.result).toBe('loss')
   })
 })
 
