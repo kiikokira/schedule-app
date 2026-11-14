@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import OpeningSplash from './components/OpeningSplash'
 import HomeScreen from './screens/HomeScreen'
 import BookDetailScreen from './screens/BookDetailScreen'
 import BookFormScreen from './screens/BookFormScreen'
@@ -43,9 +44,41 @@ type Route =
   | { name: 'mypage' }
   | { name: 'breakdown' }
 
+export const OPENING_STORAGE_KEY = 'keio-opening-last-shown'
+export const OPENING_INTERVAL_MS = 6 * 60 * 60 * 1000
+
+function shouldShowOpening(): boolean {
+  try {
+    const raw = localStorage.getItem(OPENING_STORAGE_KEY)
+    if (raw == null) return true
+    const last = Number(raw)
+    if (!Number.isFinite(last)) return true
+    return Date.now() - last >= OPENING_INTERVAL_MS
+  } catch {
+    // localStorage 不可時は初回扱いで表示する側に倒す
+    return true
+  }
+}
+
 export default function App() {
   const { books, refresh } = useBooks()
   const [route, setRoute] = useState<Route>({ name: 'home' })
+  // 初回マウントでのみ判定する。route 変更では再判定しない。
+  const [showOpening, setShowOpening] = useState<boolean>(() => shouldShowOpening())
+  const handleOpeningDone = useCallback(() => {
+    setShowOpening(false)
+  }, [])
+
+  // 表示開始時に今回の表示時刻を記録する（次回6h判定用）
+  useEffect(() => {
+    if (!showOpening) return
+    try {
+      localStorage.setItem(OPENING_STORAGE_KEY, String(Date.now()))
+    } catch {
+      // 記録失敗でも表示自体は続ける
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 起動時に過去日の「当日上書き」を、ユーザーが画面を見る前にバックグラウンドで削除する
   useEffect(() => {
@@ -105,6 +138,7 @@ export default function App() {
 
   return (
     <>
+      {showOpening && <OpeningSplash onDone={handleOpeningDone} />}
       <header className="app-header">
         <span className="app-title">スケジュール管理</span>
       </header>
