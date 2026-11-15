@@ -230,7 +230,7 @@ describe('OpeningSplash fix round', () => {
     expect(presented).toBe(2)
   })
 
-  it('[C2/I3] reduced motion paints the full logo from ./keiologo-pens.png before onDone', () => {
+  it('[C2/I3] reduced motion paints the full logo from ./keiologo-x.png before onDone', () => {
     window.matchMedia = vi.fn().mockReturnValue({
       matches: true,
       addEventListener: () => {},
@@ -243,7 +243,7 @@ describe('OpeningSplash fix round', () => {
     const onDone = vi.fn()
     render(<OpeningSplash onDone={onDone} />)
     // Logo path stays relative to the built index.html (Vite base './').
-    expect(requestedSrcs[0]).toBe('./keiologo-pens.png')
+    expect(requestedSrcs[0]).toBe('./keiologo-x.png')
     // The finished frame was composed (putImageData) and presented (drawImage).
     expect(ctxs.some((c) => c.putImageDataCalls.length > 0)).toBe(true)
     expect(ctxs.some((c) => c.drawImageCalls.length > 0)).toBe(true)
@@ -271,8 +271,8 @@ describe('OpeningSplash fix round', () => {
       await new Promise((r) => setTimeout(r, 20))
     })
     // Same image re-fetched with a cache-busting query (not a silent re-read).
-    expect(requestedSrcs[0]).toBe('./keiologo-pens.png')
-    expect(requestedSrcs).toContain('./keiologo-pens.png?retry=1')
+    expect(requestedSrcs[0]).toBe('./keiologo-x.png')
+    expect(requestedSrcs).toContain('./keiologo-x.png?retry=1')
     expect(onDone).not.toHaveBeenCalled()
     unmount()
   })
@@ -402,5 +402,51 @@ describe('OpeningSplash fix round', () => {
     const d = (composed as unknown as { data: Uint8ClampedArray }).data
     expect(d[3]).toBe(255) // nib1 (left pen) fully painted
     expect(d[7]).toBe(0) // nib2 (right pen) untouched
+  })
+
+  it('[ximg] fully transparent white remnants are not gold', () => {
+    const W = 4
+    const H = 1
+    const data = new Uint8ClampedArray(W * H * 4)
+    const set = (x: number, r: number, g: number, b: number, a: number): void => {
+      const o = x * 4
+      data[o] = r
+      data[o + 1] = g
+      data[o + 2] = b
+      data[o + 3] = a
+    }
+    set(0, 241, 196, 0, 255)
+    set(1, 241, 196, 0, 255)
+    set(2, 242, 244, 248, 0) // 除去済み背景
+    set(3, 242, 244, 248, 0)
+    const model = classifyPenPixels(data, W, H)
+    expect(model.px.length).toBe(2)
+  })
+
+  it('[ximg] small image splits upper/lower and assigns pens', () => {
+    const W = 30
+    const H = 105
+    const data = new Uint8ClampedArray(W * H * 4)
+    const gold = (x: number, y: number): void => {
+      const o = (y * W + x) * 4
+      data[o] = 241
+      data[o + 1] = 196
+      data[o + 2] = 0
+      data[o + 3] = 255
+    }
+    for (let x = 2; x <= 6; x++) for (let y = 5; y <= 15; y++) gold(x, y)
+    for (let x = 20; x <= 26; x++) for (let y = 5; y <= 15; y++) gold(x, y)
+    for (let x = 2; x <= 6; x++) for (let y = 80; y <= 95; y++) gold(x, y)
+    for (let x = 20; x <= 26; x++) for (let y = 80; y <= 95; y++) gold(x, y)
+    const model = classifyPenPixels(data, W, H)
+    const nib1At = (x: number, y: number): boolean => {
+      const hit = model.px.find((p) => p.i === (y * W + x) * 4)
+      if (!hit) throw new Error(`expected gold pixel at (${x},${y})`)
+      return hit.nib1
+    }
+    expect(nib1At(4, 10)).toBe(true) // 上段左 = pen1
+    expect(nib1At(23, 10)).toBe(false) // 上段右 = pen2
+    expect(nib1At(4, 88)).toBe(false) // 下段左 = pen2
+    expect(nib1At(23, 88)).toBe(true) // 下段右 = pen1
   })
 })

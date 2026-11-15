@@ -3,11 +3,11 @@ import { useEffect, useRef } from 'react'
 export const OPENING_DURATION_MS = 5000
 
 /**
- * Source logo: public/keiologo-pens.png (used as-is, no tracing or redraw).
+ * Source logo: public/keiologo-x.png (used as-is, no tracing or redraw).
  * Explicit './' prefix so the file resolves from the built index.html even
  * under nested routes with Vite base './' (public/ files are copied to dist/).
  */
-const LOGO_SRC = './keiologo-pens.png'
+const LOGO_SRC = './keiologo-x.png'
 
 // ---- Constants ported from `.superpowers/brainstorm/pen-options18.html`
 //      (classify / frame / drawFrame / init). ----
@@ -17,7 +17,7 @@ const D2X = -0.6376
 const D2Y = 0.7704
 
 const GOLD_THRESHOLD = 16
-const MIN_GOLD_PIXELS = 20000
+const MIN_GOLD_PIXELS = 1000
 const MAX_RELOAD_TRIES = 3
 const EDGE_BAND_PX = 10
 // Zone-dependent gap thresholds (fix round 2 for [I5]). Row scans of
@@ -28,12 +28,17 @@ const EDGE_BAND_PX = 10
 // measurable); rows elsewhere keep the mockup's < 12. The edge band
 // matches (6px in zone, 10px elsewhere) so a surviving zone split is
 // always recorded as a measured edge.
-const ZONE_Y0 = 100
-const ZONE_Y1 = 210
+// The zone and the upper/lower split are height-relative so the smaller
+// keiologo-x.png (123x105) keeps an upper and a lower half: at H=272 the
+// formulas below give back exactly 100/210/150.
+// (Reference: Math.round(H * 100 / 272), Math.round(H * 210 / 272),
+// Math.round(H * 150 / 272).)
+const zoneY0 = (H: number): number => Math.round((H * 100) / 272)
+const zoneY1 = (H: number): number => Math.round((H * 210) / 272)
 const SLIT_GAP_ZONE_PX = 6
 const SLIT_GAP_OTHER_PX = 12
 const EDGE_BAND_ZONE_PX = 6
-const TOP_BOTTOM_SPLIT_Y = 150
+const topBottomSplitY = (H: number): number => Math.round((H * 150) / 272)
 const PHASE1_END = 0.3
 const PHASE2_START = 0.45
 const PHASE2_END = 0.83
@@ -59,7 +64,10 @@ export type PenModel = {
 }
 
 function isGoldPixel(data: Uint8ClampedArray, idx: number): boolean {
-  return Math.max(data[idx], data[idx + 1], data[idx + 2]) > GOLD_THRESHOLD
+  return (
+    data[idx + 3] > 0 &&
+    Math.max(data[idx], data[idx + 1], data[idx + 2]) > GOLD_THRESHOLD
+  )
 }
 
 function interpolateEdges(
@@ -93,7 +101,8 @@ function interpolateEdges(
 /**
  * Scan rows for measured edges and classify each gold pixel
  * into pen 1 / pen 2. No overlap (never painted twice).
- * Gap merging is zone-dependent: rows y in [100, 210] merge only gaps
+ * Gap merging is zone-dependent: rows y in the height-relative zone
+ * [zoneY0(H), zoneY1(H)] merge only gaps
  * < 6px (7-8px inter-pen gaps stay split, so both edges are measured;
  * <= 5px slits still merge); rows elsewhere merge gaps < 12px. The edge
  * band matches (6px in zone, 10px elsewhere). Rows that remain a single
@@ -108,6 +117,9 @@ export function classifyPenPixels(
   const hasR = new Uint8Array(H)
   const arrL = new Float64Array(H)
   const arrR = new Float64Array(H)
+  const splitY = topBottomSplitY(H)
+  const z0 = zoneY0(H)
+  const z1 = zoneY1(H)
   for (let y = 0; y < H; y++) {
     const runs: Array<[number, number]> = []
     let s = -1
@@ -121,9 +133,9 @@ export function classifyPenPixels(
     }
     if (s >= 0) runs.push([s, W - 1])
     // Gaps shorter than the row's threshold count as slits inside one
-    // block (< 6px in y [100, 210], < 12px elsewhere).
-    const slitGap = y >= ZONE_Y0 && y <= ZONE_Y1 ? SLIT_GAP_ZONE_PX : SLIT_GAP_OTHER_PX
-    const edgeBand = y >= ZONE_Y0 && y <= ZONE_Y1 ? EDGE_BAND_ZONE_PX : EDGE_BAND_PX
+    // block (< 6px in the height-relative zone, < 12px elsewhere).
+    const slitGap = y >= z0 && y <= z1 ? SLIT_GAP_ZONE_PX : SLIT_GAP_OTHER_PX
+    const edgeBand = y >= z0 && y <= z1 ? EDGE_BAND_ZONE_PX : EDGE_BAND_PX
     const mg: Array<[number, number]> = []
     for (let k = 0; k < runs.length; k++) {
       if (mg.length > 0 && runs[k][0] - mg[mg.length - 1][1] < slitGap) {
@@ -135,7 +147,7 @@ export function classifyPenPixels(
     if (mg.length === 0) continue
     const first = mg[0]
     const last = mg[mg.length - 1]
-    if (y < TOP_BOTTOM_SPLIT_Y) {
+    if (y < splitY) {
       // Upper half: the left block is pen 1. When the next block starts
       // with a black band, the first block's right end is the edge.
       arrL[y] = first[0]
