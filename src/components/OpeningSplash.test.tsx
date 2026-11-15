@@ -1,6 +1,6 @@
 import { render, screen, act } from '@testing-library/react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import OpeningSplash, { classifyPenPixels, drawFrame } from './OpeningSplash'
+import OpeningSplash, { classifyPenPixels, drawFrame, phaseProgress } from './OpeningSplash'
 import type { PenModel } from './OpeningSplash'
 
 const originalMatchMedia = window.matchMedia
@@ -365,5 +365,42 @@ describe('OpeningSplash fix round', () => {
       expect(p.a).toBe(255)
       expect([p.r, p.g, p.b]).toEqual([241, 196, 0])
     }
+  })
+
+  it('[order] left pen finishes before right pen starts', () => {
+    expect(phaseProgress(0.35)).toEqual({ p1: 1, p2: 0 })
+    const early = phaseProgress(0.2)
+    expect(early.p1).toBeGreaterThan(0)
+    expect(early.p1).toBeLessThan(1)
+    expect(early.p2).toBe(0)
+    const late = phaseProgress(0.5)
+    expect(late.p1).toBe(1)
+    expect(late.p2).toBeGreaterThan(0)
+  })
+
+  it('[order] drawFrame(1, 0) paints only the left (nib1) pen', () => {
+    const W = 2
+    const H = 1
+    const model: PenModel = {
+      W,
+      H,
+      px: [
+        { i: 0, t1: 0.9, t2: 0.9, nib1: true, r: 241, g: 196, b: 0, a: 255 },
+        { i: 4, t1: 0.1, t2: 0.1, nib1: false, r: 241, g: 196, b: 0, a: 255 },
+      ],
+    }
+    let composed: { data: Uint8ClampedArray } | null = null
+    const bctx = {
+      createImageData: (w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4), width: w, height: h }),
+      putImageData: (img: { data: Uint8ClampedArray }) => { composed = img },
+    }
+    const cv = {
+      width: 6, height: 3,
+      getContext: () => ({ imageSmoothingEnabled: true, imageSmoothingQuality: 'high', clearRect: () => {}, fillRect: () => {}, drawImage: () => {} }),
+    }
+    drawFrame(model, {} as unknown as HTMLCanvasElement, bctx as unknown as CanvasRenderingContext2D, cv as unknown as HTMLCanvasElement, 1, 0)
+    const d = (composed as unknown as { data: Uint8ClampedArray }).data
+    expect(d[3]).toBe(255) // nib1 (left pen) fully painted
+    expect(d[7]).toBe(0) // nib2 (right pen) untouched
   })
 })
