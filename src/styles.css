@@ -161,56 +161,20 @@ main { padding-bottom: 80px; }
   .rpgc-jump, .rpgc-scarf, .rpg-cloud, .rpg-water, .rpg-sway, .rpg-flag, .rpg-pulse, .rpg-mote-a, .rpg-mote-b { animation: none !important; }
 }
 
-/* 慶應オープニング（5秒タイムライン: 0-1s背景→1-2s左→2-3s右→3-3.5sクロス＋波→3.5-5s保持→fade） */
+/* 慶應オープニング（Canvas＋rAF駆動。キーフレーム不使用。土台のみ） */
 .keio-opening {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #101828;
-  animation: keio-opening-bg 5000ms ease forwards;
+  background: #000;
+  pointer-events: all;
+  overflow: hidden;
 }
-.keio-opening-pens {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: keio-opening-cross-wave 5000ms ease forwards;
-}
-.keio-opening-pen {
-  transform-origin: 50% 50%;
-  opacity: 0;
-}
-.keio-opening-pen-left {
-  transform: rotate(-25deg);
-  animation: keio-opening-pen-left-in 5000ms ease forwards;
-}
-.keio-opening-pen-right {
-  transform: rotate(25deg);
-  margin-left: -18px;
-  animation: keio-opening-pen-right-in 5000ms ease forwards;
-}
-@keyframes keio-opening-bg {
-  0% { opacity: 0; }
-  10% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; }
-}
-@keyframes keio-opening-pen-left-in {
-  0%, 20% { opacity: 0; transform: translateX(-60px) rotate(-25deg); }
-  40%, 80% { opacity: 1; transform: translateX(0) rotate(-25deg); }
-  100% { opacity: 0; transform: translateX(0) rotate(-25deg); }
-}
-@keyframes keio-opening-pen-right-in {
-  0%, 40% { opacity: 0; transform: translateX(60px) rotate(25deg); }
-  60%, 80% { opacity: 1; transform: translateX(0) rotate(25deg); }
-  100% { opacity: 0; transform: translateX(0) rotate(25deg); }
-}
-@keyframes keio-opening-cross-wave {
-  0%, 60% { transform: scale(1); filter: brightness(1); }
-  70% { transform: scale(1.08); filter: brightness(1.35); }
-  80%, 100% { transform: scale(1); filter: brightness(1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .keio-opening, .keio-opening-pens, .keio-opening-pen-left, .keio-opening-pen-right { animation: none !important; }
-  .keio-opening-pen { opacity: 1; }
+.keio-opening canvas {
+  display: block;
+  width: min(78vw, 380px);
+  height: auto;
 }

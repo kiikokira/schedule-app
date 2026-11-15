@@ -7,6 +7,7 @@ const originalMatchMedia = window.matchMedia
 afterEach(() => {
   window.matchMedia = originalMatchMedia
   vi.useRealTimers()
+  vi.unstubAllGlobals()
 })
 
 describe('OpeningSplash', () => {
@@ -17,8 +18,7 @@ describe('OpeningSplash', () => {
     const overlay = screen.getByTestId('keio-opening')
     expect(overlay).toBeInTheDocument()
     expect(overlay).toHaveStyle({ pointerEvents: 'all' })
-    expect(screen.getByTestId('keio-opening-pen-left')).toBeInTheDocument()
-    expect(screen.getByTestId('keio-opening-pen-right')).toBeInTheDocument()
+    expect(screen.getByTestId('keio-opening-canvas')).toBeInTheDocument()
     act(() => { vi.advanceTimersByTime(4999) })
     expect(onDone).not.toHaveBeenCalled()
     act(() => { vi.advanceTimersByTime(1) })
