@@ -19,8 +19,20 @@ const D2Y = 0.7704
 const GOLD_THRESHOLD = 16
 const MIN_GOLD_PIXELS = 20000
 const MAX_RELOAD_TRIES = 3
-const SLIT_GAP_PX = 8
 const EDGE_BAND_PX = 10
+// Zone-dependent gap thresholds (fix round 2 for [I5]). Row scans of
+// keiologo-pens.png (280x272) show inter-pen gaps of 7-8px in y in
+// [100, 210] (e.g. y=120: [56-175][182-224]; y=130: [68-184][190-212];
+// y=170: [61-107][114-219]) while slit gaps inside a nib are <= 5px.
+// Zone rows therefore merge only gaps < 6 (inter-pen gaps stay split and
+// measurable); rows elsewhere keep the mockup's < 12. The edge band
+// matches (6px in zone, 10px elsewhere) so a surviving zone split is
+// always recorded as a measured edge.
+const ZONE_Y0 = 100
+const ZONE_Y1 = 210
+const SLIT_GAP_ZONE_PX = 6
+const SLIT_GAP_OTHER_PX = 12
+const EDGE_BAND_ZONE_PX = 6
 const TOP_BOTTOM_SPLIT_Y = 150
 const PHASE1_END = 0.3
 const PHASE2_START = 0.45
@@ -81,9 +93,11 @@ function interpolateEdges(
 /**
  * Scan rows for measured edges and classify each gold pixel
  * into pen 1 / pen 2. No overlap (never painted twice).
- * Lower-half rows with a single merged block record no edge, exactly like
- * the reference mockup (pen-options18.html lower branch also requires
- * mg.length >= 2 with a >= 10px gap); those rows rely on interpolation.
+ * Gap merging is zone-dependent: rows y in [100, 210] merge only gaps
+ * < 6px (7-8px inter-pen gaps stay split, so both edges are measured;
+ * <= 5px slits still merge); rows elsewhere merge gaps < 12px. The edge
+ * band matches (6px in zone, 10px elsewhere). Rows that remain a single
+ * merged block record no edge and fall back to interpolation below.
  */
 export function classifyPenPixels(
   srcData: Uint8ClampedArray,
@@ -106,10 +120,13 @@ export function classifyPenPixels(
       }
     }
     if (s >= 0) runs.push([s, W - 1])
-    // Gaps shorter than 8px count as slits inside one block.
+    // Gaps shorter than the row's threshold count as slits inside one
+    // block (< 6px in y [100, 210], < 12px elsewhere).
+    const slitGap = y >= ZONE_Y0 && y <= ZONE_Y1 ? SLIT_GAP_ZONE_PX : SLIT_GAP_OTHER_PX
+    const edgeBand = y >= ZONE_Y0 && y <= ZONE_Y1 ? EDGE_BAND_ZONE_PX : EDGE_BAND_PX
     const mg: Array<[number, number]> = []
     for (let k = 0; k < runs.length; k++) {
-      if (mg.length > 0 && runs[k][0] - mg[mg.length - 1][1] < SLIT_GAP_PX) {
+      if (mg.length > 0 && runs[k][0] - mg[mg.length - 1][1] < slitGap) {
         mg[mg.length - 1][1] = runs[k][1]
       } else {
         mg.push([runs[k][0], runs[k][1]])
@@ -120,19 +137,19 @@ export function classifyPenPixels(
     const last = mg[mg.length - 1]
     if (y < TOP_BOTTOM_SPLIT_Y) {
       // Upper half: the left block is pen 1. When the next block starts
-      // with a >= 10px black band, the first block's right end is the edge.
+      // with a black band, the first block's right end is the edge.
       arrL[y] = first[0]
       hasL[y] = 1
-      if (mg.length >= 2 && mg[1][0] - first[1] >= EDGE_BAND_PX) {
+      if (mg.length >= 2 && mg[1][0] - first[1] >= edgeBand) {
         arrR[y] = first[1]
         hasR[y] = 1
       }
     } else {
       // Lower half: the right block is pen 1. When the previous block ends
-      // with a >= 10px black band, the last block's left end is the edge.
-      // (Single merged blocks record nothing here, same as the mockup;
-      // those rows fall back to interpolation below.)
-      if (mg.length >= 2 && last[0] - mg[mg.length - 2][1] >= EDGE_BAND_PX) {
+      // with a black band, the last block's left end is the edge.
+      // (Single merged blocks record nothing here; those rows fall back
+      // to interpolation below.)
+      if (mg.length >= 2 && last[0] - mg[mg.length - 2][1] >= edgeBand) {
         arrL[y] = last[0]
         hasL[y] = 1
         arrR[y] = last[1]

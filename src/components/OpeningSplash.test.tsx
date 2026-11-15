@@ -298,9 +298,50 @@ describe('OpeningSplash fix round', () => {
     expect(nib1At(5, 15)).toBe(true)
     expect(nib1At(25, 15)).toBe(false)
     // Lower single-merged-block rows record no edge (same as the mockup:
-    // its y>=150 branch also requires mg.length >= 2 with a >= 10px gap),
+    // its y>=150 branch also requires mg.length >= 2 with a black band),
     // so row 155 inherits the interpolated edge [2..8] from row 20.
     expect(nib1At(5, 155)).toBe(true)
     expect(nib1At(25, 155)).toBe(false)
+  })
+
+  it('[I5-fix2] zone rows keep 7px inter-pen gaps split (measured) and merge small slits', () => {
+    // Rows replicate the real keiologo-pens.png (280x272) scan: y=120/130
+    // inter-pen diffs of 7/6px stay split under the zone threshold 6, the
+    // 3px slit on row 120 (diff 4 < 6) still merges. Distant [2..8] anchors
+    // discriminate measured edges from interpolation fallback.
+    const W = 280
+    const H = 272
+    const data = makeSrcData(W, H, (x, y) => {
+      if (y >= 10 && y <= 20)
+        return (x >= 2 && x <= 8) || (x >= 20 && x <= 30)
+      if (y === 120)
+        return (
+          (x >= 56 && x <= 99) ||
+          (x >= 103 && x <= 175) ||
+          (x >= 182 && x <= 224)
+        )
+      if (y === 130) return (x >= 68 && x <= 184) || (x >= 190 && x <= 212)
+      if (y === 170) return (x >= 61 && x <= 107) || (x >= 114 && x <= 219)
+      return false
+    })
+    const model = classifyPenPixels(data, W, H)
+    const nib1At = (x: number, y: number): boolean => {
+      const hit = model.px.find((p) => p.i === (y * W + x) * 4)
+      if (!hit) throw new Error(`expected gold pixel at (${x},${y})`)
+      return hit.nib1
+    }
+    // Row 120 (upper): slit merged into [56-175], measured edge at x=175.
+    // Interpolation from the [2..8] anchors would put x=90/150 in pen 2.
+    expect(nib1At(90, 120)).toBe(true)
+    expect(nib1At(150, 120)).toBe(true)
+    expect(nib1At(175, 120)).toBe(true)
+    expect(nib1At(182, 120)).toBe(false)
+    expect(nib1At(200, 120)).toBe(false)
+    // Row 130 (upper, 6px diff gap stays split with the zone band of 6).
+    expect(nib1At(100, 130)).toBe(true)
+    expect(nib1At(200, 130)).toBe(false)
+    // Row 170 (lower: right block is pen 1, measured left end at x=114).
+    expect(nib1At(150, 170)).toBe(true)
+    expect(nib1At(80, 170)).toBe(false)
   })
 })
