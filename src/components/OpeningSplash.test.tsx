@@ -344,4 +344,26 @@ describe('OpeningSplash fix round', () => {
     expect(nib1At(150, 170)).toBe(true)
     expect(nib1At(80, 170)).toBe(false)
   })
+
+  it('[tail] feathered gold edges (low alpha) are normalized to opaque', () => {
+    const W = 4
+    const H = 2
+    const data = new Uint8ClampedArray(W * H * 4)
+    const set = (x: number, y: number, a: number): void => {
+      const o = (y * W + x) * 4
+      data[o] = 241
+      data[o + 1] = 196
+      data[o + 2] = 0
+      data[o + 3] = a
+    }
+    for (let x = 0; x < W; x++) set(x, 0, 255) // 上段: 不透明な金
+    set(1, 1, 48)
+    set(2, 1, 16) // 下段: 実PNGの尻の縁を再現した半透明の金
+    const model = classifyPenPixels(data, W, H)
+    expect(model.px.length).toBe(6)
+    for (const p of model.px) {
+      expect(p.a).toBe(255)
+      expect([p.r, p.g, p.b]).toEqual([241, 196, 0])
+    }
+  })
 })

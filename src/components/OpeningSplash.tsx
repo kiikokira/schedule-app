@@ -187,7 +187,7 @@ export function classifyPenPixels(
         r: srcData[i],
         g: srcData[i + 1],
         b: srcData[i + 2],
-        a: srcData[i + 3],
+        a: 255,
       })
     }
   }
