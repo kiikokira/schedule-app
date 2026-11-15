@@ -3,13 +3,14 @@ import { useEffect, useRef } from 'react'
 export const OPENING_DURATION_MS = 5000
 
 /**
- * 実ロゴ画像そのもの。public/keiologo-pens.png をそのまま使う
- * （トレース・自作SVGの上書きなし）。相対パスで base './' ビルドに対応。
+ * Source logo: public/keiologo-pens.png (used as-is, no tracing or redraw).
+ * Explicit './' prefix so the file resolves from the built index.html even
+ * under nested routes with Vite base './' (public/ files are copied to dist/).
  */
-const LOGO_SRC = 'keiologo-pens.png'
+const LOGO_SRC = './keiologo-pens.png'
 
-// ---- `.superpowers/brainstorm/pen-options18.html` の
-//      classify / frame / drawFrame / init を React へ移植した定数 ----
+// ---- Constants ported from `.superpowers/brainstorm/pen-options18.html`
+//      (classify / frame / drawFrame / init). ----
 const D1X = 0.6106
 const D1Y = 0.792
 const D2X = -0.6376
@@ -77,7 +78,13 @@ function interpolateEdges(
   return out
 }
 
-/** 行走査で実測縁を求め、各金ピクセルを1本目/2本目に分類する。重複なし。 */
+/**
+ * Scan rows for measured edges and classify each gold pixel
+ * into pen 1 / pen 2. No overlap (never painted twice).
+ * Lower-half rows with a single merged block record no edge, exactly like
+ * the reference mockup (pen-options18.html lower branch also requires
+ * mg.length >= 2 with a >= 10px gap); those rows rely on interpolation.
+ */
 export function classifyPenPixels(
   srcData: Uint8ClampedArray,
   W: number,
@@ -99,7 +106,7 @@ export function classifyPenPixels(
       }
     }
     if (s >= 0) runs.push([s, W - 1])
-    // 8px未満の途切れはスリットとして同一視する
+    // Gaps shorter than 8px count as slits inside one block.
     const mg: Array<[number, number]> = []
     for (let k = 0; k < runs.length; k++) {
       if (mg.length > 0 && runs[k][0] - mg[mg.length - 1][1] < SLIT_GAP_PX) {
@@ -112,7 +119,8 @@ export function classifyPenPixels(
     const first = mg[0]
     const last = mg[mg.length - 1]
     if (y < TOP_BOTTOM_SPLIT_Y) {
-      // 上部: 左の塊＝1本目。右の塊との間に10px以上の黒帯があれば右端を右縁に
+      // Upper half: the left block is pen 1. When the next block starts
+      // with a >= 10px black band, the first block's right end is the edge.
       arrL[y] = first[0]
       hasL[y] = 1
       if (mg.length >= 2 && mg[1][0] - first[1] >= EDGE_BAND_PX) {
@@ -120,7 +128,10 @@ export function classifyPenPixels(
         hasR[y] = 1
       }
     } else {
-      // 下部: 右の塊＝1本目。左に10px以上の黒帯があれば左端を左縁に
+      // Lower half: the right block is pen 1. When the previous block ends
+      // with a >= 10px black band, the last block's left end is the edge.
+      // (Single merged blocks record nothing here, same as the mockup;
+      // those rows fall back to interpolation below.)
       if (mg.length >= 2 && last[0] - mg[mg.length - 2][1] >= EDGE_BAND_PX) {
         arrL[y] = last[0]
         hasL[y] = 1
@@ -129,7 +140,7 @@ export function classifyPenPixels(
       }
     }
   }
-  // 測定できない行は両側の測定値から直線補間する
+  // Rows without a measurement use linear interpolation (no curve fitting).
   const Li = interpolateEdges(hasL, arrL, -1e9, H)
   const Ri = interpolateEdges(hasR, arrR, 1e9, H)
   const px: PenPixel[] = []
@@ -171,20 +182,26 @@ export function classifyPenPixels(
 }
 
 /**
- * 経過割合 el → 各筆の描画進捗。
- * フェーズ1（el 0-0.30: 1本目）→保持（0.30-0.45）→
- * フェーズ2（el 0.45-0.83: 2本目）→保持→終了（el>=1）。
+ * Elapsed ratio el -> per-pen progress.
+ * Phase 1 (el 0-0.30: pen 1) -> hold (0.30-0.45) ->
+ * phase 2 (el 0.45-0.83: pen 2) -> hold -> done (el >= 1).
  */
 export function phaseProgress(el: number): { p1: number; p2: number } {
-  const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
+  const clamp01 = (v: number): number => Math.min(1, Math.max(0, v))
   return {
     p1: clamp01(el / PHASE1_END),
     p2: clamp01((el - PHASE2_START) / (PHASE2_END - PHASE2_START)),
   }
 }
 
-/** 等倍バッファに筆を描き、双線形補間で高解像度Canvasへ拡大する。 */
-function drawFrame(
+/**
+ * Paint pens into a 1x buffer, then upscale to the HiDPI canvas
+ * with bilinear filtering.
+ * A pen at full progress (p >= 1) copies its source pixels exactly
+ * (no additive glow, full alpha), so drawFrame(model, ..., 1, 1) is
+ * pixel-identical to the source image for opaque pixels.
+ */
+export function drawFrame(
   model: PenModel,
   buf: HTMLCanvasElement,
   bctx: CanvasRenderingContext2D,
@@ -195,12 +212,21 @@ function drawFrame(
   const out = bctx.createImageData(model.W, model.H)
   const d = out.data
   const list = model.px
+  const full1 = p1 >= 1
+  const full2 = p2 >= 1
   for (let k = 0; k < list.length; k++) {
     const p = list[k]
+    if (p.nib1 ? full1 : full2) {
+      d[p.i] = p.r
+      d[p.i + 1] = p.g
+      d[p.i + 2] = p.b
+      d[p.i + 3] = p.a
+      continue
+    }
     const rel = p.nib1 ? (p1 - p.t1) / FRONT_WINDOW : (p2 - p.t2) / FRONT_WINDOW
-    if (rel <= 0) continue
+    if (rel < 0) continue
     const am = rel >= 1 ? 1 : rel
-    // 描画フロントには控えめなグロー（先端近傍の加算発光・最大+90）
+    // Modest glow at the drawing front (additive light near the tip, max +90).
     const boost = rel >= 1 ? 0 : Math.round((1 - rel) * FRONT_GLOW_MAX)
     let rr = p.r + boost
     if (rr > 255) rr = 255
@@ -277,27 +303,13 @@ export default function OpeningSplash({ onDone }: OpeningSplashProps) {
       finished = true
       cancelFrame(rafId)
       if (timer !== undefined) window.clearTimeout(timer)
-      // 終了形は必ず実画像そのもの（全金ピクセル表示）と一致させる
+      // The end frame is always the source image itself (all gold pixels).
       try {
         renderAt(1, 1)
       } catch {
-        // 描画失敗でも onDone は呼ぶ
+        // Even if painting fails, onDone must fire.
       }
       onDoneRef.current()
-    }
-
-    // prefers-reduced-motion: 静止画（完成ロゴ）を即表示して即 onDone
-    if (isReducedMotion()) {
-      try {
-        renderAt(1, 1)
-      } catch {
-        // モデル未構築でも onDone は呼ぶ
-      }
-      finished = true
-      onDoneRef.current()
-      return () => {
-        document.body.style.overflow = previousOverflow
-      }
     }
 
     const frame = (now: number): void => {
@@ -312,7 +324,7 @@ export default function OpeningSplash({ onDone }: OpeningSplashProps) {
       try {
         renderAt(p1, p2)
       } catch {
-        // 1フレームの失敗で再生を止めない
+        // One bad frame must not stop playback.
       }
       rafId = requestFrame(frame)
     }
@@ -325,13 +337,14 @@ export default function OpeningSplash({ onDone }: OpeningSplashProps) {
       rafId = requestFrame(frame)
     }
 
+    // Single verified read of one decoded image (no silent re-read loop).
+    // Returns false on incomplete decode, low gold count, or missing 2d
+    // context; the caller re-fetches with a cache-busted URL instead.
     const build = (img: HTMLImageElement): boolean => {
       if (!canvas) return false
       const W = img.naturalWidth
       const H = img.naturalHeight
       if (!W || !H) return false
-      canvas.width = W * SUPER_SAMPLE
-      canvas.height = H * SUPER_SAMPLE
       const off = document.createElement('canvas')
       off.width = W
       off.height = H
@@ -344,18 +357,10 @@ export default function OpeningSplash({ onDone }: OpeningSplashProps) {
       } catch {
         return false
       }
-      model = classifyPenPixels(srcData, W, H)
-      let tries = 0
-      while (model.px.length < MIN_GOLD_PIXELS && tries < MAX_RELOAD_TRIES) {
-        tries++
-        octx.drawImage(img, 0, 0)
-        try {
-          srcData = octx.getImageData(0, 0, W, H).data
-        } catch {
-          return false
-        }
-        model = classifyPenPixels(srcData, W, H)
-      }
+      const m = classifyPenPixels(srcData, W, H)
+      if (m.px.length < MIN_GOLD_PIXELS) return false
+      canvas.width = W * SUPER_SAMPLE
+      canvas.height = H * SUPER_SAMPLE
       buf = document.createElement('canvas')
       buf.width = W
       buf.height = H
@@ -364,57 +369,134 @@ export default function OpeningSplash({ onDone }: OpeningSplashProps) {
         buf = null
         return false
       }
+      model = m
       return true
     }
 
     const fallbackDrawFull = (img: HTMLImageElement): void => {
-      // 解析に失敗した場合の予備: 実画像をそのまま全画面表示する
+      // Backup when analysis fails: show the source image itself full-frame.
       if (!canvas) return
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
+      const W = img.naturalWidth
+      const H = img.naturalHeight
       try {
+        if (W && H) {
+          canvas.width = W * SUPER_SAMPLE
+          canvas.height = H * SUPER_SAMPLE
+        }
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
         ctx.imageSmoothingEnabled = true
         ctx.imageSmoothingQuality = 'high'
         ctx.fillStyle = '#000'
         ctx.fillRect(0, 0, canvas.width || 300, canvas.height || 300)
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
       } catch {
-        // 表示失敗でもタイマーで onDone する
+        // Display failure still ends via the timer calling onDone.
+      }
+    }
+
+    // Load one image with decode-await and error reporting.
+    const loadOne = (src: string): Promise<HTMLImageElement> =>
+      new Promise((resolve, reject) => {
+        const im = new Image()
+        const cleanup = (): void => {
+          im.removeEventListener('load', onLoad)
+          im.removeEventListener('error', onError)
+        }
+        const onLoad = (): void => {
+          cleanup()
+          resolve(im)
+        }
+        const onError = (): void => {
+          cleanup()
+          reject(new Error(`opening logo load failed: ${src}`))
+        }
+        im.addEventListener('load', onLoad)
+        im.addEventListener('error', onError)
+        im.src = src
+      })
+
+    const awaitDecode = async (img: HTMLImageElement): Promise<void> => {
+      const decode = (img as HTMLImageElement & { decode?: () => Promise<void> })
+        .decode
+      if (typeof decode !== 'function') return
+      try {
+        await decode.call(img)
+      } catch {
+        // Fall through to the load-based pixels.
       }
     }
 
     let built = false
-    const img = new Image()
-    const tryReady = (): void => {
-      if (built || cancelled || finished) return
-      // 画像読み込み完了の確認: 未完成デコードでの描画は禁止
-      if (!img.complete || img.naturalWidth === 0) return
-      built = true
-      if (build(img)) {
-        play()
-      } else {
-        fallbackDrawFull(img)
+    const run = async (): Promise<void> => {
+      let lastImg: HTMLImageElement | null = null
+      // Up to 3 re-reads (brief item 1), each a fresh fetch with a
+      // cache-busted URL so an incomplete decode can actually recover.
+      for (let attempt = 0; attempt <= MAX_RELOAD_TRIES; attempt++) {
+        if (cancelled || finished || built) return
+        const src = attempt === 0 ? LOGO_SRC : `${LOGO_SRC}?retry=${attempt}`
+        let im: HTMLImageElement
+        try {
+          im = await loadOne(src)
+        } catch {
+          continue // onerror -> re-fetch with the next cache-busted URL
+        }
+        lastImg = im
+        await awaitDecode(im)
+        if (cancelled || finished || built) return
+        // Never paint from an incomplete decode.
+        if (!im.complete || im.naturalWidth === 0) continue
+        if (build(im)) {
+          built = true
+          play()
+          return
+        }
+      }
+      if (!built && lastImg) fallbackDrawFull(lastImg)
+    }
+
+    // prefers-reduced-motion: paint the finished logo first, then finish
+    // immediately (no 5s wait). The image load starts BEFORE onDone.
+    if (isReducedMotion()) {
+      const staticImg = new Image()
+      const paintStatic = (): void => {
+        if (cancelled || finished) return
+        if (!staticImg.complete || staticImg.naturalWidth === 0) return
+        if (build(staticImg)) {
+          renderAt(1, 1)
+        } else {
+          fallbackDrawFull(staticImg)
+        }
+      }
+      staticImg.addEventListener('load', paintStatic)
+      const staticDecode = (
+        staticImg as HTMLImageElement & { decode?: () => Promise<void> }
+      ).decode
+      if (typeof staticDecode === 'function') {
+        try {
+          staticDecode.call(staticImg).then(paintStatic, paintStatic)
+        } catch {
+          // Fall through to the load event path.
+        }
+      }
+      staticImg.src = LOGO_SRC
+      paintStatic() // synchronous paint when the logo is already cached
+      finished = true
+      onDoneRef.current()
+      return () => {
+        staticImg.removeEventListener('load', paintStatic)
+        document.body.style.overflow = previousOverflow
       }
     }
+
     const start = (): void => {
       if (cancelled || finished) return
-      // rAFが止まっても5秒で必ず終了する（テストの fake timers でも確定する）
+      // rAF-independent guarantee: always end after 5s
+      // (also deterministic under fake timers).
       timer = window.setTimeout(finish, OPENING_DURATION_MS)
-      img.addEventListener('load', tryReady)
-      img.src = LOGO_SRC
-      const decode = (
-        img as HTMLImageElement & {
-          decode?: () => Promise<void>
-        }
-      ).decode
-      if (typeof decode === 'function') {
-        try {
-          decode.call(img).then(tryReady, tryReady)
-        } catch {
-          // decode 失敗時は load イベント待ちに委ねる
-        }
-      }
-      tryReady()
+      run().catch(() => {
+        // Failures still end via the timer calling onDone.
+      })
     }
     start()
 
@@ -422,7 +504,6 @@ export default function OpeningSplash({ onDone }: OpeningSplashProps) {
       cancelled = true
       cancelFrame(rafId)
       if (timer !== undefined) window.clearTimeout(timer)
-      img.removeEventListener('load', tryReady)
       document.body.style.overflow = previousOverflow
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
