@@ -143,6 +143,12 @@ describe('minutesPerPageFor', () => {
   it('returns DEFAULT when subject unknown', () => {
     expect(minutesPerPageFor(undefined, undefined)).toBe(DEFAULT_MINUTES_PER_PAGE)
   })
+  it('uses internet fixed pace for 文法 subject', () => {
+    expect(minutesPerPageFor('文法', undefined)).toBe(3)
+  })
+  it('keeps saved value over subject default', () => {
+    expect(minutesPerPageFor('文法', 5)).toBe(5)
+  })
 })
 
 describe('slotsForDate', () => {

@@ -97,6 +97,9 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
       setTotalUnits(String(LEAP_TOTAL_WORDS))
       setTargetRounds(String(LEAP_TARGET_ROUNDS))
     }
+    if (item.id === 'eibunpo-polaris-2') {
+      setMinutes('3')
+    }
   }
 
   const handleSave = async () => {

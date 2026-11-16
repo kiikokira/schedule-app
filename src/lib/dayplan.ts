@@ -7,6 +7,7 @@ const SUBJECT_MINUTES_PER_PAGE: Record<string, number> = {
   英単語: 1,
   英熟語: 1,
   英文法: 2,
+  文法: 3,
   英語: 3,
   英語長文: 3,
   小論文: 3,
