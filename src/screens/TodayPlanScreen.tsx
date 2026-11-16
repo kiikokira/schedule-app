@@ -10,7 +10,7 @@ import {
   type AvailabilitySlot,
 } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, learnSpeedRobust, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
-import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, currentCycleRound, type BookData } from '../lib/progress'
+import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, scoreCycleOnDate, currentCycleRound, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
@@ -22,6 +22,7 @@ import { loadFocusPeriods, selectedBookIds } from '../data/focusPeriods'
 import { loadOverridePresets, type OverridePreset } from '../data/overridePresets'
 import CoverImage from '../components/CoverImage'
 import MorningEssaySection from '../components/MorningEssaySection'
+import TodayProgressDonuts, { type TodayProgressItem } from '../components/TodayProgressDonuts'
 
 type Props = {
   onBack: () => void
@@ -429,6 +430,41 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     [displayedRows],
   )
 
+  const progressItems: TodayProgressItem[] = useMemo(() => {
+    if (displayedSlots.length === 0) return []
+    const byId = new Map(books.map((b) => [b.id, b]))
+    const seen: string[] = []
+    for (const s of displayedSlots) {
+      if (!s.bookId) continue
+      if (!byId.has(s.bookId)) continue
+      if (!seen.includes(s.bookId)) seen.push(s.bookId)
+    }
+    const items: TodayProgressItem[] = []
+    for (const id of seen) {
+      const book = byId.get(id)
+      if (!book) continue
+      if (book.studyMode === 'cycles') {
+        const mine = cycleRecords.filter((r) => r.bookId === id)
+        const done = scoreCycleOnDate(today, mine)
+        const target = calcCycleDailyTarget(book, calcCycleDonePairs(book, mine), daysBetween(today, book.deadline))
+        if (target <= 0) continue
+        items.push({ bookId: id, title: book.title, done, target, unit: isLeapBook(book) ? '語' : '区画' })
+      } else {
+        const target = displayedSlots
+          .filter((s) => s.bookId === id)
+          .reduce((sum, s) => sum + s.pages, 0)
+        if (target <= 0) continue
+        const done = records
+          .filter((r) => r.date === today && r.bookId === id)
+          .reduce((sum, r) => sum + r.pages, 0)
+        items.push({ bookId: id, title: book.title, done, target, unit: 'ページ' })
+      }
+    }
+    return items
+  }, [displayedSlots, records, cycleRecords, books, today])
+  const progressDone = progressItems.reduce((sum, i) => sum + i.done, 0)
+  const progressTarget = progressItems.reduce((sum, i) => sum + i.target, 0)
+
   useEffect(() => {
     if (!availabilityLoaded || dayRowsInit) return
     const base = slotsForDate(availability, today)
@@ -710,6 +746,12 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   return (
     <div data-testid="today-plan-screen" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>今日の計画</h1>
+      {progressItems.length > 0 && (
+        <>
+          <p data-testid="today-progress-summary">今日の進捗 {progressDone} / {progressTarget}</p>
+          <TodayProgressDonuts items={progressItems} />
+        </>
+      )}
       <MorningEssaySection today={today} />
       {availability.length > 0 && risks.length > 0 && (
         <div
