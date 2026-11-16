@@ -160,21 +160,3 @@ main { padding-bottom: 80px; }
   .rpgc-run .rpgc-leg-l, .rpgc-run .rpgc-leg-r, .rpgc-ladder .rpgc-leg-l, .rpgc-ladder .rpgc-leg-r,
   .rpgc-jump, .rpgc-scarf, .rpg-cloud, .rpg-water, .rpg-sway, .rpg-flag, .rpg-pulse, .rpg-mote-a, .rpg-mote-b { animation: none !important; }
 }
-
-/* 慶應オープニング（Canvas＋rAF駆動。キーフレーム不使用。土台のみ） */
-.keio-opening {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #000;
-  pointer-events: all;
-  overflow: hidden;
-}
-.keio-opening canvas {
-  display: block;
-  width: min(78vw, 380px);
-  height: auto;
-}
