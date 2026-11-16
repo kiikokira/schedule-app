@@ -1,13 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { beforeEach, vi } from 'vitest'
+import { vi } from 'vitest'
 import { db } from './db/database'
 import { todayStr } from './lib/progress'
 import App from './App'
-
-// 既存テストはオープニング表示をスキップさせる（6h以内の再訪扱いにする）
-beforeEach(() => {
-  localStorage.setItem('keio-opening-last-shown', String(Date.now()))
-})
 
 it('renders app title', () => {
   render(<App />)
@@ -132,21 +127,16 @@ it('breakdown rows are display-only (no book detail navigation)', async () => {
   await db.cycleRecords.clear()
 })
 
-it('shows opening on first launch and skips within 6h', () => {
+it('renders home immediately without any opening animation', () => {
   localStorage.clear()
-  const { unmount } = render(<App />)
-  expect(screen.getByTestId('keio-opening')).toBeInTheDocument()
-  unmount()
-  localStorage.setItem('keio-opening-last-shown', String(Date.now()))
   render(<App />)
   expect(screen.queryByTestId('keio-opening')).toBeNull()
-})
-
-it('shows opening when storage is unavailable', () => {
+  expect(screen.getByText('スケジュール管理')).toBeInTheDocument()
+  expect(localStorage.getItem('keio-opening-last-shown')).toBeNull()
   const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
   const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {})
   render(<App />)
-  expect(screen.getByTestId('keio-opening')).toBeInTheDocument()
+  expect(screen.queryByTestId('keio-opening')).toBeNull()
   getItem.mockRestore()
   setItem.mockRestore()
 })
