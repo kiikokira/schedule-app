@@ -978,6 +978,13 @@ describe('TodayPlanScreen', () => {
     expect(screen.queryByTestId('override-shadow-notice')).not.toBeInTheDocument()
   })
 
+  it('ghost card is gone', async () => {
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(screen.queryByTestId('ghost-battle')).toBeNull()
+    expect(screen.queryByTestId('ghost-empty')).toBeNull()
+    expect(screen.queryByTestId('ghost-noslots')).toBeNull()
+  })
+
   it('選び直し後に時間をずらして上書きしても本の指定は残る', async () => {
     await fillBook('b1', { trainFit: 'home' })
     await fillBook('b2', { trainFit: 'home' })
