@@ -27,14 +27,18 @@ export default function TodayProgressDonuts({
   if (items.length === 0) return null;
 
   return (
-    <section data-testid="today-progress-donuts">
+    <section data-testid="today-progress-donuts" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
       {items.map((item) => {
         const pct = calcPct(item.done, item.target);
         const remaining = Math.max(item.target - item.done, 0);
         const doneLength = (pct / 100) * CIRCUMFERENCE;
         const frontColor = pct >= 100 ? '#22c55e' : '#3b82f6';
         return (
-          <div key={item.bookId} data-testid={`today-progress-${item.bookId}`}>
+          <div
+            key={item.bookId}
+            data-testid={`today-progress-${item.bookId}`}
+            style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}
+          >
             <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
               <circle
                 cx={SIZE / 2}
@@ -65,8 +69,8 @@ export default function TodayProgressDonuts({
                 {`${pct}%`}
               </text>
             </svg>
-            <div>{item.title}</div>
-            <div>{`あと${remaining}${item.unit}`}</div>
+            <div data-testid={`today-progress-title-${item.bookId}`} style={{ overflowWrap: 'anywhere', fontSize: 14 }}>{item.title}</div>
+            <div style={{ overflowWrap: 'anywhere', fontSize: 13 }}>{`あと${remaining}${item.unit}`}</div>
           </div>
         );
       })}
