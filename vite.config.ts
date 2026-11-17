@@ -41,6 +41,8 @@ export default defineConfig({
       '**/.superpowers/**',
       '**/.worktrees/**',
       '**/worktrees/**',
+      // 別リポジトリのsubmodule配下は外側suiteの対象外（内側で個別に実行）
+      'src/スケジュール管理アプリ/**',
     ],
   },
 })
