@@ -34,5 +34,13 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./test/setup.ts'],
     testTimeout: 15000,
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.opencode/**',
+      '**/.superpowers/**',
+      '**/.worktrees/**',
+      '**/worktrees/**',
+    ],
   },
 })

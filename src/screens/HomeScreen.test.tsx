@@ -599,7 +599,7 @@ describe('HomeScreen', () => {
     await db.books.add({ ...book, id: 'b1', studyMode: 'cycles', totalUnits: 100, targetRounds: 3, deadline: daysAhead(6) })
     render(<HomeScreen onOpenBook={() => {}} />)
     const row = await screen.findByTestId('schedule-row-b1')
-    expect(row).toHaveTextContent('範囲の記録は本の画面で')
+    await waitFor(() => expect(row).toHaveTextContent('範囲の記録は本の画面で'))
     expect(screen.queryByTestId('row-progress-input-b1')).toBeNull()
     expect(screen.queryByTestId('row-record-b1')).toBeNull()
     const recs = await db.records.toArray()

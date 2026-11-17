@@ -71,7 +71,9 @@ export default function SettingsScreen({ onDone }: Props) {
     document.body.appendChild(a)
     a.click()
     a.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    setTimeout(() => {
+      if (typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(url)
+    }, 1000)
     setResult('書き出しました')
   }
 
@@ -168,7 +170,9 @@ export default function SettingsScreen({ onDone }: Props) {
     document.body.appendChild(a)
     a.click()
     a.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    setTimeout(() => {
+      if (typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(url)
+    }, 1000)
     setResult('書き出しました')
   }
 
