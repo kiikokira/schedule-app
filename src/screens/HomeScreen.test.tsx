@@ -1033,3 +1033,89 @@ describe('HomeScreen', () => {
     }
   })
 })
+
+describe('HomeScreen penalty banner', () => {
+  const isoNow = () => new Date().toISOString()
+
+  beforeEach(async () => {
+    await db.penalties.clear()
+    localStorage.removeItem('penalty-settings')
+  })
+
+  it('shows penalty banner when unresolved debt exists', async () => {
+    const { setPenaltySettings } = await import('../data/penaltyStore')
+    setPenaltySettings({ severity: 'normal', enabledBanner: true })
+    const date = daysAgo(1)
+    await db.penalties.add({
+      id: date,
+      date,
+      missingBookIds: ['b1'],
+      pageDebt: 20,
+      unitDebt: {},
+      points: 10,
+      severity: 'normal',
+      createdAt: isoNow(),
+    })
+    const onPenalty = vi.fn()
+    render(<HomeScreen onOpenBook={() => {}} onPenalty={onPenalty} />)
+    const banner = await screen.findByTestId('penalty-banner')
+    expect(banner).toHaveTextContent('借金 20ページ')
+    expect(banner).toHaveTextContent('罰Pt 10')
+    expect(banner).toHaveTextContent(/連続 \d+日/)
+    const open = screen.getByTestId('penalty-open')
+    expect(open).toHaveTextContent('取り返しクエストを見る')
+    fireEvent.click(open)
+    expect(onPenalty).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows penalty banner even when missingBookIds is empty but debt remains', async () => {
+    const { setPenaltySettings } = await import('../data/penaltyStore')
+    setPenaltySettings({ severity: 'normal', enabledBanner: true })
+    const date = daysAgo(1)
+    await db.penalties.add({
+      id: date,
+      date,
+      missingBookIds: [],
+      pageDebt: 20,
+      unitDebt: {},
+      points: 10,
+      severity: 'normal',
+      createdAt: isoNow(),
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(await screen.findByTestId('penalty-banner')).toHaveTextContent(
+      '借金 20ページ',
+    )
+    expect(screen.queryByTestId('penalty-banner-ok')).not.toBeInTheDocument()
+  })
+
+  it('shows ok banner when clean', async () => {
+    const { setPenaltySettings } = await import('../data/penaltyStore')
+    setPenaltySettings({ severity: 'normal', enabledBanner: true })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const ok = await screen.findByTestId('penalty-banner-ok')
+    expect(ok).toHaveTextContent(/連続\d+日継続中/)
+    expect(screen.queryByTestId('penalty-banner')).not.toBeInTheDocument()
+  })
+
+  it('shows neither banner when enabledBanner is false', async () => {
+    const { setPenaltySettings } = await import('../data/penaltyStore')
+    setPenaltySettings({ severity: 'normal', enabledBanner: false })
+    const date = daysAgo(1)
+    await db.penalties.add({
+      id: date,
+      date,
+      missingBookIds: ['b1'],
+      pageDebt: 20,
+      unitDebt: {},
+      points: 10,
+      severity: 'normal',
+      createdAt: isoNow(),
+    })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    await screen.findByTestId('schedule-section')
+    await new Promise((r) => setTimeout(r, 50))
+    expect(screen.queryByTestId('penalty-banner')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('penalty-banner-ok')).not.toBeInTheDocument()
+  })
+})

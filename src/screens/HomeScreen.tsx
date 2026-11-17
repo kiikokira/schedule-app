@@ -29,6 +29,8 @@ import { totalPagesToRank, rankToDeviation, totalActivity, RANK_POPULATION } fro
 import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
 import { EXAM_END_DATE, quoteOf } from '../data/quotes'
+import { getPenaltySettings, listPenalties, type PenaltyEvent } from '../data/penaltyStore'
+import { MAX_PAGE_DEBT, calcStreak, calcTotalPoints, rankForPoints } from '../lib/penalty'
 import { loadSchedule, saveSchedule, syncEntryDatesForBook } from '../data/scheduleStore'
 import { loadSeasonState, recordSeasonDay } from '../data/seasonStore'
 import { seasonDayIndex } from '../lib/seasonLeague'
@@ -55,6 +57,7 @@ type Props = {
   onRanking?: () => void
   onMyPage?: () => void
   onSchool?: () => void
+  onPenalty?: () => void
 }
 
 function findRegistered(
@@ -393,7 +396,104 @@ function ScheduleRow({
   )
 }
 
-export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }: Props) {
+function penaltyDateStr(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+// TODO(Task6): replace this temporary last-7-day aggregation with a shared helper.
+function PenaltyBanner({ onPenalty }: { onPenalty?: () => void }) {
+  const [events, setEvents] = useState<PenaltyEvent[] | null>(null)
+  const [enabled, setEnabled] = useState(true)
+  useEffect(() => {
+    let cancelled = false
+    try {
+      setEnabled(getPenaltySettings().enabledBanner)
+    } catch {
+      setEnabled(true)
+    }
+    void listPenalties()
+      .then((all) => {
+        if (!cancelled) setEvents(all)
+      })
+      .catch(() => {
+        if (!cancelled) setEvents([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  if (!enabled || events === null) return null
+  const today = todayStr()
+  const base = new Date(
+    Number(today.slice(0, 4)),
+    Number(today.slice(5, 7)) - 1,
+    Number(today.slice(8, 10)),
+  )
+  const cutoff = penaltyDateStr(new Date(base.getTime() - 6 * 24 * 60 * 60 * 1000))
+  const recent = events
+    .filter((e) => e.date >= cutoff && e.date <= today)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+  const outstanding = Math.min(
+    recent.reduce((sum, e) => sum + e.pageDebt, 0),
+    MAX_PAGE_DEBT,
+  )
+  const totalPoints = calcTotalPoints(
+    recent.map((e) => ({ date: e.date, points: e.points })),
+    0,
+  )
+  const missDates = new Set(recent.map((e) => e.date))
+  const daily: { date: string; isMiss: boolean; hasPlan: boolean }[] = []
+  for (let i = 6; i >= 0; i--) {
+    const d = penaltyDateStr(new Date(base.getTime() - i * 24 * 60 * 60 * 1000))
+    daily.push({ date: d, isMiss: missDates.has(d), hasPlan: true })
+  }
+  const streak = calcStreak(daily)
+  const rank = rankForPoints(totalPoints)
+  if (outstanding > 0 || totalPoints > 0) {
+    return (
+      <div
+        data-testid="penalty-banner"
+        style={{
+          marginBottom: 8,
+          padding: '10px 12px',
+          borderRadius: 8,
+          background: '#fef2f2',
+          border: '1px solid #f0a0a0',
+          fontSize: 13,
+        }}
+      >
+        サボり残あり! 借金 {outstanding}ページ | 罰Pt {totalPoints} | 連続 {streak}日 | ランク {rank}
+        <button
+          data-testid="penalty-open"
+          type="button"
+          onClick={() => onPenalty?.()}
+          style={{ marginLeft: 8 }}
+        >
+          取り返しクエストを見る
+        </button>
+      </div>
+    )
+  }
+  return (
+    <div
+      data-testid="penalty-banner-ok"
+      style={{
+        marginBottom: 8,
+        padding: '6px 12px',
+        borderRadius: 8,
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        fontSize: 12,
+        color: 'var(--text-dim)',
+      }}
+    >
+      連続{streak}日継続中
+    </div>
+  )
+}
+
+export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool, onPenalty }: Props) {
   const { books, saveBook, loaded: booksLoaded } = useBooks()
   const { records, addProgress } = useRecords()
   const { cycleRecords } = useCycleRecords()
@@ -592,6 +692,7 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool }
         style={{ height: 80, width: 'auto', maxWidth: '100%', display: 'block', margin: '0 auto' }}
       />
       <HeroHeader today={today} />
+      <PenaltyBanner onPenalty={onPenalty} />
       {todayQuote && (
         <div
           data-testid="today-quote-block"
