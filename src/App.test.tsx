@@ -140,3 +140,13 @@ it('renders home immediately without any opening animation', () => {
   getItem.mockRestore()
   setItem.mockRestore()
 })
+
+it('navigates today -> penalty -> today', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByTestId('nav-today'))
+  await screen.findByTestId('today-plan-screen')
+  fireEvent.click(screen.getByTestId('penalty-open'))
+  expect(await screen.findByTestId('penalty-page')).toBeInTheDocument()
+  fireEvent.click(screen.getByTestId('penalty-back'))
+  expect(await screen.findByTestId('today-plan-screen')).toBeInTheDocument()
+})

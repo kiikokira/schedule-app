@@ -14,6 +14,7 @@ import JapanMatchScreen from './screens/JapanMatchScreen'
 import RankingScreen from './screens/RankingScreen'
 import MyPageScreen from './screens/MyPageScreen'
 import BreakdownScreen from './screens/BreakdownScreen'
+import PenaltyScreen from './screens/PenaltyScreen'
 import { useBooks } from './hooks/useBooks'
 import { listAvailability, prunePastOverrides } from './data/dayplanStore'
 import { todayStr, formatDate } from './lib/progress'
@@ -42,6 +43,7 @@ type Route =
   | { name: 'ranking' }
   | { name: 'mypage' }
   | { name: 'breakdown' }
+  | { name: 'penalty' }
 
 export default function App() {
   const { books, refresh } = useBooks()
@@ -110,7 +112,7 @@ export default function App() {
       </header>
       <main>
         {route.name === 'home' && (
-          <HomeScreen onOpenBook={(id) => setRoute({ name: 'detail', bookId: id })} onRanking={() => setRoute({ name: 'ranking' })} onMyPage={() => setRoute({ name: 'mypage' })} onSchool={() => setRoute({ name: 'school' })} />
+          <HomeScreen onOpenBook={(id) => setRoute({ name: 'detail', bookId: id })} onRanking={() => setRoute({ name: 'ranking' })} onMyPage={() => setRoute({ name: 'mypage' })} onSchool={() => setRoute({ name: 'school' })} onPenalty={() => setRoute({ name: 'penalty' })} />
         )}
         {route.name === 'detail' && (
           <BookDetailScreen
@@ -149,6 +151,7 @@ export default function App() {
             onBack={() => setRoute({ name: 'home' })}
             onSettings={() => setRoute({ name: 'plan' })}
             onRebalance={(bookId) => setRoute({ name: 'rebalance', bookId })}
+            onPenalty={() => setRoute({ name: 'penalty' })}
           />
         )}
         {route.name === 'school' && (
@@ -165,6 +168,9 @@ export default function App() {
         )}
         {route.name === 'breakdown' && (
           <BreakdownScreen onBack={() => setRoute({ name: 'mypage' })} />
+        )}
+        {route.name === 'penalty' && (
+          <PenaltyScreen onBack={() => setRoute({ name: 'today' })} />
         )}
       </main>
       <footer className="app-footer">

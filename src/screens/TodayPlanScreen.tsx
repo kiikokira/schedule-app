@@ -31,6 +31,7 @@ type Props = {
   onSettings: () => void
   today?: string
   onRebalance?: (bookId: string) => void
+  onPenalty?: () => void
 }
 
 function toScheduledBook(b: BookData): ScheduledBook {
@@ -241,7 +242,7 @@ function overlayCyclesPins(
   return out.sort((a, b) => a.startMin - b.startMin)
 }
 
-export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, onRebalance }: Props) {
+export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, onRebalance, onPenalty }: Props) {
   const { books: allBooks } = useBooks()
   const { records, addProgress } = useRecords()
   const { cycleRecords, addCycle } = useCycleRecords()
@@ -775,6 +776,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   return (
     <div data-testid="today-plan-screen" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>今日の計画</h1>
+      <button data-testid="penalty-open" type="button" onClick={() => onPenalty?.()}>
+        罰センターを見る
+      </button>
       {progressItems.length > 0 && (
         <>
           <p data-testid="today-progress-summary">今日の進捗 {progressDone} / {progressTarget}</p>
