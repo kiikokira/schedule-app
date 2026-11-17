@@ -98,6 +98,7 @@ export default function BookFormScreen({ book, onDone, onRebalance }: Props) {
       setTargetRounds(String(LEAP_TARGET_ROUNDS))
     }
     if (item.id === 'eibunpo-polaris-2') {
+      // spec 2026-11-16: 50分17頁→3分/頁
       setMinutes('3')
     }
   }

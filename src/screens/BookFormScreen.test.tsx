@@ -47,6 +47,14 @@ describe('BookFormScreen', () => {
     expect(screen.getByText('すでに終わった語数')).toBeInTheDocument()
   })
 
+  it('ポラリス2選択で1ページ3分・科目文法が自動セットされる', () => {
+    render(<BookFormScreen book={null} onDone={() => {}} />)
+    fireEvent.change(screen.getByTestId('catalog-search-input'), { target: { value: 'ポラリス2' } })
+    fireEvent.click(screen.getByTestId('catalog-item-eibunpo-polaris-2').querySelector('button')!)
+    expect((screen.getByTestId('book-minutes') as HTMLInputElement).value).toBe('3')
+    expect((screen.getByTestId('book-subject') as HTMLInputElement).value).toBe('文法')
+  })
+
   it('編集保存で対応するスケジュールの期限も更新される', async () => {
     const now = new Date().toISOString()
     const existing = {
