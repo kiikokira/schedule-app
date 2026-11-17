@@ -1,6 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../db/database'
+import { todayStr } from '../lib/progress'
+import { addDays } from '../lib/dayplan'
 import PenaltyScreen from './PenaltyScreen'
 
 beforeEach(async () => {
@@ -63,6 +65,58 @@ describe('PenaltyScreen', () => {
     const all = screen.getAllByTestId(/penalty-history-/)
     const dates = all.map((el) => el.getAttribute('data-testid')?.replace('penalty-history-', ''))
     expect(dates).toEqual([...dates].sort().reverse())
+  })
+
+  it('複数本の借金合計はその日のpageDebtと一致する', async () => {
+    await db.penalties.add({
+      id: '2026-11-13',
+      date: '2026-11-13',
+      missingBookIds: ['b1', 'b2'],
+      pageDebt: 50,
+      unitDebt: {},
+      points: 20,
+      severity: 'normal',
+      createdAt: new Date().toISOString(),
+    })
+    render(<PenaltyScreen onBack={() => {}} />)
+    const d1 = await screen.findByTestId('penalty-debt-b1')
+    const d2 = await screen.findByTestId('penalty-debt-b2')
+    const num = (el: HTMLElement) => Number((el.textContent ?? '').match(/(\d+)ページ/)?.[1] ?? NaN)
+    expect(num(d1) + num(d2)).toBe(50)
+  })
+
+  it('集計は直近7日に寄せる(Homeと一致: 古い借金は合計外・履歴は残る)', async () => {
+    const today = todayStr()
+    const yesterday = addDays(today, -1)
+    const old = addDays(today, -10)
+    const isoNow = new Date().toISOString()
+    await db.penalties.add({
+      id: yesterday,
+      date: yesterday,
+      missingBookIds: ['b1'],
+      pageDebt: 20,
+      unitDebt: {},
+      points: 10,
+      severity: 'normal',
+      createdAt: isoNow,
+    })
+    await db.penalties.add({
+      id: old,
+      date: old,
+      missingBookIds: ['b1'],
+      pageDebt: 100,
+      unitDebt: {},
+      points: 10,
+      severity: 'normal',
+      createdAt: isoNow,
+    })
+    render(<PenaltyScreen onBack={() => {}} />)
+    // 非同期読み込み完了を待ってから集計文言を検証する
+    expect(await screen.findByTestId(`penalty-history-${yesterday}`)).toBeInTheDocument()
+    const page = await screen.findByTestId('penalty-page')
+    expect(page).toHaveTextContent('借金 20ページ')
+    // 履歴自体は全期間表示のまま
+    expect(await screen.findByTestId(`penalty-history-${old}`)).toBeInTheDocument()
   })
 
   it('changing severity to strict reflects setPenaltySettings', async () => {

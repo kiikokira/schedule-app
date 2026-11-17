@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { db } from '../db/database'
 import { getPenaltySettings, setPenaltySettings, listPenalties, type PenaltyEvent, type PenaltySettings } from '../data/penaltyStore'
-import { MAX_PAGE_DEBT, calcStreak, calcTotalPoints, rankForPoints } from '../lib/penalty'
+import { summarizeRecentPenalties } from '../lib/penaltyEvaluate'
+import { todayStr } from '../lib/progress'
 
 type Props = {
   onBack: () => void
@@ -43,35 +44,30 @@ export default function PenaltyScreen({ onBack }: Props) {
 
   const sorted = (events ?? []).slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
 
+  // C1: 1日の借金は未記録本の合計のため各本へ按分する(端数は先頭本から+1)。
+  // 合計がその日の pageDebt と一致することはテストで保証する。反復の区画は冊ごと。
   const debtByBook = new Map<string, { pages: number; units: number }>()
   for (const e of sorted) {
-    for (const bookId of e.missingBookIds) {
-      const cur = debtByBook.get(bookId) ?? { pages: 0, units: 0 }
-      cur.pages += e.pageDebt
-      cur.units += e.unitDebt?.[bookId] ?? 0
-      debtByBook.set(bookId, cur)
-    }
-    if (e.missingBookIds.length === 0 && e.pageDebt > 0) {
+    const ids = e.missingBookIds
+    if (ids.length > 0) {
+      const base = Math.floor(e.pageDebt / ids.length)
+      let rest = e.pageDebt - base * ids.length
+      for (const bookId of ids) {
+        const cur = debtByBook.get(bookId) ?? { pages: 0, units: 0 }
+        cur.pages += base + (rest > 0 ? 1 : 0)
+        if (rest > 0) rest -= 1
+        cur.units += e.unitDebt?.[bookId] ?? 0
+        debtByBook.set(bookId, cur)
+      }
+    } else if (e.pageDebt > 0) {
       const cur = debtByBook.get('unknown') ?? { pages: 0, units: 0 }
       cur.pages += e.pageDebt
       debtByBook.set('unknown', cur)
     }
   }
 
-  const outstanding = Math.min(
-    sorted.reduce((s, e) => s + e.pageDebt, 0),
-    MAX_PAGE_DEBT,
-  )
-  const totalPoints = calcTotalPoints(
-    sorted.map((e) => ({ date: e.date, points: e.points })),
-    0,
-  )
-  const rank = rankForPoints(totalPoints)
-  const streak = calcStreak(
-    sorted.length === 0
-      ? [{ date: '', isMiss: false, hasPlan: false }]
-      : sorted.map((e) => ({ date: e.date, isMiss: true, hasPlan: true })),
-  )
+  // C2: Home バナーと一致させるため直近7日集計は共有ヘルパーに寄せる(当日分は除外)。
+  const { outstanding, totalPoints, streak, rank } = summarizeRecentPenalties(events ?? [], todayStr())
 
   const handleSeverity = (v: string) => {
     const severity = (v === 'mild' || v === 'strict' ? v : 'normal') as PenaltySettings['severity']

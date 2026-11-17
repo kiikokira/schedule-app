@@ -1,4 +1,4 @@
-import { evaluateDay, getPenaltySettings, listPenalties, type PenaltyEvent } from '../data/penaltyStore'
+import { evaluateDay, getPenaltySettings, listPenalties, upsertPenalty, type PenaltyEvent } from '../data/penaltyStore'
 import type { AvailabilitySlot } from '../data/dayplanStore'
 import { addDays, effectiveSpeed, generateDayPlan, slotsForDate, type ScheduledBook } from './dayplan'
 import { getNotifySettings, publishPush } from './notify'
@@ -10,7 +10,7 @@ import {
   type CycleRecordData,
   type ProgressRecordData,
 } from './progress'
-import { calcStreak, calcTotalPoints, MAX_PAGE_DEBT, rankForPoints } from './penalty'
+import { calcOutstanding, calcStreak, calcTotalPoints, MAX_PAGE_DEBT, rankForPoints } from './penalty'
 
 export type PlannedDay = {
   planned: { bookId: string; pages: number }[]
@@ -83,6 +83,9 @@ export async function evaluateRecentDays(
   load: EvaluateLoad,
 ): Promise<void> {
   const severity = getPenaltySettings().severity
+  // I2超過充当用に日別の予定合計と記録合計を集める(反復は区画単位のためページ超過には含めない)。
+  const plannedTotals = new Map<string, number>()
+  const recordedTotals = new Map<string, number>()
   for (let i = daysBack - 1; i >= 0; i--) {
     const date = addDays(today, -i)
     if (slotsForDate(load.availability, date).length === 0) continue
@@ -108,7 +111,44 @@ export async function evaluateRecentDays(
     for (const c of load.cycleRecords) {
       if (c.date === date) recorded.add(c.bookId)
     }
+    plannedTotals.set(date, planned.reduce((sum, p) => sum + p.pages, 0))
+    recordedTotals.set(
+      date,
+      load.records
+        .filter((r) => r.date === date && activeIds.has(r.bookId))
+        .reduce((sum, r) => sum + r.pages, 0),
+    )
     await evaluateDay(date, targetIds, recorded, planned, cyclePlanned, severity)
+  }
+  // Q1-A: 超過分 max(記録-予定,0) を古い借金からFIFO充当する。
+  // evaluateDay の全記録削除は維持し、古い events の pageDebt だけ減らす
+  // (points/履歴は残す)。毎走査で evaluateDay が pageDebt を復元してから
+  // 充当し直すため冪等。表示上限500は summarize 側の責務とし、ここでは素直に引き直す。
+  const repayments = [...plannedTotals.entries()]
+    .map(([date, plannedTotal]) => ({
+      date,
+      excessPages: Math.max((recordedTotals.get(date) ?? 0) - plannedTotal, 0),
+    }))
+    .filter((r) => r.excessPages > 0)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+  if (repayments.length > 0) {
+    const windowStart = addDays(today, -(daysBack - 1))
+    const debts = (await listPenalties())
+      .filter((p) => p.date >= windowStart && p.date <= today)
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+    if (debts.length > 0) {
+      const pageDebts = debts.map((d) => ({ date: d.date, pageDebt: d.pageDebt }))
+      const after = calcOutstanding(pageDebts, repayments)
+      let remaining = pageDebts.reduce((sum, d) => sum + d.pageDebt, 0) - after
+      for (const d of debts) {
+        if (remaining <= 0) break
+        const take = Math.min(d.pageDebt, remaining)
+        if (take <= 0) continue
+        d.pageDebt -= take
+        remaining -= take
+        await upsertPenalty(d)
+      }
+    }
   }
 }
 
@@ -121,18 +161,24 @@ export type PenaltySummary = {
 }
 
 // HomeScreen バナー用の直近7日集計（借金合算・上限500、罰Pt、連続日、ランク）。
-export function summarizeRecentPenalties(events: PenaltyEvent[], today: string): PenaltySummary {
+// I4: 当日分はクエスト二重計上防止のため既定で除外する(includeToday=trueで含める)。
+// I1: 良い日(計画ありの非サボり日)を数えて calcTotalPoints に渡し-5回復する。
+// I2: 超過充当は評価走査で pageDebt に反映済みのため、ここでは残高を合算するのみ。
+export function summarizeRecentPenalties(
+  events: PenaltyEvent[],
+  today: string,
+  includeToday = false,
+): PenaltySummary {
   const cutoff = addDays(today, -6)
   const recent = events
-    .filter((e) => e.date >= cutoff && e.date <= today)
+    .filter((e) => e.date >= cutoff && (includeToday ? e.date <= today : e.date < today))
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
   const outstanding = Math.min(
-    recent.reduce((sum, e) => sum + e.pageDebt, 0),
+    calcOutstanding(
+      recent.map((e) => ({ date: e.date, pageDebt: e.pageDebt })),
+      [],
+    ),
     MAX_PAGE_DEBT,
-  )
-  const totalPoints = calcTotalPoints(
-    recent.map((e) => ({ date: e.date, points: e.points })),
-    0,
   )
   const missDates = new Set(recent.map((e) => e.date))
   const daily: { date: string; isMiss: boolean; hasPlan: boolean }[] = []
@@ -140,6 +186,11 @@ export function summarizeRecentPenalties(events: PenaltyEvent[], today: string):
     const d = addDays(today, -i)
     daily.push({ date: d, isMiss: missDates.has(d), hasPlan: true })
   }
+  const goodDayCount = daily.filter((d) => d.hasPlan && !d.isMiss).length
+  const totalPoints = calcTotalPoints(
+    recent.map((e) => ({ date: e.date, points: e.points })),
+    goodDayCount,
+  )
   const streak = calcStreak(daily)
   const rank = rankForPoints(totalPoints)
   return { outstanding, totalPoints, streak, rank, recent }
@@ -167,7 +218,9 @@ export async function maybeNotifyYesterdayMiss(
     const all = await listPenalties()
     const miss = all.find((p) => p.date === yesterday)
     if (!miss || miss.pageDebt <= 0) return
-    await publishPush(notify.topic, `昨日は記録なし 借金${miss.pageDebt}ページ`, { title: 'サボり罰' }, fetchImpl)
+    const result = await publishPush(notify.topic, `昨日は記録なし 借金${miss.pageDebt}ページ`, { title: 'サボり罰' }, fetchImpl)
+    // I3: 送信失敗時は済フラグを残さず次回起動時に再送させる
+    if (!result.ok) return
     try {
       localStorage.setItem(key, '1')
     } catch {

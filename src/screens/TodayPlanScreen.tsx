@@ -328,7 +328,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
           return `${y}-${m}-${day}`
         })()
         const sum = all
-          .filter((p) => p.date >= cutoff && p.date <= today)
+          // I4: 当日分は今日予定との二重計上になるため除外する(評価走査自体は当日含む)。
+          .filter((p) => p.date >= cutoff && p.date < today)
           .reduce((s, p) => s + p.pageDebt, 0)
         setPenaltyOutstanding(Math.min(sum, MAX_PAGE_DEBT))
       })

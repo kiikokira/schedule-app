@@ -1260,5 +1260,47 @@ describe('penalty today warning', () => {
     expect(screen.queryByTestId('penalty-yesterday-warning')).not.toBeInTheDocument()
     expect(screen.queryByTestId('penalty-today-debt')).not.toBeInTheDocument()
   })
+
+  it('penalty 当日分はクエストに二重計上しない', async () => {
+    await db.penalties.clear()
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    const { setPenaltySettings } = await import('../data/penaltyStore')
+    setPenaltySettings({ severity: 'normal', enabledBanner: true })
+    const today = '2026-09-21'
+    const isoNow = new Date().toISOString()
+    await db.penalties.put({
+      id: '2026-09-20',
+      date: '2026-09-20',
+      missingBookIds: ['b1'],
+      pageDebt: 20,
+      unitDebt: {},
+      points: 10,
+      severity: 'normal',
+      createdAt: isoNow,
+    })
+    await db.penalties.put({
+      id: today,
+      date: today,
+      missingBookIds: ['b1'],
+      pageDebt: 15,
+      unitDebt: {},
+      points: 10,
+      severity: 'normal',
+      createdAt: isoNow,
+    })
+    const { calcQuestToday } = await import('../lib/penalty')
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today={today} />)
+    const warning = await screen.findByTestId('penalty-yesterday-warning')
+    expect(warning).toHaveTextContent('借金 20ページ')
+    const pages = screen
+      .getAllByTestId('plan-row-pages')
+      .map((el) => Number((el.textContent ?? '').match(/(\d+)/)?.[1] ?? 0))
+    const todayPlanned = pages.reduce((a, b) => a + b, 0)
+    expect(warning).toHaveTextContent(String(calcQuestToday(todayPlanned, 20)))
+  })
 })
 

@@ -84,7 +84,8 @@ describe('evaluateRecentDays', () => {
       plannedByDate,
     })
     const before = summarizeRecentPenalties(await listPenalties(), TODAY)
-    expect(before.outstanding).toBe(210)
+    // 当日分はクエスト二重計上防止のため集計外 (I4)。6日分×30=180
+    expect(before.outstanding).toBe(180)
     const records: ProgressRecordData[] = []
     for (let i = 6; i >= 0; i--) {
       const d = new Date(2026, 10, 14 - i)
@@ -161,6 +162,53 @@ describe('evaluateRecentDays', () => {
   })
 })
 
+describe('summarizeRecentPenalties recovery (I1)', () => {
+  it('良い日(計画ありの非サボり日)で-5ずつ回復し下限0', async () => {
+    await evaluateDay('2026-11-13', ['b1'], new Set(), [{ bookId: 'b1', pages: 30 }], [], 'normal')
+    const summary = summarizeRecentPenalties(await listPenalties(), TODAY)
+    // +10pt に対し良い日6日で-30 → 下限0
+    expect(summary.totalPoints).toBe(0)
+  })
+
+  it('回復しきれない分は罰Ptに残る', async () => {
+    for (const d of ['2026-11-08', '2026-11-09', '2026-11-10', '2026-11-11']) {
+      await evaluateDay(d, ['b1'], new Set(), [{ bookId: 'b1', pages: 30 }], [], 'normal')
+    }
+    const summary = summarizeRecentPenalties(await listPenalties(), TODAY)
+    // +40pt に対し良い日3日で-15 → 25
+    expect(summary.totalPoints).toBe(25)
+  })
+})
+
+describe('evaluateRecentDays FIFO (I2)', () => {
+  it('超過記録で古い借金がFIFO充当される', async () => {
+    await evaluateRecentDays(TODAY, 2, {
+      books: [book('b1')],
+      records: [{ id: 'r-over', bookId: 'b1', date: '2026-11-14', pages: 50 }],
+      cycleRecords: [],
+      availability: weekAvailability(),
+      plannedByDate,
+    })
+    const summary = summarizeRecentPenalties(await listPenalties(), TODAY)
+    // 11-13: 未記録で借金30。11-14: 予定30に対し50記録で超過20 → 古い借金に充当
+    expect(summary.outstanding).toBe(10)
+  })
+})
+
+describe('summarizeRecentPenalties today exclusion (I4)', () => {
+  it('当日分は借金集計から除外する(既定)', async () => {
+    await evaluateDay(TODAY, ['b1'], new Set(), [{ bookId: 'b1', pages: 30 }], [], 'normal')
+    const summary = summarizeRecentPenalties(await listPenalties(), TODAY)
+    expect(summary.outstanding).toBe(0)
+  })
+
+  it('includeToday=trueでは当日分を含む', async () => {
+    await evaluateDay(TODAY, ['b1'], new Set(), [{ bookId: 'b1', pages: 30 }], [], 'normal')
+    const summary = summarizeRecentPenalties(await listPenalties(), TODAY, true)
+    expect(summary.outstanding).toBe(30)
+  })
+})
+
 describe('notifiedKeyFor', () => {
   it('penalty-notified-YYYY-MM-DD 形式を返す', () => {
     expect(notifiedKeyFor('2026-11-14')).toBe('penalty-notified-2026-11-14')
@@ -215,5 +263,14 @@ describe('maybeNotifyYesterdayMiss', () => {
     await expect(
       maybeNotifyYesterdayMiss(TODAY, fetchMock as unknown as typeof fetch),
     ).resolves.toBeUndefined()
+  })
+
+  it('送信失敗時(ok:false)は済フラグを残さない', async () => {
+    setNotifySettings({ enabled: true, topic: 'my-topic' })
+    await evaluateDay('2026-11-13', ['b1'], new Set(), [{ bookId: 'b1', pages: 30 }], [], 'normal')
+    const fetchMock = vi.fn(async () => ({ ok: false, status: 500 }) as Response)
+    await maybeNotifyYesterdayMiss(TODAY, fetchMock as unknown as typeof fetch)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(localStorage.getItem('penalty-notified-2026-11-13')).toBeNull()
   })
 })
