@@ -24,6 +24,9 @@ import { publishSlotsOnce, syncSlotSchedules } from './lib/slotsPublish'
 import { slotsForDate } from './lib/dayplan'
 import { takeAutoSnapshotIfNeeded } from './data/autoBackup'
 import { autoForfeitPastSlots } from './data/seasonStore'
+import { db } from './db/database'
+import { loadFocusPeriods, selectedBookIds } from './data/focusPeriods'
+import { evaluateRecentDays, maybeNotifyYesterdayMiss } from './lib/penaltyEvaluate'
 import './styles.css'
 
 type Route =
@@ -90,6 +93,32 @@ export default function App() {
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 起動時に直近7日を走査して罰を評価し、前日サボりを通知する（罰ルートは維持）。
+  // 評価は idempotent put、通知は1日1回dedup。失敗しても起動を壊さない。
+  useEffect(() => {
+    void (async () => {
+      try {
+        const today = todayStr()
+        const [availability, books, records, cycleRecords] = await Promise.all([
+          listAvailability(),
+          db.books.toArray(),
+          db.records.toArray(),
+          db.cycleRecords.toArray(),
+        ])
+        await evaluateRecentDays(today, 7, {
+          books,
+          records,
+          cycleRecords,
+          availability,
+          focusIds: selectedBookIds(loadFocusPeriods(), today),
+        })
+        await maybeNotifyYesterdayMiss(today)
+      } catch {
+        // 評価・通知の失敗で起動を壊さない
+      }
+    })()
   }, [])
 
   useEffect(() => {

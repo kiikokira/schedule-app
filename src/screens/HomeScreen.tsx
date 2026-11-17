@@ -30,7 +30,7 @@ import { CATALOG, type CatalogBook } from '../data/catalog'
 import { isLeapBook } from '../lib/leap'
 import { EXAM_END_DATE, quoteOf } from '../data/quotes'
 import { getPenaltySettings, listPenalties, type PenaltyEvent } from '../data/penaltyStore'
-import { MAX_PAGE_DEBT, calcStreak, calcTotalPoints, rankForPoints } from '../lib/penalty'
+import { summarizeRecentPenalties } from '../lib/penaltyEvaluate'
 import { loadSchedule, saveSchedule, syncEntryDatesForBook } from '../data/scheduleStore'
 import { loadSeasonState, recordSeasonDay } from '../data/seasonStore'
 import { seasonDayIndex } from '../lib/seasonLeague'
@@ -396,12 +396,7 @@ function ScheduleRow({
   )
 }
 
-function penaltyDateStr(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-
-// TODO(Task6): replace this temporary last-7-day aggregation with a shared helper.
+// 直近7日の集計は共有ヘルパー summarizeRecentPenalties に寄せる。
 function PenaltyBanner({ onPenalty }: { onPenalty?: () => void }) {
   const [events, setEvents] = useState<PenaltyEvent[] | null>(null)
   const [enabled, setEnabled] = useState(true)
@@ -425,31 +420,7 @@ function PenaltyBanner({ onPenalty }: { onPenalty?: () => void }) {
   }, [])
   if (!enabled || events === null) return null
   const today = todayStr()
-  const base = new Date(
-    Number(today.slice(0, 4)),
-    Number(today.slice(5, 7)) - 1,
-    Number(today.slice(8, 10)),
-  )
-  const cutoff = penaltyDateStr(new Date(base.getTime() - 6 * 24 * 60 * 60 * 1000))
-  const recent = events
-    .filter((e) => e.date >= cutoff && e.date <= today)
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-  const outstanding = Math.min(
-    recent.reduce((sum, e) => sum + e.pageDebt, 0),
-    MAX_PAGE_DEBT,
-  )
-  const totalPoints = calcTotalPoints(
-    recent.map((e) => ({ date: e.date, points: e.points })),
-    0,
-  )
-  const missDates = new Set(recent.map((e) => e.date))
-  const daily: { date: string; isMiss: boolean; hasPlan: boolean }[] = []
-  for (let i = 6; i >= 0; i--) {
-    const d = penaltyDateStr(new Date(base.getTime() - i * 24 * 60 * 60 * 1000))
-    daily.push({ date: d, isMiss: missDates.has(d), hasPlan: true })
-  }
-  const streak = calcStreak(daily)
-  const rank = rankForPoints(totalPoints)
+  const { outstanding, totalPoints, streak, rank } = summarizeRecentPenalties(events, today)
   if (outstanding > 0 || totalPoints > 0) {
     return (
       <div
