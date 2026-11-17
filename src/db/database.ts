@@ -4,6 +4,7 @@ import type { AvailabilitySlot, Adjustment } from '../data/dayplanStore'
 import type { ChatHistoryEntry } from '../data/chatHistoryStore'
 import type { AutoSnapshot } from '../data/autoBackup'
 import type { GhostLog } from '../data/ghostLogStore'
+import type { PenaltyEvent } from '../data/penaltyStore'
 
 export type DexieBook = BookData
 export type DexieRecord = ProgressRecordData
@@ -17,6 +18,7 @@ class ScheduleDB extends Dexie {
   chatMessages!: Table<ChatHistoryEntry, string>
   snapshots!: Table<AutoSnapshot, string>
   ghostLogs!: Table<GhostLog, string>
+  penalties!: Table<PenaltyEvent, string>
 
   constructor() {
     super('schedule-app')
@@ -64,6 +66,17 @@ class ScheduleDB extends Dexie {
       snapshots: 'id',
       ghostLogs: 'id, date',
     })
+    this.version(7).stores({
+      books: 'id, deadline, startDate',
+      records: 'id, bookId, [bookId+date]',
+      availability: 'id, weekday, date',
+      adjustments: 'id, date, bookId',
+      cycleRecords: 'id, bookId, [bookId+date]',
+      chatMessages: 'id, at',
+      snapshots: 'id',
+      ghostLogs: 'id, date',
+      penalties: 'id, date',
+    })
   }
 }
 
@@ -89,11 +102,21 @@ export async function upsertProgress(
 }
 
 export async function deleteBookCascade(bookId: string): Promise<void> {
-  await db.transaction('rw', db.books, db.records, db.cycleRecords, async () => {
+  await db.transaction('rw', db.books, db.records, db.cycleRecords, db.penalties, async () => {
     await db.records.where('bookId').equals(bookId).delete()
     await db.cycleRecords.where('bookId').equals(bookId).delete()
+    await prunePenaltyBook(bookId)
     await db.books.delete(bookId)
   })
+}
+
+export async function prunePenaltyBook(bookId: string): Promise<void> {
+  const all = await db.penalties.toArray()
+  for (const p of all) {
+    if (p.missingBookIds.includes(bookId)) {
+      await db.penalties.update(p.id, { missingBookIds: p.missingBookIds.filter((id) => id !== bookId) })
+    }
+  }
 }
 
 export type RecordPatch = {

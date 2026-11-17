@@ -3,11 +3,13 @@ import {
   db,
   upsertProgress,
   deleteBookCascade,
+  prunePenaltyBook,
   updateProgressRecord,
   deleteProgressRecord,
   updateCycleRecord,
   type DexieBook,
 } from './database'
+import type { PenaltyEvent } from '../data/penaltyStore'
 
 const book: DexieBook = {
   id: 'b1',
@@ -23,6 +25,7 @@ beforeEach(async () => {
   await db.books.clear()
   await db.records.clear()
   await db.cycleRecords.clear()
+  await db.penalties.clear()
 })
 
 describe('upsertProgress', () => {
@@ -124,5 +127,44 @@ describe('deleteProgressRecord', () => {
     const all = await db.records.where('bookId').equals('b1').toArray()
     expect(all).toHaveLength(1)
     expect(all[0].date).toBe('2026-01-06')
+  })
+})
+
+const penalty: PenaltyEvent = {
+  id: '2026-01-05',
+  date: '2026-01-05',
+  missingBookIds: ['b1', 'b2'],
+  pageDebt: 20,
+  unitDebt: {},
+  points: 20,
+  severity: 'normal',
+  createdAt: '2026-01-05T00:00:00.000Z',
+}
+
+describe('prunePenaltyBook', () => {
+  it('removes the book from missingBookIds without recalculating debt', async () => {
+    await db.penalties.add(penalty)
+    await prunePenaltyBook('b1')
+    const stored = await db.penalties.get('2026-01-05')
+    expect(stored?.missingBookIds).toEqual(['b2'])
+    expect(stored?.pageDebt).toBe(20)
+    expect(stored?.points).toBe(20)
+  })
+  it('keeps the event frame when the array becomes empty', async () => {
+    await db.penalties.add({ ...penalty, missingBookIds: ['b1'] })
+    await prunePenaltyBook('b1')
+    const stored = await db.penalties.get('2026-01-05')
+    expect(stored?.missingBookIds).toEqual([])
+  })
+})
+
+describe('deleteBookCascade with penalties', () => {
+  it('prunes the deleted book from penalties in the same cascade', async () => {
+    await db.books.add(book)
+    await db.penalties.add(penalty)
+    await deleteBookCascade('b1')
+    expect(await db.books.get('b1')).toBeUndefined()
+    const stored = await db.penalties.get('2026-01-05')
+    expect(stored?.missingBookIds).toEqual(['b2'])
   })
 })
