@@ -1202,3 +1202,63 @@ describe('today slot gate', () => {
   })
 })
 
+describe('penalty today warning', () => {
+  it('penalty 未返済があると昨日の借金警告と今日返すべき借金を表示する', async () => {
+    await db.penalties.clear()
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    const { setPenaltySettings } = await import('../data/penaltyStore')
+    setPenaltySettings({ severity: 'normal', enabledBanner: true })
+    await db.penalties.put({
+      id: '2026-09-20',
+      date: '2026-09-20',
+      missingBookIds: ['b1'],
+      pageDebt: 20,
+      unitDebt: {},
+      points: 10,
+      severity: 'normal',
+      createdAt: new Date().toISOString(),
+    })
+    const { calcQuestToday } = await import('../lib/penalty')
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const warning = await screen.findByTestId('penalty-yesterday-warning')
+    expect(warning).toHaveTextContent('借金')
+    const pages = screen
+      .getAllByTestId('plan-row-pages')
+      .map((el) => Number((el.textContent ?? '').match(/(\d+)/)?.[1] ?? 0))
+    const todayPlanned = pages.reduce((a, b) => a + b, 0)
+    expect(warning).toHaveTextContent(String(calcQuestToday(todayPlanned, 20)))
+    const debt = await screen.findByTestId('penalty-today-debt')
+    expect(debt).toHaveTextContent('今日返すべき借金')
+    expect(debt).toHaveTextContent('+20')
+  })
+
+  it('penalty enabledBanner falseでは警告も借金も出さない', async () => {
+    await db.penalties.clear()
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' },
+      true,
+    )
+    const { setPenaltySettings } = await import('../data/penaltyStore')
+    setPenaltySettings({ severity: 'normal', enabledBanner: false })
+    await db.penalties.put({
+      id: '2026-09-20',
+      date: '2026-09-20',
+      missingBookIds: ['b1'],
+      pageDebt: 20,
+      unitDebt: {},
+      points: 10,
+      severity: 'normal',
+      createdAt: new Date().toISOString(),
+    })
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    await screen.findByTestId('today-table')
+    expect(screen.queryByTestId('penalty-yesterday-warning')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('penalty-today-debt')).not.toBeInTheDocument()
+  })
+})
+

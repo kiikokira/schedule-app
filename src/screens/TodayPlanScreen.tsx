@@ -10,6 +10,8 @@ import {
   type AvailabilitySlot,
 } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
+import { calcQuestToday, MAX_PAGE_DEBT } from '../lib/penalty'
+import { listPenalties, getPenaltySettings } from '../data/penaltyStore'
 import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, scoreCycleOnDate, currentCycleRound, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
@@ -274,6 +276,15 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const [presets, setPresets] = useState<OverridePreset[]>(() => loadOverridePresets())
   const [presetId, setPresetId] = useState('')
   const [seasonTick, setSeasonTick] = useState(0)
+  // 罰借金表示用。直近7日合算・上限500（超過充当はTask6確定版までの暫定単純合計）。
+  const [penaltyBannerEnabled] = useState(() => {
+    try {
+      return getPenaltySettings().enabledBanner !== false
+    } catch {
+      return true
+    }
+  })
+  const [penaltyOutstanding, setPenaltyOutstanding] = useState(0)
   // 記録前の確認ダイアログ。はいで run を実行、いいえ・背景タップで破棄する。
   const [recordConfirm, setRecordConfirm] = useState<{
     title: string
@@ -299,6 +310,33 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
         ),
       )
     })
+  }, [today])
+
+  // 罰借金の読み込み。prune済み枠は許容し missingBookIds は見ない（pageDebt合算のみ）。
+  useEffect(() => {
+    let cancelled = false
+    void listPenalties()
+      .then((all) => {
+        if (cancelled) return
+        const cutoff = (() => {
+          const d = new Date(`${today}T00:00:00`)
+          d.setDate(d.getDate() - 6)
+          const y = d.getFullYear()
+          const m = String(d.getMonth() + 1).padStart(2, '0')
+          const day = String(d.getDate()).padStart(2, '0')
+          return `${y}-${m}-${day}`
+        })()
+        const sum = all
+          .filter((p) => p.date >= cutoff && p.date <= today)
+          .reduce((s, p) => s + p.pageDebt, 0)
+        setPenaltyOutstanding(Math.min(sum, MAX_PAGE_DEBT))
+      })
+      .catch(() => {
+        // 借金の読み込み失敗で計画表示を壊さない
+      })
+    return () => {
+      cancelled = true
+    }
   }, [today])
 
   // 選び直しの下書きをページ遷移後も残す。保存（固定）したら下書きは消える。
@@ -428,6 +466,16 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const displayedSlots: PlanSlot[] = useMemo(
     () => displayedRows.map((r) => r.slot),
     [displayedRows],
+  )
+
+  // 罰クエスト表示用。今日予定は表示スロットの合計、計画自体への自動加算はしない。
+  const penaltyQuest = useMemo(
+    () =>
+      calcQuestToday(
+        displayedSlots.reduce((sum, s) => sum + (s.pages ?? 0), 0),
+        penaltyOutstanding,
+      ),
+    [displayedSlots, penaltyOutstanding],
   )
 
   const progressItems: TodayProgressItem[] = useMemo(() => {
@@ -775,6 +823,21 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
           </p>
         </div>
       )}
+      {penaltyBannerEnabled && penaltyOutstanding > 0 && (
+        <div
+          data-testid="penalty-yesterday-warning"
+          style={{
+            marginBottom: 16,
+            padding: '10px 12px',
+            borderRadius: 8,
+            background: '#fef2f2',
+            border: '1px solid #f0a0a0',
+            fontSize: 14,
+          }}
+        >
+          借金 {penaltyOutstanding}ページ 今日返すべき {penaltyQuest}ページ
+        </div>
+      )}
       {recordConfirm && (
         <div
           data-testid="record-confirm"
@@ -1105,6 +1168,11 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
               </button>
             </div>
           )}
+        </div>
+      )}
+      {penaltyBannerEnabled && penaltyOutstanding > 0 && (
+        <div data-testid="penalty-today-debt" style={{ fontSize: 14 }}>
+          今日返すべき借金 +{penaltyOutstanding}
         </div>
       )}
       <div data-testid="today-override-section" style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 8, padding: 12 }}>
