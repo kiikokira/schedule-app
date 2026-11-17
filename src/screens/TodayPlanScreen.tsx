@@ -9,7 +9,7 @@ import {
   listAdjustments,
   type AvailabilitySlot,
 } from '../data/dayplanStore'
-import { generateDayPlan, effectiveSpeed, learnSpeedRobust, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
+import { generateDayPlan, effectiveSpeed, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
 import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, scoreCycleOnDate, currentCycleRound, type BookData } from '../lib/progress'
 import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
@@ -240,7 +240,7 @@ function overlayCyclesPins(
 }
 
 export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, onRebalance }: Props) {
-  const { books: allBooks, saveBook } = useBooks()
+  const { books: allBooks } = useBooks()
   const { records, addProgress } = useRecords()
   const { cycleRecords, addCycle } = useCycleRecords()
   const today = todayProp ?? todayStr()
@@ -696,25 +696,6 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
 
   const recordPages = async (bookId: string, pages: number) => {
     await addProgress(bookId, today, pages)
-    // 速度学習: その日に割り当てられた時間の合計から実効速度を求め、
-    // 中央値ブレンドで外れ値に強くする（見積もり精度の改善）
-    const todayMin = displayedSlots
-      .filter((s) => s.bookId === bookId)
-      .reduce((sum, s) => sum + (s.endMin - s.startMin), 0)
-    if (todayMin > 0) {
-      const book = books.find((b) => b.id === bookId)
-      if (book) {
-        const current = effectiveSpeed(book.minutesPerPage, book.subject)
-        const effective = todayMin / pages
-        const next = learnSpeedRobust(current, [effective])
-        if (next !== current) {
-          await saveBook(
-            { ...book, minutesPerPage: next, updatedAt: new Date().toISOString() },
-            false,
-          )
-        }
-      }
-    }
   }
 
   const handleRecord = async (inputKey: string, bookId: string, league?: { slotKey: string; unit: SlotUnit; slotMinutes: number }) => {

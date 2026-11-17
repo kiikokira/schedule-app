@@ -1022,6 +1022,45 @@ describe('TodayPlanScreen', () => {
     })
   })
 
+  it('keeps minutesPerPage unchanged after recording', async () => {
+    await fillBook('b1', { subject: '文法', minutesPerPage: 3 })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '21:30' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('plan-row-pages')).toHaveTextContent('予定 10ページ')
+    const input = await screen.findByTestId('plan-input-b1')
+    fireEvent.change(input, { target: { value: '5' } })
+    fireEvent.click(screen.getByTestId('plan-record-b1'))
+    fireEvent.click(await screen.findByTestId('record-confirm-yes'))
+    await waitFor(async () => {
+      const recs = await db.records.toArray()
+      expect(recs).toHaveLength(1)
+      expect(recs[0].pages).toBe(5)
+    })
+    // run() の残り（リーグ枠確定）まで待つ。記録書き込みだけを待つと
+    // run() の残りが次のテストの beforeEach を跨いで localStorage に書き込み、
+    // 後続テストを slot-locked 汚染するため。
+    await waitFor(async () => {
+      const { loadSeasonState } = await import('../data/seasonStore')
+      const st = loadSeasonState('2026-09-21')
+      expect(st.slotMatches['2026-09-21#1260-1290']?.my).toBe(5)
+    })
+    const book = await db.books.get('b1')
+    expect(book?.minutesPerPage).toBe(3)
+  })
+
+  it('shows capacity pages from fixed pace for a 30min slot at 3min per page', async () => {
+    await fillBook('b1', { subject: '文法', minutesPerPage: 3 })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: 1, date: null, start: '21:00', end: '21:30' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    expect(await screen.findByTestId('plan-row-pages')).toHaveTextContent('予定 10ページ')
+  })
+
 })
 
 describe('today slot gate', () => {
