@@ -6,7 +6,20 @@ import { saveAvailabilitySlot, listAvailability, addAdjustment } from '../data/d
 import { saveFocusPeriods } from '../data/focusPeriods'
 import { resetSchedule } from '../data/scheduleStore'
 
+// Task 2 回帰用: focusBookId null（集中なし）経路をUIで再現するための差し替え。
+// 通常は実実装に委譲するため既存テストの挙動は変わらない。
+const focusMock = vi.hoisted(() => ({ id: undefined as string | null | undefined }))
+vi.mock('../lib/focusBook', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/focusBook')>()
+  return {
+    ...actual,
+    selectFocusBookId: (...args: Parameters<typeof actual.selectFocusBookId>) =>
+      focusMock.id !== undefined ? focusMock.id : actual.selectFocusBookId(...args),
+  }
+})
+
 beforeEach(async () => {
+  focusMock.id = undefined
   localStorage.clear()
   await db.books.clear()
   await db.records.clear()
@@ -1081,6 +1094,100 @@ describe('TodayPlanScreen', () => {
     const leapTitles = await within(upcoming).findAllByText(/LEAP/)
     expect(leapTitles.length).toBeGreaterThan(0)
     expect(await within(upcoming).findAllByText(/2300語/)).not.toHaveLength(0)
+  })
+
+  it('keeps page-only upcoming when the focus book is a page book', async () => {
+    // b1（期限が一番近いページ本）と c1（反復本）を用意し、未来日に枠あり。
+    // 集中は b1 のため反復行は出ない。
+    await fillBook('b1', { deadline: '2026-09-22', totalPages: 100 })
+    await db.books.add({
+      id: 'c1', title: '改訂版 必携 英単語 LEAP', subject: '英語',
+      studyMode: 'cycles', totalUnits: 2300, targetRounds: 3,
+      startDate: '2026-09-01', deadline: '2026-11-30',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    } as any)
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: null, date: '2026-09-22', start: '09:00', end: '17:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const upcoming = await screen.findByTestId('upcoming-list')
+    const titles = await within(upcoming).findAllByTestId('upcoming-title')
+    expect(titles.length).toBeGreaterThan(0)
+    for (const t of titles) {
+      expect(t).toHaveTextContent('英文法ポラリス2')
+    }
+    // 反復行は testid が日付ごとに繰り返すため AllBy 系で確認する
+    expect(within(upcoming).queryAllByTestId('upcoming-cycle-c1')).toHaveLength(0)
+    expect(within(upcoming).queryByText(/LEAP/)).not.toBeInTheDocument()
+  })
+
+  it('hides completed cycle books from upcoming', async () => {
+    // 残量0の反復本（initialDoneUnits で全消化）は upcoming-list に出ない
+    await fillBook('b1', { deadline: '2026-11-30', totalPages: 100 })
+    await db.books.add({
+      id: 'c1', title: '反復本', subject: '英語',
+      studyMode: 'cycles', totalUnits: 20, targetRounds: 1, initialDoneUnits: 20,
+      startDate: '2026-09-01', deadline: '2026-09-22',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    } as any)
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: null, date: '2026-09-22', start: '09:00', end: '17:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const upcoming = await screen.findByTestId('upcoming-list')
+    const titles = await within(upcoming).findAllByTestId('upcoming-title')
+    expect(titles.length).toBeGreaterThan(0)
+    for (const t of titles) {
+      expect(t).toHaveTextContent('英文法ポラリス2')
+    }
+    expect(within(upcoming).queryAllByTestId('upcoming-cycle-c1')).toHaveLength(0)
+    expect(within(upcoming).queryByText('反復本')).not.toBeInTheDocument()
+  })
+
+  it('shows both page and cycle books when there is no focus book', async () => {
+    // 集中なし（focusBookId null）は従来通り全冊表示にフォールバックする
+    focusMock.id = null
+    await fillBook('b1', { deadline: '2026-11-30', totalPages: 100 })
+    await db.books.add({
+      id: 'c1', title: '反復本', subject: '英語',
+      studyMode: 'cycles', totalUnits: 20, targetRounds: 1,
+      startDate: '2026-09-01', deadline: '2026-09-22',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    } as any)
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: null, date: '2026-09-22', start: '09:00', end: '17:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const upcoming = await screen.findByTestId('upcoming-list')
+    const titles = await within(upcoming).findAllByTestId('upcoming-title')
+    expect(titles.length).toBeGreaterThan(0)
+    expect(titles.some((t) => t.textContent?.includes('英文法ポラリス2'))).toBe(true)
+    expect(titles.some((t) => t.textContent?.includes('反復本'))).toBe(true)
+    expect(within(upcoming).getAllByTestId('upcoming-cycle-c1').length).toBeGreaterThan(0)
+  })
+
+  it('does not crash for overdue cycle books in upcoming', async () => {
+    // deadline < 未来日（残日数0以下）の反復本は残量全表示（20区画）でクラッシュしない
+    await fillBook('b1', { deadline: '2026-11-30', totalPages: 100 })
+    await db.books.add({
+      id: 'c1', title: '反復本', subject: '英語',
+      studyMode: 'cycles', totalUnits: 20, targetRounds: 1,
+      startDate: '2026-09-01', deadline: '2026-09-20',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    } as any)
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: null, date: '2026-09-22', start: '09:00', end: '17:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const upcoming = await screen.findByTestId('upcoming-list')
+    const rows = await within(upcoming).findAllByTestId('upcoming-cycle-c1')
+    expect(rows.length).toBeGreaterThan(0)
+    expect(rows[0]).toHaveTextContent('反復本')
+    expect(rows[0]).toHaveTextContent('20区画')
   })
 
 })
