@@ -1120,6 +1120,32 @@ describe('TodayPlanScreen', () => {
     expect(within(upcoming).queryByText(/LEAP/)).not.toBeInTheDocument()
   })
 
+  it('hides LEAP from upcoming even when LEAP deadline is earliest', async () => {
+    // LEAP（期限最古の反復本）があっても今後数日には出ず、ポラリスが出る回帰テスト。
+    // focusCandidatesフィルタを外すとfocus=LEAPになりLEAP行が出るため失敗する。
+    await fillBook('b1', { deadline: '2026-09-22', totalPages: 100 })
+    await db.books.add({
+      id: 'c-leap', title: '改訂版 必携 英単語 LEAP', subject: '英語',
+      studyMode: 'cycles', totalUnits: 2300, targetRounds: 3,
+      startDate: '2026-09-01', deadline: '2026-09-21',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    } as any)
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: null, date: '2026-09-22', start: '09:00', end: '17:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const upcoming = await screen.findByTestId('upcoming-list')
+    expect(upcoming).toBeInTheDocument()
+    const titles = await within(upcoming).findAllByTestId('upcoming-title')
+    expect(titles.length).toBeGreaterThan(0)
+    for (const t of titles) {
+      expect(t).toHaveTextContent('英文法ポラリス2')
+    }
+    expect(within(upcoming).queryAllByTestId('upcoming-cycle-c-leap')).toHaveLength(0)
+    expect(within(upcoming).queryByText(/LEAP/)).not.toBeInTheDocument()
+  })
+
   it('keeps page-only upcoming when the focus book is a page book', async () => {
     // b1（期限が一番近いページ本）と c1（反復本）を用意し、未来日に枠あり。
     // 集中は b1 のため反復行は出ない。
