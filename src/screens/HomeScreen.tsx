@@ -422,24 +422,88 @@ function PenaltyBanner({ onPenalty }: { onPenalty?: () => void }) {
   const today = todayStr()
   const { outstanding, totalPoints, streak, rank } = summarizeRecentPenalties(events, today)
   if (outstanding > 0 || totalPoints > 0) {
+    const rankIsBad = rank === 'D' || (rank as string) === 'E'
     return (
       <div
         data-testid="penalty-banner"
         style={{
-          marginBottom: 8,
-          padding: '10px 12px',
-          borderRadius: 8,
+          marginBottom: 12,
+          padding: '12px 14px',
+          borderRadius: 12,
           background: '#fef2f2',
           border: '1px solid #f0a0a0',
           fontSize: 13,
+          maxWidth: '100%',
         }}
       >
-        サボり残あり! 借金 {outstanding}ページ | 罰Pt {totalPoints} | 連続 {streak}日 | ランク {rank}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 6,
+          }}
+        >
+          <span style={{ fontWeight: 700, fontSize: 14, color: '#b91c1c' }}>
+            サボり残あり!
+          </span>
+          <span style={{ fontSize: 12, color: '#6b7280' }}>
+            連続 {streak}日
+          </span>
+        </div>
+        <div style={{ marginTop: 4, fontSize: 13, color: '#111' }}>
+          <span>
+            借金{' '}
+            <span style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>
+              {outstanding}
+            </span>
+            ページ
+          </span>
+        </div>
+        <div
+          style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}
+        >
+          <span
+            style={{
+              fontSize: 12,
+              background: '#fff',
+              border: '1px solid #f0a0a0',
+              borderRadius: 999,
+              padding: '2px 8px',
+              color: '#7f1d1d',
+            }}
+          >
+            罰Pt {totalPoints}
+          </span>
+          <span
+            style={{
+              fontSize: 12,
+              background: '#fff',
+              border: '1px solid #d1d5db',
+              borderRadius: 999,
+              padding: '2px 8px',
+              color: rankIsBad ? '#b91c1c' : '#374151',
+            }}
+          >
+            ランク {rank}
+          </span>
+        </div>
         <button
           data-testid="penalty-open"
           type="button"
           onClick={() => onPenalty?.()}
-          style={{ marginLeft: 8 }}
+          style={{
+            width: '100%',
+            marginTop: 8,
+            minHeight: 44,
+            fontSize: 14,
+            fontWeight: 700,
+            background: '#b91c1c',
+            color: '#fff',
+            borderRadius: 8,
+            border: 'none',
+          }}
         >
           取り返しクエストを見る
         </button>
