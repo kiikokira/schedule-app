@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type CompositionEvent } from 'react'
 import CoverImage from '../components/CoverImage'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
@@ -51,6 +51,29 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const ROUND_BADGE_COUNT = 5
+
+// iPhone日本語キーボード対応：変換中は値を書き換えず確定時に全角→半角化する。
+// type="number" は全角入力を消してしまうためtext＋正規化で受ける。
+function normalizeNumericInput(s: string): string {
+  return s.replace(/[０-９]/g, (ch) => String('０１２３４５６７８９'.indexOf(ch)))
+}
+
+function isComposingEvent(e: ChangeEvent<HTMLInputElement>): boolean {
+  return (e.nativeEvent as { isComposing?: boolean } | undefined)?.isComposing === true
+}
+
+function handleNumericInputChange(e: ChangeEvent<HTMLInputElement>, set: (v: string) => void): void {
+  const v = e.target.value
+  if (isComposingEvent(e)) {
+    set(v)
+    return
+  }
+  set(normalizeNumericInput(v))
+}
+
+function handleNumericCompositionEnd(e: CompositionEvent<HTMLInputElement>, set: (v: string) => void): void {
+  set(normalizeNumericInput(e.currentTarget.value))
+}
 
 type Props = {
   onOpenBook: (id: string) => void
@@ -228,7 +251,7 @@ function ScheduleRow({
     : 'ページ'
 
   const handleRecord = () => {
-    const pages = Number(pagesInput)
+    const pages = Number(normalizeNumericInput(pagesInput.trim()))
     if (Number.isInteger(pages) && pages >= 1) {
       if (
         !window.confirm(
@@ -375,12 +398,17 @@ function ScheduleRow({
           <>
             <input
               data-testid={`row-progress-input-${key}`}
-              type="number"
+              type="text"
               inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
               value={pagesInput}
-              onChange={(e) => setPagesInput(e.target.value)}
+              onChange={(e) => handleNumericInputChange(e, setPagesInput)}
+              onCompositionEnd={(e) => handleNumericCompositionEnd(e, setPagesInput)}
               placeholder="今日のページ数"
-              style={{ flex: 1, minWidth: 96 }}
+              style={{ flex: 1, minWidth: 96, fontSize: 16 }}
             />
             <button
               data-testid={recordTestId}

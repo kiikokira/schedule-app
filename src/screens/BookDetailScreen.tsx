@@ -722,7 +722,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const todayValues = bookRecords.map((r) => r.pages)
 
   const handleRecord = async () => {
-    const pages = Number(pagesInput)
+    const pages = Number(normalizeNumericInput(pagesInput.trim()))
     if (!Number.isInteger(pages) || pages < 1) {
       setError('ページ数は1以上の整数で入力してください')
       return
@@ -770,7 +770,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   }
 
   const handleSaveEdit = async (record: ProgressRecordData) => {
-    const pages = Number(editPages)
+    const pages = Number(normalizeNumericInput(editPages.trim()))
     if (!Number.isInteger(pages) || pages < 1) {
       setEditError('ページ数は1以上の整数で入力してください')
       return
@@ -834,11 +834,17 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
         />
         <input
           data-testid="progress-input"
-          type="number"
+          type="text"
           inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
           value={pagesInput}
-          onChange={(e) => setPagesInput(e.target.value)}
+          onChange={(e) => handleNumericInputChange(e, setPagesInput)}
+          onCompositionEnd={(e) => handleNumericCompositionEnd(e, setPagesInput)}
           placeholder="ページ数"
+          style={{ fontSize: 16 }}
         />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '8px 0' }}>
           {bookRecords.length > 0 && (
@@ -952,12 +958,17 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                   />
                   <input
                     data-testid={`record-edit-pages-${record.id}`}
-                    type="number"
+                    type="text"
                     inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
                     value={editPages}
-                    onChange={(e) => setEditPages(e.target.value)}
+                    onChange={(e) => handleNumericInputChange(e, setEditPages)}
+                    onCompositionEnd={(e) => handleNumericCompositionEnd(e, setEditPages)}
                     placeholder="ページ数"
-                    style={{ flex: '1 1 80px', minWidth: 80 }}
+                    style={{ flex: '1 1 80px', minWidth: 80, fontSize: 16 }}
                   />
                   {(() => {
                     const editSlots = slotsForRecordDate(availability, editDate)

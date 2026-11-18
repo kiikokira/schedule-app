@@ -750,7 +750,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
 
   const handleRecord = async (inputKey: string, bookId: string, league?: { slotKey: string; unit: SlotUnit; slotMinutes: number }) => {
     const raw = inputs[inputKey] ?? ''
-    const pages = Number(raw)
+    const pages = Number(normalizeNumericInput(raw.trim()))
     if (!Number.isInteger(pages) || pages < 1) return
     const book = books.find((b) => b.id === bookId)
     const title = book?.title ?? 'この本'
@@ -1063,14 +1063,17 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <input
                         data-testid={`plan-input-${s.bookId}`}
-                        type="number"
+                        type="text"
                         inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
                         value={inputs[inputKey] ?? ''}
-                        onChange={(e) =>
-                          setInputs((p) => ({ ...p, [inputKey]: e.target.value }))
-                        }
+                        onChange={(e) => handleCycleInputChange(e, inputKey, setInputs)}
+                        onCompositionEnd={(e) => handleCycleCompositionEnd(e, inputKey, setInputs)}
                         placeholder="ページ"
-                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0 }}
+                        style={{ flex: 1, width: 'auto', minWidth: 0, margin: 0, fontSize: 16 }}
                       />
                       <button
                         data-testid={`plan-record-${s.bookId}`}
