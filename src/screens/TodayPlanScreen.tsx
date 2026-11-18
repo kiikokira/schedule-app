@@ -770,9 +770,12 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     })
   }
 
-  // 今後数日は集中本（期限が一番近く、同期限なら残量が一番多い1冊）だけ表示する。
+  // 今後数日はLEAPを除く集中本（期限が一番近く、同期限なら残量が一番多い1冊）だけ表示する。
   // 決まらない場合（全て完了等）は従来通り全冊表示にフォールバックする。
-  const focusBookId = useMemo(() => selectFocusBookId(books, records, cycleRecords), [books, records, cycleRecords])
+  const focusBookId = useMemo(() => {
+    const focusCandidates = books.filter((b) => !isLeapBook(b))
+    return selectFocusBookId(focusCandidates, records, cycleRecords)
+  }, [books, records, cycleRecords])
 
   return (
     <div data-testid="today-plan-screen" style={{ padding: 16 }}>
@@ -1333,8 +1336,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
           const items = focusBookId == null ? u.items : u.items.filter((it) => it.bookId === focusBookId)
           // 反復本の未来目標（表示層のみ。planned/focusBookId の算出は変えない）。
           // 集中本あり時はその本だけ、なし時は全反復本。残量0は出さない。
+          const nonLeapCycleBooks = cycleBooks.filter((b) => !isLeapBook(b))
           const visibleCycleBooks =
-            focusBookId == null ? cycleBooks : cycleBooks.filter((b) => b.id === focusBookId)
+            focusBookId == null ? nonLeapCycleBooks : nonLeapCycleBooks.filter((b) => b.id === focusBookId)
           const cycleRows = visibleCycleBooks
             .map((book) => {
               const done = calcCycleDonePairs(
