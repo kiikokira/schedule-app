@@ -427,9 +427,9 @@ function PenaltyBanner({ onPenalty }: { onPenalty?: () => void }) {
       <div
         data-testid="penalty-banner"
         style={{
-          marginBottom: 12,
-          padding: '12px 14px',
-          borderRadius: 12,
+          marginBottom: 8,
+          padding: '8px 10px',
+          borderRadius: 10,
           background: '#fef2f2',
           border: '1px solid #f0a0a0',
           fontSize: 13,
@@ -442,35 +442,39 @@ function PenaltyBanner({ onPenalty }: { onPenalty?: () => void }) {
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 6,
+            gap: 4,
           }}
         >
-          <span style={{ fontWeight: 700, fontSize: 14, color: '#b91c1c' }}>
-            サボり残あり!
-          </span>
-          <span style={{ fontSize: 12, color: '#6b7280' }}>
-            連続 {streak}日
-          </span>
-        </div>
-        <div style={{ marginTop: 4, fontSize: 13, color: '#111' }}>
-          <span>
+          <span style={{ fontSize: 13, color: '#111' }}>
+            <span style={{ fontWeight: 700, fontSize: 13, color: '#b91c1c' }}>
+              サボり残あり!{' '}
+            </span>
             借金{' '}
-            <span style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>
+            <span style={{ fontSize: 18, fontWeight: 800, color: '#111' }}>
               {outstanding}
             </span>
             ページ
           </span>
+          <span style={{ fontSize: 11, color: '#6b7280' }}>
+            連続 {streak}日
+          </span>
         </div>
         <div
-          style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            flexWrap: 'wrap',
+            marginTop: 6,
+          }}
         >
           <span
             style={{
-              fontSize: 12,
+              fontSize: 11,
               background: '#fff',
               border: '1px solid #f0a0a0',
               borderRadius: 999,
-              padding: '2px 8px',
+              padding: '1px 8px',
               color: '#7f1d1d',
             }}
           >
@@ -478,35 +482,37 @@ function PenaltyBanner({ onPenalty }: { onPenalty?: () => void }) {
           </span>
           <span
             style={{
-              fontSize: 12,
+              fontSize: 11,
               background: '#fff',
               border: '1px solid #d1d5db',
               borderRadius: 999,
-              padding: '2px 8px',
+              padding: '1px 8px',
               color: rankIsBad ? '#b91c1c' : '#374151',
             }}
           >
             ランク {rank}
           </span>
+          <button
+            data-testid="penalty-open"
+            type="button"
+            onClick={() => onPenalty?.()}
+            style={{
+              width: 'auto',
+              flexShrink: 0,
+              marginLeft: 'auto',
+              padding: '6px 12px',
+              minHeight: 36,
+              fontSize: 13,
+              fontWeight: 700,
+              background: '#b91c1c',
+              color: '#fff',
+              borderRadius: 8,
+              border: 'none',
+            }}
+          >
+            取り返しクエストを見る
+          </button>
         </div>
-        <button
-          data-testid="penalty-open"
-          type="button"
-          onClick={() => onPenalty?.()}
-          style={{
-            width: '100%',
-            marginTop: 8,
-            minHeight: 44,
-            fontSize: 14,
-            fontWeight: 700,
-            background: '#b91c1c',
-            color: '#fff',
-            borderRadius: 8,
-            border: 'none',
-          }}
-        >
-          取り返しクエストを見る
-        </button>
       </div>
     )
   }
