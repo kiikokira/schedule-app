@@ -529,7 +529,7 @@ describe('polluted page pace (screenshot 2026-11-18: 90分→2頁/60分→1頁)'
     expect(out.today.slots.map((s) => s.pages)).toEqual([2, 1])
   })
 
-  it('shows 30 and 20 pages once repaired to mpp=3', () => {
+  it('shows 30 and 20 pages at the repaired pace (mpp=3)', () => {
     const out = generateDayPlan({
       availability: slots90and60,
       books: [tightPolaris(3)],
@@ -549,6 +549,10 @@ describe('normalizePagePace', () => {
 
   it('keeps a hand-entered mpp=5 for 文法 (existing test keeps saved value)', () => {
     expect(normalizePagePace({ subject: '文法', minutesPerPage: 5 })).toBeNull()
+  })
+
+  it('keeps a hand-entered mpp=5 for 英単語 (floored repair threshold)', () => {
+    expect(normalizePagePace({ subject: '英単語', minutesPerPage: 5 })).toBeNull()
   })
 
   it('repairs unknown-subject pollution back to the default pace', () => {

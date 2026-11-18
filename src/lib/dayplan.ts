@@ -28,7 +28,7 @@ export function minutesPerPageFor(
 }
 
 // 旧学習コードが膨らませた保存済み minutesPerPage の読込時移行修復。
-// 科目既定の3倍超または10分/頁超は汚染とみなして科目既定へ戻す。
+// 科目既定の3倍超（下限6分/頁）または10分/頁超は汚染とみなして科目既定へ戻す。
 // 手入力の正常範囲値・反復本(LEAP等)には触らない。
 export const MAX_MINUTES_PER_PAGE = 10
 
@@ -42,7 +42,7 @@ export function normalizePagePace<
     book.subject !== undefined && SUBJECT_MINUTES_PER_PAGE[book.subject] !== undefined
       ? SUBJECT_MINUTES_PER_PAGE[book.subject]
       : DEFAULT_MINUTES_PER_PAGE
-  if (saved > MAX_MINUTES_PER_PAGE || saved > def * 3) {
+  if (saved > MAX_MINUTES_PER_PAGE || saved > Math.max(def * 3, 6)) {
     return { ...book, minutesPerPage: def }
   }
   return null
