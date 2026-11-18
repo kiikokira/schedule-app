@@ -1098,8 +1098,8 @@ describe('TodayPlanScreen', () => {
   it('shows upcoming cycle targets when the focus book is a cycle book', async () => {
     await fillBook('b1', { deadline: '2026-11-30', totalPages: 100 })
     await db.books.add({
-      id: 'c1', title: '改訂版 必携 英単語 LEAP', subject: '英語',
-      studyMode: 'cycles', totalUnits: 400, targetRounds: 1,
+      id: 'c1', title: '反復テスト用区画本', subject: '英語',
+      studyMode: 'cycles', totalUnits: 100, targetRounds: 3,
       startDate: '2026-09-01', deadline: '2026-09-22',
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     } as any)
@@ -1110,11 +1110,14 @@ describe('TodayPlanScreen', () => {
     render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
     const upcoming = await screen.findByTestId('upcoming-list')
     expect(upcoming).toBeInTheDocument()
-    // LEAP は useBooks の normalizeLeapBook で totalUnits 400 → 2300 に正規化されるため
-    // 未来目標は 2300語になる（targetRounds=1, done=0）。
-    const leapTitles = await within(upcoming).findAllByText(/LEAP/)
-    expect(leapTitles.length).toBeGreaterThan(0)
-    expect(await within(upcoming).findAllByText(/2300語/)).not.toHaveLength(0)
+    // 非LEAP反復本が期限最短のため集中本になり、upcoming-cycle行が出る。
+    // 未来目標は 100区画×3周=300区画（targetRounds=3, done=0、当日納期で残日数0のため全量）。
+    const cycleRows = await within(upcoming).findAllByTestId('upcoming-cycle-c1')
+    expect(cycleRows.length).toBeGreaterThan(0)
+    expect(await within(upcoming).findAllByText('反復テスト用区画本')).not.toHaveLength(0)
+    expect(await within(upcoming).findAllByText(/予定 300区画/)).not.toHaveLength(0)
+    // LEAPは今後数日に出ない（本テストにLEAP本は無いがガードとして残す）。
+    expect(within(upcoming).queryByText(/LEAP/)).not.toBeInTheDocument()
   })
 
   it('keeps page-only upcoming when the focus book is a page book', async () => {
