@@ -135,32 +135,93 @@ export default function PenaltyScreen({ onBack }: Props) {
         今日返す: +{outstanding}ページ
       </div>
       <section style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 16 }}>借金一覧</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, textDecoration: 'none' }}>借金一覧</h2>
         {debtByBook.size === 0 ? (
           <p style={{ fontSize: 13 }}>借金はありません</p>
         ) : (
-          [...debtByBook.entries()].map(([bookId, d]) => (
-            <div key={bookId} data-testid={`penalty-debt-${bookId}`} style={{ fontSize: 14, marginBottom: 4 }}>
-              {titles[bookId] ?? bookId}: 借金 {d.pages}ページ
-              {d.units > 0 ? ` +${d.units}区画` : ''}
-            </div>
-          ))
+          [...debtByBook.entries()]
+            .sort((a, b) => b[1].pages - a[1].pages)
+            .map(([bookId, d], index) => (
+              <div
+                key={bookId}
+                data-testid={`penalty-debt-${bookId}`}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e5e0e0',
+                  borderRadius: 8,
+                  padding: 12,
+                  marginBottom: 8,
+                  lineHeight: 1.6,
+                  fontSize: 14,
+                }}
+              >
+                {index === 0 && (
+                  <span
+                    style={{
+                      background: '#dc2626',
+                      color: '#ffffff',
+                      fontSize: 12,
+                      borderRadius: 999,
+                      padding: '2px 8px',
+                      marginRight: 8,
+                    }}
+                  >
+                    まずこれ
+                  </span>
+                )}
+                <span>{titles[bookId] ?? bookId}</span>
+                {': '}
+                <span style={{ fontSize: 16, fontWeight: 800 }}>借金 {d.pages}ページ</span>
+                {d.units > 0 ? (
+                  <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 8 }}>+{d.units}区画</span>
+                ) : null}
+              </div>
+            ))
         )}
       </section>
       <section style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 16 }}>履歴</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, textDecoration: 'none' }}>履歴</h2>
         {sorted.length === 0 ? (
           <p style={{ fontSize: 13 }}>履歴はありません</p>
         ) : (
-          sorted.map((e) => (
-            <div key={e.date} data-testid={`penalty-history-${e.date}`} style={{ fontSize: 14, marginBottom: 4 }}>
-              {e.date} サボり +{e.points}pt 借金{e.pageDebt}ページ
+          sorted.map((e, index) => (
+            <div
+              key={e.date}
+              data-testid={`penalty-history-${e.date}`}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e5e0e0',
+                borderRadius: 8,
+                padding: '10px 12px',
+                marginBottom: 8,
+                lineHeight: 1.6,
+                display: 'flex',
+                gap: 8,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                opacity: index >= 3 ? 0.75 : 1,
+              }}
+            >
+              <span style={{ fontSize: 12, color: '#6b7280' }}>{e.date}</span>
+              <span
+                style={{
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  borderRadius: 999,
+                  padding: '2px 8px',
+                }}
+              >
+                +{e.points}pt
+              </span>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>借金{e.pageDebt}ページ</span>
             </div>
           ))
         )}
       </section>
-      <section style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 16 }}>設定</h2>
+      <section style={{ marginTop: 24, borderTop: '1px solid #e5d5d5', paddingTop: 16 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, textDecoration: 'none' }}>設定</h2>
         <label style={{ fontSize: 14 }}>
           厳しさ:
           <select data-testid="penalty-severity-select" value={settings.severity} onChange={(ev) => handleSeverity(ev.target.value)} style={{ marginLeft: 8 }}>
@@ -176,7 +237,7 @@ export default function PenaltyScreen({ onBack }: Props) {
           </label>
         </div>
       </section>
-      <button data-testid="penalty-back" type="button" onClick={onBack} style={{ marginTop: 12 }}>
+      <button data-testid="penalty-back" type="button" onClick={onBack} style={{ marginTop: 20 }}>
         今日に戻る
       </button>
     </div>
