@@ -1061,6 +1061,28 @@ describe('TodayPlanScreen', () => {
     expect(await screen.findByTestId('plan-row-pages')).toHaveTextContent('予定 10ページ')
   })
 
+  it('shows upcoming cycle targets when the focus book is a cycle book', async () => {
+    await fillBook('b1', { deadline: '2026-11-30', totalPages: 100 })
+    await db.books.add({
+      id: 'c1', title: '改訂版 必携 英単語 LEAP', subject: '英語',
+      studyMode: 'cycles', totalUnits: 400, targetRounds: 1,
+      startDate: '2026-09-01', deadline: '2026-09-22',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    } as any)
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: null, date: '2026-09-22', start: '09:00', end: '17:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const upcoming = await screen.findByTestId('upcoming-list')
+    expect(upcoming).toBeInTheDocument()
+    // LEAP は useBooks の normalizeLeapBook で totalUnits 400 → 2300 に正規化されるため
+    // 未来目標は 2300語になる（targetRounds=1, done=0）。
+    const leapTitles = await within(upcoming).findAllByText(/LEAP/)
+    expect(leapTitles.length).toBeGreaterThan(0)
+    expect(await within(upcoming).findAllByText(/2300語/)).not.toHaveLength(0)
+  })
+
 })
 
 describe('today slot gate', () => {

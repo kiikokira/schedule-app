@@ -1328,8 +1328,24 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
         <h2 style={{ fontSize: 16 }}>今後数日</h2>
         {planned.upcoming.map((u) => {
           const items = focusBookId == null ? u.items : u.items.filter((it) => it.bookId === focusBookId)
+          // 反復本の未来目標（表示層のみ。planned/focusBookId の算出は変えない）。
+          // 集中本あり時はその本だけ、なし時は全反復本。残量0は出さない。
+          const visibleCycleBooks =
+            focusBookId == null ? cycleBooks : cycleBooks.filter((b) => b.id === focusBookId)
+          const cycleRows = visibleCycleBooks
+            .map((book) => {
+              const done = calcCycleDonePairs(
+                book,
+                cycleRecords.filter((r) => r.bookId === book.id),
+              )
+              const target = calcCycleDailyTarget(book, done, daysBetween(u.date, book.deadline))
+              if (target <= 0) return null
+              return { book, target, unit: isLeapBook(book) ? '語' : '区画' }
+            })
+            .filter((r): r is { book: (typeof visibleCycleBooks)[number]; target: number; unit: string } => r !== null)
           // 集中本の割り当てがない日はブロックごと出さない
-          if (focusBookId != null && items.length === 0) return null
+          if (focusBookId != null && items.length === 0 && cycleRows.length === 0) return null
+          if (items.length === 0 && cycleRows.length === 0) return null
           return (
           <div key={u.date} style={{ marginBottom: 8 }}>
             <div style={{ fontWeight: 700 }}>{formatJaDate(u.date)}</div>
@@ -1361,6 +1377,30 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                 </div>
               )
             })}
+            {cycleRows.map(({ book, target, unit }) => (
+              <div
+                key={book.id}
+                data-testid={`upcoming-cycle-${book.id}`}
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  alignItems: 'center',
+                  padding: 8,
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  marginTop: 4,
+                  fontSize: 15,
+                }}
+              >
+                <CoverImage src={book?.coverUrl ?? null} width={40} height={56} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div data-testid="upcoming-title">{book.title}</div>
+                  <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+                    {`予定 ${target}${unit}`}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
           )
         })}
