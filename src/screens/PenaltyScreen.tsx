@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { db } from '../db/database'
 import { getPenaltySettings, setPenaltySettings, listPenalties, type PenaltyEvent, type PenaltySettings } from '../data/penaltyStore'
 import { summarizeRecentPenalties } from '../lib/penaltyEvaluate'
@@ -82,13 +82,59 @@ export default function PenaltyScreen({ onBack }: Props) {
     setPenaltySettings(next)
   }
 
+  const rankBadgeColors: Record<string, string> = {
+    S: '#16a34a',
+    A: '#2563eb',
+    B: '#ca8a04',
+    C: '#ea580c',
+    D: '#dc2626',
+  }
+
+  const cardStyle: CSSProperties = {
+    background: '#ffffff',
+    border: '1px solid #e5e0e0',
+    borderRadius: 10,
+    padding: 12,
+  }
+  const labelStyle: CSSProperties = { fontSize: 12, color: '#6b7280' }
+  const valueStyle: CSSProperties = { fontSize: 20, fontWeight: 800 }
+
   return (
-    <div data-testid="penalty-page" style={{ padding: 16, background: '#fef2f2', border: '1px solid #f0a0a0', borderRadius: 8 }}>
+    <div data-testid="penalty-page" style={{ padding: 20, background: '#fef2f2', border: '1px solid #f0a0a0', borderRadius: 8 }}>
       <h1 style={{ fontSize: 20 }}>罰センター</h1>
-      <p style={{ fontSize: 14 }}>
-        連続 {streak}日 | 罰Pt {totalPoints} | ランク {rank} | 借金 {outstanding}ページ
-      </p>
-      <section>
+      <div data-testid="penalty-summary" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div style={cardStyle}>
+          <div style={labelStyle}>連続</div>{' '}
+          <div style={valueStyle}>{streak}日</div>
+        </div>
+        <div style={cardStyle}>
+          <div style={labelStyle}>罰Pt</div>{' '}
+          <div style={valueStyle}>{totalPoints}</div>
+        </div>
+        <div style={cardStyle}>
+          <div style={labelStyle}>ランク</div>{' '}
+          <div style={valueStyle}>
+            <span
+              style={{
+                background: rankBadgeColors[rank] ?? '#6b7280',
+                color: '#ffffff',
+                borderRadius: 999,
+                padding: '2px 8px',
+              }}
+            >
+              {rank}
+            </span>
+          </div>
+        </div>
+        <div style={cardStyle}>
+          <div style={labelStyle}>借金</div>{' '}
+          <div style={{ ...valueStyle, color: outstanding === 0 ? '#16a34a' : undefined }}>{outstanding}ページ</div>
+        </div>
+      </div>
+      <div data-testid="penalty-repay-header" style={{ fontSize: 16, fontWeight: 800, marginTop: 12 }}>
+        今日返す: +{outstanding}ページ
+      </div>
+      <section style={{ marginTop: 24 }}>
         <h2 style={{ fontSize: 16 }}>借金一覧</h2>
         {debtByBook.size === 0 ? (
           <p style={{ fontSize: 13 }}>借金はありません</p>
@@ -101,7 +147,7 @@ export default function PenaltyScreen({ onBack }: Props) {
           ))
         )}
       </section>
-      <section>
+      <section style={{ marginTop: 24 }}>
         <h2 style={{ fontSize: 16 }}>履歴</h2>
         {sorted.length === 0 ? (
           <p style={{ fontSize: 13 }}>履歴はありません</p>
@@ -113,7 +159,7 @@ export default function PenaltyScreen({ onBack }: Props) {
           ))
         )}
       </section>
-      <section>
+      <section style={{ marginTop: 24 }}>
         <h2 style={{ fontSize: 16 }}>設定</h2>
         <label style={{ fontSize: 14 }}>
           厳しさ:
