@@ -1074,6 +1074,27 @@ describe('TodayPlanScreen', () => {
     expect(await screen.findByTestId('plan-row-pages')).toHaveTextContent('予定 10ページ')
   })
 
+  it('repairs a polluted page pace (mpp=45) so a 90min slot shows 30 pages', async () => {
+    // screenshot 2026-11-18 再現: 旧学習コードに膨らまされた保存値 45 は
+    // 読込時移行で科目既定 3 に戻り、90分枠が 2ページではなく 30ページになる。
+    await fillBook('b1', {
+      subject: '文法',
+      minutesPerPage: 45,
+      totalPages: 3000,
+      deadline: '2026-09-22',
+    })
+    await saveAvailabilitySlot(
+      { id: 'a1', weekday: null, date: '2026-09-21', start: '15:45', end: '17:15' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    // 読込直後は未割当の 0ページ行が一瞬出ることがあるため、修復後の表示まで待つ。
+    await waitFor(() => {
+      expect(screen.getByTestId('plan-row-pages')).toHaveTextContent('予定 30ページ')
+    })
+    expect((await db.books.get('b1'))?.minutesPerPage).toBe(3)
+  })
+
   it('shows upcoming cycle targets when the focus book is a cycle book', async () => {
     await fillBook('b1', { deadline: '2026-11-30', totalPages: 100 })
     await db.books.add({

@@ -27,6 +27,27 @@ export function minutesPerPageFor(
   return DEFAULT_MINUTES_PER_PAGE
 }
 
+// 旧学習コードが膨らませた保存済み minutesPerPage の読込時移行修復。
+// 科目既定の3倍超または10分/頁超は汚染とみなして科目既定へ戻す。
+// 手入力の正常範囲値・反復本(LEAP等)には触らない。
+export const MAX_MINUTES_PER_PAGE = 10
+
+export function normalizePagePace<
+  T extends { subject?: string; minutesPerPage?: number; studyMode?: string },
+>(book: T): T | null {
+  if (book.studyMode === 'cycles') return null
+  const saved = book.minutesPerPage
+  if (saved === undefined || !Number.isFinite(saved) || saved <= 0) return null
+  const def =
+    book.subject !== undefined && SUBJECT_MINUTES_PER_PAGE[book.subject] !== undefined
+      ? SUBJECT_MINUTES_PER_PAGE[book.subject]
+      : DEFAULT_MINUTES_PER_PAGE
+  if (saved > MAX_MINUTES_PER_PAGE || saved > def * 3) {
+    return { ...book, minutesPerPage: def }
+  }
+  return null
+}
+
 export type TimeSlot = { startMin: number; endMin: number; bookId?: string; onTrain?: boolean }
 
 export function parseTimeToMin(hhmm: string): number {

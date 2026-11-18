@@ -10,6 +10,7 @@ import {
   learnSpeed,
   learnSpeedRobust,
   minutesPerPageFor,
+  normalizePagePace,
   parseTimeToMin,
   planScore,
   slotsForDate,
@@ -500,6 +501,70 @@ it('learnSpeedRobust keeps current when no valid history', () => {
 it('effectiveSpeed falls back to per-subject default', () => {
   expect(effectiveSpeed(undefined, '英単語')).toBe(1)
   expect(effectiveSpeed(4, '英単語')).toBe(4)
+})
+
+describe('polluted page pace (screenshot 2026-11-18: 90分→2頁/60分→1頁)', () => {
+  // ポラリス2想定: 期限がタイトで枠いっぱいに割当が付く本。mpp=45 の汚染で
+  // 90//45=2、60//45=1 になることを再現する。
+  const tightPolaris = (mpp: number): ScheduledBook =>
+    book({
+      bookId: 'polaris2',
+      totalPages: 3000,
+      donePages: 0,
+      minutesPerPage: mpp,
+      startDate: '2026-11-18',
+      deadline: '2026-11-19',
+    })
+  const slots90and60 = [
+    dateSlot('2026-11-18', '15:45', '17:15'),
+    dateSlot('2026-11-18', '20:30', '21:30'),
+  ]
+
+  it('reproduces the bug: polluted mpp=45 shows 2 and 1 pages', () => {
+    const out = generateDayPlan({
+      availability: slots90and60,
+      books: [tightPolaris(45)],
+      today: '2026-11-18',
+    })
+    expect(out.today.slots.map((s) => s.pages)).toEqual([2, 1])
+  })
+
+  it('shows 30 and 20 pages once repaired to mpp=3', () => {
+    const out = generateDayPlan({
+      availability: slots90and60,
+      books: [tightPolaris(3)],
+      today: '2026-11-18',
+    })
+    expect(out.today.slots.map((s) => s.pages)).toEqual([30, 20])
+  })
+})
+
+describe('normalizePagePace', () => {
+  it('repairs polluted mpp=45 for 文法 back to the subject default 3', () => {
+    expect(normalizePagePace({ subject: '文法', minutesPerPage: 45 })).toEqual({
+      subject: '文法',
+      minutesPerPage: 3,
+    })
+  })
+
+  it('keeps a hand-entered mpp=5 for 文法 (existing test keeps saved value)', () => {
+    expect(normalizePagePace({ subject: '文法', minutesPerPage: 5 })).toBeNull()
+  })
+
+  it('repairs unknown-subject pollution back to the default pace', () => {
+    expect(normalizePagePace({ minutesPerPage: 45 })).toEqual({ minutesPerPage: 2 })
+  })
+
+  it('leaves cycles books (LEAP etc.) alone', () => {
+    expect(
+      normalizePagePace({ subject: '英単語', minutesPerPage: 45, studyMode: 'cycles' }),
+    ).toBeNull()
+  })
+
+  it('leaves missing or invalid saved values alone', () => {
+    expect(normalizePagePace({ subject: '文法' })).toBeNull()
+    expect(normalizePagePace({ subject: '文法', minutesPerPage: 0 })).toBeNull()
+  })
 })
 
 describe('isCurrentSlot', () => {
