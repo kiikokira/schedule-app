@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { it, expect, vi, beforeEach } from 'vitest'
-import { listProfiles } from '../lib/aiProfiles'
+import { listProfiles, getPreferredProfile } from '../lib/aiProfiles'
 import SettingsScreen from './SettingsScreen'
 import { db } from '../db/database'
 import { getAiSettings } from '../lib/ai'
@@ -476,9 +476,87 @@ describe('per-profile API keys', () => {
 
   it('saves a per-AI key without touching the shared field', async () => {
     render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
     const input = await screen.findByTestId('profile-key-groq-free')
     fireEvent.change(input, { target: { value: 'gsk-test-key' } })
     fireEvent.click(screen.getByTestId('profile-key-save-groq-free'))
     expect(listProfiles().find((p) => p.id === 'groq-free')?.apiKey).toBe('gsk-test-key')
+  })
+})
+
+describe('ai settings edit lock', () => {
+  const radiosIn = (box: HTMLElement): HTMLInputElement[] => {
+    const out: HTMLInputElement[] = []
+    box.querySelectorAll('input[name="preferred-ai"]').forEach((n) => {
+      if (n instanceof HTMLInputElement) out.push(n)
+    })
+    return out
+  }
+
+  it('locks the red-zone fields until edit-ai is pressed', async () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    expect(screen.getByTestId('ai-preset')).toBeDisabled()
+    const box = await screen.findByTestId('preferred-ai')
+    const radios = radiosIn(box)
+    expect(radios.length).toBeGreaterThan(0)
+    for (const r of radios) expect(r).toBeDisabled()
+    expect(screen.getByTestId('profile-key-gemini-free')).toBeDisabled()
+    expect(screen.getByTestId('profile-key-groq-free')).toBeDisabled()
+    expect(screen.getByTestId('profile-key-openrouter-free')).toBeDisabled()
+    expect(screen.queryByTestId('profile-key-save-gemini-free')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('profile-key-save-groq-free')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('profile-key-save-openrouter-free')).not.toBeInTheDocument()
+  })
+
+  it('enables the red-zone fields while editing and relocks on save', async () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
+    expect(screen.getByTestId('ai-preset')).toBeEnabled()
+    const box = await screen.findByTestId('preferred-ai')
+    for (const r of radiosIn(box)) expect(r).toBeEnabled()
+    expect(screen.getByTestId('profile-key-groq-free')).toBeEnabled()
+    expect(screen.getByTestId('profile-key-save-groq-free')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('ai-save'))
+    expect(screen.getByTestId('ai-preset')).toBeDisabled()
+    expect(screen.getByTestId('profile-key-groq-free')).toBeDisabled()
+    expect(screen.queryByTestId('profile-key-save-groq-free')).not.toBeInTheDocument()
+    for (const r of radiosIn(screen.getByTestId('preferred-ai'))) expect(r).toBeDisabled()
+  })
+
+  it('restores preferred AI, key input, preset and endpoint on cancel', async () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    const initialPreferred = getPreferredProfile().id
+    fireEvent.click(screen.getByTestId('edit-ai'))
+    const box = screen.getByTestId('preferred-ai')
+    const other = radiosIn(box).find((r) => !r.checked)
+    expect(other).toBeTruthy()
+    fireEvent.click(other!)
+    fireEvent.change(screen.getByTestId('profile-key-groq-free'), { target: { value: 'JUNK-KEY' } })
+    fireEvent.change(screen.getByTestId('ai-preset'), { target: { value: 'gemini' } })
+    expect(getPreferredProfile().id).toBe(initialPreferred)
+    fireEvent.click(screen.getByTestId('cancel-ai'))
+    expect(getPreferredProfile().id).toBe(initialPreferred)
+    const checked = radiosIn(screen.getByTestId('preferred-ai')).filter((r) => r.checked)
+    expect(checked).toHaveLength(1)
+    expect(checked[0].closest('label')?.textContent).toContain(getPreferredProfile().label)
+    expect(screen.getByTestId('profile-key-groq-free')).toHaveValue('')
+    expect(screen.getByTestId('profile-key-groq-free')).toBeDisabled()
+    expect(screen.queryByTestId('profile-key-save-groq-free')).not.toBeInTheDocument()
+    expect(screen.getByTestId('ai-preset')).toHaveValue('openai')
+    expect(screen.getByTestId('ai-endpoint')).toHaveValue('https://api.openai.com/v1/chat/completions')
+  })
+
+  it('persists the preferred AI on ai-save', async () => {
+    render(<SettingsScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('edit-ai'))
+    const box = await screen.findByTestId('preferred-ai')
+    const groqLabel = Array.from(box.querySelectorAll('label')).find((l) =>
+      l.textContent?.includes('Groq無料枠'),
+    )
+    expect(groqLabel).toBeTruthy()
+    fireEvent.click(groqLabel!.querySelector('input[name="preferred-ai"]')!)
+    fireEvent.click(screen.getByTestId('ai-save'))
+    expect(getPreferredProfile().id).toBe('groq-free')
+    expect(screen.getByTestId('ai-preset')).toBeDisabled()
   })
 })

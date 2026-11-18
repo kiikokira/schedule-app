@@ -209,6 +209,7 @@ export default function SettingsScreen({ onDone }: Props) {
       setProfileKeys(Object.fromEntries(listProfiles().map((p) => [p.id, p.apiKey])))
     }
     setResult('調整AIの設定を保存しました')
+    setPreferredProfile(preferredId)
     setEditingAi(false)
   }
 
@@ -218,9 +219,12 @@ export default function SettingsScreen({ onDone }: Props) {
     setAiApiKey(saved.apiKey)
     setAiModel(saved.model)
     setAiPreset(presetOf(saved.endpoint))
-    setPreferredId(getPreferredProfile().id); setProfiles(listProfiles()); setProfileKeys(Object.fromEntries(listProfiles().map((p) => [p.id, p.apiKey])))
+    setPreferredId(getPreferredProfile().id)
+    setProfiles(listProfiles())
+    setProfileKeys(Object.fromEntries(listProfiles().map((p) => [p.id, p.apiKey])))
     setAiTestResult(null)
     setAiPingResult(null)
+    setProfileKeyResult(null)
     setEditingAi(false)
   }
 
@@ -448,7 +452,8 @@ export default function SettingsScreen({ onDone }: Props) {
                   type="radio"
                   name="preferred-ai"
                   checked={selectedAi}
-                  onChange={() => { setPreferredProfile(p.id); setPreferredId(p.id) }}
+                  disabled={!editingAi}
+                  onChange={() => { setPreferredId(p.id) }}
                   style={{ width: 'auto', minHeight: 'auto', margin: 0 }}
                 />
                 <span>
@@ -475,14 +480,17 @@ export default function SettingsScreen({ onDone }: Props) {
                   data-testid={`profile-key-${p.id}`}
                   type="password"
                   value={profileKeys[p.id] ?? ''}
+                  disabled={!editingAi}
                   onChange={(e) => setProfileKeys((prev) => ({ ...prev, [p.id]: e.target.value }))}
                   placeholder="未設定"
                   autoComplete="off"
                   style={{ flex: 1, minWidth: 0, margin: 0 }}
                 />
-                <button data-testid={`profile-key-save-${p.id}`} type="button" onClick={() => handleSaveProfileKey(p.id)}>
-                  保存
-                </button>
+                {editingAi && (
+                  <button data-testid={`profile-key-save-${p.id}`} type="button" onClick={() => handleSaveProfileKey(p.id)}>
+                    保存
+                  </button>
+                )}
               </div>
             </div>
           ))}
