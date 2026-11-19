@@ -159,51 +159,58 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
     setSaving(true)
     // 周回型は1日複数OKで追加のみ（addCycleRecord）。行ごとに追加し失敗を収集する。
     // 期間外日付も警告のみで保存は許可（単発と同様）。recordedAtは付けない。
-    const savedDates: string[] = []
-    const failedDates: string[] = []
-    for (const p of prepared) {
-      try {
-        await addCycleRecord({
-          id: crypto.randomUUID(),
-          bookId: book.id,
-          date: p.date,
-          unitFrom: p.unitFrom,
-          unitTo: p.unitTo,
-          round: p.round,
-        })
-      } catch {
-        failedDates.push(p.date)
-        continue
+    const savedRows: Prepared[] = []
+    const failedRows: Prepared[] = []
+    // onSaved/onClose 完了までボタンをロックし、二重クリックでの重複追加を防ぐ。
+    // rejection は finally でロック解除＋エラー表示（未処理rejectionにしない）。
+    try {
+      for (const p of prepared) {
+        try {
+          await addCycleRecord({
+            id: crypto.randomUUID(),
+            bookId: book.id,
+            date: p.date,
+            unitFrom: p.unitFrom,
+            unitTo: p.unitTo,
+            round: p.round,
+          })
+        } catch {
+          failedRows.push(p)
+          continue
+        }
+        savedRows.push(p)
       }
-      savedDates.push(p.date)
-    }
-    // 保存した日ごとに1回、ゴーストスナップショットを追記する（失敗しても記録は壊さない）
-    for (const date of [...new Set(savedDates)].sort()) {
-      try {
-        const freshRecords = await db.records.toArray()
-        const freshCycles = await db.cycleRecords.toArray()
-        const total = combinedActivityOnDate(
-          date,
-          pagesRecordsForTotals(freshRecords, books),
-          cycleRecordsForTotals(freshCycles, books),
+      // 保存した日ごとに1回、ゴーストスナップショットを追記する（失敗しても記録は壊さない）
+      for (const date of [...new Set(savedRows.map((r) => r.date))].sort()) {
+        try {
+          const freshRecords = await db.records.toArray()
+          const freshCycles = await db.cycleRecords.toArray()
+          const total = combinedActivityOnDate(
+            date,
+            pagesRecordsForTotals(freshRecords, books),
+            cycleRecordsForTotals(freshCycles, books),
+          )
+          await appendGhostSnapshot(date, total)
+        } catch { /* ignore: ゴースト失敗で記録を壊さない */ }
+      }
+      // 失敗行は日付だけでなく「日付 開始-終了」で識別する（同一日付の複数行でも曖昧にならない）
+      const rowLabel = (r: Prepared) => `${r.date} ${r.unitFrom}-${r.unitTo}`
+      if (failedRows.length > 0) {
+        setError(
+          savedRows.length > 0
+            ? `一部だけ保存しました。保存済み: ${savedRows.map(rowLabel).join(', ')} / 失敗: ${failedRows.map(rowLabel).join(', ')}`
+            : '保存に失敗しました。もう一度お試しください',
         )
-        await appendGhostSnapshot(date, total)
-      } catch { /* ignore: ゴースト失敗で記録を壊さない */ }
-    }
-    setSaving(false)
-    if (failedDates.length > 0) {
-      const saved = [...new Set(savedDates)]
-      const failed = [...new Set(failedDates)]
-      setError(
-        saved.length > 0
-          ? `一部だけ保存しました。保存済み: ${saved.join(', ')} / 失敗: ${failed.join(', ')}`
-          : '保存に失敗しました。もう一度お試しください',
-      )
+        await onSaved()
+        return
+      }
       await onSaved()
-      return
+      onClose()
+    } catch {
+      setError((prev) => prev ?? '保存に失敗しました。もう一度お試しください')
+    } finally {
+      setSaving(false)
     }
-    await onSaved()
-    onClose()
   }
 
   const handleSave = async () => {
@@ -241,38 +248,45 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
     // 期間外日付も警告のみで保存は許可（単発と同様）。recordedAtは付けない。
     const savedDates: string[] = []
     const failedDates: string[] = []
-    for (const date of dates) {
-      try {
-        await upsertProgress(book.id, date, byDate.get(date) as number)
-      } catch {
-        failedDates.push(date)
-        continue
+    // onSaved/onClose 完了までボタンをロックし、二重クリックでの重複保存を防ぐ。
+    // rejection は finally でロック解除＋エラー表示（未処理rejectionにしない）。
+    try {
+      for (const date of dates) {
+        try {
+          await upsertProgress(book.id, date, byDate.get(date) as number)
+        } catch {
+          failedDates.push(date)
+          continue
+        }
+        savedDates.push(date)
+        // 保存した日のゴーストスナップショットを追記する（失敗しても記録は壊さない）
+        try {
+          const freshRecords = await db.records.toArray()
+          const freshCycles = await db.cycleRecords.toArray()
+          const total = combinedActivityOnDate(
+            date,
+            pagesRecordsForTotals(freshRecords, books),
+            cycleRecordsForTotals(freshCycles, books),
+          )
+          await appendGhostSnapshot(date, total)
+        } catch { /* ignore: ゴースト失敗で記録を壊さない */ }
       }
-      savedDates.push(date)
-      // 保存した日のゴーストスナップショットを追記する（失敗しても記録は壊さない）
-      try {
-        const freshRecords = await db.records.toArray()
-        const freshCycles = await db.cycleRecords.toArray()
-        const total = combinedActivityOnDate(
-          date,
-          pagesRecordsForTotals(freshRecords, books),
-          cycleRecordsForTotals(freshCycles, books),
+      if (failedDates.length > 0) {
+        setError(
+          savedDates.length > 0
+            ? `一部だけ保存しました。保存済み: ${savedDates.join(', ')} / 失敗: ${failedDates.join(', ')}`
+            : '保存に失敗しました。もう一度お試しください',
         )
-        await appendGhostSnapshot(date, total)
-      } catch { /* ignore: ゴースト失敗で記録を壊さない */ }
-    }
-    setSaving(false)
-    if (failedDates.length > 0) {
-      setError(
-        savedDates.length > 0
-          ? `一部だけ保存しました。保存済み: ${savedDates.join(', ')} / 失敗: ${failedDates.join(', ')}`
-          : '保存に失敗しました。もう一度お試しください',
-      )
+        await onSaved()
+        return
+      }
       await onSaved()
-      return
+      onClose()
+    } catch {
+      setError((prev) => prev ?? '保存に失敗しました。もう一度お試しください')
+    } finally {
+      setSaving(false)
     }
-    await onSaved()
-    onClose()
   }
 
   return (

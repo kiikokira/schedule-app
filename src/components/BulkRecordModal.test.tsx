@@ -290,4 +290,80 @@ describe('BulkRecordModal (cycles)', () => {
     // 1周目が全区画記録済みなので空欄の周回は2で補完される
     expect((await db.cycleRecords.toArray())[0].round).toBe(2)
   })
+
+  it('reports partial cycle save naming the failed row range (same-date rows)', async () => {
+    const sameDate = daysFromNow(-1)
+    const originalAdd = db.cycleRecords.add.bind(db.cycleRecords)
+    const addSpy = vi.spyOn(db.cycleRecords, 'add').mockImplementation((rec, key) => {
+      if ((rec as CycleRecordData).unitFrom === 11) throw new Error('boom')
+      return originalAdd(rec as CycleRecordData, key)
+    })
+    const onSaved = vi.fn()
+    const onClose = vi.fn()
+    renderModal({ book: cycleBook, mode: 'cycles', books: [cycleBook], onSaved, onClose })
+    // 同一日付の2行: row0 1-10 は成功、row1 11-20 は add 失敗
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '10' } })
+    fireEvent.change(screen.getByTestId('bulk-date-1'), { target: { value: sameDate } })
+    fireEvent.change(screen.getByTestId('bulk-from-1'), { target: { value: '11' } })
+    fireEvent.change(screen.getByTestId('bulk-to-1'), { target: { value: '20' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(() => {
+      expect(screen.getByTestId('bulk-error')).toBeInTheDocument()
+    })
+    // 失敗行は日付だけでなく範囲で識別できる（同一日付でも曖昧にならない）
+    const err = screen.getByTestId('bulk-error')
+    expect(err).toHaveTextContent(`保存済み: ${sameDate} 1-10`)
+    expect(err).toHaveTextContent(`失敗: ${sameDate} 11-20`)
+    // 成功分の記録は保持される（追加のみ・巻き戻しなし）
+    const recs = await db.cycleRecords.toArray()
+    expect(recs).toHaveLength(1)
+    expect(recs[0].unitFrom).toBe(1)
+    expect(recs[0].unitTo).toBe(10)
+    expect(recs[0].date).toBe(sameDate)
+    // ゴーストは保存日ごとに1回（1-10 = 10区画）
+    const ghosts = await db.ghostLogs.where('date').equals(sameDate).toArray()
+    expect(ghosts).toHaveLength(1)
+    expect(ghosts[0].total).toBe(10)
+    // onSaved は呼ばれ、モーダルは開いたまま（onClose は呼ばれない）
+    expect(onSaved).toHaveBeenCalledTimes(1)
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByTestId('bulk-modal')).toBeInTheDocument()
+    // 失敗後もボタンは再試行可能に戻る
+    await waitFor(() => expect(screen.getByTestId('bulk-save')).toBeEnabled())
+    addSpy.mockRestore()
+  })
+
+  it('keeps saving locked until a deferred onSaved resolves, preventing duplicate adds', async () => {
+    let resolveSaved: () => void = () => {}
+    const onSaved = vi.fn(() => new Promise<void>((resolve) => { resolveSaved = resolve }))
+    renderModal({ book: cycleBook, mode: 'cycles', books: [cycleBook], onSaved })
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
+    expect(await db.cycleRecords.count()).toBe(1)
+    // onSaved 未解決の間はボタンが無効のまま → 再クリックで重複追加されない
+    expect(screen.getByTestId('bulk-save')).toBeDisabled()
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    expect(await db.cycleRecords.count()).toBe(1)
+    expect(onSaved).toHaveBeenCalledTimes(1)
+    resolveSaved()
+    // 完了後はロック解除（onCloseはモックなのでモーダルは残る）
+    await waitFor(() => expect(screen.getByTestId('bulk-save')).toBeEnabled())
+  })
+
+  it('unlocks and surfaces an error when onSaved rejects', async () => {
+    const onSaved = vi.fn(() => Promise.reject(new Error('refresh failed')))
+    renderModal({ book: cycleBook, mode: 'cycles', books: [cycleBook], onSaved })
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(() => {
+      expect(screen.getByTestId('bulk-error')).toBeInTheDocument()
+    })
+    // 記録自体は保存済み。未処理rejectionにならずエラー表示＋ロック解除
+    expect(await db.cycleRecords.count()).toBe(1)
+    expect(screen.getByTestId('bulk-save')).toBeEnabled()
+  })
 })
