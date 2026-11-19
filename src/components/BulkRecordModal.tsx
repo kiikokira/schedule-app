@@ -117,18 +117,20 @@ export default function BulkRecordModal({ book, mode, existingPages, books, onCl
     setError(null)
     setSaving(true)
     const dates = [...byDate.keys()].sort()
-    try {
-      // 期間外日付も警告のみで保存は許可（単発と同様）。recordedAtは付けない。
-      for (const date of dates) {
-        await upsertProgress(book.id, date, byDate.get(date) as number)
-      }
-    } catch {
-      setError('保存に失敗しました。もう一度お試しください')
-      setSaving(false)
-      return
-    }
-    // 保存した日ごとにゴーストスナップショットを追記する（失敗しても記録は壊さない）
+    // 日ごとにupsertし、成功したらその日のゴーストを更新してから次の日へ進む。
+    // 途中失敗は保存済み分を巻き戻さず、エラーで明示する。
+    // 期間外日付も警告のみで保存は許可（単発と同様）。recordedAtは付けない。
+    const savedDates: string[] = []
+    const failedDates: string[] = []
     for (const date of dates) {
+      try {
+        await upsertProgress(book.id, date, byDate.get(date) as number)
+      } catch {
+        failedDates.push(date)
+        continue
+      }
+      savedDates.push(date)
+      // 保存した日のゴーストスナップショットを追記する（失敗しても記録は壊さない）
       try {
         const freshRecords = await db.records.toArray()
         const freshCycles = await db.cycleRecords.toArray()
@@ -141,6 +143,15 @@ export default function BulkRecordModal({ book, mode, existingPages, books, onCl
       } catch { /* ignore: ゴースト失敗で記録を壊さない */ }
     }
     setSaving(false)
+    if (failedDates.length > 0) {
+      setError(
+        savedDates.length > 0
+          ? `一部だけ保存しました。保存済み: ${savedDates.join(', ')} / 失敗: ${failedDates.join(', ')}`
+          : '保存に失敗しました。もう一度お試しください',
+      )
+      await onSaved()
+      return
+    }
     await onSaved()
     onClose()
   }
@@ -189,6 +200,14 @@ export default function BulkRecordModal({ book, mode, existingPages, books, onCl
             <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '8px 0' }}>
               記入した行だけ保存されます。同じ日付は book+date で上書き（後ろの行が優先）。
             </p>
+            {rows.some((row) => isOutOfRange(row.date)) && (
+              <p
+                data-testid="bulk-range-warning"
+                style={{ fontSize: 12, color: 'var(--warning, #b45309)', margin: '0 0 8px' }}
+              >
+                開始日〜期限日の範囲外の日付があります（保存できます）
+              </p>
+            )}
             {rows.map((row, i) => (
               <div
                 key={i}

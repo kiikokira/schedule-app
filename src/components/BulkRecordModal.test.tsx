@@ -117,13 +117,79 @@ describe('BulkRecordModal (pages)', () => {
 
   it('warns on out-of-range dates but still saves', async () => {
     renderModal()
+    expect(screen.queryByTestId('bulk-range-warning')).not.toBeInTheDocument()
     fireEvent.change(screen.getByTestId('bulk-date-0'), { target: { value: daysFromNow(-60) } })
     fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '8' } })
     expect(screen.getByTestId('bulk-date-warning-0')).toBeInTheDocument()
+    expect(screen.getByTestId('bulk-range-warning')).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('bulk-save'))
     await waitFor(async () => {
       expect(await db.records.count()).toBe(1)
     })
+  })
+
+  it('saves full-width digits as half-width numbers', async () => {
+    renderModal()
+    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '１２' } })
+    expect(screen.getByTestId('bulk-pages-0')).toHaveValue('12')
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(async () => {
+      expect(await db.records.count()).toBe(1)
+    })
+    expect((await db.records.toArray())[0].pages).toBe(12)
+  })
+
+  it('overwrites an already persisted record for the same bookId+date', async () => {
+    const yesterday = daysFromNow(-1)
+    const existing: ProgressRecordData = { id: 'r1', bookId: 'b1', date: yesterday, pages: 5 }
+    await db.records.add(existing)
+    renderModal({ existingPages: [existing] })
+    expect(screen.getByTestId('bulk-pages-0')).toHaveValue('5')
+    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '9' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(async () => {
+      const rows = await db.records.where('[bookId+date]').equals(['b1', yesterday]).toArray()
+      expect(rows).toHaveLength(1)
+      expect(rows[0].id).toBe('r1')
+      expect(rows[0].pages).toBe(9)
+    })
+  })
+
+  it('saves records without recordedAt', async () => {
+    renderModal()
+    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '7' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(async () => {
+      expect(await db.records.count()).toBe(1)
+    })
+    expect((await db.records.toArray())[0]).not.toHaveProperty('recordedAt')
+  })
+
+  it('reports partial save when a later upsert fails, keeping earlier record and ghost', async () => {
+    const firstDate = daysFromNow(-2) // 日付昇順で先に保存される
+    const secondDate = daysFromNow(-1)
+    const originalAdd = db.records.add.bind(db.records)
+    const addSpy = vi.spyOn(db.records, 'add').mockImplementation((rec, key) => {
+      if ((rec as ProgressRecordData).date === secondDate) throw new Error('boom')
+      return originalAdd(rec as ProgressRecordData, key)
+    })
+    renderModal()
+    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '20' } }) // secondDate
+    fireEvent.change(screen.getByTestId('bulk-pages-1'), { target: { value: '10' } }) // firstDate
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(() => {
+      expect(screen.getByTestId('bulk-error')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('bulk-error')).toHaveTextContent(firstDate)
+    expect(screen.getByTestId('bulk-error')).toHaveTextContent(secondDate)
+    const recs = await db.records.toArray()
+    expect(recs).toHaveLength(1)
+    expect(recs[0].date).toBe(firstDate)
+    expect(recs[0].pages).toBe(10)
+    const ghosts = await db.ghostLogs.where('date').equals(firstDate).toArray()
+    expect(ghosts).toHaveLength(1)
+    expect(ghosts[0].total).toBe(10)
+    addSpy.mockRestore()
   })
 
   it('deletes a row and closes via bulk-close', () => {
