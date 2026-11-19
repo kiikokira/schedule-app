@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { db } from '../db/database'
 import BulkRecordModal, { buildBulkDefaultDates } from './BulkRecordModal'
-import type { BookData, ProgressRecordData } from '../lib/progress'
+import type { BookData, ProgressRecordData, CycleRecordData } from '../lib/progress'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const localDateStr = (d: Date) =>
@@ -203,11 +203,91 @@ describe('BulkRecordModal (pages)', () => {
   })
 })
 
-describe('BulkRecordModal (cycles placeholder)', () => {
+describe('BulkRecordModal (cycles)', () => {
+  const cycleBook: BookData = {
+    ...book,
+    id: 'c1',
+    title: '周回問題集',
+    studyMode: 'cycles',
+    totalUnits: 20,
+    targetRounds: 3,
+  }
+
+  const leapBook: BookData = {
+    ...book,
+    id: 'l1',
+    title: 'LEAP英単語',
+    catalogId: 'leap',
+    studyMode: 'cycles',
+    totalUnits: 2300,
+    targetRounds: 3,
+  }
+
   it('renders the shell without crashing in cycles mode', () => {
     renderModal({ mode: 'cycles' })
     expect(screen.getByTestId('bulk-modal')).toBeInTheDocument()
     expect(screen.getByTestId('bulk-close')).toBeInTheDocument()
     expect(screen.getByTestId('bulk-save')).toBeInTheDocument()
+  })
+
+  it('saves multiple cycle rows with per-row round', async () => {
+    renderModal({ book: cycleBook, mode: 'cycles', books: [cycleBook] })
+    expect(screen.getAllByTestId(/^bulk-from-/)).toHaveLength(7)
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '10' } })
+    fireEvent.change(screen.getByTestId('bulk-round-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-from-1'), { target: { value: '11' } })
+    fireEvent.change(screen.getByTestId('bulk-to-1'), { target: { value: '20' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(async () => {
+      expect(await db.cycleRecords.count()).toBe(2)
+    })
+    const recs = await db.cycleRecords.toArray()
+    expect(recs.every((r) => r.bookId === 'c1')).toBe(true)
+    const r0 = recs.find((r) => r.unitFrom === 1)
+    expect(r0?.unitTo).toBe(10)
+    expect(r0?.round).toBe(1)
+    expect(r0?.date).toBe(daysFromNow(-1))
+    const r1 = recs.find((r) => r.unitFrom === 11)
+    expect(r1?.unitTo).toBe(20)
+    expect(r1?.date).toBe(daysFromNow(-2))
+    // 周回が空の行は今の周回（既存記録なしなら1）で補完される
+    expect(r1?.round).toBe(1)
+    // recordedAt は付けない
+    expect(recs.every((r) => !('recordedAt' in r))).toBe(true)
+    // 保存日ごとにゴーストスナップショットが追記される
+    await waitFor(async () => {
+      expect(await db.ghostLogs.count()).toBe(2)
+    })
+  })
+
+  it('rejects only invalid cycle rows', async () => {
+    renderModal({ book: leapBook, mode: 'cycles', books: [leapBook] })
+    // row0: to=9999 は 1..totalUnits(2300) の範囲外で無効
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '9999' } })
+    // row1: 有効
+    fireEvent.change(screen.getByTestId('bulk-from-1'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-1'), { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    expect(screen.getByTestId('bulk-error')).toBeInTheDocument()
+    // 無効行があれば1件も保存しない（all-or-nothing）
+    expect(await db.cycleRecords.count()).toBe(0)
+  })
+
+  it('completes empty round from existing records', async () => {
+    const existing: CycleRecordData[] = []
+    for (let u = 1; u <= 20; u += 5) {
+      existing.push({ id: `x${u}`, bookId: 'c1', date: daysFromNow(-10), unitFrom: u, unitTo: u + 4, round: 1 })
+    }
+    renderModal({ book: cycleBook, mode: 'cycles', books: [cycleBook], existingCycles: existing })
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '10' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(async () => {
+      expect(await db.cycleRecords.count()).toBe(1)
+    })
+    // 1周目が全区画記録済みなので空欄の周回は2で補完される
+    expect((await db.cycleRecords.toArray())[0].round).toBe(2)
   })
 })
