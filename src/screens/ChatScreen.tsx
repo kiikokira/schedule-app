@@ -20,6 +20,7 @@ import {
 } from '../lib/aiOperations'
 import { appendChatHistory } from '../data/chatHistoryStore'
 import LongText from '../components/LongText'
+import CoverImage from '../components/CoverImage'
 import { calcTotalDone, todayStr } from '../lib/progress'
 
 type Props = {
@@ -67,6 +68,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
   const today = todayProp ?? todayStr()
   const { saveBook } = useBooks()
   const [report, setReport] = useState<AdvisorReportV2 | null>(null)
+  const [coverById, setCoverById] = useState<Record<string, string | null>>({})
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -105,6 +107,7 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
       db.records.toArray(),
     ])
     const targetBooks = allBooks.filter((b) => b.studyMode !== 'cycles')
+    setCoverById(Object.fromEntries(allBooks.map((b) => [b.id, b.coverUrl ?? null])))
     const donePagesByBook = Object.fromEntries(
       targetBooks.map((b) => [b.id, calcTotalDone(b, allRecords)]),
     )
@@ -327,8 +330,9 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
   const [proposalExpanded, setProposalExpanded] = useState(false)
   const attentionBooks = (report?.books ?? [])
     .filter((b) => b.status !== 'ok')
-    .sort((a, b) => (a.status === 'critical' ? 0 : 1) - (b.status === 'critical' ? 0 : 1))
+    .sort((a, b) => ((a.status === 'critical' ? 0 : 1) - (b.status === 'critical' ? 0 : 1)) || (a.daysUntilDeadline - b.daysUntilDeadline) || (b.remainingPages - a.remainingPages))
   const okBooks = (report?.books ?? []).filter((b) => b.status === 'ok')
+    .sort((a, b) => (a.daysUntilDeadline - b.daysUntilDeadline) || (b.remainingPages - a.remainingPages))
 
   return (
     <div data-testid="chat-screen" style={{ padding: 16 }}>
@@ -391,18 +395,24 @@ export default function ChatScreen({ onBack, onHistory, today: todayProp }: Prop
               report && (
               <div data-testid="proposal-card" style={{ marginTop: 8 }}>
                 <p style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700 }}>今日の配分案</p>
-                <ul data-testid="proposal-book-list" style={{ margin: '0 0 8px', paddingLeft: 20, lineHeight: 1.8 }}>
+                <ul data-testid="proposal-book-list" style={{ listStyle: 'none', padding: 0, margin: '0 0 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {attentionBooks.map((b) => (
-                    <li key={b.bookId}>
-                      {b.title} — 残り<strong>{b.daysUntilDeadline}日</strong>・残<strong>{b.remainingPages}ページ</strong>・今日{b.plannedTodayPages}ページ
-                      {b.status === 'critical'
-                        ? <strong style={{ color: 'var(--danger)' }}>（危険）</strong>
-                        : '（遅れ）'}
+                    <li key={b.bookId} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: 8, border: '1px solid var(--border)', borderRadius: 8 }}>
+                      <CoverImage src={coverById[b.bookId] ?? null} width={40} height={56} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {b.title} — 残り<strong>{b.daysUntilDeadline}日</strong>・残<strong>{b.remainingPages}ページ</strong>・今日{b.plannedTodayPages}ページ
+                        {b.status === 'critical'
+                          ? <strong style={{ color: 'var(--danger)' }}>（危険）</strong>
+                          : '（遅れ）'}
+                      </div>
                     </li>
                   ))}
                   {proposalExpanded && okBooks.map((b) => (
-                    <li key={b.bookId}>
-                      {b.title} — 残り{b.daysUntilDeadline}日・残{b.remainingPages}ページ・今日{b.plannedTodayPages}ページ（順調）
+                    <li key={b.bookId} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: 8, border: '1px solid var(--border)', borderRadius: 8 }}>
+                      <CoverImage src={coverById[b.bookId] ?? null} width={40} height={56} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {b.title} — 残り{b.daysUntilDeadline}日・残{b.remainingPages}ページ・今日{b.plannedTodayPages}ページ（順調）
+                      </div>
                     </li>
                   ))}
                 </ul>
