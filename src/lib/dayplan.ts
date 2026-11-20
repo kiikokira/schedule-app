@@ -86,6 +86,42 @@ export function applyTrainStart(slots: TimeSlot[], nowMin: number): TimeSlot[] {
   return out
 }
 
+function formatMin(min: number): string {
+  const h = String(Math.floor(min / 60)).padStart(2, '0')
+  const m = String(min % 60).padStart(2, '0')
+  return `${h}:${m}`
+}
+
+export function buildTrainStartOverrides(
+  availability: AvailabilitySlot[],
+  today: string,
+  nowMin: number,
+): AvailabilitySlot[] | null {
+  const todaySlots = slotsForDate(availability, today)
+  const onTrainNow = todaySlots.some(
+    (s) => s.onTrain && isCurrentSlot(s.startMin, s.endMin, nowMin),
+  )
+  if (!onTrainNow) return null
+  const existing = availability.filter((a) => a.date === today)
+  return applyTrainStart(todaySlots, nowMin).map((s) => {
+    const prev = existing.find(
+      (a) =>
+        a.onTrain === s.onTrain &&
+        a.bookId === s.bookId &&
+        parseTimeToMin(a.end) === s.endMin,
+    )
+    return {
+      id: prev?.id ?? crypto.randomUUID(),
+      weekday: null,
+      date: today,
+      start: formatMin(s.startMin),
+      end: formatMin(s.endMin),
+      ...(s.bookId !== undefined ? { bookId: s.bookId } : {}),
+      ...(s.onTrain !== undefined ? { onTrain: s.onTrain } : {}),
+    }
+  })
+}
+
 export function slotsForDate(
   availability: AvailabilitySlot[],
   date: string,

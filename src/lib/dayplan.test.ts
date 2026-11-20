@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   applyTrainStart,
+  buildTrainStartOverrides,
   DEFAULT_MINUTES_PER_PAGE,
   earliestFeasibleDeadline,
   effectiveSpeed,
@@ -721,5 +722,46 @@ describe('applyTrainStart', () => {
       .toEqual([{ startMin: 1053, endMin: 1151, onTrain: true }])
     expect(applyTrainStart([{ startMin: 1053, endMin: 1151, onTrain: true }], 1151))
       .toEqual([])
+  })
+})
+
+describe('buildTrainStartOverrides', () => {
+  // 2026-11-21 は土曜（weekday 6）
+  it('builds date overrides from weekday train slot', () => {
+    const availability = [
+      { id: 'w-train', weekday: 6, date: null, start: '17:33', end: '19:11', onTrain: true },
+      { id: 'w-home', weekday: 6, date: null, start: '21:00', end: '22:00' },
+    ]
+    const out = buildTrainStartOverrides(availability as any, '2026-11-21', 1110)
+    expect(out).not.toBeNull()
+    expect(out!.find((s) => s.onTrain)).toMatchObject({ date: '2026-11-21', start: '18:30', end: '19:11', weekday: null })
+    expect(out!.find((s) => !s.onTrain)).toMatchObject({ start: '21:00', end: '22:00' })
+  })
+  it('returns null when noop', () => {
+    const availability = [
+      { id: 'w-train', weekday: 6, date: null, start: '17:33', end: '19:11', onTrain: true },
+    ]
+    expect(buildTrainStartOverrides(availability as any, '2026-11-21', 1052)).toBeNull()
+    expect(buildTrainStartOverrides(availability as any, '2026-11-21', 1151)).toBeNull()
+    expect(buildTrainStartOverrides([{ id: 'h', weekday: 6, date: null, start: '21:00', end: '22:00' } as any], '2026-11-21', 1110)).toBeNull()
+  })
+  it('replaces existing date overrides and second tap wins', () => {
+    const first = buildTrainStartOverrides(
+      [{ id: 'w-train', weekday: 6, date: null, start: '17:33', end: '19:11', onTrain: true }] as any,
+      '2026-11-21',
+      1110,
+    )!
+    const second = buildTrainStartOverrides(first as any, '2026-11-21', 1125)
+    expect(second!.find((s) => s.onTrain)).toMatchObject({ start: '18:45', end: '19:11' })
+  })
+  it('keeps the id of an existing date override for the same train slot', () => {
+    const first = buildTrainStartOverrides(
+      [{ id: 'w-train', weekday: 6, date: null, start: '17:33', end: '19:11', onTrain: true }] as any,
+      '2026-11-21',
+      1110,
+    )!
+    const firstTrainId = first.find((s) => s.onTrain)!.id
+    const second = buildTrainStartOverrides(first, '2026-11-21', 1125)
+    expect(second!.find((s) => s.onTrain)!.id).toBe(firstTrainId)
   })
 })
