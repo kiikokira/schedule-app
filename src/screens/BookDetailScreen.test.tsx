@@ -61,7 +61,8 @@ describe('BookDetailScreen', () => {
   it('records today progress and shows updated total', async () => {
     await db.books.add({ ...book, startDate: daysFromNow(0), deadline: daysFromNow(6) })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
-    fireEvent.change(await screen.findByTestId('progress-input'), { target: { value: '10' } })
+    fireEvent.change(await screen.findByTestId('record-from'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('record-to'), { target: { value: '10' } })
     fireEvent.click(screen.getByTestId('record-progress'))
     await waitFor(() => expect(screen.getByTestId('done-count')).toHaveTextContent('10'))
   })
@@ -70,7 +71,8 @@ describe('BookDetailScreen', () => {
     await db.books.add({ ...book, startDate: daysFromNow(0), deadline: daysFromNow(6) })
     await db.records.add({ id: 'r1', bookId: 'b1', date: localDateStr(new Date()), pages: 4 })
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
-    fireEvent.change(await screen.findByTestId('progress-input'), { target: { value: '7' } })
+    fireEvent.change(await screen.findByTestId('record-from'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('record-to'), { target: { value: '7' } })
     fireEvent.click(screen.getByTestId('record-progress'))
     await waitFor(() => expect(screen.getByTestId('done-count')).toHaveTextContent('7'))
   })
@@ -81,7 +83,8 @@ describe('BookDetailScreen', () => {
     const line = await screen.findByTestId('required-per-day')
     // 100ページ / 今日を除く5日 = 1日20ページ
     expect(line).toHaveTextContent('今日 0 ページを進める場合、期限まで1日あたり 20 ページ')
-    fireEvent.change(await screen.findByTestId('progress-input'), { target: { value: '10' } })
+    fireEvent.change(await screen.findByTestId('record-from'), { target: { value: '1' } })
+    fireEvent.change(await screen.findByTestId('record-to'), { target: { value: '10' } })
     // (100 - 10) / 5日 = 1日18ページ
     expect(screen.getByTestId('required-per-day')).toHaveTextContent(
       '今日 10 ページを進める場合、期限まで1日あたり 18 ページ',
@@ -111,9 +114,9 @@ describe('BookDetailScreen', () => {
     expect(await screen.findByTestId('record-list-toggle')).toHaveTextContent(/記録一覧/)
     fireEvent.click(screen.getByTestId('record-list-toggle'))
     const row1 = await screen.findByTestId('record-row-r1')
-    expect(row1).toHaveTextContent('10 ページ')
+    expect(row1).toHaveTextContent('10ページ')
     const row2 = screen.getByTestId('record-row-r2')
-    expect(row2).toHaveTextContent('20 ページ')
+    expect(row2).toHaveTextContent('20ページ')
     for (const id of ['r1', 'r2']) {
       expect(screen.getByTestId(`record-edit-${id}`)).toBeInTheDocument()
       expect(screen.getByTestId(`record-delete-${id}`)).toBeInTheDocument()
@@ -126,10 +129,11 @@ describe('BookDetailScreen', () => {
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     fireEvent.click(await screen.findByTestId('record-list-toggle'))
     fireEvent.click(await screen.findByTestId('record-edit-r1'))
-    fireEvent.change(screen.getByTestId('record-edit-pages-r1'), { target: { value: '25' } })
+    fireEvent.change(screen.getByTestId('record-edit-from-r1'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('record-edit-to-r1'), { target: { value: '25' } })
     fireEvent.click(screen.getByTestId('record-save-r1'))
     await waitFor(() => expect(screen.getByTestId('done-count')).toHaveTextContent('25'))
-    expect(screen.getByTestId('record-row-r1')).toHaveTextContent('25 ページ')
+    expect(screen.getByTestId('record-row-r1')).toHaveTextContent('1〜25')
   })
 
   it('updates the date of a record from the list', async () => {
@@ -777,13 +781,16 @@ describe('BookDetailScreen', () => {
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     const yesterday = daysFromNow(-1)
     fireEvent.change(await screen.findByTestId('record-date'), { target: { value: yesterday } })
-    fireEvent.change(await screen.findByTestId('progress-input'), { target: { value: '15' } })
+    fireEvent.change(await screen.findByTestId('record-from'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('record-to'), { target: { value: '15' } })
     fireEvent.click(screen.getByTestId('record-progress'))
     await waitFor(async () => {
       const recs = await db.records.toArray()
       expect(recs).toHaveLength(1)
       expect(recs[0].date).toBe(yesterday)
       expect(recs[0].pages).toBe(15)
+      expect(recs[0].pageFrom).toBe(1)
+      expect(recs[0].pageTo).toBe(15)
     })
   })
 
@@ -870,11 +877,63 @@ describe('BookDetailScreen', () => {
     render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
     const target = (await screen.findByTestId('today-target')).textContent
     fireEvent.click(await screen.findByTestId('record-repeat-last'))
-    expect((screen.getByTestId('progress-input') as HTMLInputElement).value).toBe('20')
+    expect((screen.getByTestId('record-from') as HTMLInputElement).value).toBe('1')
+    expect((screen.getByTestId('record-to') as HTMLInputElement).value).toBe('20')
     fireEvent.click(screen.getByTestId('record-step-plus-5'))
-    expect((screen.getByTestId('progress-input') as HTMLInputElement).value).toBe('25')
+    expect((screen.getByTestId('record-to') as HTMLInputElement).value).toBe('25')
     fireEvent.click(screen.getByTestId('record-set-target'))
-    expect((screen.getByTestId('progress-input') as HTMLInputElement).value).toBe(target)
+    expect((screen.getByTestId('record-to') as HTMLInputElement).value).toBe(target)
+  })
+
+  it('範囲120-136で17ページとして記録され一覧に範囲表示される', async () => {
+    await db.books.add({ ...book, totalPages: 320, startDate: daysFromNow(-5), deadline: daysFromNow(10) })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.change(await screen.findByTestId('record-from'), { target: { value: '120' } })
+    fireEvent.change(screen.getByTestId('record-to'), { target: { value: '136' } })
+    expect(screen.getByTestId('record-range-preview')).toHaveTextContent('17')
+    fireEvent.click(screen.getByTestId('record-progress'))
+    await waitFor(async () => {
+      const recs = await db.records.toArray()
+      expect(recs).toHaveLength(1)
+      expect(recs[0].pages).toBe(17)
+      expect(recs[0].pageFrom).toBe(120)
+      expect(recs[0].pageTo).toBe(136)
+    })
+    fireEvent.click(screen.getByTestId('record-list-toggle'))
+    expect(await screen.findByTestId('record-list')).toHaveTextContent('120〜136')
+  })
+
+  it('開始＞終了は保存されずエラー表示', async () => {
+    await db.books.add({ ...book, totalPages: 320, startDate: daysFromNow(-5), deadline: daysFromNow(10) })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.change(await screen.findByTestId('record-from'), { target: { value: '136' } })
+    fireEvent.change(screen.getByTestId('record-to'), { target: { value: '120' } })
+    fireEvent.click(screen.getByTestId('record-progress'))
+    expect(await screen.findByTestId('record-error')).toBeInTheDocument()
+    expect(await db.records.count()).toBe(0)
+  })
+
+  it('範囲なし旧記録はページ表示のまま', async () => {
+    await db.books.add({ ...book, totalPages: 320, startDate: daysFromNow(-5), deadline: daysFromNow(10) })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: daysFromNow(-1), pages: 17 })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('record-list-toggle'))
+    expect(await screen.findByTestId('record-list')).toHaveTextContent('17ページ')
+  })
+
+  it('全角数字でも範囲記録できる', async () => {
+    await db.books.add({ ...book, totalPages: 320, startDate: daysFromNow(-5), deadline: daysFromNow(10) })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.change(await screen.findByTestId('record-from'), { target: { value: '１２０' } })
+    fireEvent.change(screen.getByTestId('record-to'), { target: { value: '１３６' } })
+    fireEvent.click(screen.getByTestId('record-progress'))
+    await waitFor(async () => {
+      const recs = await db.records.toArray()
+      expect(recs).toHaveLength(1)
+      expect(recs[0].pages).toBe(17)
+      expect(recs[0].pageFrom).toBe(120)
+      expect(recs[0].pageTo).toBe(136)
+    })
   })
 })
 

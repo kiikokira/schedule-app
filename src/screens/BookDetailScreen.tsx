@@ -14,6 +14,8 @@ import {
   formatJaTime,
   todayStr,
   parseDate,
+  rangePages,
+  validatePageRange,
   calcCycleDonePairs,
   calcCycleDailyTarget,
   cycleGrandTotal,
@@ -91,11 +93,13 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const { books, removeBook } = useBooks()
   const { records, refresh: refreshRecords, addProgress, updateRecord, deleteRecord } = useRecords()
   const { cycleRecords, refresh: refreshCycleRecords, addCycle, updateCycle, removeCycle } = useCycleRecords(bookId)
-  const [pagesInput, setPagesInput] = useState('')
+  const [recordFrom, setRecordFrom] = useState('')
+  const [recordTo, setRecordTo] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDate, setEditDate] = useState('')
-  const [editPages, setEditPages] = useState('')
+  const [editFrom, setEditFrom] = useState('')
+  const [editTo, setEditTo] = useState('')
   const [editError, setEditError] = useState<string | null>(null)
   const [cycleFrom, setCycleFrom] = useState('')
   const [cycleTo, setCycleTo] = useState('')
@@ -146,7 +150,18 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   useEffect(() => {
     const targetDate = recordDate || today
     const tr = records.find((r) => r.bookId === book?.id && r.date === targetDate)
-    setPagesInput(tr ? String(tr.pages) : '')
+    if (tr) {
+      if (tr.pageFrom != null && tr.pageTo != null) {
+        setRecordFrom(String(tr.pageFrom))
+        setRecordTo(String(tr.pageTo))
+      } else {
+        setRecordFrom('1')
+        setRecordTo(String(tr.pages))
+      }
+    } else {
+      setRecordFrom('')
+      setRecordTo('')
+    }
   }, [book?.id, recordDate, records, today])
 
   if (!book) {
@@ -760,9 +775,19 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const target = calcDailyTarget(book, doneBeforeToday, remainingDays) - (todayRecord?.pages ?? 0)
 
   const todayPages = (() => {
-    const p = Number(pagesInput)
-    if (Number.isInteger(p) && p >= 1) return p
+    const from = Number(normalizeNumericInput(recordFrom.trim()))
+    const to = Number(normalizeNumericInput(recordTo.trim()))
+    if (recordFrom.trim() !== '' && recordTo.trim() !== '' && validatePageRange(from, to, book.totalPages) === null) {
+      return rangePages(from, to)
+    }
     return todayRecord?.pages ?? 0
+  })()
+  const previewPages = (() => {
+    const from = Number(normalizeNumericInput(recordFrom.trim()))
+    const to = Number(normalizeNumericInput(recordTo.trim()))
+    if (recordFrom.trim() === '' || recordTo.trim() === '') return null
+    if (validatePageRange(from, to, book.totalPages) !== null) return null
+    return rangePages(from, to)
   })()
   const requiredPerDay = calcRequiredPerDay(
     book,
@@ -777,11 +802,14 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const todayValues = bookRecords.map((r) => r.pages)
 
   const handleRecord = async () => {
-    const pages = Number(normalizeNumericInput(pagesInput.trim()))
-    if (!Number.isInteger(pages) || pages < 1) {
-      setError('ページ数は1以上の整数で入力してください')
+    const from = Number(normalizeNumericInput(recordFrom.trim()))
+    const to = Number(normalizeNumericInput(recordTo.trim()))
+    const rangeError = validatePageRange(from, to, book.totalPages)
+    if (rangeError) {
+      setError(rangeError)
       return
     }
+    const pages = rangePages(from, to)
     const targetDate = recordDate || today
     if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
       setError('日付を入力してください')
@@ -790,7 +818,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
     setError(null)
     try {
       const recordedAt = recordNewSlot !== '' ? buildRecordedAt(targetDate, recordNewSlot) : undefined
-      await addProgress(book.id, targetDate, pages, recordedAt)
+      await addProgress(book.id, targetDate, pages, recordedAt, from, to)
     } catch {
       setError('記録に失敗しました。もう一度お試しください')
       return
@@ -801,7 +829,8 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       const total = combinedActivityOnDate(targetDate, pagesRecordsForTotals(freshRecords, books), cycleRecordsForTotals(freshCycles, books))
       await appendGhostSnapshot(targetDate, total)
     } catch { /* ignore: ゴースト失敗で記録を壊さない */ }
-    setPagesInput('')
+    setRecordFrom('')
+    setRecordTo('')
     setRecordNewSlot('')
   }
 
@@ -819,24 +848,33 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const handleStartEdit = (record: ProgressRecordData) => {
     setEditingId(record.id)
     setEditDate(record.date)
-    setEditPages(String(record.pages))
+    if (record.pageFrom != null && record.pageTo != null) {
+      setEditFrom(String(record.pageFrom))
+      setEditTo(String(record.pageTo))
+    } else {
+      setEditFrom('1')
+      setEditTo(String(record.pages))
+    }
     setRecordEditSlot('')
     setEditError(null)
   }
 
   const handleSaveEdit = async (record: ProgressRecordData) => {
-    const pages = Number(normalizeNumericInput(editPages.trim()))
-    if (!Number.isInteger(pages) || pages < 1) {
-      setEditError('ページ数は1以上の整数で入力してください')
+    const from = Number(normalizeNumericInput(editFrom.trim()))
+    const to = Number(normalizeNumericInput(editTo.trim()))
+    const rangeError = validatePageRange(from, to, book.totalPages)
+    if (rangeError) {
+      setEditError(rangeError)
       return
     }
+    const pages = rangePages(from, to)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(editDate)) {
       setEditError('日付を入力してください')
       return
     }
     setEditError(null)
     try {
-      const patch: { date: string; pages: number; recordedAt?: string } = { date: editDate, pages }
+      const patch: { date: string; pages: number; pageFrom: number; pageTo: number; recordedAt?: string } = { date: editDate, pages, pageFrom: from, pageTo: to }
       if (recordEditSlot !== '') patch.recordedAt = buildRecordedAt(editDate, recordEditSlot)
       await updateRecord(record.id, patch)
       setEditingId(null)
@@ -887,35 +925,87 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           value={recordDate || today}
           onChange={(e) => { setRecordDate(e.target.value); setRecordNewSlot('') }}
         />
+        <label htmlFor="record-from">開始ページ</label>
         <input
-          data-testid="progress-input"
+          data-testid="record-from"
+          id="record-from"
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
-          value={pagesInput}
-          onChange={(e) => handleNumericInputChange(e, setPagesInput)}
-          onCompositionEnd={(e) => handleNumericCompositionEnd(e, setPagesInput)}
-          placeholder="ページ数"
+          value={recordFrom}
+          onChange={(e) => handleNumericInputChange(e, setRecordFrom)}
+          onCompositionEnd={(e) => handleNumericCompositionEnd(e, setRecordFrom)}
+          placeholder="開始ページ"
           style={{ fontSize: 16 }}
         />
+        <span>〜</span>
+        <label htmlFor="record-to">終了ページ</label>
+        <input
+          data-testid="record-to"
+          id="record-to"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          value={recordTo}
+          onChange={(e) => handleNumericInputChange(e, setRecordTo)}
+          onCompositionEnd={(e) => handleNumericCompositionEnd(e, setRecordTo)}
+          placeholder="終了ページ"
+          style={{ fontSize: 16 }}
+        />
+        <p data-testid="record-range-preview" style={{ fontSize: 14 }}>
+          {previewPages != null ? `${previewPages}ページ` : '開始〜終了を入力'}
+        </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '8px 0' }}>
           {bookRecords.length > 0 && (
             <button
               data-testid="record-repeat-last"
               type="button"
-              onClick={() => setPagesInput(String(bookRecords[0].pages))}
+              onClick={() => {
+                const last = bookRecords[0]
+                if (last.pageFrom != null && last.pageTo != null) {
+                  setRecordFrom(String(last.pageFrom))
+                  setRecordTo(String(last.pageTo))
+                } else {
+                  setRecordFrom('1')
+                  setRecordTo(String(last.pages))
+                }
+              }}
             >
               前回と同じ
+            </button>
+          )}
+          {bookRecords.length > 0 && bookRecords[0].pageTo != null && (
+            <button
+              data-testid="record-continue"
+              type="button"
+              onClick={() => {
+                const lastTo = bookRecords[0].pageTo as number
+                const next = Math.min(lastTo + 1, book.totalPages)
+                setRecordFrom(String(next))
+                setRecordTo('')
+              }}
+            >
+              つづきから入力
             </button>
           )}
           <button
             data-testid="record-set-target"
             type="button"
             onClick={() => {
-              if (target >= 1) setPagesInput(String(target))
+              if (target < 1) return
+              const from = Number(normalizeNumericInput(recordFrom.trim()))
+              if (recordFrom.trim() !== '' && Number.isInteger(from) && from >= 1 && from <= book.totalPages) {
+                setRecordTo(String(Math.min(from + target - 1, book.totalPages)))
+              } else {
+                setRecordFrom('1')
+                setRecordTo(String(Math.min(target, book.totalPages)))
+              }
             }}
           >
             目標をセット
@@ -930,11 +1020,14 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
               key={id}
               data-testid={id}
               type="button"
-              aria-label={`ページ数を${label}する`}
+              aria-label={`終了ページを${label}する`}
               onClick={() => {
-                const cur = pagesInput.trim() !== '' ? Number(pagesInput) : 0
-                const base = Number.isInteger(cur) ? cur : 0
-                setPagesInput(String(Math.max(base + delta, 1)))
+                const from = Number(normalizeNumericInput(recordFrom.trim()))
+                const to = Number(normalizeNumericInput(recordTo.trim()))
+                const fromValid = recordFrom.trim() !== '' && Number.isInteger(from) && from >= 1
+                const base = Number.isInteger(to) && recordTo.trim() !== '' ? to : fromValid ? from : 0
+                const next = Math.max(base + delta, fromValid ? from : 1)
+                setRecordTo(String(Math.min(next, book.totalPages)))
               }}
             >
               {label}
@@ -1015,17 +1108,31 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                     style={{ flex: '1 1 140px', minWidth: 140 }}
                   />
                   <input
-                    data-testid={`record-edit-pages-${record.id}`}
+                    data-testid={`record-edit-from-${record.id}`}
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
-                    value={editPages}
-                    onChange={(e) => handleNumericInputChange(e, setEditPages)}
-                    onCompositionEnd={(e) => handleNumericCompositionEnd(e, setEditPages)}
-                    placeholder="ページ数"
+                    value={editFrom}
+                    onChange={(e) => handleNumericInputChange(e, setEditFrom)}
+                    onCompositionEnd={(e) => handleNumericCompositionEnd(e, setEditFrom)}
+                    placeholder="開始ページ"
+                    style={{ flex: '1 1 80px', minWidth: 80, fontSize: 16 }}
+                  />
+                  <input
+                    data-testid={`record-edit-to-${record.id}`}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    value={editTo}
+                    onChange={(e) => handleNumericInputChange(e, setEditTo)}
+                    onCompositionEnd={(e) => handleNumericCompositionEnd(e, setEditTo)}
+                    placeholder="終了ページ"
                     style={{ flex: '1 1 80px', minWidth: 80, fontSize: 16 }}
                   />
                   {(() => {
@@ -1075,7 +1182,9 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
                 <>
                   <span style={{ flex: 1 }}>{formatJaDate(record.date)}</span>
                   <span>
-                    {record.pages} ページ
+                    {record.pageFrom != null && record.pageTo != null
+                      ? `${record.pageFrom}〜${record.pageTo}（${record.pages}p）`
+                      : `${record.pages}ページ`}
                   </span>
                   <button
                     data-testid={`record-edit-${record.id}`}

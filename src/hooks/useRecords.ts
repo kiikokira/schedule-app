@@ -20,8 +20,8 @@ export function useRecords() {
   }, [refresh])
 
   const addProgress = useCallback(
-    async (bookId: string, date: string, pages: number, recordedAt?: string) => {
-      await upsertProgress(bookId, date, pages, recordedAt)
+    async (bookId: string, date: string, pages: number, recordedAt?: string, pageFrom?: number, pageTo?: number) => {
+      await upsertProgress(bookId, date, pages, recordedAt, pageFrom, pageTo)
       await refresh()
     },
     [refresh],
