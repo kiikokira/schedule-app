@@ -253,6 +253,7 @@ describe('BulkRecordModal (pages)', () => {
   })
 
   it('deletes a row and closes via bulk-close', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     const onClose = vi.fn()
     renderModal({ onClose })
     expect(screen.getAllByTestId(/^bulk-row-/)).toHaveLength(7)
@@ -260,6 +261,24 @@ describe('BulkRecordModal (pages)', () => {
     expect(screen.getAllByTestId(/^bulk-row-/)).toHaveLength(6)
     fireEvent.click(screen.getByTestId('bulk-close'))
     expect(onClose).toHaveBeenCalled()
+    confirmSpy.mockRestore()
+  })
+
+  it('asks for confirmation before deleting a pages row', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderModal()
+    fireEvent.click(screen.getByTestId('bulk-delete-0'))
+    expect(confirmSpy).toHaveBeenCalledWith('この行を削除しますか？')
+    expect(screen.getAllByTestId(/^bulk-row-/)).toHaveLength(7)
+    confirmSpy.mockRestore()
+  })
+
+  it('deletes the row when confirmed', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderModal()
+    fireEvent.click(screen.getByTestId('bulk-delete-0'))
+    expect(screen.getAllByTestId(/^bulk-row-/)).toHaveLength(6)
+    confirmSpy.mockRestore()
   })
 })
 
@@ -494,5 +513,14 @@ describe('BulkRecordModal (cycles)', () => {
     expect(recs.filter((r) => r.date === sameDate && r.unitFrom === 11 && r.unitTo === 20)).toHaveLength(1)
     expect(screen.queryByTestId('bulk-error')).not.toBeInTheDocument()
     addSpy.mockRestore()
+  })
+
+  it('asks for confirmation before deleting a cycles row', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderModal({ book: cycleBook, mode: 'cycles', books: [cycleBook] })
+    fireEvent.click(screen.getByTestId('bulk-delete-0'))
+    expect(confirmSpy).toHaveBeenCalledWith('この行を削除しますか？')
+    expect(screen.getAllByTestId(/^bulk-row-/)).toHaveLength(7)
+    confirmSpy.mockRestore()
   })
 })
