@@ -7,6 +7,8 @@ import {
   pagesRecordsForTotals,
   cycleRecordsForTotals,
   currentCycleRound,
+  rangePages,
+  validatePageRange,
   type BookData,
   type ProgressRecordData,
   type CycleRecordData,
@@ -26,7 +28,7 @@ export function buildBulkDefaultDates(today: string, count = 7): string[] {
   return dates
 }
 
-export type BulkPagesRow = { date: string; pages: string }
+export type BulkPagesRow = { date: string; from: string; to: string }
 
 export type BulkCyclesRow = { date: string; from: string; to: string; round: string }
 
@@ -70,7 +72,11 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
   const [rows, setRows] = useState<BulkPagesRow[]>(() =>
     buildBulkDefaultDates(todayStr()).map((date) => {
       const hit = existingPages.find((r) => r.bookId === book.id && r.date === date)
-      return { date, pages: hit ? String(hit.pages) : '' }
+      return {
+        date,
+        from: hit?.pageFrom !== undefined ? String(hit.pageFrom) : '',
+        to: hit?.pageTo !== undefined ? String(hit.pageTo) : '',
+      }
     }),
   )
   // 周回型は1日複数OKの追加のみなので、既存記録のプリフィルはせず空行で開く。
@@ -94,7 +100,7 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
   }
 
   const addRow = () => {
-    setRows((prev) => [...prev, { date: '', pages: '' }])
+    setRows((prev) => [...prev, { date: '', from: '', to: '' }])
   }
 
   const deleteRow = (i: number) => {
@@ -250,26 +256,31 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
       await handleCyclesSave()
       return
     }
-    // 記入あり行だけを対象にする。ページ数が空の行は保存しない。
-    const byDate = new Map<string, number>()
+    // 記入あり行だけを対象にする。開始・終了が両方空の行は保存しない。
+    const byDate = new Map<string, { pages: number; from: number; to: number }>()
+    const totalPages = book.totalPages ?? 0
     for (const row of rows) {
-      const pagesRaw = normalizeNumericInput(row.pages.trim())
-      if (pagesRaw === '') continue
+      const fromRaw = normalizeNumericInput(row.from.trim())
+      const toRaw = normalizeNumericInput(row.to.trim())
+      if (fromRaw === '' && toRaw === '') continue
       const date = row.date.trim()
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         setError('日付を YYYY-MM-DD 形式で入力してください')
         return
       }
-      const pages = Number(pagesRaw)
-      if (!Number.isInteger(pages) || pages < 1) {
-        setError('ページ数は1以上の整数で入力してください')
+      const from = Number(fromRaw)
+      const to = Number(toRaw)
+      // バリデーションは単発と同一: 開始≦終了かつ1〜総ページの整数
+      const rangeError = validatePageRange(from, to, totalPages)
+      if (rangeError !== null) {
+        setError(rangeError)
         return
       }
       // 同じ日が複数行あるときは後ろの行を優先する
-      byDate.set(date, pages)
+      byDate.set(date, { pages: rangePages(from, to), from, to })
     }
     if (byDate.size === 0) {
-      setError('保存する行がありません。ページ数を入力してください')
+      setError('保存する行がありません。範囲を入力してください')
       return
     }
     setError(null)
@@ -285,7 +296,8 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
     try {
       for (const date of dates) {
         try {
-          await upsertProgress(book.id, date, byDate.get(date) as number)
+          const entry = byDate.get(date) as { pages: number; from: number; to: number }
+          await upsertProgress(book.id, date, entry.pages, undefined, entry.from, entry.to)
         } catch {
           failedDates.push(date)
           continue
@@ -487,18 +499,33 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
                   style={{ flex: '1 1 140px', minWidth: 130 }}
                 />
                 <input
-                  data-testid={`bulk-pages-${i}`}
+                  data-testid={`bulk-from-${i}`}
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
-                  aria-label={`${i + 1}行目のページ数`}
-                  value={row.pages}
-                  onChange={(e) => handleNumericInputChange(e, (v) => setRow(i, { pages: v }))}
-                  onCompositionEnd={(e) => handleNumericCompositionEnd(e, (v) => setRow(i, { pages: v }))}
-                  placeholder="ページ数"
+                  aria-label={`${i + 1}行目の開始ページ`}
+                  value={row.from}
+                  onChange={(e) => handleNumericInputChange(e, (v) => setRow(i, { from: v }))}
+                  onCompositionEnd={(e) => handleNumericCompositionEnd(e, (v) => setRow(i, { from: v }))}
+                  placeholder="開始ページ"
+                  style={{ flex: '1 1 80px', minWidth: 70, fontSize: 16 }}
+                />
+                <input
+                  data-testid={`bulk-to-${i}`}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  aria-label={`${i + 1}行目の終了ページ`}
+                  value={row.to}
+                  onChange={(e) => handleNumericInputChange(e, (v) => setRow(i, { to: v }))}
+                  onCompositionEnd={(e) => handleNumericCompositionEnd(e, (v) => setRow(i, { to: v }))}
+                  placeholder="終了ページ"
                   style={{ flex: '1 1 80px', minWidth: 70, fontSize: 16 }}
                 />
                 {isOutOfRange(row.date) && (

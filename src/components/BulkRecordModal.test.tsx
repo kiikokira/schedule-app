@@ -16,7 +16,7 @@ const daysFromNow = (days: number) => {
 const book: BookData = {
   id: 'b1',
   title: '英単語1000',
-  totalPages: 100,
+  totalPages: 500,
   startDate: daysFromNow(-30),
   deadline: daysFromNow(10),
   createdAt: new Date().toISOString(),
@@ -72,8 +72,10 @@ describe('BulkRecordModal (pages)', () => {
     expect(dates).toHaveLength(7)
     expect(dates[0]).toHaveValue(daysFromNow(-1))
     expect(dates[6]).toHaveValue(daysFromNow(-7))
-    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '20' } })
-    fireEvent.change(screen.getByTestId('bulk-pages-2'), { target: { value: '15' } })
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '20' } })
+    fireEvent.change(screen.getByTestId('bulk-from-2'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-2'), { target: { value: '15' } })
     fireEvent.click(screen.getByTestId('bulk-save'))
     await waitFor(async () => {
       expect(await db.records.count()).toBe(2)
@@ -91,9 +93,11 @@ describe('BulkRecordModal (pages)', () => {
     renderModal()
     fireEvent.click(screen.getByTestId('bulk-add-row'))
     fireEvent.change(screen.getByTestId('bulk-date-0'), { target: { value: '2026-11-18' } })
-    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '20' } })
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '20' } })
     fireEvent.change(screen.getByTestId('bulk-date-7'), { target: { value: '2026-11-18' } })
-    fireEvent.change(screen.getByTestId('bulk-pages-7'), { target: { value: '30' } })
+    fireEvent.change(screen.getByTestId('bulk-from-7'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-7'), { target: { value: '30' } })
     fireEvent.click(screen.getByTestId('bulk-save'))
     await waitFor(async () => {
       const rows = await db.records.where('[bookId+date]').equals(['b1', '2026-11-18']).toArray()
@@ -102,14 +106,60 @@ describe('BulkRecordModal (pages)', () => {
     })
   })
 
+  it('bulkで開始〜終了の2行が範囲保存される', async () => {
+    renderModal()
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '120' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '136' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(async () => {
+      expect(await db.records.count()).toBe(1)
+    })
+    const saved = await db.records.toArray()
+    expect(saved[0].pages).toBe(17)
+    expect(saved[0].pageFrom).toBe(120)
+    expect(saved[0].pageTo).toBe(136)
+  })
+
+  it('bulkの同日重複は後ろの行が優先される', async () => {
+    renderModal()
+    fireEvent.change(screen.getByTestId('bulk-date-0'), { target: { value: '2026-11-18' } })
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '10' } })
+    fireEvent.change(screen.getByTestId('bulk-date-1'), { target: { value: '2026-11-18' } })
+    fireEvent.change(screen.getByTestId('bulk-from-1'), { target: { value: '20' } })
+    fireEvent.change(screen.getByTestId('bulk-to-1'), { target: { value: '25' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(async () => {
+      const rows = await db.records.where('[bookId+date]').equals(['b1', '2026-11-18']).toArray()
+      expect(rows).toHaveLength(1)
+      expect(rows[0].pages).toBe(6)
+      expect(rows[0].pageFrom).toBe(20)
+      expect(rows[0].pageTo).toBe(25)
+    })
+  })
+
+  it('prefills existing range records', async () => {
+    const yesterday = daysFromNow(-1)
+    const existing: ProgressRecordData[] = [
+      { id: 'r1', bookId: 'b1', date: yesterday, pages: 17, pageFrom: 120, pageTo: 136 },
+    ]
+    renderModal({ existingPages: existing })
+    expect(screen.getByTestId('bulk-from-0')).toHaveValue('120')
+    expect(screen.getByTestId('bulk-to-0')).toHaveValue('136')
+  })
+
   it('prefills existing records and rejects invalid input without saving', async () => {
     const yesterday = daysFromNow(-1)
     const existing: ProgressRecordData[] = [
       { id: 'r1', bookId: 'b1', date: yesterday, pages: 5 },
     ]
     renderModal({ existingPages: existing })
-    expect(screen.getByTestId('bulk-pages-0')).toHaveValue('5')
-    fireEvent.change(screen.getByTestId('bulk-pages-1'), { target: { value: '0' } })
+    // 範囲なし旧記録はプリフィルされず空欄のまま
+    expect(screen.getByTestId('bulk-from-0')).toHaveValue('')
+    expect(screen.getByTestId('bulk-to-0')).toHaveValue('')
+    // 開始＞終了はエラーになり保存されない
+    fireEvent.change(screen.getByTestId('bulk-from-1'), { target: { value: '10' } })
+    fireEvent.change(screen.getByTestId('bulk-to-1'), { target: { value: '5' } })
     fireEvent.click(screen.getByTestId('bulk-save'))
     expect(screen.getByTestId('bulk-error')).toBeInTheDocument()
     expect(await db.records.count()).toBe(0)
@@ -119,7 +169,8 @@ describe('BulkRecordModal (pages)', () => {
     renderModal()
     expect(screen.queryByTestId('bulk-range-warning')).not.toBeInTheDocument()
     fireEvent.change(screen.getByTestId('bulk-date-0'), { target: { value: daysFromNow(-60) } })
-    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '8' } })
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '8' } })
     expect(screen.getByTestId('bulk-date-warning-0')).toBeInTheDocument()
     expect(screen.getByTestId('bulk-range-warning')).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('bulk-save'))
@@ -130,8 +181,10 @@ describe('BulkRecordModal (pages)', () => {
 
   it('saves full-width digits as half-width numbers', async () => {
     renderModal()
-    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '１２' } })
-    expect(screen.getByTestId('bulk-pages-0')).toHaveValue('12')
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '１' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '１２' } })
+    expect(screen.getByTestId('bulk-from-0')).toHaveValue('1')
+    expect(screen.getByTestId('bulk-to-0')).toHaveValue('12')
     fireEvent.click(screen.getByTestId('bulk-save'))
     await waitFor(async () => {
       expect(await db.records.count()).toBe(1)
@@ -144,20 +197,25 @@ describe('BulkRecordModal (pages)', () => {
     const existing: ProgressRecordData = { id: 'r1', bookId: 'b1', date: yesterday, pages: 5 }
     await db.records.add(existing)
     renderModal({ existingPages: [existing] })
-    expect(screen.getByTestId('bulk-pages-0')).toHaveValue('5')
-    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '9' } })
+    // 範囲なし旧記録は空欄のまま
+    expect(screen.getByTestId('bulk-from-0')).toHaveValue('')
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '9' } })
     fireEvent.click(screen.getByTestId('bulk-save'))
     await waitFor(async () => {
       const rows = await db.records.where('[bookId+date]').equals(['b1', yesterday]).toArray()
       expect(rows).toHaveLength(1)
       expect(rows[0].id).toBe('r1')
       expect(rows[0].pages).toBe(9)
+      expect(rows[0].pageFrom).toBe(1)
+      expect(rows[0].pageTo).toBe(9)
     })
   })
 
   it('saves records without recordedAt', async () => {
     renderModal()
-    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '7' } })
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '7' } })
     fireEvent.click(screen.getByTestId('bulk-save'))
     await waitFor(async () => {
       expect(await db.records.count()).toBe(1)
@@ -174,8 +232,10 @@ describe('BulkRecordModal (pages)', () => {
       return originalAdd(rec as ProgressRecordData, key)
     })
     renderModal()
-    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '20' } }) // secondDate
-    fireEvent.change(screen.getByTestId('bulk-pages-1'), { target: { value: '10' } }) // firstDate
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } }) // secondDate
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '20' } }) // secondDate
+    fireEvent.change(screen.getByTestId('bulk-from-1'), { target: { value: '1' } }) // firstDate
+    fireEvent.change(screen.getByTestId('bulk-to-1'), { target: { value: '10' } }) // firstDate
     fireEvent.click(screen.getByTestId('bulk-save'))
     await waitFor(() => {
       expect(screen.getByTestId('bulk-error')).toBeInTheDocument()
