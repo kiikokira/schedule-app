@@ -1,6 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type CompositionEvent } from 'react'
 import ProgressChart from '../components/ProgressChart'
 import CoverImage from '../components/CoverImage'
+import BulkRecordModal from '../components/BulkRecordModal'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
@@ -88,8 +89,8 @@ type Props = {
 
 export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const { books, removeBook } = useBooks()
-  const { records, addProgress, updateRecord, deleteRecord } = useRecords()
-  const { cycleRecords, addCycle, updateCycle, removeCycle } = useCycleRecords(bookId)
+  const { records, refresh: refreshRecords, addProgress, updateRecord, deleteRecord } = useRecords()
+  const { cycleRecords, refresh: refreshCycleRecords, addCycle, updateCycle, removeCycle } = useCycleRecords(bookId)
   const [pagesInput, setPagesInput] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -117,10 +118,21 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const [showCycleList, setShowCycleList] = useState(false)
   const [recordDate, setRecordDate] = useState(() => todayStr())
   const [showRecordList, setShowRecordList] = useState(false)
+  const [bulkOpen, setBulkOpen] = useState(false)
 
   useEffect(() => {
     void listAvailability().then(setAvailability).catch(() => {})
   }, [])
+
+  // まとめて記録モーダルはEscでも閉じられるようにする（✕ボタンはモーダル側が持つ）。
+  useEffect(() => {
+    if (!bulkOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setBulkOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [bulkOpen])
 
   const book: BookData | undefined = books.find((b) => b.id === bookId)
   const today = todayStr()
@@ -139,6 +151,31 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
       </div>
     )
   }
+
+  // まとめて過去記録モーダル（ページ型・周回型の両分岐で共用）。
+  // onSavedは保存成功後にモーダル自身を閉じる前にも呼ばれるため、一覧の再取得だけを行う。
+  const closeBulk = () => setBulkOpen(false)
+  const handleBulkSaved = async () => {
+    await Promise.all([refreshRecords(), refreshCycleRecords()])
+  }
+  const bulkModal = bulkOpen ? (
+    <div
+      onClick={(e) => {
+        // 背景（モーダル外）クリックで閉じる。ダイアログ内側のクリックでは閉じない。
+        if (!(e.target as HTMLElement).closest('[data-testid="bulk-modal"]')) closeBulk()
+      }}
+    >
+      <BulkRecordModal
+        book={book}
+        mode={book.studyMode === 'cycles' ? 'cycles' : 'pages'}
+        existingPages={records}
+        existingCycles={cycleRecords}
+        books={books}
+        onClose={closeBulk}
+        onSaved={handleBulkSaved}
+      />
+    </div>
+  ) : null
 
   if (book.studyMode === 'cycles') {
     const mine = cycleRecords
@@ -504,6 +541,9 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           <button data-testid="cycle-record" type="button" onClick={() => void handleCycleRecord()}>
             範囲を記録
           </button>
+          <button data-testid="bulk-open" type="button" onClick={() => setBulkOpen(true)} style={{ marginLeft: 8 }}>
+            まとめて記録
+          </button>
           <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>記録するごとに進捗に加算されます（同じ範囲の繰り返しも含む）</p>
           {cycleError && (
             <p data-testid="cycle-error" style={{ color: 'var(--danger)' }}>
@@ -693,6 +733,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
             削除
           </button>
         </div>
+        {bulkModal}
       </div>
     )
   }
@@ -908,6 +949,9 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
         <button data-testid="record-progress" type="button" onClick={() => void handleRecord()}>
           ページ数を記録
         </button>
+        <button data-testid="bulk-open" type="button" onClick={() => setBulkOpen(true)} style={{ marginLeft: 8 }}>
+          まとめて記録
+        </button>
         {error && (
           <p data-testid="record-error" style={{ color: 'var(--danger)' }}>
             {error}
@@ -1046,6 +1090,7 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
           削除
         </button>
       </div>
+      {bulkModal}
     </div>
   )
 }

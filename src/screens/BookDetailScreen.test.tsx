@@ -877,3 +877,101 @@ describe('BookDetailScreen', () => {
     expect((screen.getByTestId('progress-input') as HTMLInputElement).value).toBe(target)
   })
 })
+
+describe('BookDetailScreen まとめて過去記録', () => {
+  it('opens bulk modal with 7 rows from the detail screen', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(-10), deadline: daysFromNow(10) })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('bulk-open'))
+    expect(await screen.findByTestId('bulk-modal')).toBeInTheDocument()
+    expect(screen.getAllByTestId(/^bulk-date-/)).toHaveLength(7)
+  })
+
+  it('saves out-of-range dates with a warning', async () => {
+    // 期限が昨日より前（-2d）なので初期7行の最新日（昨日）は期間外。警告付きで保存できる。
+    await db.books.add({ ...book, startDate: daysFromNow(-10), deadline: daysFromNow(-2) })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('bulk-open'))
+    expect(await screen.findByTestId('bulk-range-warning')).toBeInTheDocument()
+    fireEvent.change(screen.getByTestId('bulk-pages-0'), { target: { value: '5' } })
+    expect(screen.getByTestId('bulk-range-warning')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(async () => {
+      expect(await db.records.count()).toBeGreaterThan(0)
+    })
+    const saved = await db.records.toArray()
+    expect(saved.find((r) => r.date === daysFromNow(-1))?.pages).toBe(5)
+  })
+
+  it('cycles分岐にもまとめて記録ボタンがあり範囲行のモーダルが開く', async () => {
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(-10),
+      deadline: daysFromNow(10),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('bulk-open'))
+    expect(await screen.findByTestId('bulk-modal')).toBeInTheDocument()
+    expect(screen.getAllByTestId(/^bulk-date-/)).toHaveLength(7)
+    expect(screen.getByTestId('bulk-from-0')).toBeInTheDocument()
+    expect(screen.getByTestId('bulk-to-0')).toBeInTheDocument()
+    expect(screen.getByTestId('bulk-round-0')).toBeInTheDocument()
+  })
+
+  it('pages: まとめて保存後はモーダルが閉じて一覧と完了数に反映される', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(-10), deadline: daysFromNow(10) })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('bulk-open'))
+    fireEvent.change(await screen.findByTestId('bulk-pages-0'), { target: { value: '12' } })
+    fireEvent.change(screen.getByTestId('bulk-pages-1'), { target: { value: '8' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(() => expect(screen.queryByTestId('bulk-modal')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTestId('done-count')).toHaveTextContent('20'))
+    expect(screen.getByTestId('record-list-toggle')).toHaveTextContent('2件')
+  })
+
+  it('cycles: まとめて保存後はモーダルが閉じて記録一覧に反映される', async () => {
+    await db.books.add({
+      ...book,
+      studyMode: 'cycles',
+      totalUnits: 20,
+      targetRounds: 3,
+      startDate: daysFromNow(-10),
+      deadline: daysFromNow(10),
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('bulk-open'))
+    fireEvent.change(await screen.findByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '4' } })
+    fireEvent.change(screen.getByTestId('bulk-round-0'), { target: { value: '1' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(() => expect(screen.queryByTestId('bulk-modal')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTestId('cycle-summary')).toHaveTextContent('4 / 60'))
+    expect(screen.getByTestId('cycle-list-toggle')).toHaveTextContent('1件')
+  })
+
+  it('bulk-close・Esc・モーダル外クリックで閉じる（内側クリックでは閉じない）', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(-10), deadline: daysFromNow(10) })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    // bulk-close
+    fireEvent.click(await screen.findByTestId('bulk-open'))
+    fireEvent.click(await screen.findByTestId('bulk-close'))
+    await waitFor(() => expect(screen.queryByTestId('bulk-modal')).not.toBeInTheDocument())
+    // Esc
+    fireEvent.click(screen.getByTestId('bulk-open'))
+    await screen.findByTestId('bulk-modal')
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByTestId('bulk-modal')).not.toBeInTheDocument())
+    // モーダル内側クリックでは閉じない
+    fireEvent.click(screen.getByTestId('bulk-open'))
+    const dialog = await screen.findByTestId('bulk-modal')
+    fireEvent.click(dialog)
+    expect(screen.getByTestId('bulk-modal')).toBeInTheDocument()
+    // 外側（背景）クリックで閉じる
+    fireEvent.click(dialog.parentElement!)
+    await waitFor(() => expect(screen.queryByTestId('bulk-modal')).not.toBeInTheDocument())
+  })
+})
