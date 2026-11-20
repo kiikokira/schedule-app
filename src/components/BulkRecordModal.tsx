@@ -104,6 +104,7 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
   }
 
   const deleteRow = (i: number) => {
+    if (!window.confirm('この行を削除しますか？')) return
     setRows((prev) => prev.filter((_, j) => j !== i))
   }
 
@@ -116,6 +117,7 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
   }
 
   const deleteCycleRow = (i: number) => {
+    if (!window.confirm('この行を削除しますか？')) return
     setCycleRows((prev) => prev.filter((_, j) => j !== i))
   }
 
