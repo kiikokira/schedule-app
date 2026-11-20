@@ -9,7 +9,7 @@ import {
   listAdjustments,
   type AvailabilitySlot,
 } from '../data/dayplanStore'
-import { generateDayPlan, effectiveSpeed, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
+import { generateDayPlan, effectiveSpeed, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, buildTrainStartOverrides, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
 import { calcQuestToday, MAX_PAGE_DEBT } from '../lib/penalty'
 import { listPenalties, getPenaltySettings } from '../data/penaltyStore'
 import { todayStr, formatJaDate, daysBetween, calcCycleDonePairs, calcCycleDailyTarget, scoreCycleOnDate, currentCycleRound, type BookData } from '../lib/progress'
@@ -470,6 +470,24 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     [displayedRows],
   )
 
+  // 帰り汽車の「スタート」ボタン。汽車枠の実行中（startMin <= nowMin < endMin）のときだけ出す。
+  // 17:33前は売り切れ、19:11後は終了一道なので押せない（押せない時はボタンを出さない）。
+  const trainStartAvailable = useMemo(
+    () =>
+      slotsForDate(availability, today).some(
+        (s) => s.onTrain && isCurrentSlot(s.startMin, s.endMin, nowMin),
+      ),
+    [availability, today, nowMin],
+  )
+  // 「もとに戻す」ボタンの表示条件。今日の日付上書きが1件でもあれば出す。
+  const hasTodayOverride = useMemo(
+    () => availability.some((a) => a.date === today),
+    [availability, today],
+  )
+  // 汽車枠の操作欄を出すときだけ、メッセージは操作欄のそばに表示する
+  // （今日だけ上書きのパネル内にも同じ文言が出るため、二重表示を避ける）。
+  const trainStartControlsVisible = trainStartAvailable || hasTodayOverride
+
   // 罰クエスト表示用。今日予定は表示スロットの合計、計画自体への自動加算はしない。
   const penaltyQuest = useMemo(
     () =>
@@ -573,6 +591,51 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     clearTodayDraft(today)
     setDayRowsInit(false)
     setDayMessage('今日だけの計画に上書きしました')
+    await refreshAvailability()
+  }
+
+  // 帰り汽車「スタート」: 押した時刻から今日の汽車枠だけ切り詰める。
+  // 曜日設定は触らず、今日だけの日付上書きとして保存する（二度押しは後勝ち）。
+  const handleTrainStart = async () => {
+    const overrides = buildTrainStartOverrides(availability, today, nowMin)
+    if (!overrides) {
+      setDayMessage('この時間はスタートできません')
+      return
+    }
+    try {
+      const existing = await listAvailability()
+      for (const s of existing.filter((a) => a.date === today)) {
+        await deleteAvailabilitySlot(s.id)
+      }
+      for (const slot of overrides) {
+        await saveAvailabilitySlot(slot, true)
+      }
+    } catch {
+      // 保存に失敗しても表示は壊さず、メッセージだけ出す。
+      setDayMessage('スタート時刻の保存に失敗しました')
+      return
+    }
+    setBookOverrides({})
+    setPinOverrides({})
+    clearTodayDraft(today)
+    setDayRowsInit(false)
+    setDayMessage('スタート時刻から割り直しました')
+    await refreshAvailability()
+  }
+
+  // 「もとに戻す」: 今日の日付上書きを捨てて曜日設定に戻す。
+  const handleTrainStartReset = async () => {
+    try {
+      const existing = await listAvailability()
+      for (const s of existing.filter((a) => a.date === today)) {
+        await deleteAvailabilitySlot(s.id)
+      }
+    } catch {
+      setDayMessage('曜日設定への戻す処理に失敗しました')
+      return
+    }
+    setDayRowsInit(false)
+    setDayMessage('曜日設定に戻しました')
     await refreshAvailability()
   }
 
@@ -896,6 +959,25 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
         <p data-testid="plan-notice" style={{ color: 'var(--text-dim)' }}>
           {planned.notice}
         </p>
+      )}
+      {trainStartControlsVisible && (
+        <div data-testid="train-start-controls" style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+          {trainStartAvailable && (
+            <button data-testid="train-start" type="button" onClick={() => void handleTrainStart()}>
+              スタート
+            </button>
+          )}
+          {hasTodayOverride && (
+            <button data-testid="train-start-reset" type="button" onClick={() => void handleTrainStartReset()}>
+              もとに戻す
+            </button>
+          )}
+          {dayMessage && (
+            <p data-testid="train-start-message" style={{ margin: 0, color: 'var(--accent-strong)' }}>
+              {dayMessage}
+            </p>
+          )}
+        </div>
       )}
       {displayedSlots.length === 0 ? (
         <p data-testid="empty-availability-notice" style={{ color: 'var(--text-dim)' }}>
@@ -1307,7 +1389,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
             今日だけ上書き保存
           </button>
         </div>
-        {dayMessage && (
+        {dayMessage && !trainStartControlsVisible && (
           <p data-testid="today-override-message" style={{ color: 'var(--accent-strong)' }}>
             {dayMessage}
           </p>
