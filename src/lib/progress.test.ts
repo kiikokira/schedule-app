@@ -29,6 +29,8 @@ import {
   pagesRecordsForTotals,
   cycleRecordsForTotals,
   totalsByBook,
+  rangePages,
+  validatePageRange,
   type BookData,
   type ProgressRecordData,
   type CycleRecordData,
@@ -494,4 +496,20 @@ it('totalsByBook carries coverUrl', () => {
   const records = [{ id: 'r1', bookId: 'b1', date: '2026-10-24', pages: 5 }]
   const rows = totalsByBook(records as never, [], books as never)
   expect(rows[0]).toMatchObject({ bookId: 'b1', total: 5, coverUrl: 'https://example.com/leap.jpg' })
+})
+
+describe('page range helper', () => {
+  it('120-136は17ページになる', () => {
+    expect(rangePages(120, 136)).toBe(17)
+  })
+  it('開始＞終了はエラー', () => {
+    expect(validatePageRange(136, 120, 320)).not.toBeNull()
+  })
+  it('範囲外はエラー', () => {
+    expect(validatePageRange(0, 10, 320)).not.toBeNull()
+    expect(validatePageRange(1, 321, 320)).not.toBeNull()
+  })
+  it('正常範囲はnull', () => {
+    expect(validatePageRange(120, 136, 320)).toBeNull()
+  })
 })

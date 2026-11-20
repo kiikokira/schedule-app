@@ -103,3 +103,21 @@ it('rejects chatMessages with text 10001 chars', () => {
   }
   expect(validateBackup(data)).toBe(false)
 })
+
+it('範囲付きpages記録を受け入れる', () => {
+  const data: unknown = {
+    exportedAt: '2026-01-05T00:00:00.000Z',
+    books: [book],
+    records: [{ ...record, pages: 17, pageFrom: 120, pageTo: 136 }],
+  }
+  expect(validateBackup(data)).toBe(true)
+})
+
+it('開始＞終了の範囲記録を拒否する', () => {
+  const data: unknown = {
+    exportedAt: '2026-01-05T00:00:00.000Z',
+    books: [book],
+    records: [{ ...record, pages: 17, pageFrom: 136, pageTo: 120 }],
+  }
+  expect(validateBackup(data)).toBe(false)
+})

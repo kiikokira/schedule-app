@@ -87,16 +87,34 @@ export async function upsertProgress(
   date: string,
   pages: number,
   recordedAt?: string,
+  pageFrom?: number,
+  pageTo?: number,
 ): Promise<ProgressRecordData> {
   const existing = await db.records.where('[bookId+date]').equals([bookId, date]).first()
   if (existing) {
     const patch: Partial<DexieRecord> = { pages }
     if (recordedAt !== undefined) patch.recordedAt = recordedAt
+    if (pageFrom !== undefined) patch.pageFrom = pageFrom
+    if (pageTo !== undefined) patch.pageTo = pageTo
     await db.records.update(existing.id, patch)
-    return { ...existing, pages, ...(recordedAt !== undefined ? { recordedAt } : {}) }
+    return {
+      ...existing,
+      pages,
+      ...(recordedAt !== undefined ? { recordedAt } : {}),
+      ...(pageFrom !== undefined ? { pageFrom } : {}),
+      ...(pageTo !== undefined ? { pageTo } : {}),
+    }
   }
   const id = crypto.randomUUID()
-  const record: ProgressRecordData = { id, bookId, date, pages, ...(recordedAt !== undefined ? { recordedAt } : {}) }
+  const record: ProgressRecordData = {
+    id,
+    bookId,
+    date,
+    pages,
+    ...(recordedAt !== undefined ? { recordedAt } : {}),
+    ...(pageFrom !== undefined ? { pageFrom } : {}),
+    ...(pageTo !== undefined ? { pageTo } : {}),
+  }
   await db.records.add(record)
   return record
 }
@@ -123,6 +141,8 @@ export type RecordPatch = {
   date?: string
   pages?: number
   recordedAt?: string
+  pageFrom?: number
+  pageTo?: number
 }
 
 export async function updateProgressRecord(
@@ -144,6 +164,8 @@ export async function updateProgressRecord(
   if (patch.date !== undefined) changes.date = patch.date
   if (patch.pages !== undefined) changes.pages = patch.pages
   if (patch.recordedAt !== undefined) changes.recordedAt = patch.recordedAt
+  if (patch.pageFrom !== undefined) changes.pageFrom = patch.pageFrom
+  if (patch.pageTo !== undefined) changes.pageTo = patch.pageTo
   await db.records.update(id, changes)
   return (await db.records.get(id)) as DexieRecord
 }

@@ -61,6 +61,14 @@ export function validateBackup(data: unknown): data is BackupData {
     if (!r || typeof r.id !== 'string' || r.id.length > 200) return false
     if (typeof r.bookId !== 'string' || r.bookId.length > 200 || !bookIds.has(r.bookId)) return false
     if (typeof r.date !== 'string' || typeof r.pages !== 'number' || r.pages < 1) return false
+    const pageFrom = (r as { pageFrom?: unknown }).pageFrom
+    const pageTo = (r as { pageTo?: unknown }).pageTo
+    if (pageFrom !== undefined || pageTo !== undefined) {
+      if (typeof pageFrom !== 'number' || typeof pageTo !== 'number') return false
+      if (!Number.isInteger(pageFrom) || !Number.isInteger(pageTo)) return false
+      if (pageFrom < 1 || pageTo < 1) return false
+      if (pageFrom > pageTo) return false
+    }
   }
   for (const c of cycles) {
     if (!c || typeof c.id !== 'string' || c.id.length > 200) return false

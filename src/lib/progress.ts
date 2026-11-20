@@ -28,6 +28,35 @@ export type ProgressRecordData = {
   date: string
   pages: number
   recordedAt?: string
+  pageFrom?: number
+  pageTo?: number
+}
+
+export function rangePages(from: number, to: number): number {
+  return to - from + 1
+}
+
+export function validatePageRange(
+  from: number,
+  to: number,
+  totalPages: number,
+): string | null {
+  if (!Number.isInteger(from) || !Number.isInteger(to)) {
+    return 'ページは整数で入力してください'
+  }
+  if (from < 1 || to < 1) {
+    return '開始ページと終了ページは1以上で入力してください'
+  }
+  if (!Number.isInteger(totalPages) || totalPages < 1) {
+    return '総ページ数が不正です'
+  }
+  if (from > totalPages || to > totalPages) {
+    return `1〜${totalPages}の範囲で入力してください`
+  }
+  if (from > to) {
+    return '開始ページは終了ページ以下で入力してください'
+  }
+  return null
 }
 
 export function formatDate(d: Date): string {
