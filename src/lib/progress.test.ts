@@ -512,4 +512,9 @@ describe('page range helper', () => {
   it('正常範囲はnull', () => {
     expect(validatePageRange(120, 136, 320)).toBeNull()
   })
+  it('逆順はvalidatePageRangeで拒否される（rangePagesの前提）', () => {
+    expect(validatePageRange(136, 120, 320)).toBe(
+      '開始ページは終了ページ以下で入力してください',
+    )
+  })
 })

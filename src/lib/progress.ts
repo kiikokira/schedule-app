@@ -33,6 +33,8 @@ export type ProgressRecordData = {
 }
 
 export function rangePages(from: number, to: number): number {
+  // 前提: validatePageRange(from, to, totalPages) が null を返す範囲でのみ呼ぶこと。
+  // 逆順（from > to）の妥当性は本関数ではなく validatePageRange で判定する。
   return to - from + 1
 }
 

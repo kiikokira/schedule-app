@@ -42,6 +42,32 @@ describe('upsertProgress', () => {
     expect(all).toHaveLength(1)
     expect(all[0].pages).toBe(15)
   })
+  it('persists pageFrom/pageTo on create', async () => {
+    const rec = await upsertProgress('b1', '2026-01-05', 17, undefined, 120, 136)
+    expect(rec.pageFrom).toBe(120)
+    expect(rec.pageTo).toBe(136)
+    const stored = await db.records.get(rec.id)
+    expect(stored?.pageFrom).toBe(120)
+    expect(stored?.pageTo).toBe(136)
+  })
+  it('overwrites the range on the same book+date', async () => {
+    await upsertProgress('b1', '2026-01-05', 17, undefined, 120, 136)
+    await upsertProgress('b1', '2026-01-05', 6, undefined, 20, 25)
+    const all = await db.records.where('bookId').equals('b1').toArray()
+    expect(all).toHaveLength(1)
+    expect(all[0].pages).toBe(6)
+    expect(all[0].pageFrom).toBe(20)
+    expect(all[0].pageTo).toBe(25)
+  })
+  it('keeps the existing range on a 4-arg call without range', async () => {
+    await upsertProgress('b1', '2026-01-05', 17, undefined, 120, 136)
+    await upsertProgress('b1', '2026-01-05', 18)
+    const all = await db.records.where('bookId').equals('b1').toArray()
+    expect(all).toHaveLength(1)
+    expect(all[0].pages).toBe(18)
+    expect(all[0].pageFrom).toBe(120)
+    expect(all[0].pageTo).toBe(136)
+  })
 })
 
 describe('deleteBookCascade', () => {
@@ -99,6 +125,14 @@ describe('updateProgressRecord', () => {
     await updateProgressRecord(rec.id, { recordedAt: '2026-01-05T06:00:00.000Z' })
     const stored = await db.records.get(rec.id)
     expect(stored?.recordedAt).toBe('2026-01-05T06:00:00.000Z')
+  })
+  it('updates pageFrom/pageTo via patch', async () => {
+    const rec = await upsertProgress('b1', '2026-01-05', 10)
+    await updateProgressRecord(rec.id, { pages: 17, pageFrom: 120, pageTo: 136 })
+    const stored = await db.records.get(rec.id)
+    expect(stored?.pages).toBe(17)
+    expect(stored?.pageFrom).toBe(120)
+    expect(stored?.pageTo).toBe(136)
   })
 })
 
