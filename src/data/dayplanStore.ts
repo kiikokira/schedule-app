@@ -10,6 +10,9 @@ export type AvailabilitySlot = {
   bookId?: string
   // 汽車で移動中の時間帯。trueなら汽車向きの本だけ自動割当する。
   onTrain?: boolean
+  // 切り詰め前の元の範囲（HH:MM）。リーグの枠キーを安定させるために使う。
+  originStart?: string
+  originEnd?: string
 }
 
 export type Adjustment = {
@@ -37,6 +40,19 @@ export async function saveAvailabilitySlot(
 
 export async function deleteAvailabilitySlot(id: string): Promise<void> {
   await db.availability.delete(id)
+}
+
+// 指定日の「今日だけ上書き」を渡された行に差し替える（削除と追加を1トランザクションで行う）。
+export function replaceDateOverrides(date: string, slots: AvailabilitySlot[]): Promise<void> {
+  // Dexieのトランザクション内は async/await で区切ると疑似タイマー環境で
+  // トランザクションが終了してしまうため、Dexie Promise のチェーンでつなぐ。
+  return db.transaction('rw', db.availability, () =>
+    db.availability
+      .filter((a) => a.date === date)
+      .delete()
+      .then(() => db.availability.bulkAdd(slots))
+      .then(() => undefined),
+  )
 }
 
 // 参考書の削除に連動して、その本に固定された時間帯の固定を外す。枠自体は残す。

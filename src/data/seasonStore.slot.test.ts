@@ -109,6 +109,27 @@ describe('seasonStore slot', () => {
     expect(forfeited).toContain('2026-09-21#1260-1380')
     expect(loadSeasonState('2026-09-22').slotMatches['2026-09-21#1260-1380']?.result).toBe('loss')
   })
+  it('帰り汽車スタートで切り詰められたbook固定枠は元キーの確定済み試合を敗戦にしない', async () => {
+    const { autoForfeitPastSlots, loadSeasonState, syncLeagueSlot } = await import('./seasonStore')
+    localStorage.clear()
+    const today = '2026-09-22'
+    const originalKey = '2026-09-21#1053-1151' // 17:33-19:11（曜日設定の元キー）
+    const clippedKey = '2026-09-21#1110-1151' // 18:30-19:11（切り詰め後のキー）
+    syncLeagueSlot(today, originalKey, { my: 10, unit: 'pages', slotMinutes: 98 })
+    const availability = [
+      {
+        id: 'train', weekday: null, date: '2026-09-21', start: '18:30', end: '19:11',
+        bookId: 'b1', onTrain: true, originStart: '17:33', originEnd: '19:11',
+      },
+    ]
+    const books = [
+      { id: 'b1', title: '本1', totalPages: 100, startDate: '2026-09-01', deadline: '2026-12-31', createdAt: '2026-09-01', updatedAt: '2026-09-01' },
+    ]
+    expect(autoForfeitPastSlots(today, availability, books)).toEqual([])
+    const matches = loadSeasonState(today).slotMatches
+    expect(matches[originalKey]?.my).toBe(10)
+    expect(matches[clippedKey]).toBeUndefined()
+  })
   it('cycles+LEAP本はwords単位で敗戦になる', async () => {
     const { autoForfeitPastSlots, loadSeasonState } = await import('./seasonStore')
     localStorage.clear()

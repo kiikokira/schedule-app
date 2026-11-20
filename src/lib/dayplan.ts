@@ -48,7 +48,15 @@ export function normalizePagePace<
   return null
 }
 
-export type TimeSlot = { startMin: number; endMin: number; bookId?: string; onTrain?: boolean }
+export type TimeSlot = {
+  startMin: number
+  endMin: number
+  bookId?: string
+  onTrain?: boolean
+  // 切り詰め前の元の範囲（分）。切り詰め後もリーグの枠キーを元キーに合わせるために使う。
+  originStartMin?: number
+  originEndMin?: number
+}
 
 export function parseTimeToMin(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number)
@@ -102,24 +110,30 @@ export function buildTrainStartOverrides(
     (s) => s.onTrain && isCurrentSlot(s.startMin, s.endMin, nowMin),
   )
   if (!onTrainNow) return null
-  const existing = availability.filter((a) => a.date === today)
-  return applyTrainStart(todaySlots, nowMin).map((s) => {
-    const prev = existing.find(
-      (a) =>
-        a.onTrain === s.onTrain &&
-        a.bookId === s.bookId &&
-        parseTimeToMin(a.end) === s.endMin,
-    )
-    return {
-      id: prev?.id ?? crypto.randomUUID(),
-      weekday: null,
-      date: today,
-      start: formatMin(s.startMin),
-      end: formatMin(s.endMin),
-      ...(s.bookId !== undefined ? { bookId: s.bookId } : {}),
-      ...(s.onTrain !== undefined ? { onTrain: s.onTrain } : {}),
-    }
-  })
+  // 切り詰め前の範囲を元枠から取っておく（リーグの枠キーを変えないため）。
+  // 元枠が既に origin を持つ場合はそれを引き継ぐ（二度押しで元キーが変わらない）。
+  const clipped: { slot: TimeSlot; originStartMin: number; originEndMin: number }[] = []
+  for (const src of todaySlots) {
+    const [slot] = applyTrainStart([src], nowMin)
+    if (!slot) continue
+    clipped.push({
+      slot,
+      originStartMin: src.originStartMin ?? src.startMin,
+      originEndMin: src.originEndMin ?? src.endMin,
+    })
+  }
+  return clipped.map(({ slot: s, originStartMin, originEndMin }) => ({
+    id: crypto.randomUUID(),
+    weekday: null,
+    date: today,
+    start: formatMin(s.startMin),
+    end: formatMin(s.endMin),
+    ...(s.bookId !== undefined ? { bookId: s.bookId } : {}),
+    ...(s.onTrain !== undefined ? { onTrain: s.onTrain } : {}),
+    ...(s.onTrain
+      ? { originStart: formatMin(originStartMin), originEnd: formatMin(originEndMin) }
+      : {}),
+  }))
 }
 
 export function slotsForDate(
@@ -136,6 +150,8 @@ export function slotsForDate(
         endMin: parseTimeToMin(a.end),
         bookId: a.bookId,
         onTrain: a.onTrain,
+        ...(a.originStart !== undefined ? { originStartMin: parseTimeToMin(a.originStart) } : {}),
+        ...(a.originEnd !== undefined ? { originEndMin: parseTimeToMin(a.originEnd) } : {}),
       }))
       .filter((s) => s.endMin > s.startMin && s.endMin <= 1440)
   }
@@ -149,6 +165,8 @@ export function slotsForDate(
       endMin: parseTimeToMin(a.end),
       bookId: a.bookId,
       onTrain: a.onTrain,
+      ...(a.originStart !== undefined ? { originStartMin: parseTimeToMin(a.originStart) } : {}),
+      ...(a.originEnd !== undefined ? { originEndMin: parseTimeToMin(a.originEnd) } : {}),
     }))
     .filter((s) => s.endMin > s.startMin && s.endMin <= 1440)
 }

@@ -186,6 +186,16 @@ describe('slotsForDate', () => {
     )
     expect(slots).toEqual([{ startMin: 1260, endMin: 1320, bookId: 'b9' }])
   })
+
+  it('propagates the original range when a date override has one', () => {
+    const slots = slotsForDate(
+      [{ id: 't', weekday: null, date: '2026-09-21', start: '18:30', end: '19:11', onTrain: true, originStart: '17:33', originEnd: '19:11' }] as any,
+      '2026-09-21',
+    )
+    expect(slots).toEqual([
+      { startMin: 1110, endMin: 1151, onTrain: true, originStartMin: 1053, originEndMin: 1151 },
+    ])
+  })
 })
 
 describe('generateDayPlan', () => {
@@ -754,14 +764,48 @@ describe('buildTrainStartOverrides', () => {
     const second = buildTrainStartOverrides(first as any, '2026-11-21', 1125)
     expect(second!.find((s) => s.onTrain)).toMatchObject({ start: '18:45', end: '19:11' })
   })
-  it('keeps the id of an existing date override for the same train slot', () => {
+  it('gives every row a fresh unique id (existing date override ids are not reused)', () => {
     const first = buildTrainStartOverrides(
       [{ id: 'w-train', weekday: 6, date: null, start: '17:33', end: '19:11', onTrain: true }] as any,
       '2026-11-21',
       1110,
     )!
     const firstTrainId = first.find((s) => s.onTrain)!.id
-    const second = buildTrainStartOverrides(first, '2026-11-21', 1125)
-    expect(second!.find((s) => s.onTrain)!.id).toBe(firstTrainId)
+    const second = buildTrainStartOverrides(first, '2026-11-21', 1125)!
+    const ids = second.map((s) => s.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(ids).not.toContain(firstTrainId)
+  })
+  it('sets the original range on train rows and keeps it on a second press', () => {
+    const first = buildTrainStartOverrides(
+      [{ id: 'w-train', weekday: 6, date: null, start: '17:33', end: '19:11', onTrain: true }] as any,
+      '2026-11-21',
+      1110,
+    )!
+    const train = first.find((s) => s.onTrain)!
+    expect(train).toMatchObject({ start: '18:30', end: '19:11', originStart: '17:33', originEnd: '19:11' })
+
+    const second = buildTrainStartOverrides(first, '2026-11-21', 1125)!
+    expect(second.find((s) => s.onTrain)).toMatchObject({
+      start: '18:45',
+      end: '19:11',
+      originStart: '17:33',
+      originEnd: '19:11',
+    })
+  })
+  it('inherits an existing origin on a train row', () => {
+    const first = buildTrainStartOverrides(
+      [
+        {
+          id: 'train', weekday: null, date: '2026-11-21', start: '18:30', end: '19:11',
+          onTrain: true, originStart: '17:00', originEnd: '19:11',
+        },
+      ] as any,
+      '2026-11-21',
+      1125,
+    )!
+    expect(first.find((s) => s.onTrain)).toMatchObject({
+      start: '18:45', end: '19:11', originStart: '17:00', originEnd: '19:11',
+    })
   })
 })

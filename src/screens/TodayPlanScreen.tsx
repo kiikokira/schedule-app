@@ -7,6 +7,7 @@ import {
   saveAvailabilitySlot,
   deleteAvailabilitySlot,
   listAdjustments,
+  replaceDateOverrides,
   type AvailabilitySlot,
 } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, slotsForDate, parseTimeToMin, findAtRiskBooks, isCurrentSlot, buildTrainStartOverrides, type ScheduledBook, type PlanSlot } from '../lib/dayplan'
@@ -89,6 +90,11 @@ function minToHHMM(min: number): string {
   const h = String(Math.floor(min / 60)).padStart(2, '0')
   const m = String(min % 60).padStart(2, '0')
   return `${h}:${m}`
+}
+
+function currentMinuteOfDay(): number {
+  const now = new Date()
+  return now.getHours() * 60 + now.getMinutes()
 }
 
 type CyclesPin = { startMin: number; endMin: number; bookId: string; onTrain?: boolean }
@@ -180,6 +186,47 @@ function clearTodayDraft(today: string): void {
   }
 }
 
+// 帰り汽車スタートが今日の上書きを差し替えたときだけ残すマーカー。
+// 手動の「今日だけ上書き」には付かないので、無関係な設定を「もとに戻す」で消さない。
+const TRAIN_START_PREFIX = 'schedule-app-train-start:'
+
+function trainStartKey(today: string): string {
+  return `${TRAIN_START_PREFIX}${today}`
+}
+
+function loadTrainStartBackup(today: string): AvailabilitySlot[] | null {
+  try {
+    const raw = localStorage.getItem(trainStartKey(today))
+    if (!raw) return null
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    const backup = (parsed as { backup?: unknown }).backup
+    if (!Array.isArray(backup)) return null
+    if (!backup.every((v) => v && typeof v === 'object' && typeof (v as AvailabilitySlot).id === 'string')) {
+      return null
+    }
+    return backup as AvailabilitySlot[]
+  } catch {
+    return null
+  }
+}
+
+function saveTrainStartBackup(today: string, backup: AvailabilitySlot[]): void {
+  try {
+    localStorage.setItem(trainStartKey(today), JSON.stringify({ backup }))
+  } catch {
+    // localStorage が利用できない環境ではマーカーを残さない
+  }
+}
+
+function clearTrainStartBackup(today: string): void {
+  try {
+    localStorage.removeItem(trainStartKey(today))
+  } catch {
+    // 何もしない
+  }
+}
+
 // 反復本の固定を自動割当に上書き合成する。ページ枠の重なりはくり抜き、
 // 反復枠を挿入する。自動割当ロジック自体は変えない。
 function overlayCyclesPins(
@@ -247,8 +294,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const { records, addProgress } = useRecords()
   const { cycleRecords, addCycle } = useCycleRecords()
   const today = todayProp ?? todayStr()
-  const now = new Date()
-  const nowMin = now.getHours() * 60 + now.getMinutes()
+  const [nowMin, setNowMin] = useState(currentMinuteOfDay)
   // テスト期間中は選択本だけを対象にする（選択外は計画に出さない）
   const [focusPeriods] = useState(loadFocusPeriods)
   const focusIds = selectedBookIds(focusPeriods, today)
@@ -273,6 +319,12 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const [dayRows, setDayRows] = useState<DayRow[]>([])
   const [dayRowsInit, setDayRowsInit] = useState(false)
   const [dayMessage, setDayMessage] = useState<string | null>(null)
+  // 帰り汽車スタート専用の通知（上書きパネルの dayMessage とは独立）。
+  const [trainStartNotice, setTrainStartNotice] = useState<string | null>(null)
+  // マーカーがある時だけ「もとに戻す」を出す。マウント時に localStorage から復元する。
+  const [trainStartBackup, setTrainStartBackup] = useState<AvailabilitySlot[] | null>(
+    () => loadTrainStartBackup(today),
+  )
   const [overrideOpen, setOverrideOpen] = useState(false)
   const [presets, setPresets] = useState<OverridePreset[]>(() => loadOverridePresets())
   const [presetId, setPresetId] = useState('')
@@ -312,6 +364,12 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       )
     })
   }, [today])
+
+  // 画面を開いたまま時間が過ぎても古い時刻のままにならないよう、時計を進めて再描画する。
+  useEffect(() => {
+    const timer = setInterval(() => setNowMin(currentMinuteOfDay()), 30_000)
+    return () => clearInterval(timer)
+  }, [])
 
   // 罰借金の読み込み。prune済み枠は許容し missingBookIds は見ない（pageDebt合算のみ）。
   useEffect(() => {
@@ -479,14 +537,18 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       ),
     [availability, today, nowMin],
   )
-  // 「もとに戻す」ボタンの表示条件。今日の日付上書きが1件でもあれば出す。
-  const hasTodayOverride = useMemo(
-    () => availability.some((a) => a.date === today),
-    [availability, today],
-  )
-  // 汽車枠の操作欄を出すときだけ、メッセージは操作欄のそばに表示する
-  // （今日だけ上書きのパネル内にも同じ文言が出るため、二重表示を避ける）。
-  const trainStartControlsVisible = trainStartAvailable || hasTodayOverride
+  // 切り詰められた汽車枠は元の範囲をリーグの枠キーに使う（翌日の不当な敗戦を防ぐ）。
+  const trainOriginKey = useMemo(() => {
+    const s = slotsForDate(availability, today).find(
+      (slot) => slot.onTrain && slot.originStartMin != null && slot.originEndMin != null,
+    )
+    if (!s || s.originStartMin == null || s.originEndMin == null) return null
+    return makeSlotKey(today, s.originStartMin, s.originEndMin)
+  }, [availability, today])
+  // 「もとに戻す」は帰り汽車スタートのマーカーがある時だけ出す。
+  // 手動の今日上書きにはマーカーが付かないので、その設定は消さない。
+  const hasTrainStartBackup = trainStartBackup !== null
+  const trainStartControlsVisible = trainStartAvailable || hasTrainStartBackup
 
   // 罰クエスト表示用。今日予定は表示スロットの合計、計画自体への自動加算はしない。
   const penaltyQuest = useMemo(
@@ -590,6 +652,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     setPinOverrides({})
     clearTodayDraft(today)
     setDayRowsInit(false)
+    // 手動保存が優先：帰り汽車のマーカーを消して「もとに戻す」を出さない。
+    clearTrainStartBackup(today)
+    setTrainStartBackup(null)
     setDayMessage('今日だけの計画に上書きしました')
     await refreshAvailability()
   }
@@ -599,43 +664,46 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const handleTrainStart = async () => {
     const overrides = buildTrainStartOverrides(availability, today, nowMin)
     if (!overrides) {
-      setDayMessage('この時間はスタートできません')
+      setTrainStartNotice('この時間はスタートできません')
       return
     }
     try {
       const existing = await listAvailability()
-      for (const s of existing.filter((a) => a.date === today)) {
-        await deleteAvailabilitySlot(s.id)
-      }
-      for (const slot of overrides) {
-        await saveAvailabilitySlot(slot, true)
-      }
+      // 削除前の今日の上書きを丸ごと退避してから差し替える（0件なら空配列）。
+      const backup = existing.filter((a) => a.date === today)
+      await replaceDateOverrides(today, overrides)
+      saveTrainStartBackup(today, backup)
+      setTrainStartBackup(backup)
     } catch {
       // 保存に失敗しても表示は壊さず、メッセージだけ出す。
-      setDayMessage('スタート時刻の保存に失敗しました')
+      setTrainStartNotice('スタート時刻の保存に失敗しました')
       return
     }
     setBookOverrides({})
     setPinOverrides({})
     clearTodayDraft(today)
     setDayRowsInit(false)
-    setDayMessage('スタート時刻から割り直しました')
+    setTrainStartNotice('スタート時刻から割り直しました')
     await refreshAvailability()
   }
 
-  // 「もとに戻す」: 今日の日付上書きを捨てて曜日設定に戻す。
+  // 「もとに戻す」: 今日の日付上書きを捨て、スタート前に退避した行だけ復元する。
   const handleTrainStartReset = async () => {
+    if (!trainStartBackup) return
     try {
-      const existing = await listAvailability()
-      for (const s of existing.filter((a) => a.date === today)) {
-        await deleteAvailabilitySlot(s.id)
-      }
+      await replaceDateOverrides(today, trainStartBackup)
     } catch {
-      setDayMessage('曜日設定への戻す処理に失敗しました')
+      setTrainStartNotice('曜日設定への戻す処理に失敗しました')
       return
     }
+    clearTrainStartBackup(today)
+    setTrainStartBackup(null)
+    // リセットは曜日設定へ戻す操作なのでセッション下書きも破棄する。
+    setBookOverrides({})
+    setPinOverrides({})
+    clearTodayDraft(today)
     setDayRowsInit(false)
-    setDayMessage('曜日設定に戻しました')
+    setTrainStartNotice('曜日設定に戻しました')
     await refreshAvailability()
   }
 
@@ -721,6 +789,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     setPinOverrides({})
     clearTodayDraft(today)
     setDayRowsInit(false)
+    // 手動保存が優先：帰り汽車のマーカーを消して「もとに戻す」を出さない。
+    clearTrainStartBackup(today)
+    setTrainStartBackup(null)
     setDayMessage('今日だけの時間と本を上書きしました')
     await refreshAvailability()
   }
@@ -967,17 +1038,17 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
               スタート
             </button>
           )}
-          {hasTodayOverride && (
+          {hasTrainStartBackup && (
             <button data-testid="train-start-reset" type="button" onClick={() => void handleTrainStartReset()}>
               もとに戻す
             </button>
           )}
-          {dayMessage && (
-            <p data-testid="train-start-message" style={{ margin: 0, color: 'var(--accent-strong)' }}>
-              {dayMessage}
-            </p>
-          )}
         </div>
+      )}
+      {trainStartNotice && (
+        <p data-testid="train-start-notice" style={{ color: 'var(--accent-strong)' }}>
+          {trainStartNotice}
+        </p>
       )}
       {displayedSlots.length === 0 ? (
         <p data-testid="empty-availability-notice" style={{ color: 'var(--text-dim)' }}>
@@ -1062,7 +1133,8 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
               }
             }
             const isNow = isCurrentSlot(s.startMin, s.endMin, nowMin)
-            const slotKey = makeSlotKey(today, s.startMin, s.endMin)
+            const slotKey =
+              s.onTrain && trainOriginKey ? trainOriginKey : makeSlotKey(today, s.startMin, s.endMin)
             const slotMinutes = s.endMin - s.startMin
             const isPast = today < todayStr() ? true : today > todayStr() ? false : s.endMin <= nowMin
             const locked = (() => { void seasonTick; try { return !!loadSeasonState(today).slotMatches?.[slotKey] } catch { return false } })()
@@ -1389,7 +1461,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
             今日だけ上書き保存
           </button>
         </div>
-        {dayMessage && !trainStartControlsVisible && (
+        {dayMessage && (
           <p data-testid="today-override-message" style={{ color: 'var(--accent-strong)' }}>
             {dayMessage}
           </p>

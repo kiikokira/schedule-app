@@ -13,6 +13,7 @@ import {
   savePinBackup,
   loadPinBackup,
   clearPinBackup,
+  replaceDateOverrides,
   type AvailabilitySlot,
 } from './dayplanStore'
 
@@ -71,6 +72,25 @@ describe('availability store', () => {
     }
     await saveAvailabilitySlot(slot, true)
     expect(await listAvailability()).toEqual([slot])
+  })
+})
+
+describe('replaceDateOverrides', () => {
+  it('atomically swaps only the given date and keeps weekday slots', async () => {
+    await saveAvailabilitySlot({ id: 'wd', weekday: 6, date: null, start: '17:33', end: '19:11' }, true)
+    await saveAvailabilitySlot({ id: 'old1', weekday: null, date: '2026-11-21', start: '10:00', end: '11:00' }, true)
+    await saveAvailabilitySlot({ id: 'old2', weekday: null, date: '2026-11-21', start: '12:00', end: '13:00' }, true)
+    await saveAvailabilitySlot({ id: 'other', weekday: null, date: '2026-11-22', start: '10:00', end: '11:00' }, true)
+
+    const restored: AvailabilitySlot[] = [
+      { id: 'old1', weekday: null, date: '2026-11-21', start: '10:00', end: '11:00' },
+    ]
+    await replaceDateOverrides('2026-11-21', restored)
+
+    const all = await listAvailability()
+    expect(all.filter((s) => s.date === '2026-11-21')).toEqual(restored)
+    expect(all.find((s) => s.id === 'wd')).toBeDefined()
+    expect(all.find((s) => s.id === 'other')).toBeDefined()
   })
 })
 

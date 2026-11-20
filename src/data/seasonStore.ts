@@ -253,7 +253,13 @@ export function autoForfeitPastSlots(today: string, availability: AvailabilitySl
       continue
     }
     if (!(date < today)) continue
-    let daySlots: { startMin: number; endMin: number; bookId?: string }[]
+    let daySlots: {
+      startMin: number
+      endMin: number
+      bookId?: string
+      originStartMin?: number
+      originEndMin?: number
+    }[]
     try {
       daySlots = slotsForDate(slots, date)
     } catch {
@@ -261,7 +267,9 @@ export function autoForfeitPastSlots(today: string, availability: AvailabilitySl
     }
     for (const s of daySlots) {
       if (!s.bookId) continue
-      const key = makeSlotKey(date, s.startMin, s.endMin)
+      // 帰り汽車スタートで枠が切り詰められていても、リーグの枠キーは元の範囲を使う。
+      // origin の無い従来データはこれまでどおり自範囲をキーにする。
+      const key = makeSlotKey(date, s.originStartMin ?? s.startMin, s.originEndMin ?? s.endMin)
       if (done.has(key)) continue
       const book = byId.get(s.bookId)
       const unit: SlotUnit =
