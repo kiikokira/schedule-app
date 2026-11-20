@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  applyTrainStart,
   DEFAULT_MINUTES_PER_PAGE,
   earliestFeasibleDeadline,
   effectiveSpeed,
@@ -694,5 +695,31 @@ describe('generateDayPlan nowMin', () => {
     expect(out.upcoming).toHaveLength(7)
     expect(out.upcoming[0].date).toBe('2026-09-22')
     expect(out.upcoming[0].items.length).toBeGreaterThan(0)
+  })
+})
+
+describe('applyTrainStart', () => {
+  it('truncates train slot containing nowMin', () => {
+    const out = applyTrainStart(
+      [{ startMin: 1053, endMin: 1151, onTrain: true }],
+      1110,
+    )
+    expect(out).toEqual([{ startMin: 1110, endMin: 1151, onTrain: true }])
+  })
+  it('keeps non-train slots untouched', () => {
+    const out = applyTrainStart(
+      [
+        { startMin: 1053, endMin: 1151, onTrain: true },
+        { startMin: 1260, endMin: 1320 },
+      ],
+      1110,
+    )
+    expect(out[1]).toEqual({ startMin: 1260, endMin: 1320 })
+  })
+  it('is noop before train and drops past train', () => {
+    expect(applyTrainStart([{ startMin: 1053, endMin: 1151, onTrain: true }], 1052))
+      .toEqual([{ startMin: 1053, endMin: 1151, onTrain: true }])
+    expect(applyTrainStart([{ startMin: 1053, endMin: 1151, onTrain: true }], 1151))
+      .toEqual([])
   })
 })

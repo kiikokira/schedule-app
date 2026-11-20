@@ -70,6 +70,22 @@ export function clipPastSlots(slots: TimeSlot[], nowMin: number): TimeSlot[] {
   return out
 }
 
+// 汽車枠だけを現在時刻で切り詰める。終了済みの汽車枠は落とし、進行中の汽車枠は開始を現在時刻に揃える。
+export function applyTrainStart(slots: TimeSlot[], nowMin: number): TimeSlot[] {
+  const out: TimeSlot[] = []
+  for (const s of slots) {
+    if (!s.onTrain) {
+      out.push(s)
+      continue
+    }
+    if (s.endMin <= nowMin) continue
+    const startMin = Math.max(s.startMin, nowMin)
+    if (s.endMin - startMin < 1) continue
+    out.push({ ...s, startMin })
+  }
+  return out
+}
+
 export function slotsForDate(
   availability: AvailabilitySlot[],
   date: string,
