@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type CompositionEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type CompositionEvent } from 'react'
 import ProgressChart from '../components/ProgressChart'
 import CoverImage from '../components/CoverImage'
 import BulkRecordModal from '../components/BulkRecordModal'
@@ -119,6 +119,9 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   const [recordDate, setRecordDate] = useState(() => todayStr())
   const [showRecordList, setShowRecordList] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
+  // まとめて記録モーダルの保存中フラグ（モーダルからonSavingChangeで通知される）。
+  // 保存中はEsc・背景クリック・✕（onClose）で閉じさせない。
+  const bulkSavingRef = useRef(false)
 
   useEffect(() => {
     void listAvailability().then(setAvailability).catch(() => {})
@@ -127,8 +130,11 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
   // まとめて記録モーダルはEscでも閉じられるようにする（✕ボタンはモーダル側が持つ）。
   useEffect(() => {
     if (!bulkOpen) return
+    // 開くたびにロックを初期化する（保存中にモーダルがアンマウントされた場合の残存ガード防止）
+    bulkSavingRef.current = false
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setBulkOpen(false)
+      // 保存中はEscで閉じない（書き込み途中のdismissを防ぐ）
+      if (e.key === 'Escape' && !bulkSavingRef.current) setBulkOpen(false)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -154,14 +160,19 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
 
   // まとめて過去記録モーダル（ページ型・周回型の両分岐で共用）。
   // onSavedは保存成功後にモーダル自身を閉じる前にも呼ばれるため、一覧の再取得だけを行う。
-  const closeBulk = () => setBulkOpen(false)
+  const closeBulk = () => {
+    // 保存中は✕（onClose）でも閉じない。モーダルは保存成功時にロック解除を通知してからonCloseする。
+    if (bulkSavingRef.current) return
+    setBulkOpen(false)
+  }
   const handleBulkSaved = async () => {
     await Promise.all([refreshRecords(), refreshCycleRecords()])
   }
   const bulkModal = bulkOpen ? (
     <div
       onClick={(e) => {
-        // 背景（モーダル外）クリックで閉じる。ダイアログ内側のクリックでは閉じない。
+        // 背景（モーダル外）クリックで閉じる。ダイアログ内側のクリックでは閉じない。保存中は閉じない。
+        if (bulkSavingRef.current) return
         if (!(e.target as HTMLElement).closest('[data-testid="bulk-modal"]')) closeBulk()
       }}
     >
@@ -173,6 +184,9 @@ export default function BookDetailScreen({ bookId, onBack, onEdit }: Props) {
         books={books}
         onClose={closeBulk}
         onSaved={handleBulkSaved}
+        onSavingChange={(v) => {
+          bulkSavingRef.current = v
+        }}
       />
     </div>
   ) : null

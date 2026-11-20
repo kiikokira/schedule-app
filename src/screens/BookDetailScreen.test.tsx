@@ -974,4 +974,42 @@ describe('BookDetailScreen まとめて過去記録', () => {
     fireEvent.click(dialog.parentElement!)
     await waitFor(() => expect(screen.queryByTestId('bulk-modal')).not.toBeInTheDocument())
   })
+
+  it('保存中はEsc・背景・✕で閉じず、完了後は通常どおり閉じる（1回だけ保存）', async () => {
+    await db.books.add({ ...book, startDate: daysFromNow(-10), deadline: daysFromNow(10) })
+    // pages経路で検証: upsertProgress が使う db.records.add を遅延させる。
+    // cycles経路（addCycleRecord）もモーダル内のsavingロック構造は同一なので片方で足りる。
+    const originalAdd = db.records.add.bind(db.records)
+    let resolveAdd: () => void = () => {}
+    const addSpy = vi.spyOn(db.records, 'add').mockImplementation((rec, key) => {
+      return new Promise<string>((resolve) => {
+        resolveAdd = () => {
+          void originalAdd(rec, key).then(resolve)
+        }
+      }) as unknown as ReturnType<typeof originalAdd>
+    })
+    render(<BookDetailScreen bookId="b1" onBack={() => {}} onEdit={() => {}} />)
+    fireEvent.click(await screen.findByTestId('bulk-open'))
+    fireEvent.change(await screen.findByTestId('bulk-pages-0'), { target: { value: '5' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    // 保存中（saving中は保存ボタンがロックされる）
+    await waitFor(() => expect(screen.getByTestId('bulk-save')).toBeDisabled())
+    // Esc では閉じない
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.getByTestId('bulk-modal')).toBeInTheDocument()
+    // 背景クリックでも閉じない
+    fireEvent.click(screen.getByTestId('bulk-modal').parentElement!)
+    expect(screen.getByTestId('bulk-modal')).toBeInTheDocument()
+    // モーダルの✕でも閉じない
+    fireEvent.click(screen.getByTestId('bulk-close'))
+    expect(screen.getByTestId('bulk-modal')).toBeInTheDocument()
+    // 保存完了後は通常どおり閉じ、記録は1回だけ保存される
+    resolveAdd()
+    await waitFor(() => expect(screen.queryByTestId('bulk-modal')).not.toBeInTheDocument())
+    const recs = await db.records.toArray()
+    expect(recs).toHaveLength(1)
+    expect(recs[0].date).toBe(daysFromNow(-1))
+    expect(recs[0].pages).toBe(5)
+    addSpy.mockRestore()
+  })
 })

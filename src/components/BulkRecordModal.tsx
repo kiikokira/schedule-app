@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type CompositionEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type CompositionEvent } from 'react'
 import {
   formatDate,
   parseDate,
@@ -11,7 +11,7 @@ import {
   type ProgressRecordData,
   type CycleRecordData,
 } from '../lib/progress'
-import { isLeapBook } from '../lib/leap'
+import { isLeapBook, LEAP_WORD_RANGES } from '../lib/leap'
 import { appendGhostSnapshot } from '../data/ghostLogStore'
 import { db, upsertProgress, addCycleRecord } from '../db/database'
 
@@ -62,9 +62,11 @@ type Props = {
   books: BookData[]
   onClose: () => void
   onSaved: () => Promise<void> | void
+  /** 保存中フラグの変化を親に通知する（親が保存中のEsc/背景クリック/✕をロックするため）。省略時は何もしない。 */
+  onSavingChange?: (saving: boolean) => void
 }
 
-export default function BulkRecordModal({ book, mode, existingPages, existingCycles, books, onClose, onSaved }: Props): JSX.Element {
+export default function BulkRecordModal({ book, mode, existingPages, existingCycles, books, onClose, onSaved, onSavingChange = () => {} }: Props): JSX.Element {
   const [rows, setRows] = useState<BulkPagesRow[]>(() =>
     buildBulkDefaultDates(todayStr()).map((date) => {
       const hit = existingPages.find((r) => r.bookId === book.id && r.date === date)
@@ -77,6 +79,15 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
   )
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  // savingを実際に切り替えたときだけ親に通知する（保存中のdismissibleロック用）。
+  const savingRef = useRef(false)
+  const setSavingAndNotify = (v: boolean) => {
+    setSaving(v)
+    if (savingRef.current !== v) {
+      savingRef.current = v
+      onSavingChange(v)
+    }
+  }
 
   const setRow = (i: number, patch: Partial<BulkPagesRow>) => {
     setRows((prev) => prev.map((r, j) => (j === i ? { ...r, ...patch } : r)))
@@ -114,7 +125,8 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
     const totalUnits = book.totalUnits ?? 0
     const targetRounds = book.targetRounds ?? 0
     const mine = existingCycles.filter((r) => r.bookId === book.id)
-    type Prepared = { date: string; unitFrom: number; unitTo: number; round: number }
+    // 部分保存後に行参照で保存済み行を編集状態から除去できるよう、元の行を保持する
+    type Prepared = { row: BulkCyclesRow; date: string; unitFrom: number; unitTo: number; round: number }
     const prepared: Prepared[] = []
     for (const row of cycleRows) {
       const fromRaw = normalizeNumericInput(row.from.trim())
@@ -129,14 +141,26 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
       }
       const from = Number(fromRaw)
       const to = Number(toRaw)
-      // バリデーションは単発と同一: 1..totalUnits の整数。LEAP本も範囲チェックのみ
-      // （bulkにブロック選択UIが無いため選択ブロック内制限は行わない）
+      // バリデーションは単発と同一: 1..totalUnits の整数
       if (
         !Number.isInteger(from) || !Number.isInteger(to) ||
         from < 1 || from > totalUnits || to < 1 || to > totalUnits
       ) {
         setError(`${unit}の範囲は1〜${totalUnits}の整数で入力してください（開始・終了の両方が必要）`)
         return
+      }
+      // LEAP本は両端が同じブロック（LEAP_WORD_RANGES）に収まる範囲だけ記録できる。
+      // bulkにブロック選択UIは無いため範囲から所属を判定し、ブロックをまたぐ行は
+      // 境界での2行分割を案内して拒否する。逆順入力(from>to)は単発と同様に許容する。
+      if (isLeapBook(book)) {
+        const lo = Math.min(from, to)
+        const hi = Math.max(from, to)
+        if (!LEAP_WORD_RANGES.some((b) => b.from <= lo && hi <= b.to)) {
+          const block = LEAP_WORD_RANGES.find((b) => b.from <= lo && lo <= b.to)
+          const hint = block && block.to < hi ? `（例: ${lo}-${block.to} と ${block.to + 1}-${hi} の2行に分ける）` : ''
+          setError(`LEAPは同じブロック内の範囲だけ記録できます。ブロックをまたぐ行は2行に分けてください${hint}`)
+          return
+        }
       }
       // 周回が空なら今の周回で補完する（既存記録のみが対象。同じ入力中の行は考慮しない）
       let round: number
@@ -149,14 +173,14 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
           return
         }
       }
-      prepared.push({ date, unitFrom: from, unitTo: to, round })
+      prepared.push({ row, date, unitFrom: from, unitTo: to, round })
     }
     if (prepared.length === 0) {
       setError('保存する行がありません。範囲を入力してください')
       return
     }
     setError(null)
-    setSaving(true)
+    setSavingAndNotify(true)
     // 周回型は1日複数OKで追加のみ（addCycleRecord）。行ごとに追加し失敗を収集する。
     // 期間外日付も警告のみで保存は許可（単発と同様）。recordedAtは付けない。
     const savedRows: Prepared[] = []
@@ -201,15 +225,23 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
             ? `一部だけ保存しました。保存済み: ${savedRows.map(rowLabel).join(', ')} / 失敗: ${failedRows.map(rowLabel).join(', ')}`
             : '保存に失敗しました。もう一度お試しください',
         )
+        // 保存済み行を編集状態から削除する。行に残るのは失敗行（と未記入行）だけになり、
+        // 「まとめて保存」再試行は失敗行のみを送信するので重複追加が起きない。
+        if (savedRows.length > 0) {
+          const savedRefs = new Set(savedRows.map((r) => r.row))
+          setCycleRows((prev) => prev.filter((r) => !savedRefs.has(r)))
+        }
         await onSaved()
         return
       }
       await onSaved()
+      // 閉じる前にロック解除を通知する（親の閉じる経路はsaving中ガードを持つため）
+      setSavingAndNotify(false)
       onClose()
     } catch {
       setError((prev) => prev ?? '保存に失敗しました。もう一度お試しください')
     } finally {
-      setSaving(false)
+      setSavingAndNotify(false)
     }
   }
 
@@ -241,7 +273,7 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
       return
     }
     setError(null)
-    setSaving(true)
+    setSavingAndNotify(true)
     const dates = [...byDate.keys()].sort()
     // 日ごとにupsertし、成功したらその日のゴーストを更新してから次の日へ進む。
     // 途中失敗は保存済み分を巻き戻さず、エラーで明示する。
@@ -281,11 +313,13 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
         return
       }
       await onSaved()
+      // 閉じる前にロック解除を通知する（親の閉じる経路はsaving中ガードを持つため）
+      setSavingAndNotify(false)
       onClose()
     } catch {
       setError((prev) => prev ?? '保存に失敗しました。もう一度お試しください')
     } finally {
-      setSaving(false)
+      setSavingAndNotify(false)
     }
   }
 
@@ -320,7 +354,16 @@ export default function BulkRecordModal({ book, mode, existingPages, existingCyc
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontSize: 18, margin: 0 }}>まとめて過去記録</h2>
-          <button data-testid="bulk-close" type="button" onClick={onClose} aria-label="閉じる">
+          <button
+            data-testid="bulk-close"
+            type="button"
+            disabled={saving}
+            onClick={() => {
+              // 保存中は✕で閉じられない（書き込み途中のdismissを防ぐ）
+              if (!saving) onClose()
+            }}
+            aria-label="閉じる"
+          >
             ✕
           </button>
         </div>

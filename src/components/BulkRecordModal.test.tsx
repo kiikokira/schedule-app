@@ -366,4 +366,73 @@ describe('BulkRecordModal (cycles)', () => {
     expect(await db.cycleRecords.count()).toBe(1)
     expect(screen.getByTestId('bulk-save')).toBeEnabled()
   })
+
+  it('rejects a LEAP range crossing block boundaries and saves nothing', async () => {
+    renderModal({ book: leapBook, mode: 'cycles', books: [leapBook] })
+    // row0: 390-410 はブロック(1-400 / 401-1000)をまたぐので無効
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '390' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '410' } })
+    // row1: 401-500 はブロック401-1000内の有効行（all-or-nothing確認用）
+    fireEvent.change(screen.getByTestId('bulk-from-1'), { target: { value: '401' } })
+    fireEvent.change(screen.getByTestId('bulk-to-1'), { target: { value: '500' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    const err = screen.getByTestId('bulk-error')
+    expect(err).toBeInTheDocument()
+    // ブロック境界での2行分割を案内する（例: 390-400 と 401-410）
+    expect(err).toHaveTextContent('390-400')
+    expect(err).toHaveTextContent('401-410')
+    // 無効行があれば1件も保存しない（all-or-nothing）
+    expect(await db.cycleRecords.count()).toBe(0)
+  })
+
+  it('saves an in-block LEAP range (401-500)', async () => {
+    renderModal({ book: leapBook, mode: 'cycles', books: [leapBook] })
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '401' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '500' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(async () => {
+      expect(await db.cycleRecords.count()).toBe(1)
+    })
+    const rec = (await db.cycleRecords.toArray())[0]
+    expect(rec.bookId).toBe('l1')
+    expect(rec.unitFrom).toBe(401)
+    expect(rec.unitTo).toBe(500)
+  })
+
+  it('retry after a partial cycle save resubmits only failed rows (no duplicates)', async () => {
+    const sameDate = daysFromNow(-1)
+    const originalAdd = db.cycleRecords.add.bind(db.cycleRecords)
+    let failNext = true
+    const addSpy = vi.spyOn(db.cycleRecords, 'add').mockImplementation((rec, key) => {
+      if (failNext && (rec as CycleRecordData).unitFrom === 11) throw new Error('boom')
+      return originalAdd(rec as CycleRecordData, key)
+    })
+    renderModal({ book: cycleBook, mode: 'cycles', books: [cycleBook] })
+    // 同一日付の2行: row0 1-10 は成功、row1 11-20 は add 失敗
+    fireEvent.change(screen.getByTestId('bulk-from-0'), { target: { value: '1' } })
+    fireEvent.change(screen.getByTestId('bulk-to-0'), { target: { value: '10' } })
+    fireEvent.change(screen.getByTestId('bulk-date-1'), { target: { value: sameDate } })
+    fireEvent.change(screen.getByTestId('bulk-from-1'), { target: { value: '11' } })
+    fireEvent.change(screen.getByTestId('bulk-to-1'), { target: { value: '20' } })
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(() => {
+      expect(screen.getByTestId('bulk-error')).toBeInTheDocument()
+    })
+    // 保存済み行(1-10)は編集状態から削除され、失敗行(11-20)だけが残る（先頭行に繰り上がる）
+    expect(screen.getAllByTestId(/^bulk-from-/)).toHaveLength(6)
+    expect(screen.getByTestId('bulk-from-0')).toHaveValue('11')
+    expect(screen.getByTestId('bulk-to-0')).toHaveValue('20')
+    expect(screen.getByTestId('bulk-date-0')).toHaveValue(sameDate)
+    // 再試行は失敗行だけを送信 → 合計ちょうど2件（1+1）で重複なし
+    failNext = false
+    fireEvent.click(screen.getByTestId('bulk-save'))
+    await waitFor(async () => {
+      expect(await db.cycleRecords.count()).toBe(2)
+    })
+    const recs = await db.cycleRecords.toArray()
+    expect(recs.filter((r) => r.date === sameDate && r.unitFrom === 1 && r.unitTo === 10)).toHaveLength(1)
+    expect(recs.filter((r) => r.date === sameDate && r.unitFrom === 11 && r.unitTo === 20)).toHaveLength(1)
+    expect(screen.queryByTestId('bulk-error')).not.toBeInTheDocument()
+    addSpy.mockRestore()
+  })
 })
