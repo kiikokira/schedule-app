@@ -1,3 +1,5 @@
+import type { TrainFit } from '../lib/progress'
+
 export type FocusPeriod = {
   id: string
   title: string
@@ -46,8 +48,13 @@ export function activeFocusPeriods(periods: FocusPeriod[], today: string): Focus
   return periods.filter((p) => p.startDate <= today && today <= p.endDate)
 }
 
-// 期間中は選択本IDの合算、期間外は null（絞り込みなし）を返す。
-export function selectedBookIds(periods: FocusPeriod[], today: string): string[] | null {
+// 期間中は選択本IDの合算に、汽車向き（trainFit === 'train'）の本を自動で加える。
+// 期間外は null（絞り込みなし）。
+export function selectedBookIds(
+  periods: FocusPeriod[],
+  today: string,
+  books?: { id: string; trainFit?: TrainFit }[],
+): string[] | null {
   const active = activeFocusPeriods(periods, today)
   if (active.length === 0) return null
   const ids: string[] = []
@@ -55,6 +62,9 @@ export function selectedBookIds(periods: FocusPeriod[], today: string): string[]
     for (const id of p.bookIds) {
       if (!ids.includes(id)) ids.push(id)
     }
+  }
+  for (const book of books ?? []) {
+    if (book.trainFit === 'train' && !ids.includes(book.id)) ids.push(book.id)
   }
   return ids
 }

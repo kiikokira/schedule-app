@@ -112,7 +112,7 @@ export default function App() {
           records,
           cycleRecords,
           availability,
-          focusIds: selectedBookIds(loadFocusPeriods(), today),
+          focusIds: selectedBookIds(loadFocusPeriods(), today, books),
         })
         await maybeNotifyYesterdayMiss(today)
       } catch {

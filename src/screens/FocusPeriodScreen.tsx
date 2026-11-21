@@ -37,11 +37,15 @@ export default function FocusPeriodScreen({ onBack }: Props) {
       return next
     })
 
+  const trainBooks = books.filter((b) => b.trainFit === 'train')
+  const selectableBooks = books.filter((b) => b.trainFit !== 'train')
+  const trainIds = new Set(trainBooks.map((b) => b.id))
+
   const validate = (): string | null => {
     if (!title.trim()) return '名前を入力してください'
     if (!startDate || !endDate) return '開始日と終了日を入力してください'
     if (endDate < startDate) return '終了日は開始日以降を指定してください'
-    if (selected.size === 0) return '学習する参考書を1冊以上選んでください'
+    if (selected.size === 0 && trainBooks.length === 0) return '学習する参考書を1冊以上選んでください'
     return null
   }
 
@@ -59,7 +63,7 @@ export default function FocusPeriodScreen({ onBack }: Props) {
         title: title.trim(),
         startDate,
         endDate,
-        bookIds: [...selected],
+        bookIds: [...selected].filter((id) => !trainIds.has(id)),
       },
     ]
     saveFocusPeriods(next)
@@ -85,7 +89,7 @@ export default function FocusPeriodScreen({ onBack }: Props) {
     setError(null)
     const next = periods.map((p) =>
       p.id === editingId
-        ? { ...p, title: title.trim(), startDate, endDate, bookIds: [...selected] }
+        ? { ...p, title: title.trim(), startDate, endDate, bookIds: [...selected].filter((id) => !trainIds.has(id)) }
         : p,
     )
     saveFocusPeriods(next)
@@ -109,7 +113,7 @@ export default function FocusPeriodScreen({ onBack }: Props) {
     <div data-testid="focus-screen" style={{ padding: 16 }}>
       <h1 style={{ fontSize: 20 }}>テスト期間</h1>
       <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
-        期間中は今日の計画に選んだ参考書だけが表示されます。期間外の期限は変わりません。
+        期間中は今日の計画に選んだ参考書と汽車向きの本だけが表示されます。期間外の期限は変わりません。
       </p>
       {periods.length === 0 ? (
         <p data-testid="focus-empty" style={{ color: 'var(--text-dim)', fontSize: 13 }}>
@@ -126,7 +130,8 @@ export default function FocusPeriodScreen({ onBack }: Props) {
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700 }}>{p.title}</div>
                 <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>
-                  {p.startDate}〜{p.endDate}・{p.bookIds.length}冊
+                  {p.startDate}〜{p.endDate}・
+                  {new Set([...p.bookIds, ...trainBooks.map((b) => b.id)]).size}冊
                 </div>
               </div>
               <button
@@ -182,7 +187,19 @@ export default function FocusPeriodScreen({ onBack }: Props) {
         </div>
         <div style={{ marginTop: 8 }}>
           <p style={{ fontSize: 13 }}>学習する参考書</p>
-          {books.map((b) => (
+          {trainBooks.length > 0 && (
+            <div data-testid="focus-train-list" style={{ marginTop: 4 }}>
+              <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+                汽車向きの本は自動で残ります
+              </p>
+              {trainBooks.map((b) => (
+                <div key={b.id} data-testid={`focus-train-${b.id}`} style={{ marginTop: 4 }}>
+                  {b.title}（汽車向き・自動）
+                </div>
+              ))}
+            </div>
+          )}
+          {selectableBooks.map((b) => (
             <label key={b.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
               <input
                 data-testid={`focus-book-${b.id}`}

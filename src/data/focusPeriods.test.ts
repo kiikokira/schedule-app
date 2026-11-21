@@ -49,4 +49,17 @@ describe('focusPeriods', () => {
     ]
     expect(selectedBookIds(two, '2026-10-12')).toEqual(['leap-1', 'b1'])
   })
+
+  it('期間中は汽車向きの本を自動で合流する', () => {
+    const books = [
+      { id: 'leap-1', trainFit: 'home' as const },
+      { id: 'train-1', trainFit: 'train' as const },
+      { id: 'either-1', trainFit: 'either' as const },
+    ]
+    expect(selectedBookIds([period()], '2026-10-05', books)).toEqual(['leap-1', 'train-1'])
+    expect(selectedBookIds([period()], '2026-09-30', books)).toBeNull()
+    expect(
+      selectedBookIds([period({ bookIds: ['train-1'] })], '2026-10-05', books),
+    ).toEqual(['train-1'])
+  })
 })

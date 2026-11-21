@@ -299,7 +299,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const [nowMin, setNowMin] = useState(currentMinuteOfDay)
   // テスト期間中は選択本だけを対象にする（選択外は計画に出さない）
   const [focusPeriods] = useState(loadFocusPeriods)
-  const focusIds = selectedBookIds(focusPeriods, today)
+  const focusIds = selectedBookIds(focusPeriods, today, allBooks)
   const testPeriod = testPeriodForDate(today)
   const books = focusIds === null ? allBooks : allBooks.filter((b) => focusIds.includes(b.id))
   const focusTitles = focusPeriods
@@ -1029,7 +1029,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       )}
       {focusIds !== null && (
         <p data-testid="focus-period-notice" style={{ fontWeight: 700 }}>
-          テスト期間中のため{focusTitles.join('・')}の選択本だけ表示しています
+          テスト期間中のため{focusTitles.join('・')}の選択本と汽車向きの本だけ表示しています
         </p>
       )}
       {planned.notice && (

@@ -110,4 +110,28 @@ describe('FocusPeriodScreen', () => {
     expect(loadFocusPeriods()[0].title).toBe('中間テスト')
     expect(screen.getByTestId('focus-title')).toHaveValue('')
   })
+
+  it('汽車向きの本は自動で残るため選択なしでも追加できる', async () => {
+    await seedBooks()
+    const now = new Date().toISOString()
+    await db.books.add({
+      id: 'train-1',
+      title: '汽車用単語',
+      totalPages: 100,
+      startDate: '2026-09-01',
+      deadline: '2026-11-30',
+      createdAt: now,
+      updatedAt: now,
+      trainFit: 'train',
+    } as any)
+    render(<FocusPeriodScreen onBack={() => {}} />)
+    await waitFor(() => expect(screen.getByTestId('focus-train-train-1')).toBeInTheDocument())
+    expect(screen.queryByTestId('focus-book-train-1')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByTestId('focus-title'), { target: { value: '期末テスト' } })
+    fireEvent.change(screen.getByTestId('focus-start'), { target: { value: '2026-10-01' } })
+    fireEvent.change(screen.getByTestId('focus-end'), { target: { value: '2026-10-14' } })
+    fireEvent.click(screen.getByTestId('focus-add'))
+    await waitFor(() => expect(loadFocusPeriods()).toHaveLength(1))
+    expect(loadFocusPeriods()[0].bookIds).toEqual([])
+  })
 })
