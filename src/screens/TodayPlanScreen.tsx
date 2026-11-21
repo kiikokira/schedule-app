@@ -1434,6 +1434,13 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
               aria-label="この時間にする本"
             >
               <option value="">おまかせ</option>
+              {(testPeriod !== null || isTestStudyId(r.bookId)) && (
+                <option value={TEST_STUDY_ID}>
+                  {isTestStudyId(r.bookId) && testPeriod === null
+                    ? 'テスト勉強（テスト期間外）'
+                    : TEST_STUDY_LABEL}
+                </option>
+              )}
               {pageBooks.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.title}

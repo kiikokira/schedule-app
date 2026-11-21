@@ -1277,6 +1277,37 @@ describe('TodayPlanScreen', () => {
     expect(screen.queryByTestId('plan-input-b1')).not.toBeInTheDocument()
   })
 
+  it('テスト期間中は今日だけ上書きの本選択にもテスト勉強を出す', async () => {
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
+    fireEvent.click(await screen.findByTestId('today-override-toggle'))
+    fireEvent.click(screen.getByTestId('today-override-add'))
+    const select = screen.getByTestId('today-override-book-0') as HTMLSelectElement
+    expect(Array.from(select.options).map((o) => o.value)).toContain(TEST_STUDY_ID)
+  })
+
+  it('期間外でも保存済みのテスト勉強は表示して戻せる', async () => {
+    await saveAvailabilitySlot(
+      {
+        id: 'd1',
+        weekday: null,
+        date: '2026-09-21',
+        start: '21:00',
+        end: '22:00',
+        bookId: TEST_STUDY_ID,
+      },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    await screen.findByTestId('today-table')
+    expect(screen.getByTestId('plan-row-book')).toHaveTextContent('テスト勉強')
+    fireEvent.click(screen.getByTestId('today-override-toggle'))
+    await waitFor(() => {
+      const select = screen.getByTestId('today-override-book-0') as HTMLSelectElement
+      expect(select.value).toBe(TEST_STUDY_ID)
+      expect(Array.from(select.options).map((o) => o.text)).toContain('テスト勉強（テスト期間外）')
+    })
+  })
+
 })
 
 describe('today slot gate', () => {
