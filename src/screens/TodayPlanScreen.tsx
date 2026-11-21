@@ -18,6 +18,8 @@ import { getNotifySettings } from '../lib/notify'
 import { buildSlotsPayload } from '../lib/slotNotify'
 import { publishSlotsOnce, syncSlotSchedules } from '../lib/slotsPublish'
 import { isLeapBook } from '../lib/leap'
+import { TEST_STUDY_ID, TEST_STUDY_LABEL, isTestStudyId } from '../lib/testStudy'
+import { testPeriodForDate } from '../lib/testPeriod'
 import { makeSlotKey, type SlotUnit } from '../lib/slotLeague'
 import { loadSeasonState, syncLeagueSlot, autoForfeitPastSlots } from '../data/seasonStore'
 import { selectFocusBookId } from '../lib/focusBook'
@@ -298,6 +300,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   // テスト期間中は選択本だけを対象にする（選択外は計画に出さない）
   const [focusPeriods] = useState(loadFocusPeriods)
   const focusIds = selectedBookIds(focusPeriods, today)
+  const testPeriod = testPeriodForDate(today)
   const books = focusIds === null ? allBooks : allBooks.filter((b) => focusIds.includes(b.id))
   const focusTitles = focusPeriods
     .filter((p) => p.startDate <= today && today <= p.endDate)
@@ -447,6 +450,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   const pageApplied: PlanSlot[] = planned.today.slots.map((s) => {
     const overrideId = bookOverrides[rangeKeyOf(s.startMin, s.endMin)]
     if (!overrideId || overrideId === s.bookId) return s
+    if (isTestStudyId(overrideId)) {
+      return { ...s, bookId: TEST_STUDY_ID, pages: 0 }
+    }
     const book = books.find((b) => b.id === overrideId)
     if (!book || book.studyMode === 'cycles') return s
     const minutes = s.endMin - s.startMin
@@ -1063,6 +1069,11 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
             const { slot: s } = row
             const book = books.find((b) => b.id === s.bookId) ?? allBooks.find((b) => b.id === s.bookId)
             const isCycles = book?.studyMode === 'cycles'
+            const isTestStudy = isTestStudyId(s.bookId)
+            const testStudyOption =
+              testPeriod !== null || isTestStudy
+                ? { value: TEST_STUDY_ID, label: isTestStudy && testPeriod === null ? 'テスト勉強（テスト期間外）' : TEST_STUDY_LABEL }
+                : null
             // 未割当行と対象外の本が付いた行では全参考書から選べる
             const showAllBooks = s.bookId === '' || !books.some((b) => b.id === s.bookId)
             const inputKey = `${s.bookId}-${s.startMin}-${i}`
@@ -1176,7 +1187,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                       overflowWrap: 'anywhere',
                     }}
                   >
-                    {s.onTrain ? '【汽車】' : ''}{isCycles ? '【反復】' : ''}{book?.title ?? (s.bookId === '' ? '未割当' : s.bookId)}
+                    {isTestStudy
+                      ? TEST_STUDY_LABEL
+                      : `${s.onTrain ? '【汽車】' : ''}${isCycles ? '【反復】' : ''}${book?.title ?? (s.bookId === '' ? '未割当' : s.bookId)}`}
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <select
@@ -1189,6 +1202,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                       <option value="" disabled>
                         本を選ぶ
                       </option>
+                      {testStudyOption && (
+                        <option value={testStudyOption.value}>{testStudyOption.label}</option>
+                      )}
                       {(showAllBooks ? allPageBooks : pageBooks).map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.trainFit === 'train' ? '【汽車】' : b.trainFit === 'home' ? '【自宅】' : ''}{b.title}
@@ -1312,7 +1328,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
                         今 あと{s.endMin - nowMin}分
                       </div>
                     )}
-                    {isCycles ? (
+                    {isTestStudy ? null : isCycles ? (
                       <div data-testid="plan-row-units">今日やる{book && isLeapBook(book) ? '語' : '区画'} {cycleTarget}{book && isLeapBook(book) ? '語' : '区画'}</div>
                     ) : (
                       <div data-testid="plan-row-pages">予定 {s.pages}ページ</div>

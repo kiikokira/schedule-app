@@ -5,6 +5,7 @@ import { db } from '../db/database'
 import { saveAvailabilitySlot, listAvailability, addAdjustment } from '../data/dayplanStore'
 import { saveFocusPeriods } from '../data/focusPeriods'
 import { resetSchedule } from '../data/scheduleStore'
+import { TEST_STUDY_ID } from '../lib/testStudy'
 
 // Task 2 回帰用: focusBookId null（集中なし）経路をUIで再現するための差し替え。
 // 通常は実実装に委譲するため既存テストの挙動は変わらない。
@@ -1238,6 +1239,42 @@ describe('TodayPlanScreen', () => {
     expect(rows.length).toBeGreaterThan(0)
     expect(rows[0]).toHaveTextContent('反復本')
     expect(rows[0]).toHaveTextContent('20区画')
+  })
+
+  it('テスト期間中だけ本選択の先頭にテスト勉強を出す', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 1, date: null, start: '21:00', end: '22:00' },
+      true,
+    )
+    const inPeriod = render(
+      <TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />,
+    )
+    const select = (await screen.findByTestId('plan-book-select-0')) as HTMLSelectElement
+    const values = Array.from(select.options).map((o) => o.value)
+    expect(values.indexOf(TEST_STUDY_ID)).toBe(1)
+    expect(select.options[1].text).toBe('テスト勉強')
+    inPeriod.unmount()
+
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-09-21" />)
+    const outside = (await screen.findByTestId('plan-book-select-0')) as HTMLSelectElement
+    expect(Array.from(outside.options).map((o) => o.value)).not.toContain(TEST_STUDY_ID)
+  })
+
+  it('テスト勉強を選ぶと行がテスト勉強になりページ入力が出ない', async () => {
+    await fillBook('b1')
+    await saveAvailabilitySlot(
+      { id: 'w1', weekday: 1, date: null, start: '21:00', end: '22:00' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-10-05" />)
+    const select = (await screen.findByTestId('plan-book-select-0')) as HTMLSelectElement
+    fireEvent.change(select, { target: { value: TEST_STUDY_ID } })
+    await waitFor(() =>
+      expect(screen.getByTestId('plan-row-book')).toHaveTextContent('テスト勉強'),
+    )
+    expect(screen.queryByTestId('plan-row-pages')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('plan-input-b1')).not.toBeInTheDocument()
   })
 
 })
