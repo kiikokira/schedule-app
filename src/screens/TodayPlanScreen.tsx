@@ -546,15 +546,28 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       ),
     [availability, today, nowMin],
   )
-  // 切り詰められた汽車枠は枠ごとの元の範囲をリーグの枠キーに使う（翌日の不当な敗戦を防ぐ）。
-  const trainOriginKeyByRange = useMemo(() => {
-    const byRange = new Map<string, string>()
-    for (const s of slotsForDate(availability, today)) {
-      if (!s.onTrain || s.originStartMin == null || s.originEndMin == null) continue
-      byRange.set(rangeKeyOf(s.startMin, s.endMin), makeSlotKey(today, s.originStartMin, s.originEndMin))
+  // 切り詰められた汽車枠は元の範囲をリーグの枠キーに使う（翌日の不当な敗戦を防ぐ）。
+  // サイクルピンや未割当ギャップで汽車枠が細分化されても、元範囲を含む枠を探して同じキーに寄せる。
+  const trainOriginSlots = useMemo(
+    () =>
+      slotsForDate(availability, today).filter(
+        (s) => s.onTrain && s.originStartMin != null && s.originEndMin != null,
+      ),
+    [availability, today],
+  )
+  const leagueKeyForRow = (row: { onTrain?: boolean; startMin: number; endMin: number }) => {
+    if (row.onTrain) {
+      let best: (typeof trainOriginSlots)[number] | undefined
+      for (const slot of trainOriginSlots) {
+        if (slot.startMin > row.startMin || slot.endMin < row.endMin) continue
+        if (!best || slot.endMin - slot.startMin < best.endMin - best.startMin) best = slot
+      }
+      if (best && best.originStartMin != null && best.originEndMin != null) {
+        return makeSlotKey(today, best.originStartMin, best.originEndMin)
+      }
     }
-    return byRange
-  }, [availability, today])
+    return makeSlotKey(today, row.startMin, row.endMin)
+  }
   // 「もとに戻す」は帰り汽車スタートのマーカーがある時だけ出す。
   // 手動の今日上書きにはマーカーが付かないので、その設定は消さない。
   const hasTrainStartBackup = trainStartBackup !== null
@@ -1150,8 +1163,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
               }
             }
             const isNow = isCurrentSlot(s.startMin, s.endMin, nowMin)
-            const slotKey =
-              trainOriginKeyByRange.get(pageKey) ?? makeSlotKey(today, s.startMin, s.endMin)
+            const slotKey = leagueKeyForRow(s)
             const slotMinutes = s.endMin - s.startMin
             const isPast = today < todayStr() ? true : today > todayStr() ? false : s.endMin <= nowMin
             const locked = (() => { void seasonTick; try { return !!loadSeasonState(today).slotMatches?.[slotKey] } catch { return false } })()

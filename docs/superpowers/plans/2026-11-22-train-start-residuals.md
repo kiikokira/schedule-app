@@ -28,14 +28,12 @@
 
 現状 `trainOriginKey` は「最初の origin 付き onTrain 枠」のキーを全 onTrain 行に使うため、複数の汽車枠があると他の行のキーが狂う。
 
-- `trainOriginKey`（単一文字列）を `trainOriginKeyByRange: Map<string, string>` に置き換える。
-  - `slotsForDate(availability, today)` を走査し、`onTrain && originStartMin != null && originEndMin != null` の枠について `rangeKeyOf(startMin, endMin)` → `makeSlotKey(today, originStartMin, originEndMin)` を入れる。
+- `trainOriginKey`（単一文字列）を、origin 付き onTrain 枠のリスト（`trainOriginSlots`）に置き換える。
+  - `slotsForDate(availability, today)` を走査し、`onTrain && originStartMin != null && originEndMin != null` の枠だけを残す。
   - `useMemo` の依存は `[availability, today]`。
-- 行ループ内の `slotKey` を次にする:
-  - `const slotKey = trainOriginKeyByRange.get(pageKey) ?? makeSlotKey(today, s.startMin, s.endMin)`
-  - `pageKey` は同ループで既に定義済み（`rangeKeyOf(s.startMin, s.endMin)`）。
-  - `s.onTrain` 条件は不要。origin の無い枠は従来どおり自範囲キー。
-- これにより、記録・スキップ・`locked` 判定が枠ごとに正しい元キーを使う。
+- 行ループ内では `s.onTrain` のときだけ、行の `[startMin, endMin]` を含む（`slot.startMin <= row.startMin && row.endMin <= slot.endMin`）origin 付き枠のうち最も狭いものを探し、その `originStartMin` / `originEndMin` から `makeSlotKey(today, ...)` を作る。該当なしまたは非 onTrain 行は `makeSlotKey(today, s.startMin, s.endMin)`。
+- 表示範囲の一致（`rangeKeyOf`）で引かない。ギャップ行や `overlayCyclesPins` の細分化された行は表示範囲が親枠と一致しないため、包含判定が必要。
+- これにより、記録・スキップ・`locked` 判定が、細分化された行も含めて正しい元キーを使う。
 
 ### Tests（`TodayPlanScreen.trainStart.test.tsx`）
 
@@ -54,6 +52,7 @@
    - 続けて1行目もスキップし、`2026-11-21#510-600` があることを assert。
    - 期待値: 08:30=510, 10:00=600, 17:33=1053, 19:11=1151, 17:45=1065。
    - 注意: `autoForfeitPastSlots` がマウント時に走るため、最初は bookId を付けず、描画後に UI で本を選ぶ（既存のスキップテストと同じ手法）。これで自動確定を避ける。
+4. 新規（最終レビュー指摘の回帰）: 切り詰め汽車枠 + cycle pin で出来た 18:30–18:45 のギャップ行をスキップしたとき、元キー `2026-11-21#1053-1151` が記録され、サブ範囲 `2026-11-21#1110-1125` は記録されない。さらに `autoForfeitPastSlots('2026-11-22', ...)` の結果に元キーが含まれない（二重敗戦なし）ことを確認する。
 
 ## Verification
 

@@ -34,6 +34,23 @@ const addBook = async () => {
   } as never)
 }
 
+const addCycleBook = async () => {
+  const now = new Date().toISOString()
+  await db.books.add({
+    id: 'c1',
+    title: '反復本',
+    subject: '英語',
+    totalPages: 100,
+    studyMode: 'cycles',
+    totalUnits: 20,
+    targetRounds: 3,
+    startDate: '2026-11-01',
+    deadline: '2026-12-31',
+    createdAt: now,
+    updatedAt: now,
+  } as never)
+}
+
 const saveTrainSlot = async () => {
   await saveAvailabilitySlot(
     { id: 'w-train', weekday: TRAIN_WEEKDAY, date: null, start: '17:33', end: '19:11', onTrain: true },
@@ -282,6 +299,50 @@ describe('train start button', () => {
     await waitFor(() => {
       expect(loadSeasonState(TODAY).slotMatches['2026-11-21#510-600']).toBeDefined()
     })
+  })
+
+  it('uses the origin key for a gap sub-row of a clipped train slot', async () => {
+    setNow(20, 0)
+    await addBook()
+    await addCycleBook()
+    await saveAvailabilitySlot(
+      { id: 'train', weekday: null, date: TODAY, start: '18:30', end: '19:11', onTrain: true, originStart: '17:33', originEnd: '19:11' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'pin', weekday: null, date: TODAY, start: '18:45', end: '18:55', bookId: 'c1' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today={TODAY} />)
+    await screen.findByTestId('today-table')
+    // 18:30-18:45 の未割当ギャップ行に本を付ける
+    const rows = screen.getAllByTestId(/plan-row-\d+/)
+    const target = rows.find((r) => r.textContent?.includes('未割当'))
+    fireEvent.change(within(target as HTMLElement).getByRole('combobox'), {
+      target: { value: 'b1' },
+    })
+    await waitFor(() => {
+      const gap = screen
+        .getAllByTestId(/plan-row-\d+/)
+        .find((r) => within(r).getByTestId('plan-row-hours').textContent === '18:30-18:45')
+      expect(gap).toHaveTextContent('英文法書')
+    })
+
+    fireEvent.click(await screen.findByTestId('slot-missed-b1'))
+    fireEvent.click(await screen.findByTestId('record-confirm-yes'))
+    const { loadSeasonState, autoForfeitPastSlots } = await import('../data/seasonStore')
+    await waitFor(() => {
+      const matches = loadSeasonState(TODAY).slotMatches
+      expect(matches['2026-11-21#1053-1151']).toBeDefined()
+      expect(matches['2026-11-21#1110-1125']).toBeUndefined()
+    })
+
+    // 翌日の自動敗戦が同じ元キーを二重に確定させない
+    const withBook = (await listAvailability()).map((a) =>
+      a.id === 'train' ? { ...a, bookId: 'b1' } : a,
+    )
+    const forfeited = autoForfeitPastSlots('2026-11-22', withBook, await db.books.toArray())
+    expect(forfeited).not.toContain('2026-11-21#1053-1151')
   })
 
   it('keeps the override message and the train start notice independent', async () => {
