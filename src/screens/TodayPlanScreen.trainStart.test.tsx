@@ -1,4 +1,4 @@
-import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TodayPlanScreen from './TodayPlanScreen'
 import { db } from '../db/database'
@@ -216,6 +216,72 @@ describe('train start button', () => {
       expect(localStorage.getItem(`schedule-app-train-start:${TODAY}`)).toBeNull()
     })
     expect(screen.queryByTestId('train-start-reset')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByTestId('train-start-notice')).not.toBeInTheDocument()
+    })
+  })
+
+  it('clears the notice and yesterday reset button when the date changes', async () => {
+    setNow(18, 30)
+    await addBook()
+    await saveTrainSlot()
+    const { rerender } = render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today={TODAY} />)
+    fireEvent.click(await screen.findByTestId('train-start'))
+    expect(await screen.findByTestId('train-start-notice')).toBeInTheDocument()
+    expect(await screen.findByTestId('train-start-reset')).toBeInTheDocument()
+    expect(localStorage.getItem(`schedule-app-train-start:${TODAY}`)).not.toBeNull()
+
+    rerender(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today="2026-11-22" />)
+    await waitFor(() => {
+      expect(screen.queryByTestId('train-start-notice')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('train-start-reset')).not.toBeInTheDocument()
+    })
+    // 日付が変わっても前日のデータは消さない
+    expect(localStorage.getItem(`schedule-app-train-start:${TODAY}`)).not.toBeNull()
+  })
+
+  it('keys each train slot skip by its own origin range', async () => {
+    setNow(20, 0)
+    await addBook()
+    await saveAvailabilitySlot(
+      { id: 'train-am', weekday: null, date: TODAY, start: '09:00', end: '10:00', onTrain: true, originStart: '08:30', originEnd: '10:00' },
+      true,
+    )
+    await saveAvailabilitySlot(
+      { id: 'train-pm', weekday: null, date: TODAY, start: '17:45', end: '19:11', onTrain: true, originStart: '17:33', originEnd: '19:11' },
+      true,
+    )
+    render(<TodayPlanScreen onBack={() => {}} onSettings={() => {}} today={TODAY} />)
+    await screen.findByTestId('today-table')
+    // 未割当のまま描画してからUIで本を選ぶ（自動敗戦で確定させない）
+    for (let i = 0; i < 2; i++) {
+      const rows = screen.getAllByTestId(/plan-row-\d+/)
+      const target = rows.find((r) => r.textContent?.includes('未割当'))
+      fireEvent.change(within(target as HTMLElement).getByRole('combobox'), {
+        target: { value: 'b1' },
+      })
+    }
+    await waitFor(() => expect(screen.queryByText(/未割当/)).not.toBeInTheDocument())
+
+    const { loadSeasonState } = await import('../data/seasonStore')
+    // 2行目（17:45-19:11）をスキップ：元キーは 17:33-19:11
+    const misses = screen.getAllByTestId('slot-missed-b1')
+    expect(misses).toHaveLength(2)
+    fireEvent.click(misses[1])
+    fireEvent.click(await screen.findByTestId('record-confirm-yes'))
+    await waitFor(() => {
+      const matches = loadSeasonState(TODAY).slotMatches
+      expect(matches['2026-11-21#1053-1151']).toBeDefined()
+      expect(matches['2026-11-21#1065-1151']).toBeUndefined()
+    })
+
+    // 続けて1行目（09:00-10:00）をスキップ：元キーは 08:30-10:00
+    await waitFor(() => expect(screen.getAllByTestId('slot-missed-b1')).toHaveLength(1))
+    fireEvent.click(screen.getByTestId('slot-missed-b1'))
+    fireEvent.click(await screen.findByTestId('record-confirm-yes'))
+    await waitFor(() => {
+      expect(loadSeasonState(TODAY).slotMatches['2026-11-21#510-600']).toBeDefined()
+    })
   })
 
   it('keeps the override message and the train start notice independent', async () => {

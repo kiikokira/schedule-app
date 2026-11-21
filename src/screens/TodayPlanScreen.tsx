@@ -356,6 +356,9 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
   }
 
   useEffect(() => {
+    // 画面を開いたまま日付が変わっても、前日の通知・バックアップで今日の上書きを壊さない。
+    setTrainStartNotice(null)
+    setTrainStartBackup(loadTrainStartBackup(today))
     void refreshAvailability()
     void listAdjustments().then((all) => {
       setHandledToday(
@@ -543,13 +546,14 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
       ),
     [availability, today, nowMin],
   )
-  // 切り詰められた汽車枠は元の範囲をリーグの枠キーに使う（翌日の不当な敗戦を防ぐ）。
-  const trainOriginKey = useMemo(() => {
-    const s = slotsForDate(availability, today).find(
-      (slot) => slot.onTrain && slot.originStartMin != null && slot.originEndMin != null,
-    )
-    if (!s || s.originStartMin == null || s.originEndMin == null) return null
-    return makeSlotKey(today, s.originStartMin, s.originEndMin)
+  // 切り詰められた汽車枠は枠ごとの元の範囲をリーグの枠キーに使う（翌日の不当な敗戦を防ぐ）。
+  const trainOriginKeyByRange = useMemo(() => {
+    const byRange = new Map<string, string>()
+    for (const s of slotsForDate(availability, today)) {
+      if (!s.onTrain || s.originStartMin == null || s.originEndMin == null) continue
+      byRange.set(rangeKeyOf(s.startMin, s.endMin), makeSlotKey(today, s.originStartMin, s.originEndMin))
+    }
+    return byRange
   }, [availability, today])
   // 「もとに戻す」は帰り汽車スタートのマーカーがある時だけ出す。
   // 手動の今日上書きにはマーカーが付かないので、その設定は消さない。
@@ -658,9 +662,10 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     setPinOverrides({})
     clearTodayDraft(today)
     setDayRowsInit(false)
-    // 手動保存が優先：帰り汽車のマーカーを消して「もとに戻す」を出さない。
+    // 手動保存が優先：帰り汽車のマーカーと通知を消して「もとに戻す」を出さない。
     clearTrainStartBackup(today)
     setTrainStartBackup(null)
+    setTrainStartNotice(null)
     setDayMessage('今日だけの計画に上書きしました')
     await refreshAvailability()
   }
@@ -795,9 +800,10 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
     setPinOverrides({})
     clearTodayDraft(today)
     setDayRowsInit(false)
-    // 手動保存が優先：帰り汽車のマーカーを消して「もとに戻す」を出さない。
+    // 手動保存が優先：帰り汽車のマーカーと通知を消して「もとに戻す」を出さない。
     clearTrainStartBackup(today)
     setTrainStartBackup(null)
+    setTrainStartNotice(null)
     setDayMessage('今日だけの時間と本を上書きしました')
     await refreshAvailability()
   }
@@ -1145,7 +1151,7 @@ export default function TodayPlanScreen({ onBack, onSettings, today: todayProp, 
             }
             const isNow = isCurrentSlot(s.startMin, s.endMin, nowMin)
             const slotKey =
-              s.onTrain && trainOriginKey ? trainOriginKey : makeSlotKey(today, s.startMin, s.endMin)
+              trainOriginKeyByRange.get(pageKey) ?? makeSlotKey(today, s.startMin, s.endMin)
             const slotMinutes = s.endMin - s.startMin
             const isPast = today < todayStr() ? true : today > todayStr() ? false : s.endMin <= nowMin
             const locked = (() => { void seasonTick; try { return !!loadSeasonState(today).slotMatches?.[slotKey] } catch { return false } })()
