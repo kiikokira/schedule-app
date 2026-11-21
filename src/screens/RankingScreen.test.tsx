@@ -4,6 +4,7 @@ import RankingScreen from './RankingScreen'
 import { db } from '../db/database'
 import { todayStr } from '../lib/progress'
 import { saveProfile } from '../data/profileStore'
+import { ALL_UNIVERSITIES } from '../data/universities'
 
 describe('RankingScreen', () => {
   beforeEach(async () => {
@@ -38,13 +39,13 @@ describe('RankingScreen', () => {
       expect(row).toHaveTextContent(/[\d,]+位/)
     }
     const univTexts = rows
-      .map((r) => {
-        const univ = within(r).queryByTestId('rival-univ')
-        return univ?.textContent ?? ''
-      })
-      .join()
-    expect(univTexts).toMatch(/阪大|東大|京大|早稲田|慶應|新潟|信州|岡山|広島|熊本|鹿児島|琉球|弘前|静岡|金沢/)
-    expect(univTexts).not.toMatch(/都|道|府|県/)
+      .map((r) => within(r).queryByTestId('rival-univ')?.textContent ?? '')
+      .filter((text) => text.length > 0)
+    expect(univTexts.length).toBeGreaterThan(0)
+    for (const name of univTexts) {
+      expect(ALL_UNIVERSITIES).toContain(name)
+    }
+    expect(univTexts.join()).not.toMatch(/都|道|府|県/)
   })
   it('追い越す表記を使わず次の節目までの差を表示する', async () => {
     const today = todayStr()
