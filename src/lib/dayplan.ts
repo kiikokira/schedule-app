@@ -1,5 +1,6 @@
 import type { AvailabilitySlot } from '../data/dayplanStore'
 import { daysBetween, parseDate, type TrainFit } from './progress'
+import { isTestStudyId } from './testStudy'
 
 export const DEFAULT_MINUTES_PER_PAGE = 2
 
@@ -311,6 +312,17 @@ function buildDayPlan(
   const openSegs: TimeSlot[] = []
   const reserved = new Map<string, number>()
   for (const s of slots) {
+      // テスト勉強の固定枠は参考書の割当に使わない。ページ0の固定枠として残す。
+      if (s.bookId && isTestStudyId(s.bookId)) {
+        pinned.push({
+          startMin: s.startMin,
+          endMin: s.endMin,
+          bookId: s.bookId,
+          pages: 0,
+          onTrain: s.onTrain,
+        })
+        continue
+      }
     const target = s.bookId
       ? targets.find((t) => t.book.bookId === s.bookId)
       : undefined

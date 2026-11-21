@@ -19,6 +19,7 @@ import {
   type ScheduledBook,
 } from './dayplan'
 import type { AvailabilitySlot } from '../data/dayplanStore'
+import { TEST_STUDY_ID } from './testStudy'
 
 const weekSlot = (weekday: number, start: string, end: string): AvailabilitySlot => ({
   id: `w${weekday}`,
@@ -471,6 +472,31 @@ describe('generateDayPlan', () => {
     expect(trainPart.length).toBeGreaterThan(0)
     for (const s of trainPart) expect(s.bookId).toBe('bTrain')
     expect(homePart.length).toBeGreaterThan(0)
+  })
+
+  it('keeps a saved test-study slot out of book allocation', () => {
+    const out = generateDayPlan({
+      availability: [
+        {
+          id: 'd1',
+          weekday: null,
+          date: '2026-09-21',
+          start: '21:00',
+          end: '22:00',
+          bookId: TEST_STUDY_ID,
+        },
+      ],
+      books: [book({ bookId: 'b1' })],
+      today: '2026-09-21',
+    })
+    expect(out.today.slots).toHaveLength(1)
+    expect(out.today.slots[0]).toMatchObject({
+      bookId: TEST_STUDY_ID,
+      pages: 0,
+      startMin: 21 * 60,
+      endMin: 22 * 60,
+    })
+    expect(out.today.totalPages).toBe(0)
   })
 })
 
