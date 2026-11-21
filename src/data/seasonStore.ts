@@ -4,6 +4,7 @@ import { pagesToExp } from '../lib/seasonExp'
 import { leagueSlotInfo, makeSlotKey, parseSlotKey, rivalForSlot, type SlotUnit } from '../lib/slotLeague'
 import { addDays, slotsForDate } from '../lib/dayplan'
 import { isLeapBook } from '../lib/leap'
+import { isTestStudyId } from '../lib/testStudy'
 import type { BookData } from '../lib/progress'
 import type { AvailabilitySlot } from './dayplanStore'
 import { leagueRatingDelta, ratingBandForDiff, rivalRatingFor, RATING_START, RATING_DIV2, RATING_DIV1 } from '../lib/leagueRating'
@@ -266,7 +267,7 @@ export function autoForfeitPastSlots(today: string, availability: AvailabilitySl
       continue
     }
     for (const s of daySlots) {
-      if (!s.bookId) continue
+      if (!s.bookId || isTestStudyId(s.bookId)) continue
       // 帰り汽車スタートで枠が切り詰められていても、リーグの枠キーは元の範囲を使う。
       // origin の無い従来データはこれまでどおり自範囲をキーにする。
       const key = makeSlotKey(date, s.originStartMin ?? s.startMin, s.originEndMin ?? s.endMin)

@@ -11,6 +11,7 @@ import {
   reminderTimeMin,
   type SlotInfo,
 } from './slotNotify'
+import { TEST_STUDY_ID } from './testStudy'
 
 describe('formatMin', () => {
   it('formats minutes since midnight as HH:MM', () => {
@@ -95,6 +96,16 @@ describe('buildSlotsPayload', () => {
       [],
     )
     expect(payload.slots.map((s) => s.start)).toEqual(['15:55', '21:00'])
+  })
+
+  it('labels a test-study slot as テスト勉強', () => {
+    const payload = buildSlotsPayload(
+      '2026-09-21',
+      [{ startMin: 21 * 60, endMin: 22 * 60 }],
+      [{ startMin: 21 * 60, endMin: 22 * 60, bookId: TEST_STUDY_ID, pages: 0 }],
+      books as any,
+    )
+    expect(payload.slots[0].books).toEqual(['テスト勉強'])
   })
 })
 

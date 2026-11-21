@@ -1,5 +1,6 @@
 import { parseTimeToMin, type PlanSlot, type TimeSlot } from './dayplan'
 import type { BookData } from './progress'
+import { TEST_STUDY_LABEL, isTestStudyId } from './testStudy'
 
 export type SlotInfo = { start: string; end: string; books: string[] }
 export type SlotsPayload = { date: string; slots: SlotInfo[]; savedAt: string }
@@ -48,7 +49,8 @@ export function buildSlotsPayload(
       const titles: string[] = []
       for (const p of planned) {
         if (p.startMin >= s.startMin && p.endMin <= s.endMin) {
-          const title = byId.get(p.bookId) ?? p.bookId
+          const title = byId.get(p.bookId)
+            ?? (isTestStudyId(p.bookId) ? TEST_STUDY_LABEL : p.bookId)
           if (!titles.includes(title)) titles.push(title)
         }
       }

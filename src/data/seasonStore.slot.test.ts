@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { TEST_STUDY_ID } from '../lib/testStudy'
 
 describe('seasonStore slot', () => {
   it('syncLeagueSlotで1枠1試合がラウンドに加算される', async () => {
@@ -144,5 +145,22 @@ describe('seasonStore slot', () => {
     const entry = loadSeasonState('2026-09-22').slotMatches['2026-09-21#1260-1380']
     expect(entry?.result).toBe('loss')
     expect(entry?.unit).toBe('words')
+  })
+  it('テスト勉強の枠は自動敗戦にしない', async () => {
+    localStorage.clear()
+    const { autoForfeitPastSlots, loadSeasonState } = await import('./seasonStore')
+    const availability = [
+      {
+        id: 'd1',
+        weekday: null,
+        date: '2026-10-25',
+        start: '21:00',
+        end: '22:00',
+        bookId: TEST_STUDY_ID,
+      },
+    ]
+    const forfeited = autoForfeitPastSlots('2026-10-26', availability, [])
+    expect(forfeited).toEqual([])
+    expect(loadSeasonState('2026-10-26').slotMatches?.['2026-10-25#1260-1320']).toBeUndefined()
   })
 })
