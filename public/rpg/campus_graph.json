@@ -1,0 +1,21 @@
+{
+  "nodes": [
+    { "id": "n0", "x": 0, "y": 0, "z": 0, "kind": "start", "label": "正門" },
+    { "id": "n1", "x": 0, "y": 0, "z": 16, "kind": "stop", "label": "並木道" },
+    { "id": "n2", "x": -10, "y": 0, "z": 30, "kind": "stage", "stage": "campus-stage-1", "label": "図書館" },
+    { "id": "n3", "x": 10, "y": 0, "z": 34, "kind": "stage", "stage": "campus-stage-2", "label": "教室棟" },
+    { "id": "n4", "x": -8, "y": 0, "z": 40, "kind": "stop", "label": "食堂" },
+    { "id": "n5", "x": 2, "y": 0, "z": 48, "kind": "stage", "stage": "campus-stage-3", "label": "グラウンド" },
+    { "id": "n6", "x": 16, "y": 0, "z": 54, "kind": "stop", "label": "研究棟" },
+    { "id": "n7", "x": 4, "y": 3, "z": 64, "kind": "stage", "stage": "campus-stage-4", "label": "展望デッキ" }
+  ],
+  "paths": [
+    { "id": "c0", "from": "n0", "to": "n1", "kind": "walk", "speed": 2.2 },
+    { "id": "c1", "from": "n1", "to": "n2", "kind": "walk", "speed": 2.2 },
+    { "id": "c2", "from": "n2", "to": "n3", "kind": "run", "speed": 3.6 },
+    { "id": "c3", "from": "n3", "to": "n5", "kind": "walk", "speed": 2.2 },
+    { "id": "c4", "from": "n5", "to": "n7", "kind": "walk", "speed": 2.2 },
+    { "id": "c5", "from": "n3", "to": "n4", "kind": "walk", "speed": 2.2 },
+    { "id": "c6", "from": "n5", "to": "n6", "kind": "walk", "speed": 2.2 }
+  ]
+}
