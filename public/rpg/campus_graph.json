@@ -13,9 +13,9 @@
     { "id": "c0", "from": "n0", "to": "n1", "kind": "walk", "speed": 2.2 },
     { "id": "c1", "from": "n1", "to": "n2", "kind": "walk", "speed": 2.2 },
     { "id": "c2", "from": "n2", "to": "n3", "kind": "run", "speed": 3.6 },
-    { "id": "c3", "from": "n3", "to": "n5", "kind": "walk", "speed": 2.2 },
-    { "id": "c4", "from": "n5", "to": "n7", "kind": "walk", "speed": 2.2 },
-    { "id": "c5", "from": "n3", "to": "n4", "kind": "walk", "speed": 2.2 },
-    { "id": "c6", "from": "n5", "to": "n6", "kind": "walk", "speed": 2.2 }
+    { "id": "c3", "from": "n3", "to": "n4", "kind": "walk", "speed": 2.2 },
+    { "id": "c4", "from": "n4", "to": "n5", "kind": "walk", "speed": 2.2 },
+    { "id": "c5", "from": "n5", "to": "n6", "kind": "walk", "speed": 2.2 },
+    { "id": "c6", "from": "n6", "to": "n7", "kind": "walk", "speed": 2.2 }
   ]
 }

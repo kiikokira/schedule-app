@@ -27,7 +27,7 @@ export type CampusStageId = (typeof CAMPUS_STAGE_ORDER)[number]
 
 /**
  * 各ステージが立つノード（グラフの stageId と一致する）。
- * メイン動線は n0→n1→n2→n3→n5→n7（c0..c4）、n4(食堂)/n6(研究棟) は c5/c6 の支線。
+ * 動線は n0→n1→…→n7 の直列（パス c0..c6 が n_i→n_{i+1} に対応）。
  */
 export const CAMPUS_STAGE_NODE: Record<string, string> = {
   'campus-stage-1': 'n2', // 図書館
@@ -44,21 +44,24 @@ export const CAMPUS_STAGE_TITLES: Record<string, string> = {
   'campus-stage-4': '展望デッキ',
 }
 
-/** 初期解放は正門→並木道のみ（クエスト看板は並木道）。 */
-export const CAMPUS_INITIAL_PATHS: string[] = ['c0']
+/**
+ * 初期解放は「最初のステージのノード（図書館=n2）まで」の区間。
+ * 動線は n0→n1→…→n7 の直列なので n0→n1→n2 の c0,c1 が必要（规范的初期解放）。
+ */
+export const CAMPUS_INITIAL_PATHS: string[] = ['c0', 'c1']
 
 /**
- * ステージクリアで開く区間。
- * - campus-stage-1 → [c1(並木道→図書館), c2(図書館→教室棟)]
- * - campus-stage-2 → [c3(教室棟→グラウンド)]
- * - campus-stage-3 → [c4(グラウンド→展望デッキ)]
- * - campus-stage-4 → []（最終クリア＝展望デッキでの祝い）
- * c5(教室棟→食堂)/c6(グラウンド→研究棟) は解放表に無い支線（終始見学可・立ち入り不可）。
+ * ステージクリアで開く区間（W1の「前進解放」パターン）。
+ * 各ステージは「次のステージのノードまでの前方区間」を開き、最終ステージは残り端点のみ。
+ * - campus-stage-1 → [c2(図書館→教室棟)]            … 次のステージ(n3)まで
+ * - campus-stage-2 → [c3(教室棟→食堂), c4(食堂→グラウンド)] … 次のステージ(n5)まで
+ * - campus-stage-3 → [c5(グラウンド→研究棟), c6(研究棟→展望デッキ)] … 次のステージ(n7)まで
+ * - campus-stage-4 → []（最終ステージ＝展望デッキは既に解放済み。祝いのみ）
  */
 export const CAMPUS_UNLOCKS: Record<string, string[]> = {
-  'campus-stage-1': ['c1', 'c2'],
-  'campus-stage-2': ['c3'],
-  'campus-stage-3': ['c4'],
+  'campus-stage-1': ['c2'],
+  'campus-stage-2': ['c3', 'c4'],
+  'campus-stage-3': ['c5', 'c6'],
   'campus-stage-4': [],
 }
 

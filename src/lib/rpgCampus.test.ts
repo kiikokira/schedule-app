@@ -68,14 +68,25 @@ describe('campus domain', () => {
     }
   })
 
-  it('opens only the first path initially and the specified paths per stage', () => {
-    expect(CAMPUS_INITIAL_PATHS).toEqual(['c0'])
-    expect(CAMPUS_UNLOCKS['campus-stage-1']).toEqual(['c1', 'c2'])
-    expect(CAMPUS_UNLOCKS['campus-stage-2']).toEqual(['c3'])
-    expect(CAMPUS_UNLOCKS['campus-stage-3']).toEqual(['c4'])
+  it('is the specified linear chain n0→n1→…→n7', () => {
+    const chain = ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7']
+    expect(campusGraph.nodes.map((n) => n.id)).toEqual(chain)
+    expect(campusGraph.paths.map((p) => [p.from, p.to])).toEqual(
+      chain.slice(0, -1).map((id, i) => [id, chain[i + 1]]),
+    )
+  })
+
+  it('opens the path to the first stage initially and the forward segment per stage', () => {
+    expect(CAMPUS_INITIAL_PATHS).toEqual(['c0', 'c1'])
+    expect(CAMPUS_UNLOCKS['campus-stage-1']).toEqual(['c2'])
+    expect(CAMPUS_UNLOCKS['campus-stage-2']).toEqual(['c3', 'c4'])
+    expect(CAMPUS_UNLOCKS['campus-stage-3']).toEqual(['c5', 'c6'])
     expect(CAMPUS_UNLOCKS['campus-stage-4']).toEqual([])
-    expect(campusUnlockedPaths([])).toEqual(['c0'])
+    expect(campusUnlockedPaths([])).toEqual(['c0', 'c1'])
     expect(campusUnlockedPaths(['campus-stage-1'])).toEqual(['c0', 'c1', 'c2'])
+    expect(campusUnlockedPaths(['campus-stage-1', 'campus-stage-2'])).toEqual([
+      'c0', 'c1', 'c2', 'c3', 'c4',
+    ])
   })
 
   it('every stage node becomes reachable once its quest is cleared', () => {
@@ -87,6 +98,38 @@ describe('campus domain', () => {
       expect(route).not.toBeNull()
       expect(route![route!.length - 1]).toBe(CAMPUS_STAGE_NODE[stage])
     }
+  })
+
+  it('all 8 nodes become reachable in stage order including the observation deck', () => {
+    const reachable = (cleared: readonly string[]): Set<string> => {
+      const open = new Set(campusUnlockedPaths(cleared))
+      const seen = new Set<string>(['n0'])
+      const queue = ['n0']
+      while (queue.length > 0) {
+        const cur = queue.shift()!
+        for (const p of campusGraph.paths) {
+          if (!open.has(p.id)) continue
+          const next = p.from === cur ? p.to : p.to === cur ? p.from : null
+          if (next && !seen.has(next)) {
+            seen.add(next)
+            queue.push(next)
+          }
+        }
+      }
+      return seen
+    }
+    // 初期解放だけで最初のステージ（図書館=n2）へ到達できる
+    expect(reachable([]).has('n2')).toBe(true)
+    let cleared: string[] = []
+    for (const stage of CAMPUS_STAGE_ORDER) {
+      cleared = [...cleared, stage]
+      expect(reachable(cleared).has(CAMPUS_STAGE_NODE[stage])).toBe(true)
+    }
+    // 全クリアで全ノード（食堂・研究棟・展望デッキを含む）へ到達できる
+    const all = reachable(cleared)
+    expect(all.size).toBe(8)
+    for (const n of campusGraph.nodes) expect(all.has(n.id)).toBe(true)
+    expect(all.has('n7')).toBe(true)
   })
 
   it('advances one stage at a time and ends with no next stage', () => {
