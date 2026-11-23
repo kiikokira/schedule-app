@@ -122,7 +122,11 @@ export default function Carousel({
         stop('touch', false)
       }}
     >
-      <div className="carousel-viewport" style={{ overflow: 'hidden', maxWidth: '100%' }}>
+      <div
+        className="carousel-viewport"
+        data-testid="carousel-viewport"
+        style={{ overflow: 'hidden', maxWidth: '100%' }}
+      >
         <div
           className="carousel-track"
           style={{
@@ -144,7 +148,7 @@ export default function Carousel({
         </div>
       </div>
       {showControls && (
-        <>
+        <div className="carousel-controls" data-testid="carousel-controls">
           <button
             type="button"
             className="carousel-prev"
@@ -153,15 +157,6 @@ export default function Carousel({
             onClick={() => goTo(indexRef.current - 1)}
           >
             ←
-          </button>
-          <button
-            type="button"
-            className="carousel-next"
-            data-testid="carousel-next"
-            aria-label="次へ"
-            onClick={() => goTo(indexRef.current + 1)}
-          >
-            →
           </button>
           <div className="carousel-dots">
             {slides.map((i) => (
@@ -176,7 +171,16 @@ export default function Carousel({
               />
             ))}
           </div>
-        </>
+          <button
+            type="button"
+            className="carousel-next"
+            data-testid="carousel-next"
+            aria-label="次へ"
+            onClick={() => goTo(indexRef.current + 1)}
+          >
+            →
+          </button>
+        </div>
       )}
     </section>
   )

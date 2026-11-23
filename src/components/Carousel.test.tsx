@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent, act, within } from '@testing-library/react'
 import Carousel from './Carousel'
 
 afterEach(() => {
@@ -104,5 +104,17 @@ describe('Carousel', () => {
     // 縮小前のindex(3)のままだとスライド0がaria-hidden=true・trackが-300%のまま空白になる
     expect(screen.getByText('card-0').closest('.carousel-slide')).toHaveAttribute('aria-hidden', 'false')
     expect(document.querySelector('.carousel-track')).toHaveStyle({ transform: 'translateX(-0%)' })
+  })
+
+  it('places arrows in a controls row below the card, not over the content', () => {
+    render(<Carousel itemCount={3} renderItem={(i) => <div>card-{i}</div>} autoPlayIntervalMs={10000} />)
+    const controls = screen.getByTestId('carousel-controls')
+    expect(controls).toContainElement(screen.getByTestId('carousel-prev'))
+    expect(controls).toContainElement(screen.getByTestId('carousel-next'))
+    expect(controls).toContainElement(screen.getByTestId('carousel-dot-0'))
+  })
+  it('keeps buttons out of the viewport', () => {
+    render(<Carousel itemCount={3} renderItem={(i) => <div>card-{i}</div>} autoPlayIntervalMs={10000} />)
+    expect(within(screen.getByTestId('carousel-viewport')).queryByRole('button')).not.toBeInTheDocument()
   })
 })

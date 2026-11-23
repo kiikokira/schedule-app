@@ -175,11 +175,17 @@ main { padding-bottom: 80px; }
   display: flex;
   transition: transform 0.3s ease;
 }
+.carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
 .carousel-prev,
 .carousel-next {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  position: static;
+  flex-shrink: 0;
   width: 44px;
   height: 44px;
   min-height: 44px;
@@ -192,14 +198,15 @@ main { padding-bottom: 80px; }
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   cursor: pointer;
 }
-.carousel-prev { left: 4px; }
-.carousel-next { right: 4px; }
+.carousel-prev { left: auto; }
+.carousel-next { right: auto; }
 .carousel-dots {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
+  flex: 1;
+  margin-top: 0;
 }
 .carousel-dot {
   position: relative;
