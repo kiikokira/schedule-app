@@ -202,16 +202,26 @@ main { padding-bottom: 80px; }
   margin-top: 8px;
 }
 .carousel-dot {
-  width: 12px;
-  height: 12px;
+  position: relative;
+  width: 44px;
   min-height: 44px;
-  padding: 16px 4px;
+  padding: 0;
   border: none;
-  border-radius: 50%;
-  background: var(--border);
+  background: transparent;
   cursor: pointer;
 }
-.carousel-dot[aria-selected="true"] {
+.carousel-dot::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.carousel-dot[aria-selected="true"]::after {
   background: var(--accent);
 }
 .home-queue-carousel {

@@ -91,4 +91,15 @@ describe('Carousel', () => {
     expect(onIndexChange).not.toHaveBeenCalledWith(-1)
     expect(onIndexChange).not.toHaveBeenCalledWith(3)
   })
+
+  it('reconciles active index when itemCount shrinks so the single card shows', () => {
+    const { rerender } = render(
+      <Carousel itemCount={4} renderItem={(i) => <div>card-{i}</div>} autoPlayIntervalMs={10000} />,
+    )
+    fireEvent.click(screen.getByTestId('carousel-dot-3'))
+    expect(screen.getByText('card-3')).toBeInTheDocument()
+    rerender(<Carousel itemCount={1} renderItem={(i) => <div>card-{i}</div>} autoPlayIntervalMs={10000} />)
+    expect(screen.getByText('card-0')).toBeInTheDocument()
+    expect(screen.queryByTestId('carousel-dot-0')).not.toBeInTheDocument()
+  })
 })

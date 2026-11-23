@@ -43,9 +43,24 @@ export default function Carousel({
   const indexRef = useRef(0)
   const onIndexChangeRef = useRef(onIndexChange)
   const touchStartX = useRef<number | null>(null)
+  const prevItemCountRef = useRef(itemCount)
   useEffect(() => {
     onIndexChangeRef.current = onIndexChange
   }, [onIndexChange])
+
+  useEffect(() => {
+    if (itemCount === prevItemCountRef.current) return
+    prevItemCountRef.current = itemCount
+    if (itemCount > 0 && indexRef.current >= itemCount) {
+      const target = itemCount - 1
+      indexRef.current = target
+      setIndex(target)
+      onIndexChangeRef.current?.(target)
+    } else if (itemCount === 0) {
+      indexRef.current = 0
+      setIndex(0)
+    }
+  }, [itemCount])
 
   const showControls = itemCount > 1
   const paused = stops.hover || stops.focus || stops.touch

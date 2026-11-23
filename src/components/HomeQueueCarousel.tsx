@@ -22,18 +22,22 @@ export default function HomeQueueCarousel({ items }: Props) {
         itemCount={items.length}
         renderItem={(index) => {
           const item = items[index]
+          const titleId = `queue-card-title-${item.key}`
+          const progressValue = Math.round(item.progressPct)
           return (
             <div className="queue-card">
               <CoverImage src={item.cover} width={64} height={90} />
               <div className="queue-card-body">
-                <p className="queue-card-title">{item.title}</p>
+                <p id={titleId} className="queue-card-title">{item.title}</p>
                 <p className="queue-card-meta">{item.meta}</p>
                 <div
                   className="queue-card-progress"
                   role="progressbar"
-                  aria-valuenow={Math.round(item.progressPct)}
+                  aria-labelledby={titleId}
+                  aria-valuenow={progressValue}
                   aria-valuemin={0}
                   aria-valuemax={100}
+                  aria-valuetext={`${progressValue}% 完了`}
                 >
                   <div style={{ width: `${item.progressPct}%` }} />
                 </div>
