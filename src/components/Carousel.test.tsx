@@ -101,5 +101,8 @@ describe('Carousel', () => {
     rerender(<Carousel itemCount={1} renderItem={(i) => <div>card-{i}</div>} autoPlayIntervalMs={10000} />)
     expect(screen.getByText('card-0')).toBeInTheDocument()
     expect(screen.queryByTestId('carousel-dot-0')).not.toBeInTheDocument()
+    // 縮小前のindex(3)のままだとスライド0がaria-hidden=true・trackが-300%のまま空白になる
+    expect(screen.getByText('card-0').closest('.carousel-slide')).toHaveAttribute('aria-hidden', 'false')
+    expect(document.querySelector('.carousel-track')).toHaveStyle({ transform: 'translateX(-0%)' })
   })
 })
