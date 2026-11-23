@@ -38,3 +38,31 @@ describe('rpgStageAdapter', () => {
     expect(stageAppRoute('ranking', null)).toBeNull()
   })
 })
+
+describe('campus adapter', () => {
+  it('campus-stage-1 goes to today', () => {
+    const a = stageActionFor('campus-stage-1', { hasBooks: true, firstBookId: 'b1', todayPages: 0, totalPages: 0 })
+    expect(a?.target).toBe('today')
+  })
+  it('campus-stage-2 goes to book when book exists', () => {
+    const a = stageActionFor('campus-stage-2', { hasBooks: true, firstBookId: 'b1', todayPages: 1, totalPages: 10 })
+    expect(a?.target).toBe('book')
+    expect(a?.bookId).toBe('b1')
+  })
+  it('locked tap does not move (null when unknown)', () => {
+    expect(stageActionFor('campus-stage-99', { hasBooks: false, firstBookId: null, todayPages: 0, totalPages: 0 })).toBeNull()
+  })
+  it('existing grass stages still work after campus add', () => {
+    const a = stageActionFor('grass-stage-1', { hasBooks: false, firstBookId: null, todayPages: 0, totalPages: 0 })
+    expect(a?.target).toBe('today')
+  })
+  it('campus-stage-3 goes to ranking (ground, R-C2)', () => {
+    const a = stageActionFor('campus-stage-3', { hasBooks: false, firstBookId: null, todayPages: 0, totalPages: 0 })
+    expect(a?.target).toBe('ranking')
+  })
+  it('campus-stage-4 is a today celebration', () => {
+    const a = stageActionFor('campus-stage-4', { hasBooks: false, firstBookId: null, todayPages: 0, totalPages: 0 })
+    expect(a?.target).toBe('today')
+    expect(a?.hint).toContain('展望デッキで祝おう')
+  })
+})

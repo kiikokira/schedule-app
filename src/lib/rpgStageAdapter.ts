@@ -1,5 +1,5 @@
 // 既存機能への薄い接続層。存在しないアクション本編は作らず、既存の画面・記録フローへ誘導する。
-// ステージIDは `<theme>-stage-<1|2|3>` 形式。9ワールド共通。
+// ステージIDは `<theme>-stage-<1|2|3>` 形式。9ワールド共通（campusのみ stage-4 あり）。
 export type StageTarget = 'today' | 'book' | 'ranking'
 
 export type StageAction = {
@@ -27,6 +27,7 @@ const STAGE_TITLES: Record<string, string> = {
   'cloud-stage-1': '雲の家', 'cloud-stage-2': '風見の丘', 'cloud-stage-3': '霧の洞',
   'lava-stage-1': '溶岩の小屋', 'lava-stage-2': '黒曜の丘', 'lava-stage-3': '炎の洞窟',
   'star-stage-1': '星屑の小屋', 'star-stage-2': '結晶の丘', 'star-stage-3': '結晶洞',
+  'campus-stage-1': '図書館', 'campus-stage-2': '教室棟', 'campus-stage-3': 'グラウンド', 'campus-stage-4': '展望デッキ',
 }
 
 export function stageAppRoute(
@@ -52,6 +53,9 @@ export function stageActionFor(stageId: string, ctx: StageContext): StageAction 
   }
   if (stageId.endsWith('-stage-3')) {
     return { stageId, target: 'ranking', title, hint: 'ランキングのクエスト状況を確認する' }
+  }
+  if (stageId.endsWith('-stage-4')) {
+    return { stageId, target: 'today', title, hint: '全完了！展望デッキで祝おう' }
   }
   return null
 }
