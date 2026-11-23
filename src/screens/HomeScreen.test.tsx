@@ -1032,6 +1032,44 @@ describe('HomeScreen', () => {
       vi.useRealTimers()
     }
   })
+
+  it('shows queue carousel between now-next and ranking', () => {
+    saveSchedule([
+      { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(2), deadline: daysAhead(6) },
+      { catalogId: 'porepore', startDate: daysAgo(2), deadline: daysAhead(7) },
+      { catalogId: 'the-rules-1', startDate: daysAgo(2), deadline: daysAhead(8) },
+      { catalogId: 'yatteokitai-700', startDate: daysAgo(2), deadline: daysAhead(9) },
+    ])
+    render(<HomeScreen onOpenBook={() => {}} />)
+    const carousel = screen.getByTestId('home-queue-carousel')
+    expect(carousel).toBeInTheDocument()
+    const nowNext = screen.getByTestId('now-next-section')
+    const ranking = screen.getByTestId('ranking-card')
+    expect(nowNext.compareDocumentPosition(carousel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(carousel.compareDocumentPosition(ranking) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByTestId('carousel-next')).toHaveAttribute('aria-label', '次へ')
+    expect(screen.getByTestId('carousel-dot-0')).toBeInTheDocument()
+  })
+
+  it('hides queue carousel when only now and next exist', () => {
+    saveSchedule([
+      { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(2), deadline: daysAhead(6) },
+      { catalogId: 'porepore', startDate: daysAgo(2), deadline: daysAhead(7) },
+    ])
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(screen.queryByTestId('home-queue-carousel')).not.toBeInTheDocument()
+  })
+
+  it('queue card shows cover placeholder when cover is missing', async () => {
+    saveSchedule([
+      { catalogId: 'eibunpo-polaris-2', startDate: daysAgo(2), deadline: daysAhead(6) },
+      { catalogId: 'porepore', startDate: daysAgo(2), deadline: daysAhead(7) },
+      { bookId: 'no-cover', startDate: daysAgo(2), deadline: daysAhead(8) },
+    ])
+    await db.books.add({ ...book, id: 'no-cover', title: '表紙なし本', coverUrl: undefined, totalPages: 100, deadline: daysAhead(8) })
+    render(<HomeScreen onOpenBook={() => {}} />)
+    expect(screen.getByTestId('home-queue-carousel')).toBeInTheDocument()
+  })
 })
 
 describe('HomeScreen penalty banner', () => {

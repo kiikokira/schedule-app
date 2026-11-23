@@ -160,3 +160,102 @@ main { padding-bottom: 80px; }
   .rpgc-run .rpgc-leg-l, .rpgc-run .rpgc-leg-r, .rpgc-ladder .rpgc-leg-l, .rpgc-ladder .rpgc-leg-r,
   .rpgc-jump, .rpgc-scarf, .rpg-cloud, .rpg-water, .rpg-sway, .rpg-flag, .rpg-pulse, .rpg-mote-a, .rpg-mote-b { animation: none !important; }
 }
+
+/* Home queue carousel (under NOW-NEXT) */
+.carousel {
+  position: relative;
+  max-width: 100%;
+  overflow: hidden;
+}
+.carousel-viewport {
+  overflow: hidden;
+  max-width: 100%;
+}
+.carousel-track {
+  display: flex;
+  transition: transform 0.3s ease;
+}
+.carousel-prev,
+.carousel-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  font-size: 20px;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+.carousel-prev { left: 4px; }
+.carousel-next { right: 4px; }
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.carousel-dot {
+  width: 12px;
+  height: 12px;
+  min-height: 44px;
+  padding: 16px 4px;
+  border: none;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+}
+.carousel-dot[aria-selected="true"] {
+  background: var(--accent);
+}
+.home-queue-carousel {
+  margin-bottom: 16px;
+}
+.queue-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.queue-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.queue-card-title {
+  margin: 0 0 4px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.queue-card-meta {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.queue-card-progress {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cover-placeholder);
+  overflow: hidden;
+}
+.queue-card-progress > div {
+  height: 100%;
+  background: var(--accent-strong);
+}
+.queue-card-progress-label {
+  margin: 2px 0 0;
+  font-size: 12px;
+  text-align: right;
+  color: var(--text-dim);
+}
+@media (prefers-reduced-motion: reduce) {
+  .carousel-track { transition: none !important; }
+}

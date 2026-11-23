@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type CompositionEvent } from 'react'
 import CoverImage from '../components/CoverImage'
+import HomeQueueCarousel, { type QueueItem } from '../components/HomeQueueCarousel'
 import { useBooks } from '../hooks/useBooks'
 import { useRecords } from '../hooks/useRecords'
 import {
@@ -574,6 +575,56 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool, 
     schedule.filter((e) => !e.completed),
     today,
   )
+
+  const remainingOf = (entry: ScheduleEntry): number => {
+    const view = resolveEntry(books, entry)
+    if (!view.registered) return view.catalogBook?.totalPages ?? 0
+    if (view.registered.studyMode === 'cycles') {
+      const done = calcCycleDonePairs(
+        view.registered,
+        cycleRecords.filter((r) => r.bookId === view.registered!.id),
+      )
+      return Math.max(cycleGrandTotal(view.registered) - done, 0)
+    }
+    const total = view.registered.totalPages ?? view.catalogBook?.totalPages ?? 0
+    return Math.max(total - calcTotalDone(view.registered, records), 0)
+  }
+  const { now, next } = selectNowAndNext(schedule, today, remainingOf)
+  const nowNextKeys = new Set<string>([
+    ...(now ? [entryKey(now)] : []),
+    ...(next ? [entryKey(next)] : []),
+  ])
+  const queue: QueueItem[] = scheduled
+    .filter((entry) => !nowNextKeys.has(entryKey(entry)))
+    .slice(0, 4)
+    .map((entry) => {
+      const view = resolveEntry(books, entry)
+      const registered = view.registered
+      const catalogBook = view.catalogBook
+      const isCycle = registered?.studyMode === 'cycles'
+      const bookCycleRecords =
+        isCycle && registered
+          ? cycleRecords.filter((r) => r.bookId === registered.id)
+          : []
+      const done = registered
+        ? isCycle
+          ? calcCycleDonePairs(registered, bookCycleRecords)
+          : calcTotalDone(registered, records)
+        : 0
+      const total =
+        isCycle && registered
+          ? cycleGrandTotal(registered)
+          : (registered?.totalPages ?? catalogBook?.totalPages ?? 0)
+      const progressPct = total > 0 ? Math.min((done / total) * 100, 100) : 0
+      const title = catalogBook?.title ?? registered?.title ?? entryKey(entry)
+      const cover = registered?.coverUrl ?? catalogBook?.coverSrc ?? null
+      const remainingDays = daysBetween(today, entry.deadline)
+      const daysLabel =
+        remainingDays >= 0 ? `あと ${remainingDays} 日` : `${-remainingDays} 日超過`
+      const meta = `期限 ${entry.deadline}（${daysLabel}）`
+      return { key: entryKey(entry), title, cover, meta, progressPct }
+    })
+
   const [extendProposals, setExtendProposals] = useState<ExtendProposal[] | null>(null)
   const [extendDoneMessage, setExtendDoneMessage] = useState<string | null>(null)
 
@@ -795,20 +846,6 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool, 
       )}
 
       {(() => {
-        const remainingOf = (entry: ScheduleEntry): number => {
-          const view = resolveEntry(books, entry)
-          if (!view.registered) return view.catalogBook?.totalPages ?? 0
-          if (view.registered.studyMode === 'cycles') {
-            const done = calcCycleDonePairs(
-              view.registered,
-              cycleRecords.filter((r) => r.bookId === view.registered!.id),
-            )
-            return Math.max(cycleGrandTotal(view.registered) - done, 0)
-          }
-          const total = view.registered.totalPages ?? view.catalogBook?.totalPages ?? 0
-          return Math.max(total - calcTotalDone(view.registered, records), 0)
-        }
-        const { now, next } = selectNowAndNext(schedule, today, remainingOf)
         if (!now && !next) return null
         const nowView = now ? resolveEntry(books, now) : { catalogBook: undefined, registered: undefined }
         const nowIsCycle = nowView.registered?.studyMode === 'cycles'
@@ -1001,6 +1038,8 @@ export default function HomeScreen({ onOpenBook, onRanking, onMyPage, onSchool, 
           </section>
         )
       })()}
+
+      {queue.length > 0 && <HomeQueueCarousel items={queue} />}
 
       <section data-testid="ranking-card" style={{ marginTop: 8, marginBottom: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)' }}>
         <div style={{ fontWeight: 800, fontSize: 16 }}>仮想全国ランキング</div>
