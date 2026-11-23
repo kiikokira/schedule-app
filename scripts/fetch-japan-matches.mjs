@@ -203,17 +203,19 @@ export function parseListPage(html) {
 // シンガポール開催の (Local Time) 表記は+1時間して日本時間にする。
 // 2試合併記ページでは dateEn (例 "Friday, 14 November 2025") にひもづく時刻を取る。
 export function parseDetailKickoff(html, dateEn) {
-  let scope = html
+  // JFAは未発表の時刻をHTMLコメントで入れておくことがある。コメント内は発表済みではないので無視する。
+  const visible = (html || '').replace(/<!--[\s\S]*?-->/g, '')
+  let scope = visible
   if (dateEn) {
-    const i = html.indexOf(dateEn)
-    if (i !== -1) scope = html.slice(i)
+    const i = visible.indexOf(dateEn)
+    if (i !== -1) scope = visible.slice(i)
   }
   const m = scope.match(/Kick Off at\s+(\d{1,2}):(\d{2})/)
   if (!m) return null
   let hh = Number(m[1])
   const mm = m[2]
   const after = scope.slice(m.index, m.index + 80)
-  if (/local\s*time/i.test(after) && html.includes('Singapore')) {
+  if (/local\s*time/i.test(after) && visible.includes('Singapore')) {
     hh = (hh + 1) % 24
   }
   return `${String(hh).padStart(2, '0')}:${mm}`
@@ -226,6 +228,25 @@ export function parseDetailOpponent(html) {
     if (name) return name
   }
   return null
+}
+
+export function isCancelledDetail(html) {
+  return /This match has been cancelled/i.test(html || '')
+}
+
+export function classifyFixture(raw, detailHtml) {
+  if (!raw.detailPath) return { action: 'skip', reason: 'no detail page' }
+  if (isCancelledDetail(detailHtml)) return { action: 'skip', reason: 'cancelled' }
+  const kickoff = parseDetailKickoff(detailHtml, dateEnOf(raw.date))
+  if (!kickoff) return { action: 'skip', reason: 'kickoff not published' }
+  const opponentEn = raw.opponentEn || parseDetailOpponent(detailHtml)
+  if (!opponentEn) return { action: 'skip', reason: 'opponent TBC' }
+  return { action: 'write', kickoff, opponentEn }
+}
+
+export function decideWriteOutcome(matches, skipped) {
+  if (matches.length > 0) return { action: 'write' }
+  return { action: 'keep', reason: `${skipped} upcoming fixture(s) skipped (cancelled or details not yet published)` }
 }
 
 export function resolveHomeAway(venue, opponentEn) {
@@ -393,7 +414,7 @@ const MONTH_NAMES = [
   'December',
 ]
 
-function dateEnOf(iso) {
+export function dateEnOf(iso) {
   const [y, mo, d] = iso.split('-').map(Number)
   const w = new Date(Date.UTC(y, mo - 1, d)).getUTCDay()
   return `${WEEKDAYS[w]}, ${d} ${MONTH_NAMES[mo - 1]} ${y}`
@@ -434,18 +455,27 @@ async function main() {
     }
   }
   const matches = []
+  let skipped = 0
   for (const raw of raws) {
-    if (!raw.detailPath) fail(`no detail page for ${raw.date} (opponent: ${raw.opponentEn}); data not updated`)
-    const detailHtml = await fetchText(new URL(raw.detailPath, LIST_URL).toString())
-    const kickoff = parseDetailKickoff(detailHtml, dateEnOf(raw.date))
-    if (!kickoff) fail(`no kickoff found for ${raw.date}; data not updated`)
-    const opponentEn = raw.opponentEn || parseDetailOpponent(detailHtml)
-    if (!opponentEn) fail(`unknown opponent for ${raw.date}; data not updated`)
+    const detailHtml = raw.detailPath
+      ? await fetchText(new URL(raw.detailPath, LIST_URL).toString())
+      : ''
+    const decision = classifyFixture(raw, detailHtml)
+    if (decision.action === 'skip') {
+      skipped += 1
+      console.log(`fetch-japan-matches: skip ${raw.date} (${decision.reason}); data not updated`)
+      continue
+    }
     try {
-      matches.push(toJapanMatch({ ...raw, opponentEn }, kickoff))
+      matches.push(toJapanMatch({ ...raw, opponentEn: decision.opponentEn }, decision.kickoff))
     } catch (e) {
       fail(e.message)
     }
+  }
+  const outcome = decideWriteOutcome(matches, skipped)
+  if (outcome.action === 'keep') {
+    console.log(`fetch-japan-matches: ${outcome.reason}; data not updated`)
+    return
   }
   matches.sort((a, b) => (a.date < b.date ? -1 : 1))
   // validateJapanMatches相当の検査を自前で行い、不正があれば非ゼロ終了。

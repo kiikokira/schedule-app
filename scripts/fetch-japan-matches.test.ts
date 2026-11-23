@@ -7,6 +7,9 @@ import {
   toJapanMatch,
   resolveHomeAway,
   decideOutcome,
+  isCancelledDetail,
+  classifyFixture,
+  decideWriteOutcome,
 } from './fetch-japan-matches.mjs'
 
 const LIST_FIXTURE = `
@@ -120,5 +123,65 @@ describe('fetch-japan-matches', () => {
     expect(() => decideOutcome([], '<html><body><h1>other</h1></body></html>')).toThrow(
       /SAMURAI BLUE/i,
     )
+  })
+  it('detects the explicit cancellation sentence on a detail page', () => {
+    expect(isCancelledDetail('*This match has been cancelled. Cancelled More Infomation')).toBe(true)
+  })
+  it('does not treat navigation text containing Cancelled as a cancellation', () => {
+    expect(isCancelledDetail('Menu Cancelled More Infomation Kick Off at 19:30')).toBe(false)
+  })
+  it('skips a cancelled fixture', () => {
+    expect(
+      classifyFixture(
+        { date: '2026-12-30', opponentEn: null, detailPath: '/eng/samuraiblue/20261230/' },
+        '<div>Wednesday, 30 December 2026 This match has been cancelled.</div>',
+      ),
+    ).toEqual({ action: 'skip', reason: 'cancelled' })
+  })
+  it('skips a fixture whose kickoff is not published', () => {
+    expect(
+      classifyFixture(
+        { date: '2027-03-25', opponentEn: null, detailPath: '/eng/samuraiblue/20270325/' },
+        '<div>Thursday, 25 March 2027 vs TBC Hiroshima</div>',
+      ),
+    ).toEqual({ action: 'skip', reason: 'kickoff not published' })
+  })
+  it('skips a fixture whose opponent is still TBC', () => {
+    expect(
+      classifyFixture(
+        { date: '2027-03-25', opponentEn: null, detailPath: '/x/' },
+        '<div>Thursday, 25 March 2027 Kick Off at 19:00 vs TBC<br></div>',
+      ),
+    ).toEqual({ action: 'skip', reason: 'opponent TBC' })
+  })
+  it('writes a fixture with a published kickoff and known opponent', () => {
+    expect(
+      classifyFixture(
+        { date: '2026-11-14', opponentEn: 'Brazil', detailPath: '/x/' },
+        '<div>Saturday, 14 November 2026 Kick Off at 19:15</div>',
+      ),
+    ).toEqual({ action: 'write', kickoff: '19:15', opponentEn: 'Brazil' })
+  })
+  it('keeps existing data when every upcoming fixture was skipped', () => {
+    expect(decideWriteOutcome([], 3)).toMatchObject({ action: 'keep' })
+  })
+  it('writes data when at least one fixture is available', () => {
+    expect(decideWriteOutcome([{ id: 'x' }], 2)).toEqual({ action: 'write' })
+  })
+  it('ignores a kickoff that appears only inside an HTML comment', () => {
+    expect(
+      classifyFixture(
+        { date: '2027-03-25', opponentEn: null, detailPath: '/x/' },
+        '<div>Thursday, 25 March 2027 <!--Kick Off at 19:25(estimated time)--> vs TBC<br></div>',
+      ),
+    ).toEqual({ action: 'skip', reason: 'kickoff not published' })
+  })
+  it('ignores an opponent named only inside a commented-out navigation link', () => {
+    expect(
+      classifyFixture(
+        { date: '2027-03-25', opponentEn: null, detailPath: '/x/' },
+        '<div>Thursday, 25 March 2027 Kick Off at 19:25 <!-- Japan vs Korea university regular football match --> vs TBC<br></div>',
+      ),
+    ).toEqual({ action: 'skip', reason: 'opponent TBC' })
   })
 })
