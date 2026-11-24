@@ -38,6 +38,18 @@ import type { MoveState } from '../lib/rpgMovement'
 import { clearRpgStage, loadRpgProgress, markWorldVisited, saveRpgProgress, type RpgProgressState } from '../lib/rpgProgress'
 import { loadRpgProgressV2, saveRpgProgressV2 } from '../lib/rpgProgressV2'
 import { stageActionFor } from '../lib/rpgStageAdapter'
+import {
+  CAMPUS_WORLD_ID,
+  CAMPUS_PROGRESS_KEY,
+  CAMPUS_STAGE_ORDER,
+  CAMPUS_STAGE_NODE,
+  CAMPUS_STAGE_TITLES,
+  CAMPUS_NODE_LABELS,
+  CAMPUS_UNLOCKS,
+  campusUnlockedPaths,
+  campusNextStage,
+  campusStageStatus,
+} from '../lib/rpgCampus'
 
 type Props = {
   todayPages: number
@@ -173,6 +185,18 @@ const WORLD3D_CONFIG: Record<number, World3dConfig> = {
     stageOrder: ['star-stage-1', 'star-stage-2', 'star-stage-3'],
     sky: { bg: '#5a5a9a', horizon: '#c8b8e8', top: '#2e2e5a', fog: '#7a6aaa' },
   },
+  // worldId=10 は特別エントリ（WorldId/WORLD_COUNT/WORLD_DEFS は9ワールドのまま）。
+  // GLBはプレースホルダーとして island_base を参照する。
+  10: {
+    glb: `${BASE}rpg/island_base.glb`,
+    graph: `${BASE}rpg/campus_graph.json`,
+    title: 'SFCキャンパス3D・並木道のキャンパス',
+    progressKey: CAMPUS_PROGRESS_KEY,
+    nodeLabels: { ...CAMPUS_NODE_LABELS },
+    stageTitles: { ...CAMPUS_STAGE_TITLES },
+    stageOrder: [...CAMPUS_STAGE_ORDER],
+    sky: { bg: '#8fc7f5', horizon: '#e8f4ff', top: '#4f9df0', fog: '#d6e8f5' },
+  },
 }
 
 export const CLIP_FOR: Record<MoveState, string> = {
@@ -184,6 +208,12 @@ export const CLIP_FOR: Record<MoveState, string> = {
   ENTER_BUILDING: 'EnterBuilding', EXIT_BUILDING: 'ExitBuilding',
   ENTER_CAVE: 'EnterCave', EXIT_CAVE: 'ExitCave',
   ENTER_STAGE: 'EnterStage', RETURN_STAGE: 'ReturnStage', EVENT: 'Idle',
+}
+
+/** 進行の永続化先。W1とcampus(worldId=10)はv2、W2-9は従来v1のまま（混在防止）。 */
+function persistProgress(state: RpgProgressState, worldId: number): void {
+  if (worldId === 1 || worldId === CAMPUS_WORLD_ID) saveRpgProgressV2(state)
+  else saveRpgProgress(state)
 }
 
 function routeSteps(g: W3Graph, nodes: string[], unlocked: Set<string>): RouteStep[] | null {
@@ -205,14 +235,16 @@ export default function RpgWorld3d({
   worldId = 1, initialNodeId, initialCameraMode = 'follow', initialProgress, autoRoute,
 }: Props) {
   const cfg = WORLD3D_CONFIG[worldId] ?? WORLD3D_CONFIG[1]
+  /** worldId=10（SFCキャンパス）はW1と同じ進行v2キーを使い、訪問記録(1..9)は書き換えない。 */
+  const isCampus = worldId === CAMPUS_WORLD_ID
   const mountRef = useRef<HTMLDivElement | null>(null)
   const [graph, setGraph] = useState<W3Graph | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [w1Missing, setW1Missing] = useState(false)
-  // W1は進行v2キー（旧v1吸収移行）。W2-9は従来v1のまま。
-  const [progress, setProgress] = useState<RpgProgressState>(() => initialProgress ?? (worldId === 1 ? loadRpgProgressV2() : loadRpgProgress()))
+  // W1は進行v2キー（旧v1吸収移行）。W2-9は従来v1のまま。campusはv2（W1と同じ扱い）。
+  const [progress, setProgress] = useState<RpgProgressState>(() => initialProgress ?? (worldId === 1 || isCampus ? loadRpgProgressV2() : loadRpgProgress()))
   const [currentNodeId, setCurrentNodeId] = useState(
-    () => initialNodeId ?? (initialProgress ?? (worldId === 1 ? loadRpgProgressV2() : loadRpgProgress())).lastKnownNodeId?.[cfg.progressKey] ?? 'n0',
+    () => initialNodeId ?? (initialProgress ?? (worldId === 1 || isCampus ? loadRpgProgressV2() : loadRpgProgress())).lastKnownNodeId?.[cfg.progressKey] ?? 'n0',
   )
   const [cameraMode, setCameraMode] = useState<'follow' | 'overview'>(initialCameraMode)
   const [anim, setAnimState] = useState<MoveState>('IDLE')
@@ -229,9 +261,18 @@ export default function RpgWorld3d({
   } | null>(null)
   const [expanded, setExpanded] = useState(false)
 
-  const unlocked = useMemo(() => new Set(progress.unlockedPathIds), [progress])
+  const unlocked = useMemo(() => {
+    const set = new Set(progress.unlockedPathIds)
+    // campusは初期 c0,c1 を含む解放パスを進行状態から必ず合成する（無いと歩けない）。
+    if (isCampus) {
+      for (const pathId of campusUnlockedPaths(progress.clearedStageIds)) set.add(pathId)
+    }
+    return set
+  }, [progress, isCampus])
   // Reactive W1 cleared key — pads/translucency rebuild when it changes (no stale storage read).
   const w1ClearedKey = worldId === 1 ? normalizeW1Cleared(progress.clearedStageIds).join(',') : ''
+  // Reactive campus cleared key — ジェム色・シーン再構築用。
+  const campusClearedKey = isCampus ? progress.clearedStageIds.join(',') : ''
 
   useEffect(() => {
     let cancelled = false
@@ -267,6 +308,16 @@ export default function RpgWorld3d({
             setLoadError(`地形データ異常: ${issues[0]}`)
             return
           }
+          if (isCampus) {
+            // 詰み防止: 保存された再開ノードが現在の解放パスでn0から到達不能なら n0 へ戻す。
+            const open = new Set([
+              ...progress.unlockedPathIds,
+              ...campusUnlockedPaths(progress.clearedStageIds),
+            ])
+            if (currentNodeId !== 'n0' && !findRoute3d(normalized, 'n0', currentNodeId, open)) {
+              setCurrentNodeId('n0')
+            }
+          }
           setGraph(normalized)
           return
         } catch (e) {
@@ -283,14 +334,16 @@ export default function RpgWorld3d({
 
   // 訪問記録（全ワールド対応: 固定1ではなく現在のworldIdを記録する）
   // W1はv2キーへ永続化、W2-9はv1のまま（混在防止）。
+  // campus(10)は markWorldVisited が1..9にclampされるため currentWorldId を壊さないよう呼ばない。
   useEffect(() => {
+    if (isCampus) return
     setProgress((prev) => {
       const next = markWorldVisited(prev, worldId)
       if (worldId === 1) saveRpgProgressV2(next)
       else saveRpgProgress(next)
       return next
     })
-  }, [worldId])
+  }, [worldId, isCampus])
 
   useEffect(() => {
     if (!graph || !mountRef.current) return
@@ -494,8 +547,7 @@ export default function RpgWorld3d({
       setCurrentNodeId(nodeId)
       setProgress((prev) => {
         const next: RpgProgressState = { ...prev, lastKnownNodeId: { ...prev.lastKnownNodeId, [cfg.progressKey]: nodeId } }
-        if (worldIdRef.current === 1) saveRpgProgressV2(next)
-        else saveRpgProgress(next)
+        persistProgress(next, worldIdRef.current)
         return next
       })
       if (node.stageId) {
@@ -523,6 +575,17 @@ export default function RpgWorld3d({
                 live.phaseTime = 0
                 live.dwellNext = null
                 live.dwellHold = true
+              }
+            } else if (worldIdRef.current === CAMPUS_WORLD_ID) {
+              // campus：locked stage ノードへの進入をブロック（W1と同型）
+              if (campusRouteBlockedRef.current([d.toId])) {
+                live.held = null
+              } else {
+                const path = graph.paths.find((p) => p.id === d.pathId)!
+                startRoute(
+                  [{ path, fromId: nodeId, toId: d.toId, length: pathLength3d(graph, d.pathId, nodeId) }],
+                  false,
+                )
               }
             } else if (w1RouteBlockedRef.current([d.toId])) {
               live.held = null
@@ -607,6 +670,14 @@ export default function RpgWorld3d({
               return
             }
             if (w1RouteBlocked([d.toId])) return
+          } else if (worldIdRef.current === CAMPUS_WORLD_ID && campusRouteBlockedRef.current([d.toId])) {
+            // campus：locked stage へは進めない（D-pad・キーボード突破の防止）
+            const now = performance.now()
+            if (now - live.nudgeAt >= 220) {
+              live.nudgeAt = now
+              live.targetYaw += 0.3 * Math.sign(dx !== 0 ? dx : 1)
+            }
+            return
           }
           const path = graph.paths.find((p) => p.id === d.pathId)!
           setPanelStageId(null)
@@ -646,11 +717,16 @@ export default function RpgWorld3d({
           const target = w3NodeById(graph, nodeId)
           if (target.stageId && !w1CanEnter(target.stageId, w1ClearedRef.current)) return
         }
+        // campus：locked stage へのタップ移動を禁止（同型）
+        if (worldIdRef.current === CAMPUS_WORLD_ID) {
+          const target = w3NodeById(graph, nodeId)
+          if (target.stageId && campusStageStatus(campusClearedRef.current, target.stageId) === 'locked') return
+        }
         const nodes = findRoute3d(graph, live.nodeId, nodeId, unlockedRef.current)
         if (!nodes) return
         // W1：locked円を含む経路は手前円まで短縮する（通過しない）。
         // 終点自体がlockedの場合は上でreturn済みのため移動しない。
-        let w1Nodes = nodes
+        let routeNodes = nodes
         if (worldIdRef.current === 1) {
           const segs = segmentStops(nodes)
           let cut = segs.length
@@ -663,10 +739,25 @@ export default function RpgWorld3d({
           }
           if (cut < segs.length) {
             if (cut <= 1) return
-            w1Nodes = segs.slice(0, cut)
+            routeNodes = segs.slice(0, cut)
+          }
+        } else if (worldIdRef.current === CAMPUS_WORLD_ID) {
+          // campus：locked ステージノードを含む経路は手前まで短縮する（通過しない・同型）。
+          const segs = segmentStops(nodes)
+          let cut = segs.length
+          for (let i = 0; i < segs.length; i += 1) {
+            const stageOf = Object.entries(CAMPUS_STAGE_NODE).find(([, n]) => n === segs[i])?.[0]
+            if (stageOf && campusStageStatus(campusClearedRef.current, stageOf) === 'locked') {
+              cut = i
+              break
+            }
+          }
+          if (cut < segs.length) {
+            if (cut <= 1) return
+            routeNodes = segs.slice(0, cut)
           }
         }
-        const steps = routeSteps(graph, w1Nodes, unlockedRef.current)
+        const steps = routeSteps(graph, routeNodes, unlockedRef.current)
         if (!steps) return
         // 向き付きサンプリングのため前後ノードを付与する
         const withCtx = steps.map((s, i) => ({
@@ -696,6 +787,8 @@ export default function RpgWorld3d({
         if (node.stageId) {
           if (worldIdRef.current === 1 && !w1CanEnter(node.stageId, w1ClearedRef.current)) {
             // locked stage は開始できない（キー突破防止）
+          } else if (worldIdRef.current === CAMPUS_WORLD_ID && campusStageStatus(campusClearedRef.current, node.stageId) === 'locked') {
+            // campusの locked stage も開始できない（キー突破防止）
           } else setPanelStageId(node.stageId)
         }
       }       else if (k === 'escape') onBackRef.current?.()
@@ -894,6 +987,8 @@ export default function RpgWorld3d({
         const hitMat = new THREE.MeshBasicMaterial({ visible: false })
         // Reactive progress (rebuild on w1Cleared change) — not one-time storage read.
         const clearedW1 = worldId === 1 ? [...w1ClearedRef.current] : []
+        // campusも同様に反応的progressから構築（locked判定＝ジェム減光に使う）。
+        const clearedCampus = worldId === CAMPUS_WORLD_ID ? [...campusClearedRef.current] : []
         if (worldId === 1) {
           // W1先道半透明: procedural fast-path (userData.pathId) + GLB proximity dimming.
           // GLB road meshes lack pathId and share one W1_Road material, so clone per-mesh
@@ -988,8 +1083,12 @@ export default function RpgWorld3d({
               stagePulse.set(n.id, pad)
             }
           } else if (n.stageId) {
-            const color = '#eab308'
-            const opacity = 0.85
+            // campus：lockedはグレー減光／nextは黄／clearedは青。W2-9は従来どおり黄。
+            const campusStatus =
+              worldId === CAMPUS_WORLD_ID ? campusStageStatus(clearedCampus, n.stageId) : null
+            const color =
+              campusStatus === 'locked' ? '#6b7280' : campusStatus === 'cleared' ? '#3b82f6' : '#eab308'
+            const opacity = campusStatus === 'locked' ? 0.35 : 0.85
             const gem = new THREE.Mesh(
               new THREE.OctahedronGeometry(0.42),
               new THREE.MeshBasicMaterial({ color, transparent: true, opacity }),
@@ -1096,8 +1195,7 @@ export default function RpgWorld3d({
                 setCurrentNodeId(arrivedId)
                 setProgress((prev) => {
                   const nextp: RpgProgressState = { ...prev, lastKnownNodeId: { ...prev.lastKnownNodeId, [cfg.progressKey]: arrivedId } }
-                  if (worldIdRef.current === 1) saveRpgProgressV2(nextp)
-                  else saveRpgProgress(nextp)
+                  persistProgress(nextp, worldIdRef.current)
                   return nextp
                 })
                 setAnim('IDLE')
@@ -1128,7 +1226,10 @@ export default function RpgWorld3d({
           live.dwellHold = false
           if (nxt) {
             // タップ連続移動の継続。locked判明時は手前円に留まる。
-            if (worldIdRef.current === 1 && w1RouteBlockedRef.current([nxt.toId])) {
+            if (
+              (worldIdRef.current === 1 && w1RouteBlockedRef.current([nxt.toId])) ||
+              (worldIdRef.current === CAMPUS_WORLD_ID && campusRouteBlockedRef.current([nxt.toId]))
+            ) {
               live.autoThrough = false
               live.pending = null
             } else {
@@ -1144,6 +1245,9 @@ export default function RpgWorld3d({
                 const target = w3NodeById(graph, d.toId)
                 if (target.stageId && !w1CanEnter(target.stageId, w1ClearedRef.current)) blocked = true
                 else if (w1RouteBlockedRef.current([d.toId])) blocked = true
+              } else if (worldIdRef.current === CAMPUS_WORLD_ID) {
+                // campus：locked stage への長押し継続もブロック（W1と同型）
+                if (campusRouteBlockedRef.current([d.toId])) blocked = true
               }
               if (blocked) {
                 live.held = null
@@ -1295,7 +1399,7 @@ export default function RpgWorld3d({
       apiRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph, w1ClearedKey])
+  }, [graph, w1ClearedKey, campusClearedKey])
 
   const animRef = useRef(anim)
   animRef.current = anim
@@ -1307,6 +1411,11 @@ export default function RpgWorld3d({
   onBackRef.current = onBack
   const w1ClearedRef = useRef<string[]>(normalizeW1Cleared(progress.clearedStageIds))
   w1ClearedRef.current = normalizeW1Cleared(progress.clearedStageIds)
+  // campusのクリア状態（シーンのジェム減光・入場判定が毎フレーム古い参照を読まないようrefで同期）
+  const campusClearedRef = useRef<string[]>([])
+  campusClearedRef.current = isCampus
+    ? CAMPUS_STAGE_ORDER.filter((s) => progress.clearedStageIds.includes(s))
+    : []
   const worldIdRef = useRef(worldId)
   worldIdRef.current = worldId
   const w1RouteBlockedRef = useRef((nodeIds: string[]): boolean => {
@@ -1317,10 +1426,25 @@ export default function RpgWorld3d({
     }
     return false
   })
+  /** campus：locked stage ノードへの進入・通過を禁止する（w1RouteBlockedRef のcampus版）。 */
+  const campusRouteBlockedRef = useRef((nodeIds: string[]): boolean => {
+    if (worldIdRef.current !== CAMPUS_WORLD_ID) return false
+    const cleared = campusClearedRef.current
+    for (const id of nodeIds) {
+      const stageOf = Object.entries(CAMPUS_STAGE_NODE).find(([, nodeId]) => nodeId === id)?.[0]
+      if (stageOf && campusStageStatus(cleared, stageOf) === 'locked') return true
+    }
+    return false
+  })
   const isW1 = worldId === 1
   const w1Cleared = normalizeW1Cleared(progress.clearedStageIds)
   const w1Next = isW1 ? w1NextStage(w1Cleared) : null
   const w1Complete = isW1 ? w1IsComplete(w1Cleared) : false
+  const campusCleared = isCampus
+    ? CAMPUS_STAGE_ORDER.filter((s) => progress.clearedStageIds.includes(s))
+    : []
+  const campusNext = isCampus ? campusNextStage(campusCleared) : null
+  const campusComplete = isCampus ? campusNext === null : false
 
   /** W1：locked stage への進入・通過を禁止する。 */
   const w1RouteBlocked = (nodeIds: string[]): boolean => {
@@ -1351,14 +1475,26 @@ export default function RpgWorld3d({
   const questReady = todayPages > 0
   const cleared = stageId ? progress.clearedStageIds.includes(stageId) || (isW1 && (w1Cleared as string[]).includes(stageId)) : false
   const w1Locked = isW1 && stageId ? !w1CanEnter(stageId, w1Cleared) && !cleared : false
+  // campus：locked stage は見学可・立ち入り不可（パネルの表示とクリア記録を止める）
+  const campusLocked = isCampus && stageId ? campusStageStatus(campusCleared, stageId) === 'locked' && !cleared : false
+  const stageLocked = w1Locked || campusLocked
+  // 決定ボタンは「いま立っているノード」で判定する（W1の既存判定はそのまま維持し、campusを加算）
+  const decideStageId = currentNode?.stageId ?? null
+  const decideW1Locked = isW1 && decideStageId ? !w1CanEnter(decideStageId, w1Cleared) : false
+  const decideCampusLocked = isCampus && decideStageId ? campusStageStatus(campusCleared, decideStageId) === 'locked' : false
+  const decideLocked = stageLocked || decideW1Locked || decideCampusLocked
 
   const handleClear = () => {
     if (!stageId) return
     // W1：locked stage のクリア記録を禁止（表示だけでなく内部で判定）
     if (isW1 && !w1CanEnter(stageId, w1Cleared)) return
+    // campus：locked stage のクリア記録も禁止（同型）
+    if (isCampus && campusStageStatus(campusCleared, stageId) === 'locked') return
     const extraUnlocks = isW1
       ? [...(W1_UNLOCKS[stageId as keyof typeof W1_UNLOCKS] ?? []), `unlock-after-${stageId}`]
-      : [...(W3_UNLOCKS[stageId] ?? []), `unlock-after-${stageId}`]
+      : isCampus
+        ? [...(CAMPUS_UNLOCKS[stageId] ?? [])]
+        : [...(W3_UNLOCKS[stageId] ?? []), `unlock-after-${stageId}`]
     const next = clearRpgStage(progress, stageId, extraUnlocks)
     const order = cfg.stageOrder
     const nxt = order[order.indexOf(stageId) + 1]
@@ -1367,7 +1503,7 @@ export default function RpgWorld3d({
       unlockedStageIds: [...new Set([...next.unlockedStageIds, ...(nxt ? [nxt] : [])])],
     }
     setProgress(withNext)
-    if (isW1) saveRpgProgressV2(withNext)
+    if (isW1 || isCampus) saveRpgProgressV2(withNext)
     else saveRpgProgress(withNext)
     onStageAction?.(stageId, panelAction?.target ?? 'today', panelAction?.bookId)
   }
@@ -1385,12 +1521,24 @@ export default function RpgWorld3d({
               {w1Complete ? 'ワールド1完全クリア！' : w1Next ? `次: ${W1_STAGE_TITLES[w1Next]}（${w1Cleared.length}/8）` : ''}
             </span>
           )}
+          {isCampus && (
+            <span data-testid="campus-progress" style={{ fontSize: 12, fontWeight: 800 }}>
+              {campusComplete ? 'キャンパス完全クリア！' : campusNext ? `次: ${CAMPUS_STAGE_TITLES[campusNext]}（${campusCleared.length}/4）` : ''}
+            </span>
+          )}
         </div>
         {isW1 && (
           <div data-testid="w1-legend" style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 12, flexWrap: 'wrap' }}>
             <span>🟦 青黄＝クリア済み✓（再戦可）</span>
             <span>🟥 赤黄＝次に挑戦（●脈動）</span>
             <span>⬛ 黒黄＝この先🔒（進めない）・先道は半透明</span>
+          </div>
+        )}
+        {isCampus && (
+          <div data-testid="campus-legend" style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 12, flexWrap: 'wrap' }}>
+            <span>🟦 クリア済み✓</span>
+            <span>🟨 次に挑戦</span>
+            <span>⬛ ロック中🔒</span>
           </div>
         )}
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
@@ -1445,15 +1593,16 @@ export default function RpgWorld3d({
             <button
               data-testid="rpg-3d-decide"
               type="button"
-              disabled={isW1 && !w1CanEnter(currentNode.stageId, w1Cleared)}
+              disabled={decideLocked}
               onClick={() => {
                 if (!currentNode?.stageId) return
                 if (isW1 && !w1CanEnter(currentNode.stageId, w1Cleared)) return
+                if (isCampus && campusStageStatus(campusCleared, currentNode.stageId) === 'locked') return
                 setPanelStageId(currentNode.stageId)
               }}
-              style={{ minHeight: 48, fontWeight: 800, opacity: isW1 && !w1CanEnter(currentNode.stageId, w1Cleared) ? 0.45 : 1 }}
+              style={{ minHeight: 48, fontWeight: 800, opacity: decideLocked ? 0.45 : 1 }}
             >
-              {isW1 && !w1CanEnter(currentNode.stageId, w1Cleared) ? '🔒ロック中' : 'ステージをみる'}
+              {decideLocked ? '🔒ロック中' : 'ステージをみる'}
             </button>
           ) : null}
           <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
@@ -1471,11 +1620,24 @@ export default function RpgWorld3d({
               {w1StageStatus(stageId, w1Cleared) === 'cleared' ? '🟦 クリア済み✓' : w1StageStatus(stageId, w1Cleared) === 'next' ? '🟥 次に挑戦！' : '⬛ ロック中🔒（前のステージをクリアしよう）'}
             </div>
           )}
+          {isCampus && stageId && (
+            <div data-testid="rpg-campus-stage-status" style={{ fontSize: 13, fontWeight: 800, marginTop: 4 }}>
+              {campusStageStatus(campusCleared, stageId) === 'cleared'
+                ? '🟦 クリア済み✓'
+                : campusStageStatus(campusCleared, stageId) === 'next'
+                  ? '🟨 次に挑戦！'
+                  : '⬛ ロック中🔒'}
+            </div>
+          )}
           <div style={{ fontSize: 13, marginTop: 4 }}>つながり: {panelAction.hint}</div>
           <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
             今日 {todayPages}ページ ／ 累計 {totalPages}ページ
           </div>
-          {w1Locked ? (
+          {campusLocked ? (
+            <div data-testid="rpg-campus-locked" style={{ marginTop: 8, fontWeight: 800, color: '#6b7280' }}>
+              🔒ロック中：前のクエストをクリアすると挑戦できるよ
+            </div>
+          ) : w1Locked ? (
             <div data-testid="rpg-w1-locked" style={{ marginTop: 8, fontWeight: 800, color: '#6b7280' }}>
               🔒ロック中：前のステージをクリアすると挑戦できるよ
             </div>

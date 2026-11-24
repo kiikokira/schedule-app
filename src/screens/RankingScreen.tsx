@@ -3,8 +3,13 @@ import { useBooks } from '../hooks/useBooks'
 import RpgAdventure from '../components/RpgAdventure'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
-import { combinedActivityOnDate, totalCycleUnits, pagesRecordsForTotals, cycleRecordsForTotals, todayStr } from '../lib/progress'
+import { combinedActivityOnDate, totalCycleUnits, pagesRecordsForTotals, cycleRecordsForTotals, todayStr, overallDiagnosis, calcStreakDays, daysBetween, type BookData } from '../lib/progress'
 import { stageAppRoute } from '../lib/rpgStageAdapter'
+import { listAvailability, type AvailabilitySlot } from '../data/dayplanStore'
+import { generateDayPlan, effectiveSpeed, type ScheduledBook, type PlanOutput } from '../lib/dayplan'
+import { isTestStudyId } from '../lib/testStudy'
+import { EXAM_END_DATE } from '../data/quotes'
+import type { CampusQuestSlot } from '../components/CampusQuestBoard'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
 import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leaguePopulationFor, leagueRankForPages, leagueRankForRating, decideRoundOutcome, tallyToResults, PROMOTION_LINES, STAY_LINES } from '../lib/seasonLeague'
 import { loadSeasonState, saveSeasonState, finalizeRoundEarly } from '../data/seasonStore'
@@ -13,6 +18,21 @@ import { levelForExp } from '../lib/seasonExp'
 import { parseSlotKey } from '../lib/slotLeague'
 
 type Props = { onBack: () => void; today?: string; onOpenStage?: (route: { name: 'today' } | { name: 'detail'; bookId: string }) => void }
+
+// キャンパス看板用：ページ本のみ ScheduledBook 化する（cycle unitsはページ比較に混ぜない）。
+function campusToScheduledBook(b: BookData, donePages: number): ScheduledBook {
+  return {
+    bookId: b.id,
+    donePages,
+    totalPages: b.totalPages,
+    minutesPerPage: effectiveSpeed(b.minutesPerPage, b.subject),
+    priority: b.priority,
+    allottedRatio: b.allottedRatio,
+    startDate: b.startDate,
+    deadline: b.deadline,
+    trainFit: b.trainFit,
+  }
+}
 
 // Divロゴ画像（添付の10枚を public/divs/div-1.jpg〜div-10.jpg として配置して使用）
 export function divEmblemSrc(div: number): string {
@@ -47,11 +67,78 @@ export default function RankingScreen({ onBack, today: todayProp, onOpenStage }:
     }, 60000)
     return () => clearInterval(id)
   }, [])
+  // ── SFCキャンパス看板（worldId=10）：今日の計画・達成・掲示板文 ──
+  // 空き時間は初回のみ読込。解除ガード付き（画面を壊さない）。
+  const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
+  useEffect(() => {
+    let cancelled = false
+    listAvailability()
+      .then((a) => { if (!cancelled) setAvailability(a) })
+      .catch(() => { /* 空き時間が読めなくてもランキング画面は壊さない */ })
+    return () => { cancelled = true }
+  }, [])
+  const campusPlan = useMemo<PlanOutput | null>(() => {
+    // donePages はページ記録の合計（cycle units はページ計画に混ぜない）。
+    const doneByBook = new Map<string, number>()
+    for (const r of validRecords) {
+      doneByBook.set(r.bookId, (doneByBook.get(r.bookId) ?? 0) + r.pages)
+    }
+    const scheduled = books
+      .filter((b) => b.studyMode !== 'cycles')
+      .map((b) => campusToScheduledBook(b, doneByBook.get(b.id) ?? 0))
+    try {
+      return generateDayPlan({
+        availability,
+        books: scheduled,
+        today,
+        // 過去の時間の除外は今日だけ（明日以降の計画は不変）
+        nowMin: today === todayStr() ? nowMin : undefined,
+      })
+    } catch {
+      return null
+    }
+  }, [availability, books, validRecords, today, nowMin])
+  const campusSlots: CampusQuestSlot[] = useMemo(() => {
+    if (!campusPlan) return []
+    return campusPlan.today.slots.map((s) => {
+      const book = books.find((b) => b.id === s.bookId)
+      // 本が見つからない／テスト勉強枠は「学習」（bookId なしなら今日の計画へ）
+      if (!s.bookId || isTestStudyId(s.bookId) || !book) return { title: '学習', bookId: null }
+      return { title: book.title, bookId: book.id }
+    })
+  }, [campusPlan, books])
+  const campusSlotsDone = useMemo(() => {
+    if (!campusPlan || campusPlan.today.totalPages <= 0) return false
+    // 今日のページ記録合計（cycle units は混ぜない）
+    const doneToday = validRecords.reduce((sum, r) => (r.date === today ? sum + r.pages : sum), 0)
+    return doneToday >= campusPlan.today.totalPages
+  }, [campusPlan, validRecords, today])
+  const campusBulletin = useMemo(() => {
+    let examDays: number | null = null
+    try {
+      examDays = daysBetween(today, EXAM_END_DATE)
+    } catch {
+      examDays = null
+    }
+    const fixed = examDays === null ? '模試締切11/30' : `入試まで${examDays}日・模試締切11/30`
+    try {
+      // 連続日数は HomeScreen と同じ定義（quota は overallDiagnosis、活動は pages+cycles）。
+      const quota = Math.max(1, overallDiagnosis(books, records, today).requiredPerDay)
+      const streakScores: Record<string, number> = {}
+      for (const d of new Set([...validRecords.map((r) => r.date), ...validCycles.map((r) => r.date)])) {
+        streakScores[d] = combinedActivityOnDate(d, validRecords, validCycles)
+      }
+      const { streak } = calcStreakDays(streakScores, quota, today)
+      return `${fixed}・連続${streak}日`
+    } catch {
+      // 計算に失敗しても入試日数＋固定文だけ出して画面は壊さない
+      return fixed
+    }
+  }, [books, records, validRecords, validCycles, today])
   const todayPages = combinedActivityOnDate(today, validRecords, validCycles)
   const totalPages = totalActivity(validRecords) + totalCycleUnits(validCycles)
   const rank = totalPagesToRank(totalPages, today)
   const deviation = rankToDeviation(rank)
-  void nowMin
   const rivals = useMemo(() => sampleNearBoard(totalPages, rank, today, 5), [totalPages, rank, today])
   const topRivals = useMemo(() => sampleTopRivals(today, 10), [today])
   const milestone = nextRankMilestone(rank)
@@ -589,6 +676,12 @@ export default function RankingScreen({ onBack, today: todayProp, onOpenStage }:
             firstBookId={books.length > 0 ? books[0].id : null}
             hasBooks={books.length > 0}
             onStageAction={(_stageId, target, bookId) => { const r = stageAppRoute(target as 'today' | 'book' | 'ranking', bookId ?? null); if (r) onOpenStage?.(r); }}
+            initialWorldId={10}
+            slots={campusSlots}
+            slotsDone={campusSlotsDone}
+            bulletin={campusBulletin}
+            onOpenToday={() => onOpenStage?.({ name: 'today' })}
+            onOpenBook={(bookId) => onOpenStage?.({ name: 'detail', bookId })}
           />
           <section
             data-testid="rpg-hero"
