@@ -720,7 +720,11 @@ export default function RpgWorld3d({
         // campus：locked stage へのタップ移動を禁止（同型）
         if (worldIdRef.current === CAMPUS_WORLD_ID) {
           const target = w3NodeById(graph, nodeId)
-          if (target.stageId && campusStageStatus(campusClearedRef.current, target.stageId) === 'locked') return
+          if (target.stageId && campusStageStatus(campusClearedRef.current, target.stageId) === 'locked') {
+            // 減光ノードは移動させず、読み取り専用のステージパネルで解放条件を見せる。
+            setPanelStageId(target.stageId)
+            return
+          }
         }
         const nodes = findRoute3d(graph, live.nodeId, nodeId, unlockedRef.current)
         if (!nodes) return

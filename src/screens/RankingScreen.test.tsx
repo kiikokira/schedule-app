@@ -4,12 +4,30 @@ import RankingScreen from './RankingScreen'
 import { db } from '../db/database'
 import { todayStr } from '../lib/progress'
 import { saveProfile } from '../data/profileStore'
+import { saveAvailabilitySlot } from '../data/dayplanStore'
 import { ALL_UNIVERSITIES } from '../data/universities'
 
 describe('RankingScreen', () => {
   beforeEach(async () => {
     await db.books.clear()
     await db.records.clear()
+    await db.availability.clear()
+  })
+  it('初期読了ページを加味した計画が達成時に達成表示になる（TodayPlanと同一）', async () => {
+    const now = new Date().toISOString()
+    const today = '2026-09-21'
+    await db.books.add({
+      id: 'b1', title: '単語帳', totalPages: 100, initialDonePages: 80,
+      startDate: today, deadline: today, minutesPerPage: 3,
+      createdAt: now, updatedAt: now,
+    })
+    await db.records.add({ id: 'r1', bookId: 'b1', date: today, pages: 10 })
+    await saveAvailabilitySlot({ id: 'a1', weekday: 1, date: null, start: '21:00', end: '23:00' }, true)
+    render(<RankingScreen onBack={() => {}} today={today} />)
+    fireEvent.click(await screen.findByTestId('rpg-tab'))
+    const done = await screen.findByTestId('campus-done')
+    expect(done).toHaveTextContent('全完了')
+    expect(screen.queryByTestId('campus-slots')).toBeNull()
   })
   it('近傍ライバルとリーチ表示を出す', async () => {
     const now = new Date().toISOString()

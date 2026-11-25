@@ -78,10 +78,14 @@ export default function RankingScreen({ onBack, today: todayProp, onOpenStage }:
     return () => { cancelled = true }
   }, [])
   const campusPlan = useMemo<PlanOutput | null>(() => {
-    // donePages はページ記録の合計（cycle units はページ計画に混ぜない）。
-    const doneByBook = new Map<string, number>()
+    // donePages は初期読了ページ＋ページ記録の合計（cycle units はページ計画に混ぜない）。
+    // 初期読了ページを先に入れ、記録ページを加算する（TodayPlanScreen と同じ）。
+    const doneByBook = new Map<string, number>(
+      books.filter((b) => b.studyMode !== 'cycles').map((b) => [b.id, b.initialDonePages ?? 0]),
+    )
     for (const r of validRecords) {
-      doneByBook.set(r.bookId, (doneByBook.get(r.bookId) ?? 0) + r.pages)
+      const done = doneByBook.get(r.bookId)
+      if (done !== undefined) doneByBook.set(r.bookId, done + r.pages)
     }
     const scheduled = books
       .filter((b) => b.studyMode !== 'cycles')
