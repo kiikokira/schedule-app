@@ -1017,6 +1017,64 @@ describe('PlanScreen', () => {
     expect(loadOverridePresets()).toHaveLength(1)
   })
 
+  it('プリセットの時間帯を下へ入れ替えると中身ごと移動する', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
+    fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
+    fireEvent.click(screen.getByTestId('plan-preset-row-add'))
+    fireEvent.change(screen.getByTestId('plan-preset-start-0'), { target: { value: '06:30' } })
+    fireEvent.change(screen.getByTestId('plan-preset-end-0'), { target: { value: '07:00' } })
+    fireEvent.click(screen.getByTestId('plan-preset-train-0'))
+    fireEvent.change(screen.getByTestId('plan-preset-start-1'), { target: { value: '15:30' } })
+    fireEvent.change(screen.getByTestId('plan-preset-end-1'), { target: { value: '18:00' } })
+
+    fireEvent.click(screen.getByTestId('plan-preset-down-0'))
+
+    expect(screen.getByTestId('plan-preset-start-0')).toHaveValue('15:30')
+    expect(screen.getByTestId('plan-preset-end-0')).toHaveValue('18:00')
+    expect(screen.getByTestId('plan-preset-train-0')).not.toBeChecked()
+    expect(screen.getByTestId('plan-preset-start-1')).toHaveValue('06:30')
+    expect(screen.getByTestId('plan-preset-end-1')).toHaveValue('07:00')
+    expect(screen.getByTestId('plan-preset-train-1')).toBeChecked()
+
+    // 空行が混ざっていても、空行だけが移動して他の行の値は壊れない。
+    fireEvent.click(screen.getByTestId('plan-preset-row-add'))
+    fireEvent.click(screen.getByTestId('plan-preset-up-2'))
+    expect(screen.getByTestId('plan-preset-start-1')).toHaveValue('')
+    expect(screen.getByTestId('plan-preset-start-2')).toHaveValue('06:30')
+  })
+
+  it('プリセットの先頭は上へ、末尾は下へ移動できない', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
+    fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
+    expect(screen.getByTestId('plan-preset-up-0')).toBeDisabled()
+    expect(screen.getByTestId('plan-preset-down-0')).toBeDisabled()
+    fireEvent.click(screen.getByTestId('plan-preset-row-add'))
+    expect(screen.getByTestId('plan-preset-up-0')).toBeDisabled()
+    expect(screen.getByTestId('plan-preset-down-0')).not.toBeDisabled()
+    expect(screen.getByTestId('plan-preset-up-1')).not.toBeDisabled()
+    expect(screen.getByTestId('plan-preset-down-1')).toBeDisabled()
+  })
+
+  it('プリセットは入れ替えた順で保存される', async () => {
+    render(<PlanScreen onDone={() => {}} />)
+    fireEvent.click(screen.getByTestId('availability-toggle'))
+    fireEvent.click(await screen.findByTestId('slot-preset-toggle'))
+    fireEvent.change(screen.getByTestId('plan-preset-name'), { target: { value: '夜勉' } })
+    fireEvent.click(screen.getByTestId('plan-preset-row-add'))
+    fireEvent.change(screen.getByTestId('plan-preset-start-0'), { target: { value: '06:30' } })
+    fireEvent.change(screen.getByTestId('plan-preset-end-0'), { target: { value: '07:00' } })
+    fireEvent.change(screen.getByTestId('plan-preset-start-1'), { target: { value: '15:30' } })
+    fireEvent.change(screen.getByTestId('plan-preset-end-1'), { target: { value: '18:00' } })
+
+    fireEvent.click(screen.getByTestId('plan-preset-down-0'))
+    fireEvent.click(screen.getByTestId('plan-preset-save'))
+
+    await waitFor(() => expect(loadOverridePresets()).toHaveLength(1))
+    expect(loadOverridePresets()[0].rows.map((r) => r.start)).toEqual(['15:30', '06:30'])
+  })
+
   it('カタログ追加と登録済み追加は親トグル内にあり初期は閉じていて展開できる', async () => {
     render(<PlanScreen onDone={() => {}} />)
     expect(screen.getByTestId('add-books-toggle')).toBeInTheDocument()

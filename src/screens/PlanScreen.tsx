@@ -131,6 +131,15 @@ export default function PlanScreen({ onDone, onFocus, onJapan }: Props) {
       rows.map((r, ri) => (ri === i ? { ...r, ...patch } : r)),
     )
 
+  const movePresetRow = (i: number, dir: -1 | 1) =>
+    setPresetRows((rows) => {
+      const j = i + dir
+      if (j < 0 || j >= rows.length) return rows
+      const next = [...rows]
+      ;[next[i], next[j]] = [next[j], next[i]]
+      return next
+    })
+
   const selectPreset = (id: string) => {
     setPresetId(id)
     if (!id) return
@@ -921,6 +930,26 @@ export default function PlanScreen({ onDone, onFocus, onJapan }: Props) {
                     />
                     汽車
                   </label>
+                  <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
+                    <button
+                      data-testid={`plan-preset-up-${i}`}
+                      type="button"
+                      aria-label={`${i + 1}番目の時間帯を上へ`}
+                      disabled={i === 0}
+                      onClick={() => movePresetRow(i, -1)}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      data-testid={`plan-preset-down-${i}`}
+                      type="button"
+                      aria-label={`${i + 1}番目の時間帯を下へ`}
+                      disabled={i === presetRows.length - 1}
+                      onClick={() => movePresetRow(i, 1)}
+                    >
+                      ↓
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
