@@ -1,6 +1,6 @@
 # プリセット時間帯の並べ替え Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** プリセット制作の時間帯カードを「↑」「↓」で隣と丸ごと入れ替えられるようにする。
 
@@ -38,7 +38,7 @@
 - Consumes: `presetRows: SlotRow[]`、`setPresetRows`、`savePreset`、`loadOverridePresets`
 - Produces: `movePresetRow(i: number, dir: -1 | 1): void`、`data-testid="plan-preset-up-${i}"` / `plan-preset-down-${i}`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `src/screens/PlanScreen.test.tsx` のプリセット削除テスト群の後に追加する。
 
@@ -102,12 +102,12 @@
   })
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run src/screens/PlanScreen.test.tsx -t プリセット`
 Expected: FAIL。`plan-preset-down-0` などが存在しない。
 
-- [ ] **Step 3: Implement `movePresetRow` and the buttons**
+- [x] **Step 3: Implement `movePresetRow` and the buttons**
 
 `updatePresetRow` の直後に追加する。
 
@@ -147,17 +147,17 @@ Expected: FAIL。`plan-preset-down-0` などが存在しない。
                   </div>
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run src/screens/PlanScreen.test.tsx`
 Expected: PASS（既存テスト含む）。
 
-- [ ] **Step 5: Verify build**
+- [x] **Step 5: Verify build**
 
 Run: `npm run build`
 Expected: 成功。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/screens/PlanScreen.tsx src/screens/PlanScreen.test.tsx
