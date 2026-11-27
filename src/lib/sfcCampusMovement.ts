@@ -189,7 +189,7 @@ export function findPath(start: Point, goal: Point, o: WalkOptions, cell = 16): 
   const sKey = nearestCell(Math.floor(s.x / step), Math.floor(s.y / step))
   const gKey = nearestCell(Math.floor(g.x / step), Math.floor(g.y / step))
   if (sKey < 0 || gKey < 0) return []
-  if (sKey === gKey) return [g]
+  if (sKey === gKey) return isWalkable(g, o) ? [g] : []
 
   const gI = gKey % cols
   const gJ = (gKey - gI) / cols
@@ -261,7 +261,7 @@ export function findPath(start: Point, goal: Point, o: WalkOptions, cell = 16): 
     return { x: (i + 0.5) * step, y: (j + 0.5) * step }
   })
   const last = path[path.length - 1]
-  if (!last || last.x !== g.x || last.y !== g.y) path.push({ x: g.x, y: g.y })
+  if (isWalkable(g, o) && (!last || last.x !== g.x || last.y !== g.y)) path.push({ x: g.x, y: g.y })
   return path
 }
 

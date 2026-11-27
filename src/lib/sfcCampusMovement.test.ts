@@ -58,6 +58,20 @@ describe('findPath', () => {
     expect(path.length).toBeGreaterThan(0)
     expect(path.every((p) => isWalkable(p, o2))).toBe(true)
   })
+  it('does not append a deep-blocked goal to the path', () => {
+    const big: Blocker = { kind: 'rect', x: 100, y: 100, w: 600, h: 600 }
+    const o3: WalkOptions = { blockers: [big], radius: 6, mapW: 800, mapH: 800 }
+    const path = findPath({ x: 50, y: 50 }, { x: 400, y: 400 }, o3, 16)
+    expect(path.length).toBeGreaterThan(0)
+    expect(path.every((p) => isWalkable(p, o3))).toBe(true)
+  })
+  it('returns no path when start and goal share a blocked cell', () => {
+    const big: Blocker = { kind: 'rect', x: 100, y: 100, w: 600, h: 600 }
+    const o3: WalkOptions = { blockers: [big], radius: 6, mapW: 800, mapH: 800 }
+    const path = findPath({ x: 400, y: 400 }, { x: 400, y: 400 }, o3, 16)
+    expect(path.length).toBe(0)
+    expect(path.every((p) => isWalkable(p, o3))).toBe(true)
+  })
 })
 
 describe('nearestWalkable', () => {
