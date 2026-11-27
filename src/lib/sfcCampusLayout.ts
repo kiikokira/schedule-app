@@ -99,6 +99,10 @@ export const CAMPUS_LAYOUT: CampusLayout = {
     { x: 530, y: 470, w: 70, h: 320, density: 0.7 },
     { x: 1360, y: 300, w: 110, h: 560, density: 0.6 },
     { x: 1150, y: 800, w: 110, h: 150, density: 0.5 },
+    { x: 140, y: 810, w: 300, h: 120, density: 0.18 },
+    { x: 1180, y: 620, w: 180, h: 150, density: 0.22 },
+    { x: 300, y: 60, w: 120, h: 80, density: 0.3 },
+    { x: 1390, y: 900, w: 70, h: 190, density: 0.25 },
   ],
 }
 
