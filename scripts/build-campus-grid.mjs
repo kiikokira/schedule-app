@@ -16,6 +16,9 @@ const CELL = 8
 const SAMPLE = [0.1, 0.3, 0.5, 0.7, 0.9]
 const VIEW_W = 2000
 const WALL = 6
+// Player start, fixed on purpose: the bottom-most road row sits against the south cliff,
+// so the start is taken from row 138 (road at cols 71-88) instead.
+const SPAWN_CELL = { col: 79, row: 138 }
 const TEXT_MAX = 150
 const ICON_MAX = 40
 const CLASS_ORDER = ['o', 'w', 'y', 'c', 's', 'b', 'g']
@@ -235,23 +238,51 @@ function widenThinRoads(cells) {
   }
 }
 
-function longestRun(comp, axis) {
-  const cellSet = new Set(comp)
-  let best = null
-  for (const k of comp) {
-    const prev = axis === 'h' ? idxOf(colOf(k) - 1, rowOf(k)) : idxOf(colOf(k), rowOf(k) - 1)
-    if (cellSet.has(prev)) continue
-    const run = [k]
-    let cur = k
-    for (;;) {
-      const next = axis === 'h' ? idxOf(colOf(cur) + 1, rowOf(cur)) : idxOf(colOf(cur), rowOf(cur) + 1)
-      if (!cellSet.has(next)) break
-      run.push(next)
-      cur = next
+function fixRoadsInBuildings(cells) {
+  let fixed = 0
+  let changed = true
+  while (changed) {
+    changed = false
+    for (let k = 0; k < cells.length; k += 1) {
+      if (cells[k] !== '=') continue
+      const c = colOf(k)
+      const r = rowOf(k)
+      const counts = new Map()
+      for (const [dc, dr] of DIRS4) {
+        if (!inside(c + dc, r + dr)) continue
+        const ch = cells[idxOf(c + dc, r + dr)]
+        if (isBuildingChar(ch)) counts.set(ch, (counts.get(ch) ?? 0) + 1)
+      }
+      const total = [...counts.values()].reduce((sum, v) => sum + v, 0)
+      if (total < 3) continue
+      cells[k] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0]
+      fixed += 1
+      changed = true
     }
-    if (!best || run.length > best.length) best = run
   }
-  return best
+  return fixed
+}
+
+function keepSpawnRoads(cells) {
+  const spawn = idxOf(SPAWN_CELL.col, SPAWN_CELL.row)
+  if (cells[spawn] !== '=') throw new Error('spawn cell is not a road cell')
+  let removed = 0
+  for (const comp of components(cells, (ch) => ch === '=')) {
+    if (comp.includes(spawn)) continue
+    for (const k of comp) cells[k] = '.'
+    removed += comp.length
+  }
+  return removed
+}
+
+function spawnCell(cells) {
+  const road = (c) => inside(c, SPAWN_CELL.row) && cells[idxOf(c, SPAWN_CELL.row)] === '='
+  if (!road(SPAWN_CELL.col)) throw new Error('spawn cell is not a road cell')
+  let left = SPAWN_CELL.col
+  let right = SPAWN_CELL.col
+  while (road(left - 1)) left -= 1
+  while (road(right + 1)) right += 1
+  return { col: Math.floor((left + right) / 2), row: SPAWN_CELL.row }
 }
 
 function buildGrid(png) {
@@ -271,11 +302,8 @@ function buildGrid(png) {
   for (let k = 0; k < cells.length; k += 1) if (ROAD_IN.has(cells[k])) cells[k] = '='
   fillRoadHoles(cells)
 
-  const roadComps = components(cells, (ch) => ch === '=').sort((a, b) => b.length - a.length)
-  const roadSummary = roadComps.map((comp) => describe(comp))
-  for (const comp of roadComps.slice(1)) {
-    for (const k of comp) cells[k] = 'g'
-  }
+  const roadSummary = components(cells, (ch) => ch === '=').map((comp) => describe(comp))
+  const removedBeforeWiden = keepSpawnRoads(cells)
   widenThinRoads(cells)
 
   for (const k of pond) cells[k] = '~'
@@ -298,11 +326,13 @@ function buildGrid(png) {
     const r = rowOf(k)
     if (DIRS8.some(([dc, dr]) => inside(c + dc, r + dr) && cells[idxOf(c + dc, r + dr)] === '~')) cells[k] = ':'
   }
+  const fixedInBuildings = fixRoadsInBuildings(cells)
+  const removedRoads = removedBeforeWiden + keepSpawnRoads(cells)
   for (let k = 0; k < cells.length; k += 1) {
     if (cells[k] === 'g' || cells[k] === '?' || cells[k] === 'd' || cells[k] === 'b') cells[k] = '.'
   }
 
-  return { cells, pond, stats, letters, unnamed, roadSummary }
+  return { cells, pond, stats, letters, unnamed, roadSummary, fixedInBuildings, removedRoads }
 }
 
 function toRows(cells) {
@@ -349,11 +379,7 @@ function findSpecialCells(cells, pond) {
     }
   }
 
-  const mainRoad = components(cells, (ch) => ch === '=').sort((a, b) => b.length - a.length)[0]
-  const bottomRow = Math.max(...mainRoad.map(rowOf))
-  const bottomCells = mainRoad.filter((k) => rowOf(k) === bottomRow)
-  const run = longestRun(bottomCells, 'h')
-  const spawn = { col: colOf(run[Math.floor((run.length - 1) / 2)]), row: bottomRow }
+  const spawn = spawnCell(cells)
 
   return {
     namiki: { col: namiki.col, row: namiki.row },
@@ -395,6 +421,7 @@ if (process.argv.includes('--inspect')) {
 
 const namedCount = NAMED.filter((entry) => lines.some((line) => line.includes(entry.ch))).length
 console.log(`named buildings ${namedCount}, unnamed ${result.unnamed}, pond cells ${result.pond.size}`)
+console.log(`road cells inside buildings fixed ${result.fixedInBuildings}, road cells outside the spawn network removed ${result.removedRoads}`)
 
 if (process.argv.includes('--preview')) {
   writeFileSync(PREVIEW_TXT, `${lines.join('\n')}\n`)
