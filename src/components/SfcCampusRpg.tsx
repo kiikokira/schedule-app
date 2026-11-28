@@ -8,24 +8,6 @@ import type { PadState } from '../lib/sfcCampusMovement'
 import { CAMPUS_LAYOUT, type RoofStyle } from '../lib/sfcCampusLayout'
 import { LABELS, type Hotspot } from '../lib/sfcCampusMap'
 
-// jsdom は touch-action を computed style に反映しないため、テスト環境だけ
-// inline style の値を参照できるようにする。実ブラウザでは何もしない。
-if (typeof window !== 'undefined' && window.navigator.userAgent.includes('jsdom')) {
-  const win = window as Window & { __sfcTouchActionShim?: boolean }
-  if (!win.__sfcTouchActionShim) {
-    win.__sfcTouchActionShim = true
-    const original = win.getComputedStyle
-    win.getComputedStyle = function (element: Element, pseudoElt?: string | null): CSSStyleDeclaration {
-      const declaration = original.call(win, element, pseudoElt)
-      const touchAction = element instanceof HTMLElement ? element.style.touchAction : ''
-      if (touchAction && !Object.prototype.hasOwnProperty.call(declaration, 'touchAction')) {
-        Object.defineProperty(declaration, 'touchAction', { value: touchAction, configurable: true })
-      }
-      return declaration
-    }
-  }
-}
-
 type Props = {
   level: number
   title: string

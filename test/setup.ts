@@ -16,6 +16,10 @@ vi.mock('react-chartjs-2', () => ({
     createElement('div', { 'data-testid': 'line-mock' }, children),
 }))
 
+// jsdom の getContext は未実装警告を出すため、既定では null を返す。
+// Canvas を実際に検証するテストは、各テスト内で getContext を上書きする。
+vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null)
+
 // vite-plugin-pwa の仮想モジュールは vitest では解決されないためモックする
 vi.mock('virtual:pwa-register', () => ({
   registerSW: vi.fn().mockResolvedValue({}),

@@ -2,6 +2,20 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import SfcCampusRpg from './SfcCampusRpg'
 
+// jsdom は touch-action を computed style に反映しないため、テスト内だけで
+// inline style の touchAction を getComputedStyle に橋渡しする。
+{
+  const original = window.getComputedStyle
+  window.getComputedStyle = function (element: Element, pseudoElt?: string | null): CSSStyleDeclaration {
+    const declaration = original.call(window, element, pseudoElt)
+    const touchAction = element instanceof HTMLElement ? element.style.touchAction : ''
+    if (touchAction && !Object.prototype.hasOwnProperty.call(declaration, 'touchAction')) {
+      Object.defineProperty(declaration, 'touchAction', { value: touchAction, configurable: true })
+    }
+    return declaration
+  }
+}
+
 vi.mock('./SfcCampusCanvas', () => ({
   default: () => <div data-testid="sfc-campus-canvas" />,
 }))

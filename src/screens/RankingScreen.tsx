@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useBooks } from '../hooks/useBooks'
-import RpgAdventure from '../components/RpgAdventure'
+import SfcCampusRpg from '../components/SfcCampusRpg'
 import { useRecords } from '../hooks/useRecords'
 import { useCycleRecords } from '../hooks/useCycleRecords'
 import { combinedActivityOnDate, totalCycleUnits, pagesRecordsForTotals, cycleRecordsForTotals, todayStr, overallDiagnosis, calcStreakDays, daysBetween, type BookData } from '../lib/progress'
-import { stageAppRoute } from '../lib/rpgStageAdapter'
 import { listAvailability, type AvailabilitySlot } from '../data/dayplanStore'
 import { generateDayPlan, effectiveSpeed, type ScheduledBook, type PlanOutput } from '../lib/dayplan'
 import { isTestStudyId } from '../lib/testStudy'
 import { EXAM_END_DATE } from '../data/quotes'
-import type { CampusQuestSlot } from '../components/CampusQuestBoard'
+import type { CampusQuestSlot } from '../lib/sfcCampusQuests'
 import { RANK_POPULATION, totalPagesToRank, totalActivity, totalPagesForRank, nextRankMilestone, rankToDeviation, sampleNearBoard, sampleTopRivals } from '../lib/ranking'
 import { seasonDayIndex, seasonIdForDate, seasonStartForDate, seasonEndForDate, leaguePopulationFor, leagueRankForPages, leagueRankForRating, decideRoundOutcome, tallyToResults, PROMOTION_LINES, STAY_LINES } from '../lib/seasonLeague'
 import { loadSeasonState, saveSeasonState, finalizeRoundEarly } from '../data/seasonStore'
@@ -281,21 +280,12 @@ export default function RankingScreen({ onBack, today: todayProp, onOpenStage }:
   const isRpg = tab === 'rpg' && showRpg
   const isLeague = tab === 'league' && showLeague
   const expInLevel = ((seasonState.exp % 1000) + 1000) % 1000
-  const expToNext = 1000 - expInLevel
-  const expPct = Math.min(100, Math.max(0, Math.round((expInLevel / 1000) * 100)))
   const rpgTitle =
     leagueLevel >= 10 ? '伝説の勇者' :
     leagueLevel >= 8 ? '王国騎士' :
     leagueLevel >= 5 ? '荒野の戦士' :
     leagueLevel >= 3 ? '街の守り手' :
     leagueLevel >= 2 ? '駆け出し冒険者' : '見習い勇者'
-  const rpgChara =
-    leagueLevel >= 10 ? '🐉' :
-    leagueLevel >= 8 ? '🦄' :
-    leagueLevel >= 5 ? '⚔️' :
-    leagueLevel >= 3 ? '🛡️' :
-    leagueLevel >= 2 ? '🌱' : '🐣'
-  const questCleared = todayPages > 0
   return (
     <div
       data-testid="ranking-page"
@@ -303,7 +293,7 @@ export default function RankingScreen({ onBack, today: todayProp, onOpenStage }:
         padding: 16,
         minHeight: '100vh',
         background: isRpg
-          ? 'linear-gradient(180deg, #1e2a5a 0%, #3f56a8 45%, #9fb8ff 100%)'
+          ? 'linear-gradient(180deg, #0b1f16 0%, #123524 50%, #1e2a5a 100%)'
           : isLeague
             ? 'linear-gradient(160deg, #000 55%, #0b1e78 140%)'
             : undefined,
@@ -671,73 +661,19 @@ export default function RankingScreen({ onBack, today: todayProp, onOpenStage }:
         </div>
       )}
       {tab === 'rpg' && showRpg && (
-        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <RpgAdventure
+        <div style={{ marginTop: 8 }}>
+          <SfcCampusRpg
             level={leagueLevel}
-            token={rpgChara}
+            title={rpgTitle}
+            expInLevel={expInLevel}
             todayPages={todayPages}
             totalPages={totalPages}
-            firstBookId={books.length > 0 ? books[0].id : null}
-            hasBooks={books.length > 0}
-            onStageAction={(_stageId, target, bookId) => { const r = stageAppRoute(target as 'today' | 'book' | 'ranking', bookId ?? null); if (r) onOpenStage?.(r); }}
-            initialWorldId={10}
             slots={campusSlots}
             slotsDone={campusSlotsDone}
             bulletin={campusBulletin}
             onOpenToday={() => onOpenStage?.({ name: 'today' })}
             onOpenBook={(bookId) => onOpenStage?.({ name: 'detail', bookId })}
           />
-          <section
-            data-testid="rpg-hero"
-            style={{ padding: '14px 12px', borderRadius: 12, background: '#fff', border: '1px solid #d5dbe6', boxShadow: '0 2px 8px rgba(30,42,90,0.25)' }}
-          >
-            <div style={{ fontSize: 44, lineHeight: 1 }} role="img" aria-label="勇者キャラ">
-              {rpgChara}
-            </div>
-            <p data-testid="rpg-level" style={{ fontWeight: 800, fontSize: 20, margin: '8px 0 2px' }}>
-              Lv.{leagueLevel} {rpgTitle}
-            </p>
-            <p style={{ fontSize: 14, margin: '0 0 8px', color: 'var(--text-dim)' }}>
-              Div.{seasonState.div} EXP.{seasonState.exp.toLocaleString()}
-            </p>
-            <div
-              data-testid="rpg-exp-bar"
-              role="progressbar"
-              aria-valuenow={expPct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              style={{ height: 14, borderRadius: 999, background: '#e5e7eb', overflow: 'hidden', border: '1px solid #d5dbe6' }}
-            >
-              <div style={{ width: `${expPct}%`, height: '100%', background: 'linear-gradient(90deg, #5a74c9, #eab308)', transition: 'width 0.3s' }} />
-            </div>
-            <div data-testid="rpg-next" style={{ fontSize: 13, marginTop: 6 }}>
-              次のレベルまであと{expToNext.toLocaleString()}EXP（{expInLevel.toLocaleString()}/1000）
-            </div>
-          </section>
-          <section
-            data-testid="rpg-quest"
-            style={{ padding: '12px', borderRadius: 12, background: '#fffdf0', border: '2px solid #eab308' }}
-          >
-            <div style={{ fontWeight: 800, fontSize: 16 }}>📜 今日のクエスト</div>
-            <div style={{ fontSize: 14, marginTop: 4 }}>
-              今日 {todayPages.toLocaleString()}ページ ／ 累計 {totalPages.toLocaleString()}ページ
-            </div>
-            <div style={{ fontSize: 14, marginTop: 4 }}>
-              Div.{seasonState.div} 第{leagueDay + 1}節（全28節） ○{leagueWins}勝
-            </div>
-            {questCleared ? (
-              <div data-testid="rpg-quest-clear" style={{ marginTop: 8, fontWeight: 800, color: '#1a7f37' }}>
-                🎉 クエストクリア！冒険が進んだ！
-              </div>
-            ) : (
-              <div data-testid="rpg-quest-yet" style={{ marginTop: 8, fontSize: 14 }}>
-                あと1ページでクエストクリア！本を開いて冒険を進めよう⚔️
-              </div>
-            )}
-            <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 6 }}>
-              ページを読むとEXPがたまり、リーグの順位も上がるよ。1日1ページからでOK！
-            </div>
-          </section>
         </div>
       )}
       {!isLeague && (
