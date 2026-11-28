@@ -18,17 +18,10 @@ export type CampusBuilding = {
   roof: RoofStyle
   entrance: CampusPoint
 }
-export type CampusPath = { points: CampusPoint[]; width: number; kind: 'stone' | 'earth' }
-export type TreeZone = { x: number; y: number; w: number; h: number; density: number }
-export type CampusRect = { x: number; y: number; w: number; h: number }
 export type CampusLayout = {
   width: number
   height: number
   buildings: CampusBuilding[]
-  pond: CampusPoint[]
-  paths: CampusPath[]
-  cliffs: CampusRect[]
-  treeZones: TreeZone[]
 }
 
 const ROOFS: Readonly<Record<string, RoofStyle>> = {
@@ -59,11 +52,6 @@ export const CAMPUS_LAYOUT: CampusLayout = {
     roof: ROOFS[g.id] ?? 'gray',
     entrance: g.entrance,
   })),
-  // 旧レイアウトの項目。sfcCampusArt.ts がまだ参照するため空配列で残す（Task 5 で削除する）。
-  pond: [],
-  paths: [],
-  cliffs: [],
-  treeZones: [],
 }
 
 export function buildingById(id: string): CampusBuilding | undefined {

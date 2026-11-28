@@ -1,9 +1,11 @@
 // SFCキャンパスRPGの背景描画。DOM非依存、CanvasRenderingContext2Dのみを受け取る。
-// 16bitドット絵のような密度を出すため、すべて決定論的な mulberry32 で散布する。
-// 文字・画像・グラデーションは使わず、Task 5がオフスクリーンに1回だけ描く。
+// 地形グリッド（sfcCampusGrid.ts）の各マスを8×8単位のタイルで描く。
+// 模様はすべて mulberry32 で決定論的に散布し、文字・画像・グラデーションは使わない。
 
+import { CAMPUS_CELL, CAMPUS_COLS, CAMPUS_GRID, CAMPUS_NAMIKI_CELL, CAMPUS_ROWS } from './sfcCampusGrid'
+import { BUILDING_NAMES, cellAt, cellAtPoint, isBlockedCell, isRoadCell } from './sfcCampusGridQuery'
 import { CAMPUS_LAYOUT } from './sfcCampusLayout'
-import type { CampusBuilding, CampusLayout, CampusPoint, CampusRect, RoofStyle } from './sfcCampusLayout'
+import type { CampusBuilding, RoofStyle } from './sfcCampusLayout'
 
 export const CAMPUS_PALETTE = {
   grassDark: '#2f6b3a',
@@ -38,16 +40,21 @@ export const CAMPUS_PALETTE = {
 
 type Ctx = CanvasRenderingContext2D
 type Rng = () => number
-type Segment = {
-  a: CampusPoint
-  b: CampusPoint
-  nx: number
-  ny: number
-  length: number
-  width: number
-}
-type CliffFace = { horizontal: boolean; outer: number; inner: number; alongMin: number; alongMax: number }
+export type TreeSpot = { x: number; y: number; r: number; cherry: boolean }
+
 const TAU = Math.PI * 2
+const DIR4: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+const DIR8: ReadonlyArray<readonly [number, number]> = [
+  [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1],
+]
+const TREE_CHANCE = 0.05
+const TREE_SPACING = 26
+const TREE_ENTRANCE_CLEAR = 2
+const ENTRANCE_CELLS = CAMPUS_LAYOUT.buildings.map((b) => ({
+  col: Math.floor(b.entrance.x / CAMPUS_CELL),
+  row: Math.floor(b.entrance.y / CAMPUS_CELL),
+}))
+let treeCache: TreeSpot[] | null = null
 
 function mulberry32(seed: number): Rng {
   let a = seed >>> 0
@@ -64,6 +71,10 @@ function between(rng: Rng, lo: number, hi: number): number {
   return lo + rng() * (hi - lo)
 }
 
+function int(rng: Rng, lo: number, hi: number): number {
+  return lo + Math.floor(rng() * (hi - lo + 1))
+}
+
 function pick<T>(rng: Rng, items: readonly T[]): T {
   return items[Math.floor(rng() * items.length) % items.length]
 }
@@ -78,706 +89,437 @@ function roofColor(style: RoofStyle): string {
   }
 }
 
-function segmentsOf(path: { points: CampusPoint[]; width: number }): Segment[] {
-  const out: Segment[] = []
-  for (let i = 1; i < path.points.length; i += 1) {
-    const a = path.points[i - 1]
-    const b = path.points[i]
-    const dx = b.x - a.x
-    const dy = b.y - a.y
-    const length = Math.max(1, Math.hypot(dx, dy))
-    out.push({ a, b, nx: -dy / length, ny: dx / length, length, width: path.width })
-  }
-  return out
+function isBuildingChar(ch: string): boolean {
+  return isBlockedCell(ch) && ch !== '#' && ch !== '~'
 }
 
-function pointSegmentDistance(px: number, py: number, s: Segment): number {
-  const dx = s.b.x - s.a.x
-  const dy = s.b.y - s.a.y
-  const t = Math.max(0, Math.min(1, ((px - s.a.x) * dx + (py - s.a.y) * dy) / (s.length * s.length)))
-  return Math.hypot(px - (s.a.x + dx * t), py - (s.a.y + dy * t))
+// マスの向こう側（dc,dr）に面した帯の矩形。
+function edgeRect(x: number, y: number, dc: number, dr: number, t: number): [number, number, number, number] {
+  return [
+    dc === 1 ? x + CAMPUS_CELL - t : x,
+    dr === 1 ? y + CAMPUS_CELL - t : y,
+    dc === 0 ? CAMPUS_CELL : t,
+    dr === 0 ? CAMPUS_CELL : t,
+  ]
 }
 
-function inPolygon(px: number, py: number, points: readonly CampusPoint[]): boolean {
-  let inside = false
-  for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
-    const a = points[i]
-    const b = points[j]
-    if ((a.y > py) !== (b.y > py) && px < ((b.x - a.x) * (py - a.y)) / (b.y - a.y) + a.x) inside = !inside
-  }
-  return inside
-}
-
-function nearBuilding(x: number, y: number, layout: CampusLayout, margin: number): boolean {
-  for (const b of layout.buildings) {
-    if (x > b.x - margin && x < b.x + b.w + margin && y > b.y - margin && y < b.y + b.h + margin) return true
-  }
-  return false
-}
-
-function nearPond(x: number, y: number, layout: CampusLayout, margin: number): boolean {
-  if (inPolygon(x, y, layout.pond)) return true
-  for (let i = 0; i < layout.pond.length; i += 1) {
-    const s: Segment = { a: layout.pond[i], b: layout.pond[(i + 1) % layout.pond.length], nx: 0, ny: 0, length: 1, width: 0 }
-    if (pointSegmentDistance(x, y, s) < margin) return true
-  }
-  return false
-}
-
-function nearCliff(x: number, y: number, layout: CampusLayout, margin: number): boolean {
-  for (const c of layout.cliffs) {
-    if (x > c.x - margin && x < c.x + c.w + margin && y > c.y - margin && y < c.y + c.h + margin) return true
-  }
-  return false
-}
-
-// 道の実質的な舗装範囲（幅に応じた半幅 + 余白）かどうか。
-function onPavement(x: number, y: number, layout: CampusLayout, extra: number): boolean {
-  for (const path of layout.paths) {
-    const margin = path.width / 2 + extra
-    for (const s of segmentsOf(path)) {
-      if (pointSegmentDistance(x, y, s) < margin) return true
-    }
-  }
-  return false
-}
-
-function nearPath(x: number, y: number, layout: CampusLayout, margin: number): boolean {
-  for (const path of layout.paths) {
-    for (const s of segmentsOf(path)) {
-      if (pointSegmentDistance(x, y, s) < margin) return true
-    }
-  }
-  return false
-}
-
-function blockedForTree(x: number, y: number, layout: CampusLayout): boolean {
-  if (x < 30 || y < 30 || x > layout.width - 30 || y > layout.height - 30) return true
-  if (nearBuilding(x, y, layout, 12)) return true
-  if (nearPond(x, y, layout, 20)) return true
-  if (nearPath(x, y, layout, 18)) return true
-  if (nearCliff(x, y, layout, 4)) return true
-  return false
-}
-
-function polygon(ctx: Ctx, points: readonly CampusPoint[], scale: number, cx: number, cy: number): void {
-  if (points.length === 0) return
-  ctx.beginPath()
-  ctx.moveTo(cx + (points[0].x - cx) * scale, cy + (points[0].y - cy) * scale)
-  for (let i = 1; i < points.length; i += 1) {
-    ctx.lineTo(cx + (points[i].x - cx) * scale, cy + (points[i].y - cy) * scale)
-  }
-  ctx.closePath()
-  ctx.fill()
-}
-
-function quad(ctx: Ctx, pts: readonly CampusPoint[]): void {
-  ctx.beginPath()
-  ctx.moveTo(pts[0].x, pts[0].y)
-  for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i].x, pts[i].y)
-  ctx.closePath()
-  ctx.fill()
-}
-
-function line(ctx: Ctx, ax: number, ay: number, bx: number, by: number, color: string, width: number): void {
-  ctx.strokeStyle = color
-  ctx.lineWidth = width
-  ctx.beginPath()
-  ctx.moveTo(ax, ay)
-  ctx.lineTo(bx, by)
-  ctx.stroke()
-}
-
-function smallTree(ctx: Ctx, x: number, y: number, r: number, rng: Rng): void {
-  ctx.globalAlpha = 0.22
-  ctx.fillStyle = CAMPUS_PALETTE.shadow
-  ctx.beginPath()
-  ctx.arc(x + 3, y + 4, r, 0, TAU)
-  ctx.fill()
+function drawGrassTile(ctx: Ctx, col: number, row: number, rng: Rng): void {
+  const x = col * CAMPUS_CELL
+  const y = row * CAMPUS_CELL
   ctx.globalAlpha = 1
-  ctx.fillStyle = CAMPUS_PALETTE.trunk
-  ctx.fillRect(x - 1, y + r * 0.25, 2, r * 0.8)
-  ctx.fillStyle = CAMPUS_PALETTE.canopyDark
-  ctx.beginPath()
-  ctx.arc(x, y, r, 0, TAU)
-  ctx.fill()
-  ctx.fillStyle = CAMPUS_PALETTE.canopyMid
-  ctx.beginPath()
-  ctx.arc(x - r * 0.15, y - r * 0.2, r * 0.78, 0, TAU)
-  ctx.fill()
-  ctx.fillStyle = CAMPUS_PALETTE.canopyLight
-  ctx.beginPath()
-  ctx.arc(x - r * 0.35, y - r * 0.35, r * 0.4, 0, TAU)
-  ctx.fill()
-  if (rng() > 0.5) {
-    ctx.fillStyle = CAMPUS_PALETTE.flowerWhite
-    ctx.fillRect(x - r * 0.5, y - r * 0.6, 2, 2)
+  ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.grassMid, CAMPUS_PALETTE.grassMid, CAMPUS_PALETTE.grassDark])
+  ctx.fillRect(x, y, CAMPUS_CELL, CAMPUS_CELL)
+  if (rng() < 0.4) {
+    ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.grassLight, CAMPUS_PALETTE.grassDark])
+    ctx.fillRect(x + int(rng, 0, 5), y + int(rng, 0, 5), 2, 2)
   }
-}
-
-// 1. 草の基層、斑点、 Larger clumps、葉、 Entrance周りの土、小花。
-function drawGrass(ctx: Ctx, layout: CampusLayout, rng: Rng): void {
-  ctx.save()
-  ctx.globalAlpha = 1
-  ctx.fillStyle = CAMPUS_PALETTE.grassDark
-  ctx.fillRect(0, 0, layout.width, layout.height)
-  const patches = [CAMPUS_PALETTE.grassMid, CAMPUS_PALETTE.grassLight, CAMPUS_PALETTE.grassMid]
-  for (let i = 0; i < 1700; i += 1) {
-    ctx.fillStyle = patches[i % patches.length]
-    ctx.globalAlpha = between(rng, 0.15, 0.4)
-    const size = between(rng, 4, 12)
-    ctx.fillRect(rng() * layout.width, rng() * layout.height, size, size * between(rng, 0.6, 1.3))
-  }
-  for (let i = 0; i < 900; i += 1) {
-    ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.grassDark, CAMPUS_PALETTE.grassLight])
-    ctx.globalAlpha = between(rng, 0.1, 0.22)
-    const size = between(rng, 8, 28)
-    ctx.fillRect(rng() * layout.width, rng() * layout.height, size, size * between(rng, 0.5, 1.2))
-  }
-  ctx.globalAlpha = 0.35
-  for (let i = 0; i < 1100; i += 1) {
-    const x = rng() * layout.width
-    const y = rng() * layout.height
-    ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.grassMid, CAMPUS_PALETTE.grassLight])
-    ctx.fillRect(x, y, 1, 3)
-    ctx.fillRect(x + 2, y - 1, 1, 5)
-    ctx.fillRect(x + 4, y, 1, 4)
-  }
-  // 各入口の南26pxに踏み固められた土。
-  ctx.globalAlpha = 0.25
-  if (layout.buildings.length > 0) {
-    for (let i = 0; i < 40; i += 1) {
-      const b = layout.buildings[i % layout.buildings.length]
-      const x = b.entrance.x + between(rng, -18, 18)
-      const y = b.entrance.y + between(rng, 0, 26)
-      for (let k = 0; k < 3; k += 1) {
-        ctx.fillStyle = k === 0 ? CAMPUS_PALETTE.earthDark : CAMPUS_PALETTE.earthMid
-        const size = between(rng, 6, 14)
-        ctx.fillRect(x + between(rng, -6, 6), y + between(rng, -3, 3), size, size * 0.5)
-      }
-    }
-  }
-  // 芝生の小花（舗装・建物・池・崖は除外）。
-  let clusters = 0
-  for (let attempt = 0; attempt < 120 * 12 && clusters < 120; attempt += 1) {
-    const x = rng() * layout.width
-    const y = rng() * layout.height
-    if (x < 8 || y < 8 || x > layout.width - 8 || y > layout.height - 8) continue
-    if (onPavement(x, y, layout, 6) || nearBuilding(x, y, layout, 4) || nearPond(x, y, layout, 6) || nearCliff(x, y, layout, 4)) continue
-    clusters += 1
-    const color = pick(rng, [CAMPUS_PALETTE.flowerYellow, CAMPUS_PALETTE.flowerWhite, CAMPUS_PALETTE.flowerPink])
-    ctx.globalAlpha = 1
-    ctx.fillStyle = color
-    const count = 3 + Math.floor(rng() * 3)
-    for (let k = 0; k < count; k += 1) ctx.fillRect(x + between(rng, -3, 3), y + between(rng, -3, 3), between(rng, 1, 2), between(rng, 1, 2))
-  }
-  ctx.restore()
-}
-
-// 2. 崖: 外側の草原 → ギザギザの境界 → キャンパス側の岩壁（柱・地層・亀裂）→ 影。
-function cliffFace(c: CampusRect, layout: CampusLayout): CliffFace {
-  if (c.x === 0 && c.w <= 140) return { horizontal: true, outer: c.x, inner: c.x + c.w, alongMin: c.y, alongMax: c.y + c.h }
-  if (c.x + c.w === layout.width && c.w <= 140) return { horizontal: true, outer: c.x + c.w, inner: c.x, alongMin: c.y, alongMax: c.y + c.h }
-  if (c.y === 0 && c.h <= 100) return { horizontal: false, outer: c.y, inner: c.y + c.h, alongMin: c.x, alongMax: c.x + c.w }
-  if (c.y + c.h === layout.height && c.h <= 100) return { horizontal: false, outer: c.y + c.h, inner: c.y, alongMin: c.x, alongMax: c.x + c.w }
-  // 内陸の露頭は南面が岩壁。
-  return { horizontal: false, outer: c.y, inner: c.y + c.h, alongMin: c.x, alongMax: c.x + c.w }
-}
-
-function faceCoord(f: CliffFace, along: number, t: number): CampusPoint {
-  const d = f.outer + (f.inner - f.outer) * t
-  return f.horizontal ? { x: d, y: along } : { x: along, y: d }
-}
-
-function faceBand(ctx: Ctx, f: CliffFace, along: number, t0: number, t1: number, len: number): void {
-  const a = faceCoord(f, along, t0)
-  const b = faceCoord(f, along, t1)
-  ctx.fillRect(
-    Math.min(a.x, b.x),
-    Math.min(a.y, b.y),
-    f.horizontal ? Math.max(1, Math.abs(b.x - a.x)) : len,
-    f.horizontal ? len : Math.max(1, Math.abs(b.y - a.y)),
-  )
-}
-
-function drawCliffs(ctx: Ctx, cliffs: readonly CampusRect[], layout: CampusLayout, rng: Rng): void {
-  for (const c of cliffs) {
-    const f = cliffFace(c, layout)
-    ctx.save()
-    ctx.globalAlpha = 1
-    ctx.fillStyle = CAMPUS_PALETTE.rockDark
-    ctx.fillRect(c.x, c.y, c.w, c.h)
-    // 台地の境界を6〜10px刻みでジグザグにする。
-    const steps: { along: number; len: number; t: number }[] = []
-    for (let along = f.alongMin; along < f.alongMax; ) {
-      const len = Math.min(between(rng, 6, 10), f.alongMax - along)
-      steps.push({ along, len, t: 0.45 + rng() * 0.14 + between(rng, -0.04, 0.04) })
-      along += len
-    }
-    for (const step of steps) {
-      ctx.fillStyle = CAMPUS_PALETTE.grassMid
-      faceBand(ctx, f, step.along, 0, step.t, step.len + 1)
-      ctx.globalAlpha = 0.55
-      ctx.fillStyle = CAMPUS_PALETTE.grassLight
-      for (let k = 0; k < 2; k += 1) {
-        const t = between(rng, 0.05, Math.max(0.06, step.t - 0.05))
-        const p = faceCoord(f, step.along + rng() * step.len, t)
-        ctx.fillRect(p.x, p.y, f.horizontal ? between(rng, 2, 5) : 2, f.horizontal ? 2 : between(rng, 2, 5))
-      }
-      ctx.globalAlpha = 0.5
-      ctx.fillStyle = CAMPUS_PALETTE.grassDark
-      const tip = faceCoord(f, step.along + rng() * step.len, step.t - 0.02)
-      ctx.fillRect(tip.x, tip.y, f.horizontal ? 1 : 2, f.horizontal ? 4 : 1)
-      ctx.globalAlpha = 1
-    }
-    // 岩壁: 10〜18pxの柱、その中に短い地層と縦の継ぎ目。
-    let stepIndex = 0
-    for (let along = f.alongMin; along < f.alongMax; ) {
-      const colW = Math.min(between(rng, 10, 18), f.alongMax - along)
-      while (stepIndex < steps.length - 1 && steps[stepIndex].along + steps[stepIndex].len <= along) stepIndex += 1
-      const boundary = steps[stepIndex].t
-      ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.rockMid, CAMPUS_PALETTE.rockLight, CAMPUS_PALETTE.rockDark])
-      faceBand(ctx, f, along, boundary, 1, colW)
-      const strata = 2 + Math.floor(rng() * 3)
-      for (let k = 0; k < strata; k += 1) {
-        const t = between(rng, boundary + 0.02, 0.95)
-        ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.rockLight, CAMPUS_PALETTE.rockMid, CAMPUS_PALETTE.rockDark])
-        faceBand(ctx, f, along + between(rng, 0, Math.max(0, colW - 8)), t, Math.min(1, t + between(rng, 0.03, 0.1)), between(rng, 8, 20))
-      }
-      // 1pxの縦の継ぎ目と6〜18pxの亀裂。
-      const seamFrom = faceCoord(f, along, between(rng, boundary, 0.8))
-      const seamTo = faceCoord(f, along, 1)
-      line(ctx, seamFrom.x, seamFrom.y, seamTo.x, seamTo.y, CAMPUS_PALETTE.rockDark, 1)
-      const crackA = faceCoord(f, along + between(rng, 0, colW), between(rng, boundary, 0.85))
-      const crackB = f.horizontal
-        ? { x: crackA.x, y: crackA.y + between(rng, -18, 18) }
-        : { x: crackA.x + between(rng, -18, 18), y: crackA.y }
-      line(ctx, crackA.x, crackA.y, crackB.x, crackB.y, CAMPUS_PALETTE.rockDark, 1)
-      along += colW
-    }
-    // 足元の影、岩块、草から垂れる根。
+  if (rng() < 0.25) {
     ctx.globalAlpha = 0.5
-    ctx.fillStyle = CAMPUS_PALETTE.shadow
-    faceBand(ctx, f, f.alongMin, 0.9, 1, f.alongMax - f.alongMin)
-    ctx.globalAlpha = 1
-    const boulders = 1 + Math.floor(rng() * 3)
-    for (let i = 0; i < boulders; i += 1) {
-      const p = faceCoord(f, between(rng, f.alongMin + 10, f.alongMax - 10), between(rng, 0.82, 0.93))
-      const r = between(rng, 3, 6)
-      ctx.fillStyle = CAMPUS_PALETTE.rockDark
-      ctx.beginPath()
-      ctx.arc(p.x, p.y + 1, r, 0, TAU)
-      ctx.fill()
-      ctx.fillStyle = CAMPUS_PALETTE.rockLight
-      ctx.beginPath()
-      ctx.arc(p.x, p.y, r * 0.8, 0, TAU)
-      ctx.fill()
-    }
-    const roots = 2 + Math.floor(rng() * 3)
-    for (let i = 0; i < roots; i += 1) {
-      const along = between(rng, f.alongMin + 8, f.alongMax - 8)
-      const edge = faceCoord(f, along, 0.48)
-      const hang = faceCoord(f, along + between(rng, -3, 3), 0.57)
-      line(ctx, edge.x, edge.y, hang.x, hang.y, CAMPUS_PALETTE.rockDark, 1)
-    }
-    const trees = 2 + Math.floor(rng() * 3)
-    for (let i = 0; i < trees; i += 1) {
-      const p = faceCoord(f, between(rng, f.alongMin + 12, f.alongMax - 12), between(rng, 0.12, 0.36))
-      smallTree(ctx, p.x, p.y, between(rng, 7, 11), rng)
-    }
-    ctx.restore()
+    ctx.fillStyle = CAMPUS_PALETTE.grassLight
+    const tx = x + int(rng, 1, 5)
+    const ty = y + int(rng, 2, 4)
+    ctx.fillRect(tx, ty, 1, 3)
+    ctx.fillRect(tx + 2, ty - 1, 1, 4)
   }
 }
 
-function strokeSegment(ctx: Ctx, s: Segment, color: string, width: number): void {
-  line(ctx, s.a.x, s.a.y, s.b.x, s.b.y, color, width)
-}
-
-// 3. 道: 石畳の四角い敷石と、土道の削れた中心と土塊。車線表示なし。
-function drawPaths(ctx: Ctx, paths: readonly { points: CampusPoint[]; width: number; kind: 'stone' | 'earth' }[], rng: Rng): void {
-  ctx.save()
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  for (const path of paths) {
-    for (const s of segmentsOf(path)) {
-      ctx.globalAlpha = 1
-      strokeSegment(ctx, s, CAMPUS_PALETTE.earthDark, path.width + 8)
-      strokeSegment(ctx, s, path.kind === 'stone' ? CAMPUS_PALETTE.stoneDark : CAMPUS_PALETTE.earthMid, path.width)
-      if (path.kind === 'stone') {
-        for (let u = 2; u < s.length - 2; u += between(rng, 10, 13)) {
-          const stepU = Math.min(11, s.length - u - 2)
-          for (let v = -path.width / 2 + 2; v < path.width / 2 - 2; v += 11) {
-            const spanU = Math.min(11, stepU)
-            const spanV = Math.min(11, path.width / 2 - 2 - v)
-            const wU = Math.max(4, Math.min(spanU - 1, between(rng, 8, 12)))
-            const wV = Math.max(4, Math.min(spanV - 1, between(rng, 8, 12)))
-            const j = () => between(rng, -2, 2)
-            const corners: CampusPoint[] = [
-              { x: s.a.x + (s.b.x - s.a.x) / s.length * (u + j()) + s.nx * (v + j()), y: s.a.y + (s.b.y - s.a.y) / s.length * (u + j()) + s.ny * (v + j()) },
-              { x: s.a.x + (s.b.x - s.a.x) / s.length * (u + wU + j()) + s.nx * (v + j()), y: s.a.y + (s.b.y - s.a.y) / s.length * (u + wU + j()) + s.ny * (v + j()) },
-              { x: s.a.x + (s.b.x - s.a.x) / s.length * (u + wU + j()) + s.nx * (v + wV + j()), y: s.a.y + (s.b.y - s.a.y) / s.length * (u + wU + j()) + s.ny * (v + wV + j()) },
-              { x: s.a.x + (s.b.x - s.a.x) / s.length * (u + j()) + s.nx * (v + wV + j()), y: s.a.y + (s.b.y - s.a.y) / s.length * (u + j()) + s.ny * (v + wV + j()) },
-            ]
-            ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.stoneDark, '#9a948a', CAMPUS_PALETTE.stoneLight])
-            quad(ctx, corners)
-            if (rng() < 0.1) {
-              ctx.fillStyle = CAMPUS_PALETTE.stoneLight
-              const pu = s.a.x + (s.b.x - s.a.x) / s.length * (u + wU / 2) + s.nx * (v + wV / 2)
-              const py = s.a.y + (s.b.y - s.a.y) / s.length * (u + wU / 2) + s.ny * (v + wV / 2)
-              ctx.fillRect(pu, py, between(rng, 1, 2), between(rng, 1, 2))
-            }
-          }
-        }
-      } else {
-        ctx.globalAlpha = 0.2
-        strokeSegment(ctx, s, CAMPUS_PALETTE.stoneLight, path.width * 0.35)
-        ctx.globalAlpha = 1
-        for (const off of [-path.width / 2 + 1.5, path.width / 2 - 1.5]) {
-          line(
-            ctx,
-            s.a.x + s.nx * off,
-            s.a.y + s.ny * off,
-            s.b.x + s.nx * off,
-            s.b.y + s.ny * off,
-            CAMPUS_PALETTE.earthDark,
-            3,
-          )
-        }
-        const clods = Math.floor((s.length * path.width) / 90)
-        for (let i = 0; i < clods; i += 1) {
-          const t = rng()
-          const off = between(rng, -path.width / 2 + 4, path.width / 2 - 4)
-          const x = s.a.x + (s.b.x - s.a.x) * t + s.nx * off
-          const y = s.a.y + (s.b.y - s.a.y) * t + s.ny * off
-          ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.earthDark, CAMPUS_PALETTE.earthMid, CAMPUS_PALETTE.earthDark])
-          const size = between(rng, 2, 5)
-          ctx.fillRect(x, y, size, size * between(rng, 0.6, 1.2))
-        }
-      }
-    }
-  }
-  ctx.restore()
-}
-
-// 4. 鴨池: 土の岸 → 水の3層 → 波紋と睡蓮 → 葦 → 東岸の木デッキ。
-function drawPond(ctx: Ctx, pond: readonly CampusPoint[], rng: Rng): void {
-  if (pond.length === 0) return
-  const cx = pond.reduce((sum, p) => sum + p.x, 0) / pond.length
-  const cy = pond.reduce((sum, p) => sum + p.y, 0) / pond.length
-  ctx.save()
+// 石道: 敷石の目地を薄く入れ、隣が道でない辺だけ土色の1pxで縁取る。交差部は同じタイルなので割り込まない。
+function drawRoadTile(ctx: Ctx, col: number, row: number, rng: Rng): void {
+  const x = col * CAMPUS_CELL
+  const y = row * CAMPUS_CELL
   ctx.globalAlpha = 1
-  ctx.fillStyle = CAMPUS_PALETTE.earthMid
-  polygon(ctx, pond, 1.14, cx, cy)
+  ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.stoneDark, '#9a948a', CAMPUS_PALETTE.stoneLight])
+  ctx.fillRect(x, y, CAMPUS_CELL, CAMPUS_CELL)
+  if (rng() < 0.12) {
+    ctx.fillStyle = CAMPUS_PALETTE.stoneLight
+    ctx.fillRect(x + int(rng, 2, 4), y + int(rng, 2, 4), 2, 2)
+  }
+  ctx.globalAlpha = 0.45
   ctx.fillStyle = CAMPUS_PALETTE.earthDark
-  polygon(ctx, pond, 1.08, cx, cy)
-  ctx.fillStyle = CAMPUS_PALETTE.waterDeep
-  polygon(ctx, pond, 1, cx, cy)
-  ctx.fillStyle = CAMPUS_PALETTE.waterMid
-  polygon(ctx, pond, 0.93, cx, cy)
-  ctx.fillStyle = CAMPUS_PALETTE.waterLight
-  polygon(ctx, pond, 0.86, cx, cy)
-  // 1.02〜1.10のリングに2〜4pxの小石を連続して並べる。
-  for (let i = 0; i < pond.length; i += 1) {
-    const a = pond[i]
-    const b = pond[(i + 1) % pond.length]
-    const dx = b.x - a.x
-    const dy = b.y - a.y
-    const length = Math.max(1, Math.hypot(dx, dy))
-    const steps = Math.floor(length / 5)
-    for (let k = 0; k < steps; k += 1) {
-      const t = k / steps
-      const scale = between(rng, 1.02, 1.1)
-      const px = cx + (a.x + dx * t - cx) * scale
-      const py = cy + (a.y + dy * t - cy) * scale
-      ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.earthDark, CAMPUS_PALETTE.rockMid, CAMPUS_PALETTE.earthMid])
-      const size = between(rng, 2, 4)
-      ctx.fillRect(px, py, size, size)
-    }
+  ctx.fillRect(x, y, CAMPUS_CELL, 1)
+  ctx.fillRect(x, y, 1, CAMPUS_CELL)
+  ctx.globalAlpha = 1
+  for (const [dc, dr] of DIR4) {
+    if (isRoadCell(cellAt(col + dc, row + dr))) continue
+    ctx.fillStyle = CAMPUS_PALETTE.earthDark
+    ctx.fillRect(...edgeRect(x, y, dc, dr, 1))
   }
-  for (let i = 0; i < 28; i += 1) {
-    ctx.globalAlpha = between(rng, 0.3, 0.7)
-    ctx.strokeStyle = pick(rng, [CAMPUS_PALETTE.waterLight, CAMPUS_PALETTE.waterMid])
-    ctx.lineWidth = between(rng, 1, 3)
+}
+
+function drawDirtTile(ctx: Ctx, col: number, row: number, rng: Rng): void {
+  const x = col * CAMPUS_CELL
+  const y = row * CAMPUS_CELL
+  ctx.globalAlpha = 1
+  ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.earthMid, CAMPUS_PALETTE.earthMid, CAMPUS_PALETTE.earthDark])
+  ctx.fillRect(x, y, CAMPUS_CELL, CAMPUS_CELL)
+  if (rng() < 0.4) {
+    ctx.fillStyle = CAMPUS_PALETTE.rockMid
+    ctx.fillRect(x + int(rng, 1, 5), y + int(rng, 1, 5), 2, 1)
+  }
+}
+
+// 池: 深い水 → 岸の中間色 → 陸側の白い泡の3層。水の中には波紋を散らす。
+function drawWaterTile(ctx: Ctx, col: number, row: number, rng: Rng): void {
+  const x = col * CAMPUS_CELL
+  const y = row * CAMPUS_CELL
+  ctx.globalAlpha = 1
+  const shore = DIR8.some(([dc, dr]) => cellAt(col + dc, row + dr) !== '~')
+  ctx.fillStyle = shore ? CAMPUS_PALETTE.waterMid : CAMPUS_PALETTE.waterDeep
+  ctx.fillRect(x, y, CAMPUS_CELL, CAMPUS_CELL)
+  if (shore) {
+    ctx.fillStyle = CAMPUS_PALETTE.waterLight
+    for (const [dc, dr] of DIR4) {
+      if (cellAt(col + dc, row + dr) === '~') continue
+      ctx.fillRect(...edgeRect(x, y, dc, dr, 1))
+    }
+  } else if (rng() < 0.15) {
+    ctx.globalAlpha = 0.6
+    ctx.strokeStyle = CAMPUS_PALETTE.waterLight
+    ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.arc(cx + between(rng, -130, 130), cy + between(rng, -80, 80), between(rng, 7, 26), between(rng, 0, 1), between(rng, 3.2, 5.8))
+    ctx.arc(x + 4, y + 4, between(rng, 2, 3), 0, TAU)
     ctx.stroke()
+    ctx.globalAlpha = 1
   }
-  for (let i = 0; i < 12; i += 1) {
-    const px = cx + between(rng, -100, 100)
-    const py = cy + between(rng, -65, 65)
-    ctx.globalAlpha = 0.85
-    ctx.fillStyle = CAMPUS_PALETTE.canopyMid
-    ctx.beginPath()
-    ctx.arc(px, py, between(rng, 3, 5), 0, TAU)
-    ctx.fill()
-    ctx.fillStyle = CAMPUS_PALETTE.waterMid
-    ctx.fillRect(px - 1, py, 2, 1)
-  }
+}
+
+function drawCliffTile(ctx: Ctx, col: number, row: number, rng: Rng): void {
+  const x = col * CAMPUS_CELL
+  const y = row * CAMPUS_CELL
   ctx.globalAlpha = 1
-  for (let i = 0; i < 8; i += 1) {
-    const a = pond[i % pond.length]
-    const b = pond[(i + 1) % pond.length]
-    const t = rng()
-    const rx = a.x + (b.x - a.x) * t + between(rng, -4, 4)
-    const ry = a.y + (b.y - a.y) * t + between(rng, -4, 4)
-    const stems = 3 + Math.floor(rng() * 3)
-    for (let k = 0; k < stems; k += 1) {
-      const sx = rx + k * 2
-      const sh = between(rng, 6, 12)
-      ctx.fillStyle = CAMPUS_PALETTE.canopyDark
-      ctx.fillRect(sx, ry - sh, 1, sh)
-      ctx.fillStyle = CAMPUS_PALETTE.earthDark
-      ctx.fillRect(sx - 1, ry - sh - 2, 2, 3)
-    }
-  }
-  // 東岸の木デッキ（回転なし）。
-  ctx.fillStyle = CAMPUS_PALETTE.shadow
-  ctx.globalAlpha = 0.4
-  ctx.fillRect(502, 622, 26, 14)
-  ctx.globalAlpha = 1
-  for (let i = 0; i < 4; i += 1) {
-    ctx.fillStyle = i % 2 === 0 ? CAMPUS_PALETTE.earthMid : CAMPUS_PALETTE.earthDark
-    ctx.fillRect(505, 620 + i * 3, 26, 3)
+  ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.rockMid, CAMPUS_PALETTE.rockDark, CAMPUS_PALETTE.rockMid])
+  ctx.fillRect(x, y, CAMPUS_CELL, CAMPUS_CELL)
+  if (rng() < 0.35) {
+    ctx.fillStyle = CAMPUS_PALETTE.rockLight
+    ctx.fillRect(x + int(rng, 1, 5), y + int(rng, 1, 5), 2, 2)
   }
   ctx.fillStyle = CAMPUS_PALETTE.rockDark
-  ctx.fillRect(506, 634, 2, 5)
-  ctx.fillRect(528, 634, 2, 5)
-  ctx.restore()
-}
-
-// 5. 建物: 2.5D。屋根の上に窓を描かず、南面の壁にだけ窓を並べる。
-function drawBuildings(ctx: Ctx, buildings: readonly CampusBuilding[], rng: Rng): void {
-  for (const b of buildings) {
-    const color = roofColor(b.roof)
-    const roofH = Math.max(30, Math.round(b.h * 0.62))
-    const wallY = b.y + roofH
-    const wallH = b.h - roofH
-    ctx.save()
-    // 地面の影（2層）。
-    ctx.globalAlpha = 0.25
-    ctx.fillStyle = CAMPUS_PALETTE.shadow
-    ctx.fillRect(b.x + 6, b.y + 10, b.w, b.h)
-    ctx.globalAlpha = 0.15
-    ctx.fillRect(b.x + 3, b.y + 5, b.w, b.h)
-    // 屋根。
-    ctx.globalAlpha = 1
-    ctx.fillStyle = color
-    ctx.fillRect(b.x, b.y, b.w, roofH)
-    ctx.globalAlpha = 0.16
-    ctx.fillStyle = CAMPUS_PALETTE.shadow
-    ctx.fillRect(b.x, b.y + roofH * 0.65, b.w, roofH * 0.35)
-    ctx.globalAlpha = 0.12
-    ctx.fillStyle = CAMPUS_PALETTE.wallLight
-    ctx.fillRect(b.x, b.y, b.w, 12)
-    ctx.globalAlpha = 0.3
-    ctx.fillStyle = CAMPUS_PALETTE.shadow
-    ctx.fillRect(b.x + 3, b.y + roofH * 0.45, b.w - 6, 2)
-    ctx.globalAlpha = 0.14
-    for (let x = b.x + 12; x < b.x + b.w - 4; x += 12 + Math.floor(rng() * 3)) {
-      ctx.fillRect(x, b.y + 2, 1, roofH - 4)
-    }
-    ctx.globalAlpha = 0.5
-    ctx.fillStyle = CAMPUS_PALETTE.shadow
-    ctx.fillRect(b.x, b.y, b.w, 1)
-    ctx.fillRect(b.x, b.y + roofH - 1, b.w, 1)
-    ctx.fillRect(b.x, b.y, 1, roofH)
-    ctx.fillRect(b.x + b.w - 1, b.y, 1, roofH)
-    ctx.globalAlpha = 0.4
-    ctx.fillRect(b.x + 1, b.y + roofH - 3, b.w - 2, 3)
-    // 屋上設備（屋根の北半分）。窓は作らない。
-    const units = 1 + (b.w > 160 ? 1 : 0)
-    for (let i = 0; i < units; i += 1) {
-      const ux = b.x + 10 + (i * (b.w - 40)) / Math.max(1, units - 1)
-      const uy = b.y + 8 + between(rng, 0, Math.max(1, roofH * 0.25))
-      ctx.globalAlpha = 0.5
-      ctx.fillStyle = CAMPUS_PALETTE.shadow
-      ctx.fillRect(ux + 1, uy + 1, 10, 7)
-      ctx.globalAlpha = 1
-      ctx.fillStyle = '#c9c4b8'
-      ctx.fillRect(ux, uy, 10, 7)
-      ctx.fillStyle = '#e6e2d8'
-      ctx.fillRect(ux, uy, 10, 1)
-      ctx.fillStyle = '#6f7377'
-      ctx.beginPath()
-      ctx.arc(ux + 5, uy + 4, 2, 0, TAU)
-      ctx.fill()
-    }
-    // メディアセンターだけ南半分に太陽光パネル。
-    if (b.id === 'mu') {
-      for (let row = 0; row < 2; row += 1) {
-        for (let col = 0; col < 3; col += 1) {
-          const px = b.x + 16 + col * 46
-          const py = b.y + roofH * 0.58 + row * 16
-          ctx.fillStyle = CAMPUS_PALETTE.roofBlue
-          ctx.fillRect(px, py, 8, 5)
-          ctx.fillStyle = '#7fb2d9'
-          ctx.fillRect(px, py, 8, 1)
-        }
-      }
-    }
-    // 南面の壁。
-    ctx.globalAlpha = 1
-    ctx.fillStyle = CAMPUS_PALETTE.wallLight
-    ctx.fillRect(b.x, wallY, b.w, wallH)
-    ctx.fillStyle = CAMPUS_PALETTE.wallShadow
-    ctx.fillRect(b.x, wallY, 4, wallH)
-    ctx.fillRect(b.x + b.w - 4, wallY, 4, wallH)
-    ctx.fillRect(b.x, b.y + b.h - 2, b.w, 2)
-    // 石積みの目地。大きな壁がのっぺりしないように薄く入れる。
-    ctx.globalAlpha = 0.14
-    ctx.fillStyle = CAMPUS_PALETTE.wallShadow
-    for (let wy = wallY + 7; wy < b.y + b.h - 3; wy += 7) {
-      ctx.fillRect(b.x + 2, wy, b.w - 4, 1)
-    }
-    ctx.globalAlpha = 0.1
-    for (let row = 0; wallY + 7 + row * 7 < b.y + b.h - 3; row += 1) {
-      const offset = row % 2 === 0 ? 0 : 7
-      for (let wx = b.x + 8 + offset; wx < b.x + b.w - 4; wx += 14) {
-        ctx.fillRect(wx, wallY + row * 7, 1, 7)
-      }
-    }
-    ctx.globalAlpha = 1
-    // 基礎の帯。
-    ctx.fillStyle = '#b3ac9e'
-    ctx.fillRect(b.x, b.y + b.h - 5, b.w, 3)
-    // 窓は壁の帯の中だけ。
-    const rows = Math.max(1, Math.min(2, Math.floor((wallH - 10) / 9)))
-    const cols = Math.floor((b.w - 20) / 18)
-    for (let row = 0; row < rows; row += 1) {
-      const wy = wallY + 6 + row * 9
-      if (wy + 5 > b.y + b.h - 2) continue
-      for (let col = 0; col < cols; col += 1) {
-        const wx = b.x + 12 + col * 18
-        ctx.fillStyle = '#2a3f5f'
-        ctx.fillRect(wx, wy, 9, 5)
-        ctx.fillStyle = '#7fb2d9'
-        ctx.fillRect(wx, wy, 9, 1)
-        ctx.fillStyle = '#f0ead9'
-        ctx.fillRect(wx - 1, wy + 5, 11, 1)
-      }
-    }
-    // 入口: ドア・庇・階段。
-    const doorH = Math.max(10, Math.round(wallH * 0.6))
-    const doorY = b.y + b.h - doorH
-    const doorX = b.entrance.x - 7
-    ctx.fillStyle = CAMPUS_PALETTE.wallShadow
-    ctx.fillRect(doorX - 2, doorY - 2, 18, doorH + 2)
-    ctx.fillStyle = '#3a2f28'
-    ctx.fillRect(doorX, doorY, 14, doorH)
-    ctx.fillStyle = CAMPUS_PALETTE.roofOchre
-    ctx.fillRect(doorX + 11, doorY + 3, 1, 2)
-    ctx.fillStyle = color
-    ctx.fillRect(b.entrance.x - 15, b.y + b.h, 30, 4)
-    ctx.globalAlpha = 0.5
-    ctx.fillStyle = CAMPUS_PALETTE.shadow
-    ctx.fillRect(b.entrance.x - 15, b.y + b.h + 4, 30, 2)
-    ctx.globalAlpha = 1
-    ctx.fillStyle = CAMPUS_PALETTE.stoneLight
-    ctx.fillRect(b.entrance.x - 5, b.y + b.h + 2, 2, 3)
-    ctx.fillRect(b.entrance.x + 3, b.y + b.h + 2, 2, 3)
-    // 軒の影。
-    ctx.globalAlpha = 0.45
-    ctx.fillStyle = CAMPUS_PALETTE.shadow
-    ctx.fillRect(b.x, wallY - 2, b.w, 3)
-    ctx.restore()
+  for (const [dc, dr] of DIR4) {
+    if (cellAt(col + dc, row + dr) === '#') continue
+    ctx.fillRect(...edgeRect(x, y, dc, dr, 2))
   }
 }
 
-export type TreeSpot = { x: number; y: number; r: number; cherry: boolean }
+function drawTerrain(ctx: Ctx, rng: Rng): void {
+  for (let row = 0; row < CAMPUS_ROWS; row += 1) {
+    for (let col = 0; col < CAMPUS_COLS; col += 1) {
+      const ch = CAMPUS_GRID[row][col]
+      if (ch === '.') drawGrassTile(ctx, col, row, rng)
+      else if (ch === '=') drawRoadTile(ctx, col, row, rng)
+      else if (ch === ':') drawDirtTile(ctx, col, row, rng)
+      else if (ch === '~') drawWaterTile(ctx, col, row, rng)
+      else if (ch === '#') drawCliffTile(ctx, col, row, rng)
+      else {
+        ctx.globalAlpha = 1
+        ctx.fillStyle = CAMPUS_PALETTE.grassDark
+        ctx.fillRect(col * CAMPUS_CELL, row * CAMPUS_CELL, CAMPUS_CELL, CAMPUS_CELL)
+      }
+    }
+  }
+}
 
-// 大木の位置。描画と当たり判定（幹）が同じ配置を使うため、ここで一度だけ決める。
-export function placeTrees(layout: CampusLayout = CAMPUS_LAYOUT): TreeSpot[] {
+function roofHeight(b: CampusBuilding): number {
+  return Math.max(30, Math.round(b.h * 0.62))
+}
+
+function buildingChar(b: CampusBuilding): string {
+  if (b.name === '') return 'n'
+  const hit = Object.entries(BUILDING_NAMES).find(([, v]) => v.id === b.id)
+  return hit ? hit[0] : 'n'
+}
+
+// 建物の地面の影。建物の外形の外にもはみ出すため、本体より先に別に描く。
+function drawBuildingShadow(ctx: Ctx, b: CampusBuilding): void {
+  ctx.save()
+  ctx.globalAlpha = 0.25
+  ctx.fillStyle = CAMPUS_PALETTE.shadow
+  ctx.fillRect(b.x + 6, b.y + 10, b.w, b.h)
+  ctx.globalAlpha = 0.15
+  ctx.fillRect(b.x + 3, b.y + 5, b.w, b.h)
+  ctx.restore()
+}
+
+// 矩形のうち、文字 ch のマスに重なる部分だけを塗る。不整形の建物が周囲の道や草を覆わないようにする。
+function fillIn(ctx: Ctx, ch: string, x: number, y: number, w: number, h: number): void {
+  const c0 = Math.floor(x / CAMPUS_CELL)
+  const c1 = Math.floor((x + w - 1) / CAMPUS_CELL)
+  const r0 = Math.floor(y / CAMPUS_CELL)
+  const r1 = Math.floor((y + h - 1) / CAMPUS_CELL)
+  for (let r = r0; r <= r1; r += 1) {
+    for (let c = c0; c <= c1; c += 1) {
+      if (cellAt(c, r) !== ch) continue
+      const x0 = Math.max(x, c * CAMPUS_CELL)
+      const y0 = Math.max(y, r * CAMPUS_CELL)
+      const x1 = Math.min(x + w, (c + 1) * CAMPUS_CELL)
+      const y1 = Math.min(y + h, (r + 1) * CAMPUS_CELL)
+      if (x1 > x0 && y1 > y0) ctx.fillRect(x0, y0, x1 - x0, y1 - y0)
+    }
+  }
+}
+
+// 屋根・壁・窓。bboxではなく、同じ文字の連結マスの上だけに描く。
+function drawBuildingBody(ctx: Ctx, b: CampusBuilding, rng: Rng): void {
+  const ch = buildingChar(b)
+  const fill = (x: number, y: number, w: number, h: number): void => fillIn(ctx, ch, x, y, w, h)
+  const color = roofColor(b.roof)
+  const roofH = roofHeight(b)
+  const wallY = b.y + roofH
+  const wallH = b.h - roofH
+  ctx.save()
+  // 屋根。
+  ctx.globalAlpha = 1
+  ctx.fillStyle = color
+  fill(b.x, b.y, b.w, roofH)
+  ctx.globalAlpha = 0.16
+  ctx.fillStyle = CAMPUS_PALETTE.shadow
+  fill(b.x, b.y + roofH * 0.65, b.w, roofH * 0.35)
+  ctx.globalAlpha = 0.12
+  ctx.fillStyle = CAMPUS_PALETTE.wallLight
+  fill(b.x, b.y, b.w, 12)
+  ctx.globalAlpha = 0.3
+  ctx.fillStyle = CAMPUS_PALETTE.shadow
+  fill(b.x + 3, b.y + roofH * 0.45, b.w - 6, 2)
+  ctx.globalAlpha = 0.14
+  for (let x = b.x + 12; x < b.x + b.w - 4; x += 12 + Math.floor(rng() * 3)) {
+    fill(x, b.y + 2, 1, roofH - 4)
+  }
+  ctx.globalAlpha = 0.5
+  ctx.fillStyle = CAMPUS_PALETTE.shadow
+  fill(b.x, b.y, b.w, 1)
+  fill(b.x, b.y + roofH - 1, b.w, 1)
+  fill(b.x, b.y, 1, roofH)
+  fill(b.x + b.w - 1, b.y, 1, roofH)
+  ctx.globalAlpha = 0.4
+  fill(b.x + 1, b.y + roofH - 3, b.w - 2, 3)
+  // 屋上設備（屋根の北半分）。窓は作らない。
+  const units = 1 + (b.w > 160 ? 1 : 0)
+  for (let i = 0; i < units; i += 1) {
+    const ux = b.x + 10 + (i * (b.w - 40)) / Math.max(1, units - 1)
+    const uy = b.y + 8 + between(rng, 0, Math.max(1, roofH * 0.25))
+    ctx.globalAlpha = 0.5
+    ctx.fillStyle = CAMPUS_PALETTE.shadow
+    fill(ux + 1, uy + 1, 10, 7)
+    ctx.globalAlpha = 1
+    ctx.fillStyle = '#c9c4b8'
+    fill(ux, uy, 10, 7)
+    ctx.fillStyle = '#e6e2d8'
+    fill(ux, uy, 10, 1)
+    if (cellAtPoint(ux + 5, uy + 4) !== ch) continue
+    ctx.fillStyle = '#6f7377'
+    ctx.beginPath()
+    ctx.arc(ux + 5, uy + 4, 2, 0, TAU)
+    ctx.fill()
+  }
+  // メディアセンターだけ南半分に太陽光パネル。
+  if (b.id === 'mu') {
+    for (let row = 0; row < 2; row += 1) {
+      for (let col = 0; col < 3; col += 1) {
+        const px = b.x + 16 + col * 46
+        const py = b.y + roofH * 0.58 + row * 16
+        ctx.fillStyle = CAMPUS_PALETTE.roofBlue
+        fill(px, py, 8, 5)
+        ctx.fillStyle = '#7fb2d9'
+        fill(px, py, 8, 1)
+      }
+    }
+  }
+  // 南面の壁。
+  ctx.globalAlpha = 1
+  ctx.fillStyle = CAMPUS_PALETTE.wallLight
+  fill(b.x, wallY, b.w, wallH)
+  ctx.fillStyle = CAMPUS_PALETTE.wallShadow
+  fill(b.x, wallY, 4, wallH)
+  fill(b.x + b.w - 4, wallY, 4, wallH)
+  fill(b.x, b.y + b.h - 2, b.w, 2)
+  // 石積みの目地。大きな壁がのっぺりしないように薄く入れる。
+  ctx.globalAlpha = 0.14
+  ctx.fillStyle = CAMPUS_PALETTE.wallShadow
+  for (let wy = wallY + 7; wy < b.y + b.h - 3; wy += 7) {
+    fill(b.x + 2, wy, b.w - 4, 1)
+  }
+  ctx.globalAlpha = 0.1
+  for (let row = 0; wallY + 7 + row * 7 < b.y + b.h - 3; row += 1) {
+    const offset = row % 2 === 0 ? 0 : 7
+    for (let wx = b.x + 8 + offset; wx < b.x + b.w - 4; wx += 14) {
+      fill(wx, wallY + row * 7, 1, 7)
+    }
+  }
+  ctx.globalAlpha = 1
+  // 基礎の帯。
+  ctx.fillStyle = '#b3ac9e'
+  fill(b.x, b.y + b.h - 5, b.w, 3)
+  // 窓は壁の帯の中だけ。
+  const rows = Math.max(1, Math.min(2, Math.floor((wallH - 10) / 9)))
+  const cols = Math.floor((b.w - 20) / 18)
+  for (let row = 0; row < rows; row += 1) {
+    const wy = wallY + 6 + row * 9
+    if (wy + 5 > b.y + b.h - 2) continue
+    for (let col = 0; col < cols; col += 1) {
+      const wx = b.x + 12 + col * 18
+      ctx.fillStyle = '#2a3f5f'
+      fill(wx, wy, 9, 5)
+      ctx.fillStyle = '#7fb2d9'
+      fill(wx, wy, 9, 1)
+      ctx.fillStyle = '#f0ead9'
+      fill(wx - 1, wy + 5, 11, 1)
+    }
+  }
+  // 軒の影。
+  ctx.globalAlpha = 0.45
+  ctx.fillStyle = CAMPUS_PALETTE.shadow
+  fill(b.x, wallY - 2, b.w, 3)
+  ctx.restore()
+}
+
+// 入口: ドア・庇・階段。道の側へ出っ張る部分なので、建物の外形の外に描く。
+function drawEntrance(ctx: Ctx, b: CampusBuilding): void {
+  const color = roofColor(b.roof)
+  const wallH = b.h - roofHeight(b)
+  const doorH = Math.max(10, Math.round(wallH * 0.6))
+  const doorY = b.y + b.h - doorH
+  const doorX = b.entrance.x - 7
+  ctx.save()
+  ctx.globalAlpha = 1
+  ctx.fillStyle = CAMPUS_PALETTE.wallShadow
+  ctx.fillRect(doorX - 2, doorY - 2, 18, doorH + 2)
+  ctx.fillStyle = '#3a2f28'
+  ctx.fillRect(doorX, doorY, 14, doorH)
+  ctx.fillStyle = CAMPUS_PALETTE.roofOchre
+  ctx.fillRect(doorX + 11, doorY + 3, 1, 2)
+  ctx.fillStyle = color
+  ctx.fillRect(b.entrance.x - 15, b.y + b.h, 30, 4)
+  ctx.globalAlpha = 0.5
+  ctx.fillStyle = CAMPUS_PALETTE.shadow
+  ctx.fillRect(b.entrance.x - 15, b.y + b.h + 4, 30, 2)
+  ctx.globalAlpha = 1
+  ctx.fillStyle = CAMPUS_PALETTE.stoneLight
+  ctx.fillRect(b.entrance.x - 5, b.y + b.h + 2, 2, 3)
+  ctx.fillRect(b.entrance.x + 3, b.y + b.h + 2, 2, 3)
+  ctx.restore()
+}
+
+function drawBuilding(ctx: Ctx, b: CampusBuilding, rng: Rng): void {
+  drawBuildingBody(ctx, b, rng)
+  drawEntrance(ctx, b)
+}
+
+// 木の周囲1マス（3×3）に道・建物・池がないか。
+function nearBlocker(col: number, row: number): boolean {
+  for (let dr = -1; dr <= 1; dr += 1) {
+    for (let dc = -1; dc <= 1; dc += 1) {
+      const ch = cellAt(col + dc, row + dr)
+      if (isRoadCell(ch) || ch === '~' || isBuildingChar(ch)) return true
+    }
+  }
+  return false
+}
+
+// 木や低木の置ける点か。建物の入口から2マス以内は歩けなくなるので避ける。
+function spotClear(x: number, y: number): boolean {
+  const col = Math.floor(x / CAMPUS_CELL)
+  const row = Math.floor(y / CAMPUS_CELL)
+  if (nearBlocker(col, row)) return false
+  return ENTRANCE_CELLS.every((e) => Math.max(Math.abs(e.col - col), Math.abs(e.row - row)) > TREE_ENTRANCE_CLEAR)
+}
+
+// 大木の位置。描画と当たり判定（幹）が同じ配置を使うため、一度だけ決めてキャッシュする。
+// 幹の根元 (x, y + r*0.5) と樹冠の中心が、どちらも草地のマスの上にあることを条件にする。
+export function placeTrees(): TreeSpot[] {
+  if (treeCache) return treeCache
   const rng = mulberry32(0x7ee5)
   const spots: TreeSpot[] = []
-  for (const zone of layout.treeZones) {
-    const target = Math.round((zone.w * zone.h * zone.density) / 760)
-    let placed = 0
-    for (let attempt = 0; attempt < target * 8 && placed < target; attempt += 1) {
-      const x = zone.x + rng() * zone.w
-      const y = zone.y + rng() * zone.h
-      if (blockedForTree(x, y, layout)) continue
-      placed += 1
+  for (let row = 0; row < CAMPUS_ROWS; row += 1) {
+    for (let col = 0; col < CAMPUS_COLS; col += 1) {
+      if (CAMPUS_GRID[row][col] !== '.') continue
+      if (rng() > TREE_CHANCE) continue
+      const x = (col + rng()) * CAMPUS_CELL
+      const y = (row + rng()) * CAMPUS_CELL
       const r = 13 + (rng() + rng()) * 0.5 * 15
-      const cherry = Math.abs(x - 900) < 90 && rng() < 0.3
+      const cherry = rng() < 0.12
+      const baseY = y + r * 0.5
+      if (cellAtPoint(x, y) !== '.' || cellAtPoint(x, baseY) !== '.') continue
+      if (!spotClear(x, y) || !spotClear(x, baseY)) continue
+      if (spots.some((s) => Math.hypot(s.x - x, s.y - y) < TREE_SPACING)) continue
       spots.push({ x, y, r, cherry })
     }
   }
+  treeCache = spots
   return spots
 }
 
 // 6. 並木の大木: 地面の影 → 幹 → 3つの重なるシルエット → 中 → 明 → ハイライト。
-function drawTrees(ctx: Ctx, layout: CampusLayout, rng: Rng): void {
+function drawTrees(ctx: Ctx, rng: Rng): void {
   ctx.save()
-  for (const { x, y, r, cherry } of placeTrees(layout)) {
-      const dark = cherry ? CAMPUS_PALETTE.flowerPink : CAMPUS_PALETTE.canopyDark
-      const mid = cherry ? '#f6b3cc' : CAMPUS_PALETTE.canopyMid
-      const light = cherry ? CAMPUS_PALETTE.flowerWhite : CAMPUS_PALETTE.canopyLight
-      ctx.globalAlpha = 0.22
-      ctx.fillStyle = CAMPUS_PALETTE.shadow
+  for (const { x, y, r, cherry } of placeTrees()) {
+    const dark = cherry ? CAMPUS_PALETTE.flowerPink : CAMPUS_PALETTE.canopyDark
+    const mid = cherry ? '#f6b3cc' : CAMPUS_PALETTE.canopyMid
+    const light = cherry ? CAMPUS_PALETTE.flowerWhite : CAMPUS_PALETTE.canopyLight
+    ctx.globalAlpha = 0.22
+    ctx.fillStyle = CAMPUS_PALETTE.shadow
+    ctx.beginPath()
+    ctx.arc(x + 4, y + 6, r * 0.9, 0, TAU)
+    ctx.fill()
+    ctx.globalAlpha = 1
+    const trunkW = between(rng, 3, 5)
+    ctx.fillStyle = CAMPUS_PALETTE.rockDark
+    ctx.fillRect(x - trunkW / 2 + 1, y + r * 0.2, trunkW, r * 0.7)
+    ctx.fillStyle = CAMPUS_PALETTE.trunk
+    ctx.fillRect(x - trunkW / 2, y + r * 0.15, trunkW - 1, r * 0.7)
+    ctx.fillStyle = dark
+    for (const off of [[0, 0], [-r * 0.45, r * 0.18], [r * 0.45, r * 0.12]]) {
       ctx.beginPath()
-      ctx.arc(x + 4, y + 6, r * 0.9, 0, TAU)
+      ctx.arc(x + off[0], y + off[1], r * 0.72, 0, TAU)
       ctx.fill()
-      ctx.globalAlpha = 1
-      const trunkW = between(rng, 3, 5)
-      ctx.fillStyle = CAMPUS_PALETTE.rockDark
-      ctx.fillRect(x - trunkW / 2 + 1, y + r * 0.2, trunkW, r * 0.7)
-      ctx.fillStyle = CAMPUS_PALETTE.trunk
-      ctx.fillRect(x - trunkW / 2, y + r * 0.15, trunkW - 1, r * 0.7)
-      ctx.fillStyle = dark
-      for (const off of [[0, 0], [-r * 0.45, r * 0.18], [r * 0.45, r * 0.12]]) {
-        ctx.beginPath()
-        ctx.arc(x + off[0], y + off[1], r * 0.72, 0, TAU)
-        ctx.fill()
-      }
-      ctx.fillStyle = mid
-      for (const off of [[-r * 0.12, -r * 0.18], [r * 0.3, r * 0.05]]) {
-        ctx.beginPath()
-        ctx.arc(x + off[0], y + off[1], r * 0.58, 0, TAU)
-        ctx.fill()
-      }
-      ctx.fillStyle = light
-      for (const off of [[-r * 0.3, -r * 0.35], [r * 0.15, -r * 0.3]]) {
-        ctx.beginPath()
-        ctx.arc(x + off[0], y + off[1], r * 0.38, 0, TAU)
-        ctx.fill()
-      }
-      ctx.globalAlpha = 0.6
-      ctx.fillStyle = light
-      for (let k = 0; k < 3; k += 1) {
-        ctx.beginPath()
-        ctx.arc(x + between(rng, -r * 0.6, r * 0.6), y + between(rng, -r * 0.6, 0), between(rng, 2, 4), 0, TAU)
-        ctx.fill()
-      }
     }
+    ctx.fillStyle = mid
+    for (const off of [[-r * 0.12, -r * 0.18], [r * 0.3, r * 0.05]]) {
+      ctx.beginPath()
+      ctx.arc(x + off[0], y + off[1], r * 0.58, 0, TAU)
+      ctx.fill()
+    }
+    ctx.fillStyle = light
+    for (const off of [[-r * 0.3, -r * 0.35], [r * 0.15, -r * 0.3]]) {
+      ctx.beginPath()
+      ctx.arc(x + off[0], y + off[1], r * 0.38, 0, TAU)
+      ctx.fill()
+    }
+    ctx.globalAlpha = 0.6
+    ctx.fillStyle = light
+    for (let k = 0; k < 3; k += 1) {
+      ctx.beginPath()
+      ctx.arc(x + between(rng, -r * 0.6, r * 0.6), y + between(rng, -r * 0.6, 0), between(rng, 2, 4), 0, TAU)
+      ctx.fill()
+    }
+  }
   ctx.restore()
 }
 
-// 7. 装飾: 舗装修正済みの花・低木・岩・ベンチ・街灯・落ち葉。
-function drawProps(ctx: Ctx, layout: CampusLayout, rng: Rng): void {
+// 並木道の看板の周囲で、道から1マス空けた草地のマス（ベンチや街灯の候補）。
+function roadsideGrass(): Array<{ col: number; row: number }> {
+  const out: Array<{ col: number; row: number }> = []
+  const cc = CAMPUS_NAMIKI_CELL.col
+  const cr = CAMPUS_NAMIKI_CELL.row
+  for (let row = cr - 14; row <= cr + 14; row += 1) {
+    for (let col = cc - 14; col <= cc + 14; col += 1) {
+      if (cellAt(col, row) !== '.') continue
+      const beside = DIR4.some(([dc, dr]) => isRoadCell(cellAt(col + 2 * dc, row + 2 * dr)) && cellAt(col + dc, row + dr) === '.')
+      if (beside) out.push({ col, row })
+    }
+  }
+  return out
+}
+
+// 7. 装飾: 花・低木・ベンチ・街灯・落ち葉。すべてグリッドで判定し、道・建物・池の上には置かない。
+function drawProps(ctx: Ctx, rng: Rng): void {
   ctx.save()
-  const pathSegments = layout.paths.flatMap(segmentsOf)
+  const width = CAMPUS_LAYOUT.width
+  const height = CAMPUS_LAYOUT.height
   const flowerColors = [CAMPUS_PALETTE.flowerPink, CAMPUS_PALETTE.flowerYellow, CAMPUS_PALETTE.flowerWhite]
-  // 道沿いの花は舗装の縁から外側に置く。
   let flowers = 0
   for (let attempt = 0; attempt < 340 * 20 && flowers < 340; attempt += 1) {
-    let x: number
-    let y: number
-    if (rng() < 0.55) {
-      const s = pick(rng, pathSegments)
-      const t = rng()
-      const side = rng() > 0.5 ? 1 : -1
-      const off = side * (s.width / 2 + 4 + between(rng, 2, 22))
-      x = s.a.x + (s.b.x - s.a.x) * t + s.nx * off
-      y = s.a.y + (s.b.y - s.a.y) * t + s.ny * off
-      if (onPavement(x, y, layout, 5)) continue
-    } else {
-      const z = pick(rng, layout.treeZones)
-      x = z.x + rng() * z.w
-      y = z.y + rng() * z.h
-      if (onPavement(x, y, layout, 5)) continue
-    }
-    if (x < 8 || y < 8 || x > layout.width - 8 || y > layout.height - 8) continue
-    if (nearBuilding(x, y, layout, 4) || nearPond(x, y, layout, 6)) continue
+    const x = Math.floor(rng() * width)
+    const y = Math.floor(rng() * height)
+    if (cellAtPoint(x, y) !== '.') continue
     flowers += 1
     ctx.globalAlpha = 1
     ctx.fillStyle = pick(rng, flowerColors)
@@ -786,10 +528,9 @@ function drawProps(ctx: Ctx, layout: CampusLayout, rng: Rng): void {
   }
   let bushes = 0
   for (let attempt = 0; attempt < 90 * 20 && bushes < 90; attempt += 1) {
-    const z = pick(rng, layout.treeZones)
-    const x = z.x + rng() * z.w
-    const y = z.y + rng() * z.h
-    if (onPavement(x, y, layout, 4) || nearBuilding(x, y, layout, 8) || nearPond(x, y, layout, 10)) continue
+    const x = Math.floor(rng() * width)
+    const y = Math.floor(rng() * height)
+    if (cellAtPoint(x, y) !== '.' || !spotClear(x, y)) continue
     bushes += 1
     ctx.globalAlpha = 0.9
     ctx.fillStyle = CAMPUS_PALETTE.shadow
@@ -804,87 +545,48 @@ function drawProps(ctx: Ctx, layout: CampusLayout, rng: Rng): void {
     ctx.fillStyle = CAMPUS_PALETTE.canopyLight
     ctx.fillRect(x - 3, y - 5, 4, 3)
   }
-  let rocks = 0
-  for (let attempt = 0; attempt < 50 * 20 && rocks < 50; attempt += 1) {
-    const c = pick(rng, layout.cliffs)
-    const x = c.x + rng() * c.w
-    const y = c.y + rng() * c.h
-    if (x < 4 || y < 4 || x > layout.width - 4 || y > layout.height - 4) continue
-    if (onPavement(x, y, layout, 4)) continue
-    rocks += 1
-    const r = between(rng, 3, 8)
-    ctx.globalAlpha = 0.3
-    ctx.fillStyle = CAMPUS_PALETTE.shadow
-    ctx.fillRect(x + 2, y + 2, r * 1.5, r)
+  const roadside = roadsideGrass()
+  for (let i = 0; i < 8 && roadside.length > 0; i += 1) {
+    const cell = roadside[Math.floor(((i + 0.5) / 8) * roadside.length)]
+    const x = cell.col * CAMPUS_CELL + CAMPUS_CELL / 2
+    const y = cell.row * CAMPUS_CELL + CAMPUS_CELL / 2
     ctx.globalAlpha = 1
-    ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.rockMid, CAMPUS_PALETTE.rockLight])
+    ctx.fillStyle = CAMPUS_PALETTE.shadow
+    ctx.fillRect(x - 9, y - 2, 18, 2)
+    ctx.fillStyle = CAMPUS_PALETTE.trunk
+    ctx.fillRect(x - 9, y - 4, 18, 5)
+    ctx.fillRect(x - 8, y - 10, 16, 5)
+    ctx.fillStyle = CAMPUS_PALETTE.stoneDark
+    ctx.fillRect(x - 7, y + 2, 3, 3)
+    ctx.fillRect(x + 4, y + 2, 3, 3)
+  }
+  for (let i = 0; i < 10 && roadside.length > 0; i += 1) {
+    const cell = roadside[Math.floor(((i + 0.5) / 10) * roadside.length)]
+    const x = cell.col * CAMPUS_CELL + CAMPUS_CELL / 2
+    const y = cell.row * CAMPUS_CELL + CAMPUS_CELL / 2
+    ctx.globalAlpha = 0.25
+    ctx.fillStyle = '#f3d27a'
     ctx.beginPath()
-    ctx.arc(x, y, r, 0, TAU)
+    ctx.arc(x, y - 17, 4, 0, TAU)
     ctx.fill()
-    ctx.fillStyle = CAMPUS_PALETTE.rockLight
-    ctx.fillRect(x - r * 0.4, y - r * 0.5, r * 0.6, 2)
+    ctx.globalAlpha = 1
+    ctx.fillStyle = CAMPUS_PALETTE.stoneDark
+    ctx.fillRect(x - 2, y - 2, 4, 8)
+    ctx.fillStyle = CAMPUS_PALETTE.trunk
+    ctx.fillRect(x - 1, y - 16, 2, 14)
+    ctx.fillStyle = CAMPUS_PALETTE.flowerYellow
+    ctx.fillRect(x - 2, y - 18, 4, 3)
   }
-  // 並木道に沿ってベンチ8と街灯10。
-  const avenue = layout.paths.find((p) => p.width === 120)
-  if (avenue) {
-    const s = segmentsOf(avenue)[0]
-    if (s) {
-      for (let i = 0; i < 8; i += 1) {
-        const t = (i + 1) / 9
-        const off = i % 2 === 0 ? 84 : -84
-        const x = s.a.x + (s.b.x - s.a.x) * t + s.nx * off
-        const y = s.a.y + (s.b.y - s.a.y) * t + s.ny * off
-        ctx.globalAlpha = 1
-        ctx.fillStyle = CAMPUS_PALETTE.shadow
-        ctx.fillRect(x - 9, y - 2, 18, 2)
-        ctx.fillStyle = CAMPUS_PALETTE.trunk
-        ctx.fillRect(x - 9, y - 4, 18, 5)
-        ctx.fillRect(x - 8, y - 10, 16, 5)
-        ctx.fillStyle = CAMPUS_PALETTE.stoneDark
-        ctx.fillRect(x - 7, y + 2, 3, 3)
-        ctx.fillRect(x + 4, y + 2, 3, 3)
-      }
-      for (let i = 0; i < 10; i += 1) {
-        const t = (i + 0.5) / 10
-        const off = i % 2 === 0 ? -92 : 92
-        const x = s.a.x + (s.b.x - s.a.x) * t + s.nx * off
-        const y = s.a.y + (s.b.y - s.a.y) * t + s.ny * off
-        ctx.globalAlpha = 0.25
-        ctx.fillStyle = '#f3d27a'
-        ctx.beginPath()
-        ctx.arc(x, y - 17, 4, 0, TAU)
-        ctx.fill()
-        ctx.globalAlpha = 1
-        ctx.fillStyle = CAMPUS_PALETTE.stoneDark
-        ctx.fillRect(x - 2, y - 2, 4, 18)
-        ctx.fillStyle = CAMPUS_PALETTE.trunk
-        ctx.fillRect(x - 1, y - 16, 2, 16)
-        ctx.fillStyle = CAMPUS_PALETTE.flowerYellow
-        ctx.fillRect(x - 2, y - 18, 4, 3)
-      }
-    }
-  }
-  // 落ち葉はリトライで240枚を必ず置く（舗装上でも可）。
   let leaves = 0
   for (let attempt = 0; attempt < 240 * 20 && leaves < 240; attempt += 1) {
-    let x: number
-    let y: number
-    if (rng() < 0.6) {
-      const s = pick(rng, pathSegments)
-      const t = rng()
-      const off = (rng() > 0.5 ? 1 : -1) * between(rng, 20, 46)
-      x = s.a.x + (s.b.x - s.a.x) * t + s.nx * off
-      y = s.a.y + (s.b.y - s.a.y) * t + s.ny * off
-    } else {
-      const z = pick(rng, layout.treeZones)
-      x = z.x + rng() * z.w
-      y = z.y + rng() * z.h
-    }
-    if (x < 4 || y < 4 || x > layout.width - 4 || y > layout.height - 4) continue
+    const x = Math.floor(rng() * width)
+    const y = Math.floor(rng() * height)
+    const ch = cellAtPoint(x, y)
+    if (ch !== '.' && ch !== ':') continue
     leaves += 1
     ctx.globalAlpha = between(rng, 0.35, 0.75)
     ctx.fillStyle = pick(rng, [CAMPUS_PALETTE.roofOchre, CAMPUS_PALETTE.earthMid, CAMPUS_PALETTE.rockMid, '#c9a14a'])
-    ctx.fillRect(x, y, between(rng, 2, 5), between(rng, 2, 4))
+    ctx.fillRect(x, y, int(rng, 2, 4), int(rng, 2, 3))
   }
   ctx.restore()
 }
@@ -921,14 +623,12 @@ function drawSignboard(ctx: Ctx, x: number, y: number): void {
   ctx.restore()
 }
 
-export function drawCampusBase(ctx: Ctx, layout: CampusLayout = CAMPUS_LAYOUT): void {
+export function drawCampusBase(ctx: Ctx): void {
   const rng = mulberry32(0x5fc0a5)
-  drawGrass(ctx, layout, rng)
-  drawCliffs(ctx, layout.cliffs, layout, rng)
-  drawPaths(ctx, layout.paths, rng)
-  drawPond(ctx, layout.pond, rng)
-  drawBuildings(ctx, layout.buildings, rng)
-  drawTrees(ctx, layout, rng)
-  drawProps(ctx, layout, rng)
-  drawSignboard(ctx, 960, 420)
+  drawTerrain(ctx, rng)
+  for (const b of CAMPUS_LAYOUT.buildings) drawBuildingShadow(ctx, b)
+  for (const b of CAMPUS_LAYOUT.buildings) drawBuilding(ctx, b, rng)
+  drawTrees(ctx, rng)
+  drawProps(ctx, rng)
+  drawSignboard(ctx, CAMPUS_NAMIKI_CELL.col * CAMPUS_CELL + CAMPUS_CELL / 2, CAMPUS_NAMIKI_CELL.row * CAMPUS_CELL + CAMPUS_CELL / 2)
 }

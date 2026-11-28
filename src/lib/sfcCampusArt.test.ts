@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { CAMPUS_PALETTE, drawCampusBase } from './sfcCampusArt'
+import { CAMPUS_PALETTE, drawCampusBase, placeTrees } from './sfcCampusArt'
 import { CAMPUS_LAYOUT } from './sfcCampusLayout'
-import type { CampusLayout } from './sfcCampusLayout'
+import { cellAt, cellAtPoint, isBlockedCell, isRoadCell } from './sfcCampusGridQuery'
 
 type Op = unknown[]
 
@@ -22,6 +22,10 @@ function recorder() {
     },
   })
   return ctx as unknown as CanvasRenderingContext2D & { __ops: Op[] }
+}
+
+function isBuildingCell(ch: string): boolean {
+  return isBlockedCell(ch) && ch !== '#' && ch !== '~'
 }
 
 describe('drawCampusBase', () => {
@@ -55,31 +59,43 @@ describe('drawCampusBase', () => {
       if (!b) continue
       const wallY = b.y + Math.max(30, Math.round(b.h * 0.62))
       expect(y).toBeGreaterThanOrEqual(wallY)
-      expect(y + 5).toBeLessThanOrEqual(b.y + b.h - 1)
+      expect(y).toBeLessThan(b.y + b.h - 2)
     }
     expect(ctx.__ops.some((op) => op[0] === 'setLineDash')).toBe(false)
   })
 
-  it('keeps flowers off the stone pavement', () => {
-    const layout: CampusLayout = {
-      width: 1600,
-      height: 1200,
-      buildings: [],
-      pond: [],
-      paths: [{ points: [{ x: 100, y: 600 }, { x: 1500, y: 600 }], width: 120, kind: 'stone' }],
-      cliffs: [{ x: 0, y: 0, w: 40, h: 40 }],
-      treeZones: [{ x: 100, y: 100, w: 200, h: 200, density: 0.2 }],
-    }
+  it('keeps flowers on grass cells only', () => {
     const ctx = recorder()
-    drawCampusBase(ctx, layout)
+    drawCampusBase(ctx)
     const flowers = new Set<string>([CAMPUS_PALETTE.flowerPink, CAMPUS_PALETTE.flowerYellow, CAMPUS_PALETTE.flowerWhite])
-    for (const op of ctx.__ops) {
-      if (op[0] === 'fillRect' && flowers.has(op[1] as string)) {
-        const x = op[2] as number
-        const y = op[3] as number
-        const dx = Math.max(0, 100 - x, x - 1500)
-        const distance = Math.hypot(dx, y - 600)
-        expect(distance).toBeGreaterThan(60)
+    const anchors = ctx.__ops.filter((op) =>
+      op[0] === 'fillRect' && flowers.has(op[1] as string) && op[4] === 3 && op[5] === 3)
+    expect(anchors.length).toBeGreaterThan(100)
+    for (const op of anchors) {
+      expect(cellAtPoint(op[2] as number, op[3] as number)).toBe('.')
+    }
+  })
+})
+
+describe('placeTrees', () => {
+  it('places at least 100 trees', () => {
+    expect(placeTrees().length).toBeGreaterThanOrEqual(100)
+  })
+
+  it('plants every trunk on grass, away from roads, buildings and water', () => {
+    for (const t of placeTrees()) {
+      const bx = t.x
+      const by = t.y + t.r * 0.5
+      expect(cellAtPoint(bx, by)).toBe('.')
+      const col = Math.floor(bx / 8)
+      const row = Math.floor(by / 8)
+      for (let dr = -1; dr <= 1; dr += 1) {
+        for (let dc = -1; dc <= 1; dc += 1) {
+          const ch = cellAt(col + dc, row + dr)
+          expect(isRoadCell(ch)).toBe(false)
+          expect(isBuildingCell(ch)).toBe(false)
+          expect(ch).not.toBe('~')
+        }
       }
     }
   })

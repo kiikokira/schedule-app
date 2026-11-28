@@ -56,15 +56,6 @@ const BUTTON_BASE: CSSProperties = {
   touchAction: 'none',
 }
 
-const POND_XS = CAMPUS_LAYOUT.pond.map((p) => p.x)
-const POND_YS = CAMPUS_LAYOUT.pond.map((p) => p.y)
-const POND_BOX = {
-  x: Math.min(...POND_XS),
-  y: Math.min(...POND_YS),
-  w: Math.max(...POND_XS) - Math.min(...POND_XS),
-  h: Math.max(...POND_YS) - Math.min(...POND_YS),
-}
-
 export default function SfcCampusRpg({
   level,
   title,
@@ -451,19 +442,6 @@ export default function SfcCampusRpg({
                 overflow: 'hidden',
               }}
             >
-              <div
-                aria-hidden="true"
-                style={{
-                  position: 'absolute',
-                  left: `${POND_BOX.x / 16}%`,
-                  top: `${POND_BOX.y / 12}%`,
-                  width: `${POND_BOX.w / 16}%`,
-                  height: `${POND_BOX.h / 12}%`,
-                  borderRadius: '48% 52% 45% 55%',
-                  background: '#1e40af',
-                  border: '1px solid #93c5fd',
-                }}
-              />
               {CAMPUS_LAYOUT.buildings.map((b) => (
                 <div
                   key={b.id}

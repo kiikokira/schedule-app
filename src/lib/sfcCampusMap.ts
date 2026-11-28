@@ -3,8 +3,9 @@
 
 import { CAMPUS_CELL, CAMPUS_KAMOIKE_CELL, CAMPUS_NAMIKI_CELL, CAMPUS_SPAWN_CELL } from './sfcCampusGrid'
 import { blockerRects } from './sfcCampusGridQuery'
+import { placeTrees } from './sfcCampusArt'
 import { CAMPUS_LAYOUT, buildingById } from './sfcCampusLayout'
-import type { Blocker } from './sfcCampusMovement'
+import type { Blocker, CircleBlocker } from './sfcCampusMovement'
 
 export type HotspotKind = 'quest' | 'today' | 'info'
 export type Hotspot = { id: string; x: number; y: number; r: number; title: string; text: string; kind: HotspotKind }
@@ -25,7 +26,12 @@ function entranceOf(id: string): { x: number; y: number } {
 
 export const SPAWN = cellCenter(CAMPUS_SPAWN_CELL)
 
-export const BLOCKERS: Blocker[] = blockerRects()
+// 木の幹は placeTrees の結果から円にする（グリッドからは導出しない）。
+export function treeTrunkCircles(): CircleBlocker[] {
+  return placeTrees().map((t) => ({ kind: 'circle', x: t.x, y: t.y + t.r * 0.5, r: 5 }))
+}
+
+export const BLOCKERS: Blocker[] = [...blockerRects(), ...treeTrunkCircles()]
 
 export const HOTSPOTS: Hotspot[] = [
   {
