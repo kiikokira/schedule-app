@@ -3,23 +3,29 @@ import { CAMPUS_LAYOUT, buildingById } from './sfcCampusLayout'
 
 const REQUIRED = [
   'Α本館', 'Μメディアセンター', 'κ館', 'ε館', 'ι館', 'ο館', 'λ館',
-  'Σ生協食堂', 'Θ館', 'Ω館', 'τ大学院棟', '学生ラウンジ', 'βヴィレッジ', 'Ηヴィレッジ',
+  'Σ生協食堂', 'Θ館', 'Ω館', 'τ大学院棟', '学生ラウンジ',
 ]
 
 describe('CAMPUS_LAYOUT', () => {
   it('covers the required SFC buildings', () => {
     const names = CAMPUS_LAYOUT.buildings.map((b) => b.name)
     for (const name of REQUIRED) expect(names).toContain(name)
+    expect(names.filter((n) => n !== '')).toHaveLength(REQUIRED.length)
     expect(buildingById('alpha')?.name).toBe('Α本館')
   })
-  it('keeps every building inside the map and apart from the others', () => {
+  it('has no village buildings', () => {
+    expect(buildingById('beta')).toBeUndefined()
+    expect(buildingById('eta')).toBeUndefined()
+    expect(CAMPUS_LAYOUT.buildings.map((b) => b.name).join(' ')).not.toContain('ヴィレッジ')
+  })
+  it('keeps every building on the grid, inside the map and apart from the others', () => {
     for (const b of CAMPUS_LAYOUT.buildings) {
-      expect(b.x).toBeGreaterThan(0)
-      expect(b.y).toBeGreaterThan(0)
-      expect(b.x + b.w).toBeLessThan(CAMPUS_LAYOUT.width)
-      expect(b.y + b.h).toBeLessThan(CAMPUS_LAYOUT.height)
-      expect(b.w).toBeGreaterThanOrEqual(100)
-      expect(b.h).toBeGreaterThanOrEqual(70)
+      expect(b.x % 8).toBe(0)
+      expect(b.y % 8).toBe(0)
+      expect(b.x).toBeGreaterThanOrEqual(0)
+      expect(b.y).toBeGreaterThanOrEqual(0)
+      expect(b.x + b.w).toBeLessThanOrEqual(CAMPUS_LAYOUT.width)
+      expect(b.y + b.h).toBeLessThanOrEqual(CAMPUS_LAYOUT.height)
     }
     const bs = CAMPUS_LAYOUT.buildings
     for (let i = 0; i < bs.length; i += 1) {
@@ -41,38 +47,8 @@ describe('CAMPUS_LAYOUT', () => {
       expect(b.entrance.y).toBeLessThan(CAMPUS_LAYOUT.height)
     }
   })
-  it('keeps the pond, paths, cliffs and tree zones inside the map', () => {
-    for (const p of CAMPUS_LAYOUT.pond) {
-      expect(p.x).toBeGreaterThanOrEqual(0)
-      expect(p.y).toBeGreaterThanOrEqual(0)
-      expect(p.x).toBeLessThanOrEqual(CAMPUS_LAYOUT.width)
-      expect(p.y).toBeLessThanOrEqual(CAMPUS_LAYOUT.height)
-    }
-    expect(CAMPUS_LAYOUT.pond.length).toBeGreaterThanOrEqual(6)
-    for (const path of CAMPUS_LAYOUT.paths) {
-      expect(path.points.length).toBeGreaterThanOrEqual(2)
-      expect(path.width).toBeGreaterThanOrEqual(40)
-      for (const p of path.points) {
-        expect(p.x).toBeGreaterThanOrEqual(0)
-        expect(p.y).toBeGreaterThanOrEqual(0)
-        expect(p.x).toBeLessThanOrEqual(CAMPUS_LAYOUT.width)
-        expect(p.y).toBeLessThanOrEqual(CAMPUS_LAYOUT.height)
-      }
-    }
-    for (const rect of [...CAMPUS_LAYOUT.cliffs, ...CAMPUS_LAYOUT.treeZones]) {
-      expect(rect.x).toBeGreaterThanOrEqual(0)
-      expect(rect.y).toBeGreaterThanOrEqual(0)
-      expect(rect.x + rect.w).toBeLessThanOrEqual(CAMPUS_LAYOUT.width)
-      expect(rect.y + rect.h).toBeLessThanOrEqual(CAMPUS_LAYOUT.height)
-    }
-  })
-  it('has dense tree zones along the avenue and the edges', () => {
-    expect(CAMPUS_LAYOUT.treeZones.length).toBeGreaterThanOrEqual(6)
-    const weighted = CAMPUS_LAYOUT.treeZones.reduce((sum, z) => sum + z.w * z.h * z.density, 0)
-    expect(weighted).toBeGreaterThan(180000)
-  })
-  it('uses a 4:3 map', () => {
-    expect(CAMPUS_LAYOUT.width).toBe(1600)
-    expect(CAMPUS_LAYOUT.height).toBe(1200)
+  it('uses the 185 by 148 cell map', () => {
+    expect(CAMPUS_LAYOUT.width).toBe(1480)
+    expect(CAMPUS_LAYOUT.height).toBe(1184)
   })
 })

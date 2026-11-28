@@ -1,8 +1,9 @@
 // SFCキャンパスRPGのマップデータ。当たり判定・ホットスポット・ラベルは
-// CAMPUS_LAYOUT から導出し、座標の二重管理を避ける。
+// 地形グリッドと CAMPUS_LAYOUT から導出し、座標の二重管理を避ける。
 
+import { CAMPUS_CELL, CAMPUS_KAMOIKE_CELL, CAMPUS_NAMIKI_CELL, CAMPUS_SPAWN_CELL } from './sfcCampusGrid'
+import { blockerRects } from './sfcCampusGridQuery'
 import { CAMPUS_LAYOUT, buildingById } from './sfcCampusLayout'
-import { placeTrees } from './sfcCampusArt'
 import type { Blocker } from './sfcCampusMovement'
 
 export type HotspotKind = 'quest' | 'today' | 'info'
@@ -13,39 +14,22 @@ export const MAP_W = CAMPUS_LAYOUT.width
 export const MAP_H = CAMPUS_LAYOUT.height
 export const ZOOM = 2
 export const PLAYER_RADIUS = 6
-export const SPAWN = { x: 900, y: 1130 }
 
-// 池は描画と同じ多角形で判定する（水の内側と岸からの距離で衝突）。
-const POND_BLOCKER: Blocker = { kind: 'poly', points: CAMPUS_LAYOUT.pond }
-
-// 大木の幹は、描画で使う配置の根元に円を置く。
-const TREE_BLOCKERS: Blocker[] = placeTrees(CAMPUS_LAYOUT).map((t) => ({
-  kind: 'circle' as const,
-  x: t.x,
-  y: t.y + t.r * 0.5,
-  r: 5,
-}))
-
-export const BLOCKERS: Blocker[] = [
-  ...CAMPUS_LAYOUT.buildings.map((b) => ({
-    kind: 'rect' as const,
-    x: b.x - 6,
-    y: b.y - 6,
-    w: b.w + 12,
-    h: b.h + 12,
-  })),
-  POND_BLOCKER,
-  ...CAMPUS_LAYOUT.cliffs.map((c) => ({ kind: 'rect' as const, x: c.x, y: c.y, w: c.w, h: c.h })),
-  ...TREE_BLOCKERS,
-]
+function cellCenter(cell: { col: number; row: number }): { x: number; y: number } {
+  return { x: cell.col * CAMPUS_CELL + CAMPUS_CELL / 2, y: cell.row * CAMPUS_CELL + CAMPUS_CELL / 2 }
+}
 
 function entranceOf(id: string): { x: number; y: number } {
   return buildingById(id)!.entrance
 }
 
+export const SPAWN = cellCenter(CAMPUS_SPAWN_CELL)
+
+export const BLOCKERS: Blocker[] = blockerRects()
+
 export const HOTSPOTS: Hotspot[] = [
   {
-    id: 'namiki-board', x: 960, y: 420, r: 48, kind: 'quest', title: '並木道の看板',
+    id: 'namiki-board', ...cellCenter(CAMPUS_NAMIKI_CELL), r: 48, kind: 'quest', title: '並木道の看板',
     text: '今日の学習枠が貼られている。近づいてEで確認しよう。',
   },
   {
@@ -65,7 +49,7 @@ export const HOTSPOTS: Hotspot[] = [
     text: 'グループ学習に使える開けた空間。',
   },
   {
-    id: 'kamoike', x: 515, y: 650, r: 48, kind: 'info', title: '鴨池',
+    id: 'kamoike', ...cellCenter(CAMPUS_KAMOIKE_CELL), r: 48, kind: 'info', title: '鴨池',
     text: '鴨が泳ぐ池。岸をのんびり歩ける。',
   },
   {
@@ -80,33 +64,26 @@ export const HOTSPOTS: Hotspot[] = [
     id: 'grad-tau', ...entranceOf('tau'), r: 44, kind: 'info', title: 'τ大学院棟',
     text: '北東の大学院棟。遠くまで見渡せる。',
   },
-  {
-    id: 'beta-village', ...entranceOf('beta'), r: 44, kind: 'info', title: 'βヴィレッジ',
-    text: '学生が暮らすヴィレッジ。',
-  },
-  {
-    id: 'eta-village', ...entranceOf('eta'), r: 44, kind: 'info', title: 'Ηヴィレッジ',
-    text: '西のヴィレッジ。池のほとりに建つ。',
-  },
 ]
 
 export const AREA_LABELS: MapLabel[] = [
-  { text: '並木道', x: 900, y: 500, kind: 'area' },
-  { text: '鴨池', x: 330, y: 640, kind: 'area' },
-  { text: '本館前', x: 680, y: 1110, kind: 'area' },
-  { text: '生協食堂前', x: 440, y: 280, kind: 'area' },
-  { text: '大学院棟', x: 1360, y: 230, kind: 'area' },
-  { text: 'ヴィレッジ', x: 1370, y: 940, kind: 'area' },
-  { text: 'メディアセンター前', x: 1120, y: 760, kind: 'area' },
+  { text: '並木道', ...cellCenter(CAMPUS_NAMIKI_CELL), kind: 'area' },
+  { text: '鴨池', ...cellCenter(CAMPUS_KAMOIKE_CELL), kind: 'area' },
+  { text: '本館前', ...entranceOf('alpha'), kind: 'area' },
+  { text: '生協食堂前', ...entranceOf('sigma-cafeteria'), kind: 'area' },
+  { text: '大学院棟', ...entranceOf('tau'), kind: 'area' },
+  { text: 'メディアセンター前', ...entranceOf('mu'), kind: 'area' },
 ]
 
 export const LABELS: MapLabel[] = [
-  ...CAMPUS_LAYOUT.buildings.map((b) => ({
-    text: b.name,
-    x: b.x + b.w / 2,
-    y: b.y + 18,
-    kind: 'building' as const,
-  })),
+  ...CAMPUS_LAYOUT.buildings
+    .filter((b) => b.name !== '')
+    .map((b) => ({
+      text: b.name,
+      x: b.x + b.w / 2,
+      y: b.y + 18,
+      kind: 'building' as const,
+    })),
   ...AREA_LABELS,
 ]
 

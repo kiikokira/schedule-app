@@ -101,11 +101,6 @@ function drawDebug(ctx: CanvasRenderingContext2D): void {
   for (const b of BLOCKERS) {
     if (b.kind === 'rect') {
       ctx.strokeRect(b.x, b.y, b.w, b.h)
-    } else if (b.kind === 'poly') {
-      ctx.beginPath()
-      b.points.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)))
-      ctx.closePath()
-      ctx.stroke()
     } else {
       ctx.beginPath()
       ctx.arc(b.x, b.y, b.r, 0, TAU)
