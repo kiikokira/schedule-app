@@ -31,4 +31,20 @@ describe('SfcCampusCanvas', () => {
     render(<SfcCampusCanvas padRef={padRef as never} />)
     expect(screen.getByTestId('sfc-campus-canvas')).toBeInTheDocument()
   })
+
+  it('stops dragging when the pointer is cancelled', () => {
+    const padRef = { current: { dx: 0, dy: 0 } }
+    render(<SfcCampusCanvas padRef={padRef as never} />)
+    const canvas = screen.getByTestId('sfc-campus-canvas')
+    const pointer = (type: string, x: number): Event => {
+      const event = new MouseEvent(type, { clientX: x, clientY: 10, bubbles: true })
+      Object.defineProperty(event, 'pointerId', { value: 1 })
+      return event
+    }
+    canvas.dispatchEvent(pointer('pointerdown', 10))
+    canvas.dispatchEvent(pointer('pointermove', 50))
+    expect(padRef.current.dx).toBeGreaterThan(0.5)
+    canvas.dispatchEvent(pointer('pointercancel', 50))
+    expect(padRef.current).toEqual({ dx: 0, dy: 0 })
+  })
 })

@@ -18,6 +18,7 @@ import {
   type Point,
   type WalkOptions,
 } from '../lib/sfcCampusMovement'
+import { isTap, stickVector } from '../lib/sfcCampusStick'
 import {
   BLOCKERS,
   HOTSPOTS,
@@ -39,6 +40,15 @@ type Props = {
   onAction?: () => void
   onAreaChange?: (area: string) => void
   onCancel?: () => void
+  onPlayerMove?: (x: number, y: number) => void
+}
+
+type DragState = {
+  id: number
+  anchorClient: Point
+  anchorCanvas: Point
+  downAt: number
+  moved: number
 }
 
 const SPEED = 110
@@ -171,10 +181,12 @@ export default function SfcCampusCanvas({
   onAction,
   onAreaChange,
   onCancel,
+  onPlayerMove,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
 
+  const dragRef = useRef<DragState | null>(null)
   const posRef = useRef<Point>({ x: SPAWN.x, y: SPAWN.y })
   const camRef = useRef<Point>({ x: SPAWN.x, y: SPAWN.y })
   const dirRef = useRef<Direction>('down')
@@ -194,11 +206,13 @@ export default function SfcCampusCanvas({
   const onActionRef = useRef(onAction)
   const onAreaChangeRef = useRef(onAreaChange)
   const onCancelRef = useRef(onCancel)
+  const onPlayerMoveRef = useRef(onPlayerMove)
   pausedRef.current = paused
   onNearbyChangeRef.current = onNearbyChange
   onActionRef.current = onAction
   onAreaChangeRef.current = onAreaChange
   onCancelRef.current = onCancel
+  onPlayerMoveRef.current = onPlayerMove
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -234,19 +248,19 @@ export default function SfcCampusCanvas({
     const ro = new ResizeObserver(resize)
     ro.observe(wrapper)
 
-    const onPointerDown = (event: PointerEvent): void => {
-      if (pausedRef.current) return
+    const targetAt = (clientX: number, clientY: number): Point => {
       const rect = canvas.getBoundingClientRect()
       const view = viewRef.current
-      const cam = camRef.current
-      const topLeft = { x: cam.x - view.w / 2, y: cam.y - view.h / 2 }
-      const target = {
-        x: topLeft.x + (event.clientX - rect.left) / ZOOM,
-        y: topLeft.y + (event.clientY - rect.top) / ZOOM,
+      const topLeft = { x: camRef.current.x - view.w / 2, y: camRef.current.y - view.h / 2 }
+      return {
+        x: topLeft.x + (clientX - rect.left) / ZOOM,
+        y: topLeft.y + (clientY - rect.top) / ZOOM,
       }
-      const hit = HOTSPOTS.find(
-        (h) => Math.hypot(target.x - h.x, target.y - h.y) <= h.r,
-      )
+    }
+
+    const handleTap = (clientX: number, clientY: number): void => {
+      const target = targetAt(clientX, clientY)
+      const hit = HOTSPOTS.find((h) => Math.hypot(target.x - h.x, target.y - h.y) <= h.r)
       const aim = hit ? { x: hit.x, y: hit.y } : target
       if (hit && findNearbyHotspot(posRef.current.x, posRef.current.y)?.id === hit.id) {
         onActionRef.current?.()
@@ -255,8 +269,8 @@ export default function SfcCampusCanvas({
       pendingHotspotRef.current = hit ? hit.id : null
       const goal = isWalkable(aim, WALK_OPTIONS)
         ? aim
-        : nearestWalkable(aim, WALK_OPTIONS, 16)
-      const found = findPath(posRef.current, goal, WALK_OPTIONS, 16)
+        : nearestWalkable(aim, WALK_OPTIONS, 8)
+      const found = findPath(posRef.current, goal, WALK_OPTIONS, 8)
       if (found.length === 0) {
         pendingHotspotRef.current = null
         return
@@ -267,7 +281,65 @@ export default function SfcCampusCanvas({
       }
       pathRef.current = found
     }
+
+    const resetDrag = (): void => {
+      dragRef.current = null
+      padRef.current = { dx: 0, dy: 0 }
+    }
+
+    const onPointerDown = (event: PointerEvent): void => {
+      if (pausedRef.current) return
+      const rect = canvas.getBoundingClientRect()
+      dragRef.current = {
+        id: event.pointerId,
+        anchorClient: { x: event.clientX, y: event.clientY },
+        anchorCanvas: { x: event.clientX - rect.left, y: event.clientY - rect.top },
+        downAt: performance.now(),
+        moved: 0,
+      }
+      pathRef.current = []
+      pendingHotspotRef.current = null
+      padRef.current = { dx: 0, dy: 0 }
+      try {
+        canvas.setPointerCapture(event.pointerId)
+      } catch {
+        // jsdom 等では無視する。
+      }
+      event.preventDefault()
+    }
+
+    const onPointerMove = (event: PointerEvent): void => {
+      const drag = dragRef.current
+      if (!drag || drag.id !== event.pointerId) return
+      const vx = event.clientX - drag.anchorClient.x
+      const vy = event.clientY - drag.anchorClient.y
+      drag.moved = Math.max(drag.moved, Math.hypot(vx, vy))
+      padRef.current = stickVector({ x: 0, y: 0 }, { x: vx, y: vy })
+      pathRef.current = []
+      event.preventDefault()
+    }
+
+    const onPointerUp = (event: PointerEvent): void => {
+      const drag = dragRef.current
+      if (!drag || drag.id !== event.pointerId) return
+      const elapsed = performance.now() - drag.downAt
+      const wasTap = isTap(drag.moved, elapsed)
+      resetDrag()
+      try {
+        canvas.releasePointerCapture(event.pointerId)
+      } catch {
+        // 捕捉していない場合は無視する。
+      }
+      if (wasTap && !pausedRef.current) handleTap(drag.anchorClient.x, drag.anchorClient.y)
+    }
+
+    const onPointerCancel = (): void => resetDrag()
+
     canvas.addEventListener('pointerdown', onPointerDown)
+    canvas.addEventListener('pointermove', onPointerMove)
+    canvas.addEventListener('pointerup', onPointerUp)
+    canvas.addEventListener('pointercancel', onPointerCancel)
+    canvas.addEventListener('lostpointercapture', onPointerCancel)
 
     const onBlur = (): void => {
       keysRef.current.clear()
@@ -283,19 +355,28 @@ export default function SfcCampusCanvas({
       let moving = false
 
       if (!isPaused) {
-        let dx = padRef.current?.dx ?? 0
-        let dy = padRef.current?.dy ?? 0
+        let kdx = 0
+        let kdy = 0
         for (const key of keysRef.current) {
           const v = KEY_VECTORS[key]
           if (v) {
-            dx += v[0]
-            dy += v[1]
+            kdx += v[0]
+            kdy += v[1]
           }
         }
+        const kmag = Math.hypot(kdx, kdy)
+        if (kmag > 0) {
+          kdx /= kmag
+          kdy /= kmag
+        }
+        let dx = (padRef.current?.dx ?? 0) + kdx
+        let dy = (padRef.current?.dy ?? 0) + kdy
         const mag = Math.hypot(dx, dy)
-        if (mag > 0) {
+        if (mag > 1) {
           dx /= mag
           dy /= mag
+        }
+        if (mag > 0) {
           pathRef.current = []
           pendingHotspotRef.current = null
           const next = moveWithCollision(
@@ -336,7 +417,10 @@ export default function SfcCampusCanvas({
             budget -= step
           }
         }
-        if (moving) walkTimeRef.current += dt
+        if (moving) {
+          walkTimeRef.current += dt
+          onPlayerMoveRef.current?.(posRef.current.x, posRef.current.y)
+        }
       }
 
       // 近傍ホットスポットは変化したときだけ通知する。
@@ -409,6 +493,34 @@ export default function SfcCampusCanvas({
       if (debug) drawDebug(ctx)
       ctx.restore()
 
+      const drag = dragRef.current
+      if (drag && drag.moved > 4) {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+        const vec = stickVector({ x: 0, y: 0 }, {
+          x: (padRef.current?.dx ?? 0) * 40,
+          y: (padRef.current?.dy ?? 0) * 40,
+        })
+        ctx.save()
+        ctx.globalAlpha = 0.35
+        ctx.strokeStyle = '#eab308'
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.arc(drag.anchorCanvas.x, drag.anchorCanvas.y, 40, 0, TAU)
+        ctx.stroke()
+        ctx.globalAlpha = 0.6
+        ctx.fillStyle = '#eab308'
+        ctx.beginPath()
+        ctx.arc(
+          drag.anchorCanvas.x + vec.dx * 40,
+          drag.anchorCanvas.y + vec.dy * 40,
+          7,
+          0,
+          TAU,
+        )
+        ctx.fill()
+        ctx.restore()
+      }
+
       raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
@@ -417,6 +529,10 @@ export default function SfcCampusCanvas({
       cancelAnimationFrame(raf)
       ro.disconnect()
       canvas.removeEventListener('pointerdown', onPointerDown)
+      canvas.removeEventListener('pointermove', onPointerMove)
+      canvas.removeEventListener('pointerup', onPointerUp)
+      canvas.removeEventListener('pointercancel', onPointerCancel)
+      canvas.removeEventListener('lostpointercapture', onPointerCancel)
       window.removeEventListener('blur', onBlur)
     }
   }, [padRef])
@@ -426,6 +542,10 @@ export default function SfcCampusCanvas({
     const key = event.key.toLowerCase()
     if (key === 'escape') {
       onCancelRef.current?.()
+      return
+    }
+    if (key === 'e') {
+      if (!pausedRef.current && nearbyIdRef.current) onActionRef.current?.()
       return
     }
     if (key === 'enter' || key === ' ' || key === 'spacebar') {
