@@ -8,11 +8,101 @@ const YELLOW = '#eab308'
 const WHITE = '#f8fafc'
 const SKIN = '#f2c9a0'
 const HAIR = '#3b2a20'
-const BACKPACK = '#7c3f2a'
+const SHOE = '#2a2a3a'
 const SHADOW = 'rgba(0,0,0,0.28)'
 const TAU = Math.PI * 2
 
 type Ctx = CanvasRenderingContext2D
+
+const PALETTE: Record<string, string> = {
+  n: NAVY,
+  w: WHITE,
+  y: YELLOW,
+  s: SKIN,
+  h: HAIR,
+  k: SHOE,
+  d: SHADOW,
+}
+
+const WALK_B: readonly string[] = [
+  '...nn..nn...',
+  '...nn..nn...',
+  '...kk..kk...',
+]
+const WALK_A: readonly string[] = [
+  '..nn....nn..',
+  '..nn....nn..',
+  '..kk....kk..',
+]
+
+const DOWN_BODY: readonly string[] = [
+  '............',
+  '....hhhh....',
+  '...hhhhhh...',
+  '...hssssh...',
+  '...hssssh...',
+  '....ssss....',
+  '..nnnyynnn..',
+  '..nnnwwnnn..',
+  '..nnnwwnnn..',
+  '..nnnwwnnn..',
+  '..snnnnnns..',
+  '..snnnnnns..',
+]
+const UP_BODY: readonly string[] = [
+  '............',
+  '....hhhh....',
+  '...hhhhhh...',
+  '...hhhhhh...',
+  '...hhhhhh...',
+  '....hhhh....',
+  '..nnnnnnnn..',
+  '..nnnnnnnn..',
+  '..nnnnnnnn..',
+  '..nnnnnnnn..',
+  '..snnnnnns..',
+  '..snnnnnns..',
+]
+const LEFT_BODY: readonly string[] = [
+  '............',
+  '....hhhh....',
+  '...hhhhhh...',
+  '..ssshhhh...',
+  '..sshshhh...',
+  '....ssss....',
+  '..nyynnnnn..',
+  '..nnnwwnnn..',
+  '..nnnwwnnn..',
+  '..nnnwwnnn..',
+  '..snnnnnns..',
+  '..snnnnnns..',
+]
+const RIGHT_BODY: readonly string[] = [
+  '............',
+  '....hhhh....',
+  '...hhhhhh...',
+  '...hhhhsss..',
+  '...hhhshss..',
+  '....ssss....',
+  '..nnnnnyyn..',
+  '..nnnwwnnn..',
+  '..nnnwwnnn..',
+  '..nnnwwnnn..',
+  '..snnnnnns..',
+  '..snnnnnns..',
+]
+
+function makeFrame(body: readonly string[], legs: readonly string[]): readonly string[] {
+  return [...body, ...legs, '..dddddddd..']
+}
+
+// 4方向 x 2フレーム。胴体は連続したシルエットで、リュックは描かない。
+export const SPRITE_FRAMES: Record<Direction, readonly [readonly string[], readonly string[]]> = {
+  down: [makeFrame(DOWN_BODY, WALK_B), makeFrame(DOWN_BODY, WALK_A)],
+  up: [makeFrame(UP_BODY, WALK_B), makeFrame(UP_BODY, WALK_A)],
+  left: [makeFrame(LEFT_BODY, WALK_B), makeFrame(LEFT_BODY, WALK_A)],
+  right: [makeFrame(RIGHT_BODY, WALK_B), makeFrame(RIGHT_BODY, WALK_A)],
+}
 
 /**
  * 24x32の学生を描く。足元が (x, y)。
@@ -26,91 +116,19 @@ export function drawStudent(
   frame: 0 | 1,
   moving: boolean,
 ): void {
+  const rows = SPRITE_FRAMES[dir][moving && frame === 1 ? 1 : 0]
   const ox = x - 12
   const oy = y - 32
-  const step = moving && frame === 1 ? 1 : 0
-  const back = dir === 'up'
-  const left = dir === 'left'
-  const right = dir === 'right'
-
-  // cell 単位 = 2px。dx は歩行の1pxオフセット用。
-  const px = (cx: number, cy: number, w: number, h: number, color: string, dx = 0): void => {
-    ctx.fillStyle = color
-    ctx.fillRect(ox + cx * 2 + dx, oy + cy * 2, w * 2, h * 2)
-  }
-
   ctx.save()
-
-  // 影: (x-8, y-2, 16, 4) の楕円を2段のfillRectで近似
-  px(3, 15, 6, 1, SHADOW)
-  px(2, 16, 8, 1, SHADOW)
-
-  // 脚と靴（歩行フレームで前後の脚を1pxずつずらす）
-  px(4, 12, 2, 2, NAVY, -step)
-  px(6, 12, 2, 2, NAVY, step)
-  px(4, 14, 2, 1, HAIR, -step)
-  px(6, 14, 2, 1, HAIR, step)
-
-  // ブレザー・白シャツ・黄マフラー
-  px(3, 7, 6, 5, NAVY)
-  if (!back) {
-    px(5, 7, 2, 4, WHITE)
-    px(4, 6, 4, 1, YELLOW)
-    px(5, 7, 2, 1, YELLOW)
-    // 横を向くとマフラーの裾が後ろに流れる
-    if (left) px(8, 7, 1, 2, YELLOW)
-    if (right) px(3, 7, 1, 2, YELLOW)
+  for (let r = 0; r < rows.length; r += 1) {
+    const row = rows[r]
+    for (let c = 0; c < row.length; c += 1) {
+      const color = PALETTE[row[c]]
+      if (!color) continue
+      ctx.fillStyle = color
+      ctx.fillRect(ox + c * 2, oy + r * 2, 2, 2)
+    }
   }
-
-  // 腕と手（向きで前後に出る腕を入れ替える）
-  if (left || right) {
-    const front = left ? 2 : 9
-    const rear = left ? 9 : 2
-    px(front, 7, 1, 4, NAVY, left ? -step : step)
-    px(rear, 9, 1, 3, NAVY)
-    px(front, 11, 1, 1, SKIN, left ? -step : step)
-    px(rear, 12, 1, 1, SKIN)
-  } else {
-    px(2, 8, 1, 3, NAVY)
-    px(9, 8, 1, 3, NAVY)
-    px(2, 11, 1, 1, SKIN)
-    px(9, 11, 1, 1, SKIN)
-  }
-
-  // 頭（肌と髪）
-  px(4, 2, 4, 4, SKIN)
-  if (back) {
-    // 背面は髪で頭を覆い、顔は描かない
-    px(4, 1, 4, 5, HAIR)
-    px(3, 2, 1, 3, HAIR)
-    px(8, 2, 1, 3, HAIR)
-  } else if (left) {
-    px(5, 1, 3, 2, HAIR)
-    px(8, 2, 1, 3, HAIR)
-    px(4, 3, 1, 1, HAIR)
-    px(4, 4, 1, 1, HAIR) // 横顔の目
-  } else if (right) {
-    px(4, 1, 3, 2, HAIR)
-    px(3, 2, 1, 3, HAIR)
-    px(7, 3, 1, 1, HAIR)
-    px(7, 4, 1, 1, HAIR) // 横顔の目
-  } else {
-    px(4, 1, 4, 2, HAIR)
-    px(3, 2, 1, 2, HAIR)
-    px(8, 2, 1, 2, HAIR)
-    px(5, 3, 1, 1, HAIR)
-    px(4, 4, 1, 1, HAIR)
-    px(7, 4, 1, 1, HAIR)
-  }
-
-  // リュックは背面（up）でのみ見える
-  if (back) {
-    px(4, 6, 4, 1, BACKPACK)
-    px(3, 7, 6, 5, BACKPACK)
-    px(4, 8, 4, 1, NAVY)
-    px(4, 11, 4, 1, NAVY)
-  }
-
   ctx.restore()
 }
 
