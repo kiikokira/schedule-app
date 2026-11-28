@@ -73,12 +73,16 @@ export const CAMPUS_LAYOUT: CampusLayout = {
   ],
   paths: [
     { points: [{ x: 900, y: 1140 }, { x: 900, y: 140 }], width: 120, kind: 'stone' },
-    { points: [{ x: 800, y: 1120 }, { x: 1000, y: 1120 }], width: 90, kind: 'stone' },
-    { points: [{ x: 900, y: 240 }, { x: 1300, y: 240 }], width: 60, kind: 'earth' },
-    { points: [{ x: 540, y: 640 }, { x: 840, y: 640 }], width: 50, kind: 'earth' },
-    { points: [{ x: 960, y: 760 }, { x: 1180, y: 760 }], width: 50, kind: 'stone' },
-    { points: [{ x: 900, y: 900 }, { x: 1300, y: 950 }], width: 40, kind: 'earth' },
-    { points: [{ x: 840, y: 1000 }, { x: 360, y: 1030 }], width: 40, kind: 'earth' },
+    { points: [{ x: 800, y: 1125 }, { x: 1000, y: 1125 }], width: 90, kind: 'stone' },
+    { points: [{ x: 900, y: 240 }, { x: 1220, y: 240 }], width: 60, kind: 'earth' },
+    // κ〜λ館の間の路地。建物の上を通らないよう、ο館とλ館の隙間を抜ける。
+    { points: [{ x: 540, y: 710 }, { x: 840, y: 710 }], width: 40, kind: 'earth' },
+    // μとラウンジの間。
+    { points: [{ x: 960, y: 750 }, { x: 1180, y: 750 }], width: 40, kind: 'stone' },
+    // βヴィレッジ手前で止める。
+    { points: [{ x: 900, y: 900 }, { x: 1240, y: 950 }], width: 40, kind: 'earth' },
+    // Α本館の南、崖の間を通ってΗヴィレッジ入口へ。
+    { points: [{ x: 840, y: 1100 }, { x: 260, y: 1100 }], width: 40, kind: 'earth' },
   ],
   cliffs: [
     { x: 0, y: 0, w: 120, h: 1200 },

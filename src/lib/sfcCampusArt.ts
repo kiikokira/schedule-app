@@ -623,6 +623,23 @@ function drawBuildings(ctx: Ctx, buildings: readonly CampusBuilding[], rng: Rng)
     ctx.fillRect(b.x, wallY, 4, wallH)
     ctx.fillRect(b.x + b.w - 4, wallY, 4, wallH)
     ctx.fillRect(b.x, b.y + b.h - 2, b.w, 2)
+    // 石積みの目地。大きな壁がのっぺりしないように薄く入れる。
+    ctx.globalAlpha = 0.14
+    ctx.fillStyle = CAMPUS_PALETTE.wallShadow
+    for (let wy = wallY + 7; wy < b.y + b.h - 3; wy += 7) {
+      ctx.fillRect(b.x + 2, wy, b.w - 4, 1)
+    }
+    ctx.globalAlpha = 0.1
+    for (let row = 0; wallY + 7 + row * 7 < b.y + b.h - 3; row += 1) {
+      const offset = row % 2 === 0 ? 0 : 7
+      for (let wx = b.x + 8 + offset; wx < b.x + b.w - 4; wx += 14) {
+        ctx.fillRect(wx, wallY + row * 7, 1, 7)
+      }
+    }
+    ctx.globalAlpha = 1
+    // 基礎の帯。
+    ctx.fillStyle = '#b3ac9e'
+    ctx.fillRect(b.x, b.y + b.h - 5, b.w, 3)
     // 窓は壁の帯の中だけ。
     const rows = Math.max(1, Math.min(2, Math.floor((wallH - 10) / 9)))
     const cols = Math.floor((b.w - 20) / 18)
@@ -860,6 +877,38 @@ function drawProps(ctx: Ctx, layout: CampusLayout, rng: Rng): void {
   ctx.restore()
 }
 
+function drawSignboard(ctx: Ctx, x: number, y: number): void {
+  // 並木道の看板。ホットスポットの目印が宙に浮かないよう、木々の上に描く。
+  ctx.save()
+  ctx.globalAlpha = 0.3
+  ctx.fillStyle = CAMPUS_PALETTE.shadow
+  ctx.save()
+  ctx.translate(x, y + 5)
+  ctx.scale(1, 0.3)
+  ctx.beginPath()
+  ctx.arc(0, 0, 18, 0, TAU)
+  ctx.fill()
+  ctx.restore()
+  ctx.globalAlpha = 1
+  // 支柱
+  ctx.fillStyle = '#3f2a1a'
+  ctx.fillRect(x - 10, y - 12, 3, 17)
+  ctx.fillRect(x + 7, y - 12, 3, 17)
+  // 板
+  ctx.fillStyle = '#7a5230'
+  ctx.fillRect(x - 19, y - 30, 38, 20)
+  ctx.fillStyle = '#a8794a'
+  ctx.fillRect(x - 17, y - 28, 34, 16)
+  ctx.fillStyle = '#e8d8b0'
+  ctx.fillRect(x - 13, y - 24, 26, 2)
+  ctx.fillRect(x - 13, y - 20, 18, 2)
+  ctx.fillRect(x - 13, y - 16, 22, 2)
+  // 屋根
+  ctx.fillStyle = '#5a3f28'
+  ctx.fillRect(x - 21, y - 33, 42, 4)
+  ctx.restore()
+}
+
 export function drawCampusBase(ctx: Ctx, layout: CampusLayout = CAMPUS_LAYOUT): void {
   const rng = mulberry32(0x5fc0a5)
   drawGrass(ctx, layout, rng)
@@ -869,4 +918,5 @@ export function drawCampusBase(ctx: Ctx, layout: CampusLayout = CAMPUS_LAYOUT): 
   drawBuildings(ctx, layout.buildings, rng)
   drawTrees(ctx, layout, rng)
   drawProps(ctx, layout, rng)
+  drawSignboard(ctx, 960, 420)
 }

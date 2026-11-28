@@ -20,8 +20,13 @@ function pondBlockers(): Blocker[] {
   const cx = (Math.min(...xs) + Math.max(...xs)) / 2
   const cy = (Math.min(...ys) + Math.max(...ys)) / 2
   return [
+    // 楕円の池を円で近似する。中央の大きな円で南北の先端を、
+    // 左右の小さい円で東西の先端を塞ぎ、岸は歩ける余白を残す。
+    { kind: 'circle', x: cx, y: cy, r: 140 },
     { kind: 'circle', x: cx - 66, y: cy, r: 110 },
     { kind: 'circle', x: cx + 66, y: cy, r: 110 },
+    { kind: 'circle', x: cx - 140, y: cy + 20, r: 60 },
+    { kind: 'circle', x: cx + 140, y: cy + 10, r: 60 },
   ]
 }
 
@@ -63,7 +68,7 @@ export const HOTSPOTS: Hotspot[] = [
     text: 'グループ学習に使える開けた空間。',
   },
   {
-    id: 'kamoike', x: 560, y: 640, r: 44, kind: 'info', title: '鴨池',
+    id: 'kamoike', x: 515, y: 650, r: 48, kind: 'info', title: '鴨池',
     text: '鴨が泳ぐ池。岸をのんびり歩ける。',
   },
   {

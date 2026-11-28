@@ -157,7 +157,8 @@ export default function SfcCampusRpg({
             alignItems: 'flex-start',
             gap: 8,
             padding: '10px 12px max(12px, env(safe-area-inset-top))',
-            background: `linear-gradient(180deg, rgba(30,42,90,0.94) 0%, rgba(30,42,90,0.72) 70%, rgba(30,42,90,0) 100%)`,
+            background: 'rgba(30,42,90,0.92)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
             pointerEvents: 'none',
           }}
         >
@@ -401,20 +402,43 @@ export default function SfcCampusRpg({
               zIndex: 20,
               display: 'flex',
               flexDirection: 'column',
-              gap: 8,
-              padding: 12,
               overflowY: 'auto',
               background: `linear-gradient(180deg, ${NAVY} 0%, #0b1f16 100%)`,
-              touchAction: 'none',
+              touchAction: 'pan-y',
               overscrollBehavior: 'contain',
             }}
           >
-            <strong style={{ fontSize: 16 }}>🗺️ SFCキャンパス全体マップ</strong>
+            <div
+              style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                padding: '10px 12px',
+                background: NAVY,
+                borderBottom: `1px solid ${GOLD}`,
+              }}
+            >
+              <strong style={{ fontSize: 16 }}>🗺️ SFCキャンパス全体マップ</strong>
+              <button
+                type="button"
+                data-testid="sfc-map-close"
+                onClick={() => setMapOpen(false)}
+                style={{ ...BUTTON_BASE, background: '#475569' }}
+              >
+                閉じる
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 12px 12px' }}>
             <div
               data-testid="sfc-map-schematic"
               style={{
                 position: 'relative',
-                width: '100%',
+                width: 'min(100%, 380px)',
+                alignSelf: 'center',
                 aspectRatio: '4 / 3',
                 flexShrink: 0,
                 borderRadius: 8,
@@ -471,14 +495,7 @@ export default function SfcCampusRpg({
                 </span>
               ))}
             </div>
-            <button
-              type="button"
-              data-testid="sfc-map-close"
-              onClick={() => setMapOpen(false)}
-              style={{ ...BUTTON_BASE, alignSelf: 'flex-end', marginTop: 'auto', background: '#475569' }}
-            >
-              閉じる
-            </button>
+            </div>
           </div>
         ) : null}
       </div>
