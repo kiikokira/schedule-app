@@ -5,8 +5,8 @@ import SfcCampusCanvas from './SfcCampusCanvas'
 import type { CampusQuestSlot } from '../lib/sfcCampusQuests'
 import { questPanelState, questSummary, visibleSlots } from '../lib/sfcCampusQuests'
 import type { PadState } from '../lib/sfcCampusMovement'
-import { CAMPUS_LAYOUT, type RoofStyle } from '../lib/sfcCampusLayout'
-import { LABELS, type Hotspot } from '../lib/sfcCampusMap'
+import { SPAWN, type Hotspot } from '../lib/sfcCampusMap'
+import SfcCampusFullMap from './SfcCampusFullMap'
 
 type Props = {
   level: number
@@ -27,14 +27,6 @@ type Panel = { kind: 'quest' } | { kind: 'info'; hotspot: Hotspot }
 const NAVY = '#1e2a5a'
 const GOLD = '#eab308'
 const WHITE = '#ffffff'
-
-const ROOFS: Record<RoofStyle, string> = {
-  red: '#b45309',
-  blue: '#2563eb',
-  ochre: '#d97706',
-  gray: '#64748b',
-  brown: '#92400e',
-}
 
 const DIRECTIONS: Record<Direction, readonly [number, number]> = {
   up: [0, -1],
@@ -74,6 +66,7 @@ export default function SfcCampusRpg({
   const [panel, setPanel] = useState<Panel | null>(null)
   const [mapOpen, setMapOpen] = useState(false)
   const [area, setArea] = useState('SFCキャンパス')
+  const [player, setPlayer] = useState({ x: SPAWN.x, y: SPAWN.y })
 
   const syncPad = (): void => {
     let dx = 0
@@ -134,6 +127,7 @@ export default function SfcCampusRpg({
             onNearbyChange={setNearby}
             onAction={() => openFor(nearby)}
             onAreaChange={setArea}
+            onPlayerMove={(x, y) => setPlayer({ x, y })}
             onCancel={() => {
               setPanel(null)
               setMapOpen(false)
@@ -389,96 +383,11 @@ export default function SfcCampusRpg({
         ) : null}
 
         {mapOpen ? (
-          <div
-            data-testid="sfc-map-overlay"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              zIndex: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              overflowY: 'auto',
-              background: `linear-gradient(180deg, ${NAVY} 0%, #0b1f16 100%)`,
-              touchAction: 'pan-y',
-              overscrollBehavior: 'contain',
-            }}
-          >
-            <div
-              style={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 8,
-                padding: '10px 12px',
-                background: NAVY,
-                borderBottom: `1px solid ${GOLD}`,
-              }}
-            >
-              <strong style={{ fontSize: 16 }}>🗺️ SFCキャンパス全体マップ</strong>
-              <button
-                type="button"
-                data-testid="sfc-map-close"
-                onClick={() => setMapOpen(false)}
-                style={{ ...BUTTON_BASE, background: '#475569' }}
-              >
-                閉じる
-              </button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 12px 12px' }}>
-            <div
-              data-testid="sfc-map-schematic"
-              style={{
-                position: 'relative',
-                width: 'min(100%, 380px)',
-                alignSelf: 'center',
-                aspectRatio: '4 / 3',
-                flexShrink: 0,
-                borderRadius: 8,
-                border: `1px solid ${GOLD}`,
-                background: '#123a26',
-                overflow: 'hidden',
-              }}
-            >
-              {CAMPUS_LAYOUT.buildings.map((b) => (
-                <div
-                  key={b.id}
-                  aria-hidden="true"
-                  title={b.name}
-                  style={{
-                    position: 'absolute',
-                    left: `${b.x / 16}%`,
-                    top: `${b.y / 12}%`,
-                    width: `${b.w / 16}%`,
-                    height: `${b.h / 12}%`,
-                    borderRadius: 3,
-                    background: ROOFS[b.roof],
-                    border: '1px solid rgba(255,255,255,0.8)',
-                  }}
-                />
-              ))}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {LABELS.map((label, i) => (
-                <span
-                  key={`${label.text}-${i}`}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: 999,
-                    background: 'rgba(255,255,255,0.14)',
-                    border: '1px solid rgba(234,179,8,0.6)',
-                    fontSize: 11,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {label.text}
-                </span>
-              ))}
-            </div>
-            </div>
-          </div>
+          <SfcCampusFullMap
+            playerX={player.x}
+            playerY={player.y}
+            onClose={() => setMapOpen(false)}
+          />
         ) : null}
       </div>
 
