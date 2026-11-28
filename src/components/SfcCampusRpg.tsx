@@ -1,6 +1,6 @@
 // SFCキャンパス2D RPGの画面。HUD・クエストシート・全体マップ・十字キーを
 // マップカードの中にまとめ、ゲームループは SfcCampusCanvas に任せる。
-import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import SfcCampusCanvas from './SfcCampusCanvas'
 import type { CampusQuestSlot } from '../lib/sfcCampusQuests'
 import { questPanelState, questSummary, visibleSlots } from '../lib/sfcCampusQuests'
@@ -21,19 +21,11 @@ type Props = {
   onOpenBook: (bookId: string) => void
 }
 
-type Direction = 'up' | 'down' | 'left' | 'right'
 type Panel = { kind: 'quest' } | { kind: 'info'; hotspot: Hotspot }
 
 const NAVY = '#1e2a5a'
 const GOLD = '#eab308'
 const WHITE = '#ffffff'
-
-const DIRECTIONS: Record<Direction, readonly [number, number]> = {
-  up: [0, -1],
-  down: [0, 1],
-  left: [-1, 0],
-  right: [1, 0],
-}
 
 const BUTTON_BASE: CSSProperties = {
   minHeight: 44,
@@ -61,38 +53,11 @@ export default function SfcCampusRpg({
   onOpenBook,
 }: Props) {
   const padRef = useRef<PadState>({ dx: 0, dy: 0 })
-  const pressedRef = useRef<Set<Direction>>(new Set())
   const [nearby, setNearby] = useState<Hotspot | null>(null)
   const [panel, setPanel] = useState<Panel | null>(null)
   const [mapOpen, setMapOpen] = useState(false)
   const [area, setArea] = useState('SFCキャンパス')
   const [player, setPlayer] = useState({ x: SPAWN.x, y: SPAWN.y })
-
-  const syncPad = (): void => {
-    let dx = 0
-    let dy = 0
-    for (const dir of pressedRef.current) {
-      const v = DIRECTIONS[dir]
-      dx += v[0]
-      dy += v[1]
-    }
-    padRef.current = { dx, dy }
-  }
-
-  const handlePointerDown = (dir: Direction) => (event: ReactPointerEvent<HTMLButtonElement>) => {
-    pressedRef.current.add(dir)
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId)
-    } catch {
-      // jsdom 等、ポインタキャプチャ非対応環境では無視する。
-    }
-    syncPad()
-  }
-
-  const handlePointerUp = (dir: Direction) => () => {
-    pressedRef.current.delete(dir)
-    syncPad()
-  }
 
   const openFor = (hotspot: Hotspot | null): void => {
     if (!hotspot) return
@@ -198,45 +163,6 @@ export default function SfcCampusRpg({
               クエスト {questSummary(slots, slotsDone)}
             </button>
           </div>
-        </div>
-
-        <div
-          style={{
-            position: 'absolute',
-            left: 8,
-            bottom: 'max(12px, env(safe-area-inset-bottom))',
-            zIndex: 10,
-            display: 'grid',
-            gridTemplateAreas: '". up ." "left . right" ". down ."',
-            gap: 2,
-            touchAction: 'none',
-          }}
-        >
-          {(['up', 'left', 'right', 'down'] as Direction[]).map((dir) => (
-            <button
-              key={dir}
-              type="button"
-              data-testid={`sfc-dpad-${dir}`}
-              aria-label={{ up: '上へ', down: '下へ', left: '左へ', right: '右へ' }[dir]}
-              onPointerDown={handlePointerDown(dir)}
-              onPointerUp={handlePointerUp(dir)}
-              onPointerCancel={handlePointerUp(dir)}
-              onLostPointerCapture={handlePointerUp(dir)}
-              style={{
-                ...BUTTON_BASE,
-                gridArea: dir,
-                width: '44px',
-                height: '44px',
-                minWidth: '44px',
-                minHeight: '44px',
-                padding: 0,
-                fontSize: 18,
-                touchAction: 'none',
-              }}
-            >
-              {{ up: '↑', down: '↓', left: '←', right: '→' }[dir]}
-            </button>
-          ))}
         </div>
 
         {nearby ? (
@@ -392,7 +318,7 @@ export default function SfcCampusRpg({
       </div>
 
       <p style={{ margin: '8px 4px', textAlign: 'center', color: NAVY, fontSize: 12, fontWeight: 700 }}>
-        十字キー/WASD/タップで移動・近くでE
+        マップをなぞって移動・近くでE（キーボードは矢印/WASD）
       </p>
     </div>
   )

@@ -81,9 +81,10 @@ describe('SfcCampusRpg', () => {
     expect(screen.queryByTestId('rpg-3d-canvas')).toBeNull()
     expect(screen.queryByTestId('rpg-hero')).toBeNull()
   })
-  it('renders touch-safe 44px D-pad buttons', () => {
+  it('does not render the D-pad now that the map is dragged', () => {
     render(<SfcCampusRpg {...base} />)
-    expect(screen.getByTestId('sfc-dpad-up')).toHaveStyle({ touchAction: 'none', width: '44px', height: '44px' })
-    expect(screen.getByTestId('sfc-dpad-left')).toHaveStyle({ touchAction: 'none' })
+    expect(screen.queryByTestId('sfc-dpad-up')).toBeNull()
+    expect(screen.queryByTestId('sfc-dpad-left')).toBeNull()
+    expect(screen.getByText(/マップをなぞって移動/)).toBeInTheDocument()
   })
 })
