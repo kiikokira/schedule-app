@@ -7,6 +7,12 @@ import {
 const base: WalkOptions = { blockers: [], radius: 6, mapW: 200, mapH: 200 }
 
 describe('collides', () => {
+  it('blocks a polygon interior and its edges, but not the outside', () => {
+    const square: Blocker = { kind: 'poly', points: [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 40, y: 40 }, { x: 0, y: 40 }] }
+    expect(collides(20, 20, [square], 6)).toBe(true)
+    expect(collides(43, 20, [square], 6)).toBe(true)
+    expect(collides(60, 20, [square], 6)).toBe(false)
+  })
   it('detects a circle against a rect', () => {
     const wall: Blocker = { kind: 'rect', x: 0, y: 0, w: 20, h: 20 }
     expect(collides(10, 10, [wall], 6)).toBe(true)

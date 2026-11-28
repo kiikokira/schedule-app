@@ -683,9 +683,12 @@ function drawBuildings(ctx: Ctx, buildings: readonly CampusBuilding[], rng: Rng)
   }
 }
 
-// 6. 並木の大木: 地面の影 → 幹 → 3つの重なるシルエット → 中 → 明 → ハイライト。
-function drawTrees(ctx: Ctx, layout: CampusLayout, rng: Rng): void {
-  ctx.save()
+export type TreeSpot = { x: number; y: number; r: number; cherry: boolean }
+
+// 大木の位置。描画と当たり判定（幹）が同じ配置を使うため、ここで一度だけ決める。
+export function placeTrees(layout: CampusLayout = CAMPUS_LAYOUT): TreeSpot[] {
+  const rng = mulberry32(0x7ee5)
+  const spots: TreeSpot[] = []
   for (const zone of layout.treeZones) {
     const target = Math.round((zone.w * zone.h * zone.density) / 760)
     let placed = 0
@@ -696,6 +699,16 @@ function drawTrees(ctx: Ctx, layout: CampusLayout, rng: Rng): void {
       placed += 1
       const r = 13 + (rng() + rng()) * 0.5 * 15
       const cherry = Math.abs(x - 900) < 90 && rng() < 0.3
+      spots.push({ x, y, r, cherry })
+    }
+  }
+  return spots
+}
+
+// 6. 並木の大木: 地面の影 → 幹 → 3つの重なるシルエット → 中 → 明 → ハイライト。
+function drawTrees(ctx: Ctx, layout: CampusLayout, rng: Rng): void {
+  ctx.save()
+  for (const { x, y, r, cherry } of placeTrees(layout)) {
       const dark = cherry ? CAMPUS_PALETTE.flowerPink : CAMPUS_PALETTE.canopyDark
       const mid = cherry ? '#f6b3cc' : CAMPUS_PALETTE.canopyMid
       const light = cherry ? CAMPUS_PALETTE.flowerWhite : CAMPUS_PALETTE.canopyLight
@@ -736,7 +749,6 @@ function drawTrees(ctx: Ctx, layout: CampusLayout, rng: Rng): void {
         ctx.fill()
       }
     }
-  }
   ctx.restore()
 }
 

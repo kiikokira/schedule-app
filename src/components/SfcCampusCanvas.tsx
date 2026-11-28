@@ -38,6 +38,7 @@ type Props = {
   onNearbyChange?: (hotspot: Hotspot | null) => void
   onAction?: () => void
   onAreaChange?: (area: string) => void
+  onCancel?: () => void
 }
 
 const SPEED = 110
@@ -100,6 +101,11 @@ function drawDebug(ctx: CanvasRenderingContext2D): void {
   for (const b of BLOCKERS) {
     if (b.kind === 'rect') {
       ctx.strokeRect(b.x, b.y, b.w, b.h)
+    } else if (b.kind === 'poly') {
+      ctx.beginPath()
+      b.points.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)))
+      ctx.closePath()
+      ctx.stroke()
     } else {
       ctx.beginPath()
       ctx.arc(b.x, b.y, b.r, 0, TAU)
@@ -169,6 +175,7 @@ export default function SfcCampusCanvas({
   onNearbyChange,
   onAction,
   onAreaChange,
+  onCancel,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
@@ -178,6 +185,7 @@ export default function SfcCampusCanvas({
   const dirRef = useRef<Direction>('down')
   const walkTimeRef = useRef(0)
   const pathRef = useRef<Point[]>([])
+  const pendingHotspotRef = useRef<string | null>(null)
   const keysRef = useRef<Set<string>>(new Set())
   const nearbyIdRef = useRef<string | null>(null)
   const areaRef = useRef('')
@@ -190,10 +198,12 @@ export default function SfcCampusCanvas({
   const onNearbyChangeRef = useRef(onNearbyChange)
   const onActionRef = useRef(onAction)
   const onAreaChangeRef = useRef(onAreaChange)
+  const onCancelRef = useRef(onCancel)
   pausedRef.current = paused
   onNearbyChangeRef.current = onNearbyChange
   onActionRef.current = onAction
   onAreaChangeRef.current = onAreaChange
+  onCancelRef.current = onCancel
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -242,15 +252,20 @@ export default function SfcCampusCanvas({
       const hit = HOTSPOTS.find(
         (h) => Math.hypot(target.x - h.x, target.y - h.y) <= h.r,
       )
-      if (hit) {
+      const aim = hit ? { x: hit.x, y: hit.y } : target
+      if (hit && findNearbyHotspot(posRef.current.x, posRef.current.y)?.id === hit.id) {
         onActionRef.current?.()
         return
       }
-      const goal = isWalkable(target, WALK_OPTIONS)
-        ? target
-        : nearestWalkable(target, WALK_OPTIONS, 16)
+      pendingHotspotRef.current = hit ? hit.id : null
+      const goal = isWalkable(aim, WALK_OPTIONS)
+        ? aim
+        : nearestWalkable(aim, WALK_OPTIONS, 16)
       const found = findPath(posRef.current, goal, WALK_OPTIONS, 16)
-      if (found.length === 0) return
+      if (found.length === 0) {
+        pendingHotspotRef.current = null
+        return
+      }
       const first = found[0]
       if (Math.hypot(first.x - posRef.current.x, first.y - posRef.current.y) < 1) {
         found.shift()
@@ -287,6 +302,7 @@ export default function SfcCampusCanvas({
           dx /= mag
           dy /= mag
           pathRef.current = []
+          pendingHotspotRef.current = null
           const next = moveWithCollision(
             posRef.current,
             dx * SPEED * dt,
@@ -344,6 +360,11 @@ export default function SfcCampusCanvas({
           areaRef.current = area
           onAreaChangeRef.current?.(area)
         }
+      }
+
+      if (pendingHotspotRef.current && pathRef.current.length === 0) {
+        if (nearbyIdRef.current === pendingHotspotRef.current) onActionRef.current?.()
+        pendingHotspotRef.current = null
       }
 
       const view = viewRef.current
@@ -408,9 +429,13 @@ export default function SfcCampusCanvas({
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (isTypingTarget(event.target)) return
     const key = event.key.toLowerCase()
+    if (key === 'escape') {
+      onCancelRef.current?.()
+      return
+    }
     if (key === 'enter' || key === ' ' || key === 'spacebar') {
-      if (nearbyIdRef.current) onActionRef.current?.()
       if (key === ' ') event.preventDefault()
+      if (!pausedRef.current && nearbyIdRef.current) onActionRef.current?.()
       return
     }
     if (KEY_VECTORS[key]) {

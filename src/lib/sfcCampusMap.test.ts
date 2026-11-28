@@ -1,13 +1,36 @@
 import { describe, it, expect } from 'vitest'
 import { MAP_W, MAP_H, SPAWN, BLOCKERS, HOTSPOTS, LABELS, AREA_LABELS, findNearbyHotspot, nearestArea } from './sfcCampusMap'
 import { CAMPUS_LAYOUT } from './sfcCampusLayout'
+import { placeTrees } from './sfcCampusArt'
 import { isWalkable, nearestWalkable, type WalkOptions } from './sfcCampusMovement'
 
 const o: WalkOptions = { blockers: BLOCKERS, radius: 6, mapW: MAP_W, mapH: MAP_H }
 
+function insidePond(x: number, y: number): boolean {
+  const p = CAMPUS_LAYOUT.pond
+  let inside = false
+  for (let i = 0, j = p.length - 1; i < p.length; j = i, i += 1) {
+    if ((p[i].y > y) !== (p[j].y > y) && x < ((p[j].x - p[i].x) * (y - p[i].y)) / (p[j].y - p[i].y) + p[i].x) inside = !inside
+  }
+  return inside
+}
+
 describe('SFC campus map', () => {
   it('spawns on walkable ground', () => {
     expect(isWalkable(SPAWN, o)).toBe(true)
+  })
+  it('keeps the whole pond water blocked, including the west tip', () => {
+    expect(isWalkable({ x: 150, y: 600 }, o)).toBe(false)
+    for (let x = 100; x <= 560; x += 8) {
+      for (let y = 480; y <= 800; y += 8) {
+        if (insidePond(x, y)) expect(isWalkable({ x, y }, o)).toBe(false)
+      }
+    }
+  })
+  it('blocks every tree trunk', () => {
+    const trees = placeTrees(CAMPUS_LAYOUT)
+    expect(trees.length).toBeGreaterThan(100)
+    for (const t of trees) expect(isWalkable({ x: t.x, y: t.y + t.r * 0.5 }, o)).toBe(false)
   })
   it('blocks every building and the pond', () => {
     for (const b of CAMPUS_LAYOUT.buildings) {

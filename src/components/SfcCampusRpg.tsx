@@ -143,6 +143,10 @@ export default function SfcCampusRpg({
             onNearbyChange={setNearby}
             onAction={() => openFor(nearby)}
             onAreaChange={setArea}
+            onCancel={() => {
+              setPanel(null)
+              setMapOpen(false)
+            }}
           />
         </div>
 

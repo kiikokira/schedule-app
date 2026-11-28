@@ -2,6 +2,7 @@
 // CAMPUS_LAYOUT から導出し、座標の二重管理を避ける。
 
 import { CAMPUS_LAYOUT, buildingById } from './sfcCampusLayout'
+import { placeTrees } from './sfcCampusArt'
 import type { Blocker } from './sfcCampusMovement'
 
 export type HotspotKind = 'quest' | 'today' | 'info'
@@ -14,21 +15,16 @@ export const ZOOM = 2
 export const PLAYER_RADIUS = 6
 export const SPAWN = { x: 900, y: 1130 }
 
-function pondBlockers(): Blocker[] {
-  const xs = CAMPUS_LAYOUT.pond.map((p) => p.x)
-  const ys = CAMPUS_LAYOUT.pond.map((p) => p.y)
-  const cx = (Math.min(...xs) + Math.max(...xs)) / 2
-  const cy = (Math.min(...ys) + Math.max(...ys)) / 2
-  return [
-    // 楕円の池を円で近似する。中央の大きな円で南北の先端を、
-    // 左右の小さい円で東西の先端を塞ぎ、岸は歩ける余白を残す。
-    { kind: 'circle', x: cx, y: cy, r: 140 },
-    { kind: 'circle', x: cx - 66, y: cy, r: 110 },
-    { kind: 'circle', x: cx + 66, y: cy, r: 110 },
-    { kind: 'circle', x: cx - 140, y: cy + 20, r: 60 },
-    { kind: 'circle', x: cx + 140, y: cy + 10, r: 60 },
-  ]
-}
+// 池は描画と同じ多角形で判定する（水の内側と岸からの距離で衝突）。
+const POND_BLOCKER: Blocker = { kind: 'poly', points: CAMPUS_LAYOUT.pond }
+
+// 大木の幹は、描画で使う配置の根元に円を置く。
+const TREE_BLOCKERS: Blocker[] = placeTrees(CAMPUS_LAYOUT).map((t) => ({
+  kind: 'circle' as const,
+  x: t.x,
+  y: t.y + t.r * 0.5,
+  r: 5,
+}))
 
 export const BLOCKERS: Blocker[] = [
   ...CAMPUS_LAYOUT.buildings.map((b) => ({
@@ -38,8 +34,9 @@ export const BLOCKERS: Blocker[] = [
     w: b.w + 12,
     h: b.h + 12,
   })),
-  ...pondBlockers(),
+  POND_BLOCKER,
   ...CAMPUS_LAYOUT.cliffs.map((c) => ({ kind: 'rect' as const, x: c.x, y: c.y, w: c.w, h: c.h })),
+  ...TREE_BLOCKERS,
 ]
 
 function entranceOf(id: string): { x: number; y: number } {

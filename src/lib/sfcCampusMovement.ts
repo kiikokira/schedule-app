@@ -4,11 +4,30 @@
 export type Point = { x: number; y: number }
 export type RectBlocker = { kind: 'rect'; x: number; y: number; w: number; h: number }
 export type CircleBlocker = { kind: 'circle'; x: number; y: number; r: number }
-export type Blocker = RectBlocker | CircleBlocker
+export type PolyBlocker = { kind: 'poly'; points: readonly Point[] }
+export type Blocker = RectBlocker | CircleBlocker | PolyBlocker
 export type WalkOptions = { blockers: readonly Blocker[]; radius: number; mapW: number; mapH: number }
 export type PadState = { dx: number; dy: number }
 
-// 円が矩形または円に重なっているか。境界にちょうど接するだけなら非衝突。
+function insidePolygon(x: number, y: number, points: readonly Point[]): boolean {
+  let inside = false
+  for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
+    const a = points[i]
+    const b = points[j]
+    if ((a.y > y) !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) inside = !inside
+  }
+  return inside
+}
+
+function segmentDistance(x: number, y: number, a: Point, b: Point): number {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const len2 = dx * dx + dy * dy
+  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / len2))
+  return Math.hypot(x - (a.x + dx * t), y - (a.y + dy * t))
+}
+
+// 円が矩形・円・多角形に重なっているか。境界にちょうど接するだけなら非衝突。
 export function collides(x: number, y: number, blockers: readonly Blocker[], radius: number): boolean {
   const r2 = radius * radius
   for (const b of blockers) {
@@ -18,6 +37,13 @@ export function collides(x: number, y: number, blockers: readonly Blocker[], rad
       const dx = x - nx
       const dy = y - ny
       if (dx * dx + dy * dy < r2) return true
+    } else if (b.kind === 'poly') {
+      if (insidePolygon(x, y, b.points)) return true
+      for (let i = 0; i < b.points.length; i += 1) {
+        const a = b.points[i]
+        const c = b.points[(i + 1) % b.points.length]
+        if (segmentDistance(x, y, a, c) < radius) return true
+      }
     } else {
       const dx = x - b.x
       const dy = y - b.y
